@@ -4,23 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BRAND_CONSTANTS } from '@google/gemini-cli-core';
-
-// PLUMB Candidate B — Unicode Precision Plumb Line
+// PLUMB Revised Vertical Minimal Logo Mark
 export const shortAsciiLogo = `
- │ │ 
-├─┼─┤
-  ▼  PLUMB
+ │ 
+ │ 
+ ◆  PLUMB
 `;
 
 export const longAsciiLogo = `
- │ │ 
-├─┼─┤
-  ▼  PLUMB
+ │ 
+ │ 
+ ◆  PLUMB
 `;
 
-export const tinyAsciiLogo = `PLUMB │▼│`;
+export const tinyAsciiLogo = `PLUMB │◆│`;
 
-export const shortAsciiLogoCompactText = `PLUMB │▼│`;
-export const longAsciiLogoCompactText = `PLUMB │▼│`;
-export const tinyAsciiLogoCompactText = `PLUMB │▼│`;
+export const shortAsciiLogoCompactText = `PLUMB │◆│`;
+export const longAsciiLogoCompactText = `PLUMB │◆│`;
+export const tinyAsciiLogoCompactText = `PLUMB │◆│`;
