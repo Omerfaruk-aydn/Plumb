@@ -22,8 +22,8 @@ export const BRAND_CONSTANTS = {
     TYPOGRAPHIC_WELCOME: {
       id: 'TYPOGRAPHIC_WELCOME',
       name: 'PLUMB Typographic Welcome Mark',
-      lines: ['PLUMB', '│    ', '◆    '],
-      asciiLines: ['PLUMB', '|    ', 'v    '],
+      lines: ['PLUMB', '│', '◆'],
+      asciiLines: ['PLUMB', '|', 'v'],
       wordmark: 'PLUMB',
       width: 5,
       height: 3,

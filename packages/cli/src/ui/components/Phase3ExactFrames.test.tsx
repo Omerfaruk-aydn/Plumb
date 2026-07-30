@@ -15,45 +15,45 @@ import {
   getLogoWordmark,
   isRejectedDirection,
   isBobStemAligned,
+  verifyLogoGeometry,
 } from '../../../../core/src/brand/index.js';
 
-describe('PLUMB Phase 3 Direction A Refined Geometry & Production Frames', () => {
-  // 1. Direction A Variants & Alignment Verification
-  it('renders Direction A Welcome Mark correctly with bob directly aligned under stem', () => {
-    const welcome = getLogoPrimitive('DIRECTION_A_WELCOME');
-    expect(welcome).toContain('┌─┐ PLUMB');
-    expect(welcome).toContain('└─▼');
-    expect(isBobStemAligned('DIRECTION_A_WELCOME')).toBe(true);
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.height).toBeLessThanOrEqual(5);
+describe('PLUMB Phase 3 Locked Typographic Geometry & Production Frames', () => {
+  // 1. Geometry & Exact Vertical Alignment Tests
+  it('verifies exact 100% vertical stem, line, and bob column alignment on Welcome mark', () => {
+    const welcome = getLogoPrimitive('TYPOGRAPHIC_WELCOME');
+    expect(welcome).toContain('PLUMB');
+    expect(welcome).toContain('│');
+    expect(welcome).toContain('◆');
+    expect(isBobStemAligned('TYPOGRAPHIC_WELCOME')).toBe(true);
+    expect(verifyLogoGeometry('TYPOGRAPHIC_WELCOME').valid).toBe(true);
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.height).toBeLessThanOrEqual(3);
   });
 
-  it('renders Direction A Compact Header Mark correctly', () => {
-    const compact = getLogoPrimitive('DIRECTION_A_COMPACT');
-    expect(compact).toContain('┌─┐ PLUMB');
-    expect(compact).toContain('└─▼');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_COMPACT.height).toBe(2);
+  it('renders Compact Header Mark correctly', () => {
+    const compact = getLogoPrimitive('TYPOGRAPHIC_COMPACT');
+    expect(compact).toBe('PLUMB');
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_COMPACT.height).toBe(1);
   });
 
-  it('renders Direction A Micro Mark correctly for status/narrow surfaces', () => {
-    const micro = getLogoPrimitive('DIRECTION_A_MICRO');
-    expect(micro).toContain('┌─┐');
-    expect(micro).toContain('└─▼');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.width).toBe(3);
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.height).toBe(2);
+  it('renders Micro Mark correctly within 2x2 cell boundary', () => {
+    const micro = getLogoPrimitive('TYPOGRAPHIC_MICRO');
+    expect(micro).toBe('│\n◆');
+    expect(verifyLogoGeometry('TYPOGRAPHIC_MICRO').valid).toBe(true);
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_MICRO.width).toBeLessThanOrEqual(2);
   });
 
-  it('renders ASCII Fallbacks for all Direction A variants under NO_COLOR', () => {
-    const asciiWelcome = getLogoPrimitive('DIRECTION_A_WELCOME', { noColor: true });
-    const asciiMicro = getLogoPrimitive('DIRECTION_A_MICRO', { noColor: true });
-    expect(asciiWelcome).toContain('+-+ PLUMB');
-    expect(asciiWelcome).toContain('+-v');
-    expect(asciiMicro).toContain('+-v');
+  it('renders ASCII Fallbacks for all locked variants under NO_COLOR', () => {
+    const asciiWelcome = getLogoPrimitive('TYPOGRAPHIC_WELCOME', { noColor: true });
+    const asciiMicro = getLogoPrimitive('TYPOGRAPHIC_MICRO', { noColor: true });
+    expect(asciiWelcome).toContain('PLUMB\n|\nv');
+    expect(asciiMicro).toBe('|\nv');
   });
 
-  it('verifies Screen Reader Labels for all Direction A variants', () => {
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.screenReaderLabel).toContain('welcome');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_COMPACT.screenReaderLabel).toContain('compact');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.screenReaderLabel).toContain('micro');
+  it('verifies Screen Reader Labels for all locked variants', () => {
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.screenReaderLabel).toContain('welcome');
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_COMPACT.screenReaderLabel).toContain('compact');
+    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_MICRO.screenReaderLabel).toContain('micro');
   });
 
   // 2. UI Surfaces
@@ -79,20 +79,21 @@ describe('PLUMB Phase 3 Direction A Refined Geometry & Production Frames', () =>
     expect(output).not.toContain('AI-powered');
   });
 
-  // 3. Negative Mutation Tests
+  // 3. Negative Mutation Controls
   it('Negative Control 1: One-byte frame mutation alters SHA-256 string', () => {
-    const frame1 = getLogoPrimitive('DIRECTION_A_WELCOME');
+    const frame1 = getLogoPrimitive('TYPOGRAPHIC_WELCOME');
     const frame2 = frame1 + ' ';
     expect(frame1).not.toBe(frame2);
   });
 
   it('Negative Control 2: Width mutation fails expected width boundary', () => {
-    const width = BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.width;
-    expect(width).toBe(9);
-    expect(width + 5).not.toBe(9);
+    const width = BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.width;
+    expect(width).toBe(5);
+    expect(width + 5).not.toBe(5);
   });
 
-  it('Negative Control 3: Rejected directions B and C are rejected from runtime selection', () => {
+  it('Negative Control 3: Obsolete boxed P directions are rejected', () => {
+    expect(isRejectedDirection('DIRECTION_A')).toBe(true);
     expect(isRejectedDirection('DIRECTION_B')).toBe(true);
     expect(isRejectedDirection('DIRECTION_C')).toBe(true);
   });
