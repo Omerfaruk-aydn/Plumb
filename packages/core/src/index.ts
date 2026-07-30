@@ -11,6 +11,7 @@ export * from './config/memory.js';
 export * from './config/defaultModelConfigs.js';
 export * from './config/models.js';
 export * from './config/constants.js';
+export * from './brand/index.js';
 export * from './output/types.js';
 export * from './output/json-formatter.js';
 export * from './output/stream-json-formatter.js';
