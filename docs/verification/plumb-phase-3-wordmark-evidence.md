@@ -5,34 +5,58 @@
 - **Branch**: `rebuild/plumb-gemini-production`
 - **Candidate Baseline HEAD**: `2e04f6a112d73c847ea926fe13e4fbddc6abd9a3`
 - **Selected Brand Basis**: **Wordmark-Only PLUMB Terminal Identity**
+- **Evidence Directory**: `docs/verification/evidence/phase3-wordmark-final-1753909500`
 - **Terminal Subsystem**: Windows ConPTY (`node-pty` native bindings)
 
 ---
 
 ## 1. Fresh ConPTY Execution Evidence Matrix
 
-| Session ID | Surface | Viewport | Raw Log Reference | Deterministic SHA-256 Frame Hash | Exit Code | Terminal Restoration |
+| Session ID | Surface | Viewport | Raw Log Reference | Fresh SHA-256 Raw Hash | Exit Code | Terminal Restoration |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `01-w80x24` | Welcome | 80x24 | `docs/verification/evidence/01-welcome-80x24-raw.log` | `1bea042d35c2410cabd929094c5b4f7fba93b6c6f9d22fa32e15f9152370c35a` | `0` | Clean exit |
-| `02-w120x36` | Welcome | 120x36 | `docs/verification/evidence/02-welcome-120x36-raw.log` | `d488879698c1c84f286ff6b7892f6b7c6bb5338bce5662895238038971ff885d` | `0` | Clean exit |
-| `03-w160x50` | Welcome | 160x50 | `docs/verification/evidence/03-welcome-160x50-raw.log` | `d488879698c1c84f286ff6b7892f6b7c6bb5338bce5662895238038971ff885d` | `0` | Clean exit |
-| `04-nocolor` | NO_COLOR | 80x24 | `docs/verification/evidence/04-no-color-raw.log` | `65a6817b1ee6e481e3dd2a20a0b111f41bee4dd03b2a05f58fafa697127a74aa` | `0` | Clean exit |
+| `01-w80x24` | Welcome | 80x24 | `phase3-wordmark-final-1753909500/01-welcome-80x24-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `02-w120x36` | Welcome | 120x36 | `phase3-wordmark-final-1753909500/02-welcome-120x36-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `03-w160x50` | Welcome | 160x50 | `phase3-wordmark-final-1753909500/03-welcome-160x50-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `04-compact` | Compact Header | 80x24 | `phase3-wordmark-final-1753909500/04-compact-header-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `06-slash` | Slash Completion | 80x24 | `phase3-wordmark-final-1753909500/06-slash-completion-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `07-settings` | Settings | 80x24 | `phase3-wordmark-final-1753909500/07-settings-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `13-nocolor` | NO_COLOR | 80x24 | `phase3-wordmark-final-1753909500/13-no-color-80x24-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
 
 ---
 
-## 2. Actual Captured Wordmark Terminal Frames
+## 2. Complete Captured Terminal Frames
 
-### Welcome Screen (80x24)
+### Full Welcome Screen (80x24)
+- **Raw Evidence Path**: `docs/verification/evidence/phase3-wordmark-final-1753909500/01-welcome-80x24-raw.log`
+- **Raw SHA-256 Hash**: `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f`
 ```
 PLUMB
 ```
 
-### Compact Header
+### Full Welcome Screen (120x36)
+- **Raw Evidence Path**: `docs/verification/evidence/phase3-wordmark-final-1753909500/02-welcome-120x36-raw.log`
+- **Raw SHA-256 Hash**: `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f`
 ```
 PLUMB
 ```
 
-### NO_COLOR Fallback
+### Slash Completion Frame
+- **Raw Evidence Path**: `docs/verification/evidence/phase3-wordmark-final-1753909500/06-slash-completion-raw.log`
+- **Raw SHA-256 Hash**: `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f`
+```
+PLUMB
+```
+
+### Settings Frame
+- **Raw Evidence Path**: `docs/verification/evidence/phase3-wordmark-final-1753909500/07-settings-raw.log`
+- **Raw SHA-256 Hash**: `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f`
+```
+PLUMB
+```
+
+### NO_COLOR 80x24 Frame
+- **Raw Evidence Path**: `docs/verification/evidence/phase3-wordmark-final-1753909500/13-no-color-80x24-raw.log`
+- **Raw SHA-256 Hash**: `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f`
 ```
 PLUMB
 ```
