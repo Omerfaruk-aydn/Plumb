@@ -9,6 +9,10 @@
     "packages/*"
   ],
   "private": "true",
+  "bin": {
+    "plumb": "./bundle/gemini.js",
+    "gemini": "./bundle/gemini.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/google-gemini/gemini-cli.git"
