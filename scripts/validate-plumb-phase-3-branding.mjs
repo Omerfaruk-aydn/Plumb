@@ -47,6 +47,9 @@ export function validatePhase3Branding(baseDir = rootDir) {
     if (/ACTIVE_DEFAULT_LOGO\s*[:=]\s*['"][^'"]+['"]/.test(content)) {
       errors.push('[UNAPPROVED_DEFAULT_LOGO] A logo candidate was improperly marked as active default before user selection.');
     }
+    if (content.includes('DIRECTION_B') || content.includes('DIRECTION_C')) {
+      errors.push('[REJECTED_LOGO_SELECTABLE] Rejected directions B or C remain selectable at runtime.');
+    }
     if (content.includes('supercharge') || content.includes('AI-powered')) {
       errors.push('[MARKETING_SLOGAN_DETECTED] Marketing slogans are forbidden in brand constants.');
     }
@@ -91,10 +94,10 @@ export function validatePhase3Branding(baseDir = rootDir) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  console.log('Running Complete 22-Category PLUMB Phase 3 Branding Governance Validation:');
+  console.log('Running Complete 24-Category PLUMB Phase 3 Branding Governance Validation:');
   const res = validatePhase3Branding();
   if (res.valid) {
-    console.log('✅ ALL BRANDING GOVERNANCE VALIDATIONS PASSED');
+    console.log('✅ ALL 24-CATEGORY BRANDING GOVERNANCE VALIDATIONS PASSED');
     process.exit(0);
   } else {
     console.error('❌ BRANDING GOVERNANCE VALIDATION FAILED:');

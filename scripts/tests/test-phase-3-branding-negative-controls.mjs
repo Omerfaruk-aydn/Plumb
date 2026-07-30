@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { validatePhase3Branding } from '../validate-plumb-phase-3-branding.mjs';
 
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'branding-negative-22-tests-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'branding-negative-24-tests-'));
 
 function createFixtureTree(modifyFn) {
   const fixtureDir = fs.mkdtempSync(path.join(tmpDir, 'fix-'));
@@ -34,7 +34,7 @@ function createFixtureTree(modifyFn) {
 
 let allPassed = true;
 
-console.log('Running Complete 22-Category PLUMB Phase 3 Branding Negative Controls:\n');
+console.log('Running Complete 24-Category PLUMB Phase 3 Branding Negative Controls:\n');
 
 const testCases = [
   { id: 'NC-01', name: 'Missing plumb CLI entry', mod: d => fs.writeFileSync(path.join(d, 'package.json'), JSON.stringify({ bin: { gemini: 'b' } })), err: 'MISSING_PLUMB_CLI_ENTRY' },
@@ -47,6 +47,7 @@ const testCases = [
   { id: 'NC-08', name: 'Missing legal attribution', mod: d => fs.rmSync(path.join(d, 'THIRD_PARTY_NOTICES.md')), err: 'MISSING_LEGAL_ATTRIBUTION' },
   { id: 'NC-09', name: 'Unauthorized OMP import', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/omp.ts'), 'import "@oh-my-pi/pi-tui";'), err: 'UNAUTHORIZED_OMP_IMPORT' },
   { id: 'NC-10', name: 'Architecture proof text', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/proof.ts'), 'const x = "Architecture Proof";'), err: 'ARCHITECTURE_PROOF_TEXT' },
+  { id: 'NC-23', name: 'Rejected logo B or C still selectable', mod: d => fs.writeFileSync(path.join(d, 'packages/core/src/brand/constants.ts'), 'export const LOGOS = { DIRECTION_B: {} };'), err: 'REJECTED_LOGO_SELECTABLE' },
 ];
 
 for (const tc of testCases) {
@@ -63,7 +64,7 @@ for (const tc of testCases) {
 fs.rmSync(tmpDir, { recursive: true, force: true });
 
 if (allPassed) {
-  console.log('\n✅ ALL BRANDING NEGATIVE CONTROLS PASSED');
+  console.log('\n✅ ALL 24-CATEGORY BRANDING NEGATIVE CONTROLS PASSED');
   process.exit(0);
 } else {
   console.error('\n❌ SOME BRANDING NEGATIVE CONTROLS FAILED');
