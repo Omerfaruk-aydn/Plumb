@@ -4,15 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// PLUMB Locked Visual System: Typography-First Wordmark with True Vertical Plumb Line
-export const shortAsciiLogo = `PLUMB
-│
-◆`;
-
-export const longAsciiLogo = `PLUMB
-│
-◆`;
-
+// PLUMB Wordmark-Only Terminal System
+export const shortAsciiLogo = `PLUMB`;
+export const longAsciiLogo = `PLUMB`;
 export const tinyAsciiLogo = `PLUMB`;
 
 export const shortAsciiLogoCompactText = `PLUMB`;
