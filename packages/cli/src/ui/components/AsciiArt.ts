@@ -4,23 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// PLUMB Refined Direction A (Geometric P + Plumb Bob) Marks
-export const shortAsciiLogo = `┌─┐ PLUMB
-│ │
-├─┘
-└─▼`;
+// PLUMB Locked Visual System: Typography-First Wordmark with True Vertical Plumb Line
+export const shortAsciiLogo = `PLUMB
+│
+◆`;
 
-export const longAsciiLogo = `┌─┐ PLUMB
-│ │
-├─┘
-└─▼`;
+export const longAsciiLogo = `PLUMB
+│
+◆`;
 
-export const tinyAsciiLogo = `┌─┐ PLUMB
-└─▼`;
+export const tinyAsciiLogo = `PLUMB`;
 
-export const shortAsciiLogoCompactText = `┌─┐ PLUMB
-└─▼`;
-export const longAsciiLogoCompactText = `┌─┐ PLUMB
-└─▼`;
-export const tinyAsciiLogoCompactText = `┌─┐ PLUMB
-└─▼`;
+export const shortAsciiLogoCompactText = `PLUMB`;
+export const longAsciiLogoCompactText = `PLUMB`;
+export const tinyAsciiLogoCompactText = `PLUMB`;

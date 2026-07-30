@@ -30,11 +30,34 @@ export function getLogoWordmark(candidate?: LogoCandidateId): string {
 }
 
 export function isRejectedDirection(directionId: string): boolean {
-  return directionId === 'DIRECTION_B' || directionId === 'DIRECTION_C';
+  return directionId === 'DIRECTION_A' || directionId === 'DIRECTION_B' || directionId === 'DIRECTION_C';
 }
 
 export function isBobStemAligned(candidate: LogoCandidateId): boolean {
   const logo = BRAND_CONSTANTS.LOGOS[candidate];
   if (!logo) return false;
-  return logo.bobCol >= logo.stemCol;
+  return logo.stemCol === logo.lineCol && logo.lineCol === logo.bobCol;
+}
+
+export function verifyLogoGeometry(candidate: LogoCandidateId): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const logo = BRAND_CONSTANTS.LOGOS[candidate];
+  if (!logo) {
+    errors.push(`Unknown logo candidate: ${candidate}`);
+    return { valid: false, errors };
+  }
+
+  if (logo.stemCol !== logo.lineCol || logo.lineCol !== logo.bobCol) {
+    errors.push(`Stem (${logo.stemCol}), Line (${logo.lineCol}), and Bob (${logo.bobCol}) columns must be identical.`);
+  }
+
+  if (logo.height > 3 && candidate === 'TYPOGRAPHIC_WELCOME') {
+    errors.push(`Welcome logo height (${logo.height}) exceeds 3 rows maximum.`);
+  }
+
+  if (logo.width > 2 && candidate === 'TYPOGRAPHIC_MICRO') {
+    errors.push(`Micro logo width (${logo.width}) exceeds 2 columns maximum.`);
+  }
+
+  return { valid: errors.length === 0, errors };
 }
