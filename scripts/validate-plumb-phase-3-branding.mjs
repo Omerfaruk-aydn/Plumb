@@ -38,13 +38,21 @@ export function validatePhase3Branding(baseDir = rootDir) {
     errors.push('[MISSING_MIGRATION_TESTS] PlumbMigrationService test file is missing.');
   }
 
-  // 3. Validate brand tokens exist
+  // 3. Validate brand tokens exist & no unapproved logo marked default
   const brandConstantsPath = path.join(baseDir, 'packages/core/src/brand/constants.ts');
   if (!fs.existsSync(brandConstantsPath)) {
     errors.push('[MISSING_BRAND_TOKENS] Core brand/constants.ts is missing.');
+  } else {
+    const content = fs.readFileSync(brandConstantsPath, 'utf8');
+    if (/ACTIVE_DEFAULT_LOGO\s*[:=]\s*['"][^'"]+['"]/.test(content)) {
+      errors.push('[UNAPPROVED_DEFAULT_LOGO] A logo candidate was improperly marked as active default before user selection.');
+    }
+    if (content.includes('supercharge') || content.includes('AI-powered')) {
+      errors.push('[MARKETING_SLOGAN_DETECTED] Marketing slogans are forbidden in brand constants.');
+    }
   }
 
-  // 4. Validate no Qwen production code imported yet
+  // 4. Validate no Qwen production code imported before Phase 4
   const qwenImports = [];
   const searchDirs = ['packages/cli/src', 'packages/core/src'];
   for (const dir of searchDirs) {
@@ -57,6 +65,9 @@ export function validatePhase3Branding(baseDir = rootDir) {
           if (content.includes('@qwen-code/') || content.includes('from "qwen-code"')) {
             qwenImports.push(`${dir}/${f}`);
           }
+          if (content.includes('import Blessed') || content.includes('blessed.screen')) {
+            errors.push(`[SECOND_RENDERER_DETECTED] Secondary renderer detected in ${dir}/${f}`);
+          }
         }
       }
     }
@@ -65,7 +76,7 @@ export function validatePhase3Branding(baseDir = rootDir) {
     errors.push(`[UNAUTHORIZED_QWEN_IMPORT] Qwen source imported before Phase 4 in: ${qwenImports.join(', ')}`);
   }
 
-  // 5. Validate no Kesit production code imported yet
+  // 5. Validate no Kesit production code imported before Phase 5
   const kesitImports = [];
   for (const dir of searchDirs) {
     const fullDir = path.join(baseDir, dir);
@@ -115,7 +126,7 @@ export function validatePhase3Branding(baseDir = rootDir) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  console.log('Running PLUMB Phase 3 Branding Governance Validation:');
+  console.log('Running Expanded PLUMB Phase 3 Branding Governance Validation:');
   const res = validatePhase3Branding();
   if (res.valid) {
     console.log('✅ PLUMB PHASE 3 BRANDING GOVERNANCE VALIDATION PASSED');
