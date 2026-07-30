@@ -18,6 +18,8 @@
 | `004` | `7ef6da961cf19476d74a19115677e7f99a2b1359` | `b5bb035597be888d0104f18461eb8af989afdd8c` | `docs(verification): record real Gemini UI baseline smoke` | Real UI Smoke Verification | `docs/verification/plumb-gemini-real-ui-baseline-smoke.md` | `gemini-cli-foundation` | `node bundle/gemini.js --help` | `PASS` | `git reset --hard HEAD~1` |
 | `005` | `25f3cdb369dbc7bbed6bf0c5b75aaaaf3148c29d` | `7ef6da961cf19476d74a19115677e7f99a2b1359` | `docs(verification): record Gemini terminal lifecycle baseline` | Terminal Lifecycle & Restoration Report | `docs/verification/plumb-gemini-baseline-terminal-lifecycle.md` | `gemini-cli-foundation` | N/A (docs) | `PASS` | `git reset --hard HEAD~1` |
 | `006` | `969ada3f22d4674b0ffeb5cb8e9d8ceb6df2bf0a` | `25f3cdb369dbc7bbed6bf0c5b75aaaaf3148c29d` | `docs(verification): record target remote history safety` | Target Remote History Analysis | `docs/verification/plumb-target-remote-history-safety.md` | `gemini-cli-foundation` | `git ls-remote` | `PASS` | `git reset --hard HEAD~1` |
+| `007` | `037648f3bcaea5d8d212baf633c77d5fbef0b335` | `969ada3f22d4674b0ffeb5cb8e9d8ceb6df2bf0a` | `docs(verification): complete the preflight commit ledger` | Preflight Commit Ledger | `docs/verification/plumb-commit-ledger.md` | `gemini-cli-foundation` | N/A (docs) | `PASS` | `git reset --hard HEAD~1` |
+| `008` | `41f71fecfb15ef4eb84e339b6e4e04f0fd6bf273` | `037648f3bcaea5d8d212baf633c77d5fbef0b335` | `docs(verification): close Gemini production preflight readiness` | Preflight Readiness Gate Closure | `docs/verification/plumb-commit-ledger.md` | `gemini-cli-foundation` | Full Preflight Gate Validation | `PASS` | `git reset --hard HEAD~1` |
 
 ---
 
