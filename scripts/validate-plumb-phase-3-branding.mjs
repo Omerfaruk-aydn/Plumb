@@ -47,8 +47,8 @@ export function validatePhase3Branding(baseDir = rootDir) {
     if (/ACTIVE_DEFAULT_LOGO\s*[:=]\s*['"][^'"]+['"]/.test(content)) {
       errors.push('[UNAPPROVED_DEFAULT_LOGO] A logo candidate was improperly marked as active default before user selection.');
     }
-    if (content.includes('DIRECTION_B') || content.includes('DIRECTION_C')) {
-      errors.push('[REJECTED_LOGO_SELECTABLE] Rejected directions B or C remain selectable at runtime.');
+    if (content.includes('DIRECTION_A') || content.includes('DIRECTION_B') || content.includes('DIRECTION_C')) {
+      errors.push('[REJECTED_LOGO_SELECTABLE] Rejected boxed P or candidate directions remain selectable at runtime.');
     }
     if (content.includes('supercharge') || content.includes('AI-powered')) {
       errors.push('[MARKETING_SLOGAN_DETECTED] Marketing slogans are forbidden in brand constants.');
