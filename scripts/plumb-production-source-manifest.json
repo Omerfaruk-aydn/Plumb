@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PLUMB Production Source Manifest",
+  "version": "1.0.0",
+  "metadata": {
+    "generated_at": "2026-07-30T21:40:00Z",
+    "product": "PLUMB",
+    "architecture_foundation": "Google Gemini CLI full working source tree and Ink/React terminal runtime"
+  },
+  "sources": [
+    {
+      "id": "gemini-cli-foundation",
+      "feature": "Core PLUMB Product Foundation & Ink/React Runtime",
+      "canonical_repository": "google-gemini/gemini-cli",
+      "remote_url": "https://github.com/google-gemini/gemini-cli.git",
+      "full_commit_sha": "dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9",
+      "tag": "v0.55.0-nightly",
+      "source_paths": [
+        "packages/cli",
+        "packages/core",
+        "packages/sdk",
+        "packages/devtools",
+        "packages/a2a-server",
+        "packages/test-utils"
+      ],
+      "source_hashes": {
+        "LICENSE": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD",
+        "package.json": "65800C3A556D1E276745279040B65E7735814FF31FDFCEDD1D65E1FF0CACF641"
+      },
+      "license": "Apache-2.0",
+      "license_hash": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD",
+      "notice_path": "THIRD_PARTY_NOTICES.md",
+      "source_runtime": "Node.js >=20 / TypeScript / Ink 6.6",
+      "dependency_closure": [
+        "ink",
+        "react",
+        "@modelcontextprotocol/sdk",
+        "@agentclientprotocol/sdk"
+      ],
+      "destination_paths": [
+        "packages/cli",
+        "packages/core",
+        "packages/sdk",
+        "packages/devtools"
+      ],
+      "modifications": "PLUMB identity rebrand, Kesit security pipeline integration, Qwen diff & checkpoint integration",
+      "user_facing_renames": {
+        "gemini": "plumb",
+        ".gemini": ".plumb",
+        "GEMINI_": "PLUMB_"
+      },
+      "production_consumer": "PLUMB CLI binary and runtime",
+      "upstream_tests": [
+        "npm run test",
+        "npm run test:scripts"
+      ],
+      "local_tests": [
+        "npm run test",
+        "npm run test:scripts"
+      ],
+      "commit_sha": "dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9",
+      "status": "ACTIVE_BASE"
+    },
+    {
+      "id": "qwen-code-donor",
+      "feature": "Per-turn diff, Checkpoints, Status-line builder, Terminal setup",
+      "canonical_repository": "QwenLM/qwen-code",
+      "remote_url": "https://github.com/QwenLM/qwen-code.git",
+      "full_commit_sha": "584f6a4bec686e641e48e0ba819ef9d308f9dccc",
+      "tag": "v0.1.0",
+      "source_paths": [
+        "src/ui/diff",
+        "src/ui/checkpoint",
+        "src/ui/statusline"
+      ],
+      "source_hashes": {
+        "LICENSE": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD"
+      },
+      "license": "Apache-2.0",
+      "license_hash": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD",
+      "notice_path": "THIRD_PARTY_NOTICES.md",
+      "source_runtime": "Node.js / TypeScript / Ink",
+      "dependency_closure": [
+        "ink",
+        "react"
+      ],
+      "destination_paths": [
+        "packages/core/src/qwen-diff",
+        "packages/core/src/qwen-checkpoint"
+      ],
+      "modifications": "Adapt to Gemini Ink component tree and state contracts",
+      "user_facing_renames": {
+        "qwen": "plumb"
+      },
+      "production_consumer": "PLUMB Diff and Checkpoint UI components",
+      "upstream_tests": [
+        "npm run test"
+      ],
+      "local_tests": [
+        "packages/core/src/qwen-diff/__tests__"
+      ],
+      "commit_sha": "584f6a4bec686e641e48e0ba819ef9d308f9dccc",
+      "status": "PINNED_NOT_IMPORTED"
+    },
+    {
+      "id": "kesit-security-legacy",
+      "feature": "Permission correlation, ArgumentHasher, TokenTracker, Native Windows sandbox, Repo intelligence",
+      "canonical_repository": "Omerfaruk-aydn/KES-T",
+      "remote_url": "https://github.com/Omerfaruk-aydn/KES-T.git",
+      "full_commit_sha": "368da051e164341a5322ba4f5dc39fc08c9b578d",
+      "tag": "archived-omp-plumb",
+      "source_paths": [
+        "packages/kesit-permission",
+        "packages/kesit-sandbox",
+        "packages/kesit-native-windows-security",
+        "packages/kesit-repository"
+      ],
+      "source_hashes": {
+        "LICENSE": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD"
+      },
+      "license": "Apache-2.0",
+      "license_hash": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD",
+      "notice_path": "THIRD_PARTY_NOTICES.md",
+      "source_runtime": "TypeScript / Bun / Native C++",
+      "dependency_closure": [],
+      "destination_paths": [
+        "packages/core/src/kesit-security"
+      ],
+      "modifications": "Bridge to Gemini tool approval routes and execution handlers",
+      "user_facing_renames": {
+        "kesit": "plumb"
+      },
+      "production_consumer": "PLUMB Security Enforcement Authority",
+      "upstream_tests": [
+        "bun test"
+      ],
+      "local_tests": [
+        "packages/core/src/kesit-security/__tests__"
+      ],
+      "commit_sha": "368da051e164341a5322ba4f5dc39fc08c9b578d",
+      "status": "APPROVED_PLAN_NOT_IMPORTED"
+    }
+  ]
+}
