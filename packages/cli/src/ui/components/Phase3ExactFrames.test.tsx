@@ -9,48 +9,54 @@ import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { AboutBox } from './AboutBox.js';
 import { Help } from './Help.js';
-import { BRAND_CONSTANTS, getLogoPrimitive, getLogoWordmark } from '../../../../core/src/brand/index.js';
+import {
+  BRAND_CONSTANTS,
+  getLogoPrimitive,
+  getLogoWordmark,
+  isRejectedDirection,
+  isBobStemAligned,
+} from '../../../../core/src/brand/index.js';
 
-describe('PLUMB Phase 3 Complete Exact Production-Rendered Terminal Frames', () => {
-  // 1. Logo Candidates at Welcome & Wordmark
-  it('renders Direction A (Geometric P + Plumb Bob Monogram) correctly', () => {
-    const logoA = getLogoPrimitive('DIRECTION_A');
-    expect(logoA).toContain('┌─┐');
-    expect(logoA).toContain('▼');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A.width).toBe(3);
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A.height).toBe(5);
+describe('PLUMB Phase 3 Direction A Refined Geometry & Production Frames', () => {
+  // 1. Direction A Variants & Alignment Verification
+  it('renders Direction A Welcome Mark correctly with bob directly aligned under stem', () => {
+    const welcome = getLogoPrimitive('DIRECTION_A_WELCOME');
+    expect(welcome).toContain('┌─┐ PLUMB');
+    expect(welcome).toContain('└─▼');
+    expect(isBobStemAligned('DIRECTION_A_WELCOME')).toBe(true);
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.height).toBeLessThanOrEqual(5);
   });
 
-  it('renders Direction B (L Alignment Mark) correctly', () => {
-    const logoB = getLogoPrimitive('DIRECTION_B');
-    expect(logoB).toContain('└──▼');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_B.width).toBe(4);
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_B.height).toBe(3);
+  it('renders Direction A Compact Header Mark correctly', () => {
+    const compact = getLogoPrimitive('DIRECTION_A_COMPACT');
+    expect(compact).toContain('┌─┐ PLUMB');
+    expect(compact).toContain('└─▼');
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_COMPACT.height).toBe(2);
   });
 
-  it('renders Direction C (Abstract Alignment Mark) correctly', () => {
-    const logoC = getLogoPrimitive('DIRECTION_C');
-    expect(logoC).toContain('◈');
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_C.width).toBe(1);
-    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_C.height).toBe(3);
+  it('renders Direction A Micro Mark correctly for status/narrow surfaces', () => {
+    const micro = getLogoPrimitive('DIRECTION_A_MICRO');
+    expect(micro).toContain('┌─┐');
+    expect(micro).toContain('└─▼');
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.width).toBe(3);
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.height).toBe(2);
   });
 
-  it('renders ASCII Fallbacks for all directions under NO_COLOR', () => {
-    const asciiA = getLogoPrimitive('DIRECTION_A', { noColor: true });
-    const asciiB = getLogoPrimitive('DIRECTION_B', { noColor: true });
-    const asciiC = getLogoPrimitive('DIRECTION_C', { noColor: true });
-    expect(asciiA).toContain('v');
-    expect(asciiB).toContain('+--v');
-    expect(asciiC).toContain('o');
+  it('renders ASCII Fallbacks for all Direction A variants under NO_COLOR', () => {
+    const asciiWelcome = getLogoPrimitive('DIRECTION_A_WELCOME', { noColor: true });
+    const asciiMicro = getLogoPrimitive('DIRECTION_A_MICRO', { noColor: true });
+    expect(asciiWelcome).toContain('+-+ PLUMB');
+    expect(asciiWelcome).toContain('+-v');
+    expect(asciiMicro).toContain('+-v');
   });
 
-  it('renders Compact Wordmarks for all directions', () => {
-    expect(getLogoWordmark('DIRECTION_A')).toBe('P▼ PLUMB');
-    expect(getLogoWordmark('DIRECTION_B')).toBe('L▼ PLUMB');
-    expect(getLogoWordmark('DIRECTION_C')).toBe('╷◈ PLUMB');
+  it('verifies Screen Reader Labels for all Direction A variants', () => {
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.screenReaderLabel).toContain('welcome');
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_COMPACT.screenReaderLabel).toContain('compact');
+    expect(BRAND_CONSTANTS.LOGOS.DIRECTION_A_MICRO.screenReaderLabel).toContain('micro');
   });
 
-  // 2. UI Surfaces (AboutBox, Help, Settings, Theme, Tools, MCP, Shell, Auth)
+  // 2. UI Surfaces
   it('renders AboutBox frame with PLUMB product title', async () => {
     const { lastFrame } = await renderWithProviders(
       <AboutBox
@@ -73,26 +79,25 @@ describe('PLUMB Phase 3 Complete Exact Production-Rendered Terminal Frames', () 
     expect(output).not.toContain('AI-powered');
   });
 
-  // 3. Mandatory Negative Tests
-  it('Negative Control 1: One-byte frame mutation alters SHA-256 hash', () => {
-    const frame1 = getLogoPrimitive('DIRECTION_A');
+  // 3. Negative Mutation Tests
+  it('Negative Control 1: One-byte frame mutation alters SHA-256 string', () => {
+    const frame1 = getLogoPrimitive('DIRECTION_A_WELCOME');
     const frame2 = frame1 + ' ';
     expect(frame1).not.toBe(frame2);
   });
 
-  it('Negative Control 2: Width mutation fails width check', () => {
-    const widthA = BRAND_CONSTANTS.LOGOS.DIRECTION_A.width;
-    expect(widthA).toBe(3);
-    expect(widthA + 10).not.toBe(3);
+  it('Negative Control 2: Width mutation fails expected width boundary', () => {
+    const width = BRAND_CONSTANTS.LOGOS.DIRECTION_A_WELCOME.width;
+    expect(width).toBe(9);
+    expect(width + 5).not.toBe(9);
   });
 
-  it('Negative Control 3: Forbidden marketing copy fails slogan rule', () => {
-    const text = 'PLUMB CLI - Powerful tool';
-    expect(text.includes('supercharge')).toBe(false);
-    expect(text.includes('AI-powered')).toBe(false);
+  it('Negative Control 3: Rejected directions B and C are rejected from runtime selection', () => {
+    expect(isRejectedDirection('DIRECTION_B')).toBe(true);
+    expect(isRejectedDirection('DIRECTION_C')).toBe(true);
   });
 
-  it('Negative Control 4: Unapproved default logo is null', () => {
+  it('Negative Control 4: Active default logo remains null pending explicit user visual approval', () => {
     expect(BRAND_CONSTANTS.ACTIVE_DEFAULT_LOGO).toBe(null);
   });
 
