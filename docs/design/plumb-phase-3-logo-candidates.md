@@ -1,93 +1,62 @@
-# PLUMB Release-Quality Logo Directions (Phase 3 Final Quality Remediation)
+# PLUMB Final Brand System: Refined Direction A (Geometric P + Plumb Bob)
 
-## Design Philosophy & Requirements
-The PLUMB mark represents an original, unmistakable, terminal-native identity for code alignment and precision:
-- **No raw line-plus-arrow**: Avoid generic bullet/timeline symbols.
-- **No bars surrounding letters**: Monograms must be clean and unencumbered.
-- **Unselected Default**: `ACTIVE_DEFAULT_LOGO: null`. No candidate is active until explicit user selection.
+## Design Selection & Rejection Record
+- **Selected Basis**: **Direction A (Geometric P + Plumb Bob)** is selected by explicit user design choice as the sole brand foundation for PLUMB.
+- **Rejected Directions**: Directions B and C are rejected and removed from all runtime selection, default constants, settings, themes, and UI selection lists.
+- **Active Default Status**: `ACTIVE_DEFAULT_LOGO: null` — pending final user visual approval of the refined Direction A captures.
 
 ---
 
-## 1. Direction A — Geometric P + Plumb Bob Monogram
-- **Concept**: The vertical stem of the letter 'P' forms the suspended plumb line terminating in a weighted bob.
+## 1. Refined Direction A Design System
 
-### Micro Mark (Unicode)
+The refined Direction A mark combines a legible geometric letter 'P', where the vertical stem extends as the suspended plumb line terminating directly in a centered weight (`▼` / `v`), with the wordmark `PLUMB` positioned beside the upper 'P' loop (not beside the weight).
+
+### A. Micro Mark (Status / Narrow UI)
+- **Dimensions**: 3 columns x 2 rows
+- **Unicode**:
 ```
 ┌─┐
+└─▼
+```
+- **ASCII**:
+```
++-+
++-v
+```
+- **Screen Reader Label**: "PLUMB micro alignment mark"
+
+### B. Compact Header Mark
+- **Dimensions**: 7 columns x 2 rows
+- **Unicode**:
+```
+┌─┐ PLUMB
+└─▼
+```
+- **ASCII**:
+```
++-+ PLUMB
++-v
+```
+
+### C. Full Welcome Mark
+- **Dimensions**: 7 columns x 4 rows
+- **Unicode**:
+```
+┌─┐ PLUMB
 │ │
 ├─┘
-│
-▼
+└─▼
 ```
-
-### Micro Mark (ASCII Fallback)
+- **ASCII**:
 ```
-+-+
++-+ PLUMB
 | |
 +-+
-|
-v
++-v
 ```
-
-- **One-line Wordmark**: `P▼ PLUMB`
-- **Compact Header**: `P▼ PLUMB │ 1.0.0`
-- **Screen Reader Label**: "PLUMB Geometric P plumb monogram mark"
-- **Width & Bounds**: 3 columns wide x 5 rows high. Verified width-safe at 80x24, 120x36, 160x50.
 
 ---
 
-## 2. Direction B — L Alignment Mark
-- **Concept**: The vertical stem of 'L' extends into an aligned precision baseline pointing directly to the target.
-
-### Micro Mark (Unicode)
-```
-│
-│
-└──▼
-```
-
-### Micro Mark (ASCII Fallback)
-```
-|
-|
-+--v
-```
-
-- **One-line Wordmark**: `L▼ PLUMB`
-- **Compact Header**: `L▼ PLUMB │ 1.0.0`
-- **Screen Reader Label**: "PLUMB L alignment plumb mark"
-- **Width & Bounds**: 4 columns wide x 3 rows high. Verified width-safe at 80x24, 120x36, 160x50.
-
----
-
-## 3. Direction C — Abstract Alignment Mark
-- **Concept**: Geometric vertical alignment axis with a centered terminal weight `◈`.
-
-### Micro Mark (Unicode)
-```
-╷
-│
-◈
-```
-
-### Micro Mark (ASCII Fallback)
-```
-|
-|
-o
-```
-
-- **One-line Wordmark**: `╷◈ PLUMB`
-- **Compact Header**: `╷◈ PLUMB │ 1.0.0`
-- **Screen Reader Label**: "PLUMB abstract alignment point mark"
-- **Width & Bounds**: 1 column wide x 3 rows high. Verified width-safe at 80x24, 120x36, 160x50.
-
----
-
-## Status Matrix
-
-| Direction ID | Name | Default Status | Selection Requirement |
-| :--- | :--- | :--- | :--- |
-| `DIRECTION_A` | Geometric P + Plumb Bob Monogram | `UNSELECTED` | Requires explicit user visual choice |
-| `DIRECTION_B` | L Alignment Mark | `UNSELECTED` | Requires explicit user visual choice |
-| `DIRECTION_C` | Abstract Alignment Mark | `UNSELECTED` | Requires explicit user visual choice |
+## 2. Bob/Stem Alignment & Geometry Integrity
+- **Vertical Axis**: The weight (`▼` or `v`) is strictly positioned directly beneath the left vertical stem of the P form, preserving gravity-anchored truth.
+- **Wordmark Lockup**: The text `PLUMB` is anchored adjacent to the upper loop of the P form, preventing visual detachment of the weight from the suspension stem.
