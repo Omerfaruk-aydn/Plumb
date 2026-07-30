@@ -1,61 +1,93 @@
-# PLUMB Revised Terminal Logo Candidates (Phase 3 Remediation)
+# PLUMB Release-Quality Logo Directions (Phase 3 Final Quality Remediation)
 
-## Design Philosophy & Directives
-Following user visual rejection of previous candidates, the revised logo systems focus strictly on a **pure vertical plumb line metaphor**:
-- **Vertical Suspension**: Unbroken vertical axis representing alignment.
-- **Centered Weight**: Anchored weight at the terminus (`◆`, `v`, `▼`).
-- **No Horizontal Crossbars**: Elimination of scale/bracket/antenna structures.
-- **Unselected Default**: No logo candidate is designated as default, active, or final until the user explicitly selects one.
-
----
-
-## 1. New Candidate A — Pure Vertical Minimal Plumb
-- **Dimensions**: 3 columns x 3 rows
-- **Character Set**: Unicode vertical box line & diamond (`│`, `◆`)
-- **Structure**:
-```
- │ 
- │ 
- ◆ 
-```
-- **NO_COLOR Fallback**: Renders cleanly in standard monochrome.
-- **Screen Reader Label**: "PLUMB pure vertical alignment mark"
-- **Width Safety**: 100% compliant across 80x24, 120x36, 160x50 viewports.
+## Design Philosophy & Requirements
+The PLUMB mark represents an original, unmistakable, terminal-native identity for code alignment and precision:
+- **No raw line-plus-arrow**: Avoid generic bullet/timeline symbols.
+- **No bars surrounding letters**: Monograms must be clean and unencumbered.
+- **Unselected Default**: `ACTIVE_DEFAULT_LOGO: null`. No candidate is active until explicit user selection.
 
 ---
 
-## 2. New Candidate B — ASCII Plumb Line
-- **Dimensions**: 3 columns x 3 rows
-- **Character Set**: 7-bit ASCII (`|`, `v`)
-- **Structure**:
+## 1. Direction A — Geometric P + Plumb Bob Monogram
+- **Concept**: The vertical stem of the letter 'P' forms the suspended plumb line terminating in a weighted bob.
+
+### Micro Mark (Unicode)
 ```
- | 
- | 
- v 
+┌─┐
+│ │
+├─┘
+│
+▼
 ```
-- **NO_COLOR Fallback**: Renders identically with or without color.
-- **Screen Reader Label**: "PLUMB ASCII vertical plumb mark"
-- **Width Safety**: 100% universal 7-bit ASCII compatibility.
+
+### Micro Mark (ASCII Fallback)
+```
++-+
+| |
++-+
+|
+v
+```
+
+- **One-line Wordmark**: `P▼ PLUMB`
+- **Compact Header**: `P▼ PLUMB │ 1.0.0`
+- **Screen Reader Label**: "PLUMB Geometric P plumb monogram mark"
+- **Width & Bounds**: 3 columns wide x 5 rows high. Verified width-safe at 80x24, 120x36, 160x50.
 
 ---
 
-## 3. New Candidate C — Original Compact PLUMB Monogram
-- **Dimensions**: 4 columns x 2 rows
-- **Character Set**: Unicode dotted line, letter P & arrow pointer (`╎`, `P`, `▼`)
-- **Structure**:
+## 2. Direction B — L Alignment Mark
+- **Concept**: The vertical stem of 'L' extends into an aligned precision baseline pointing directly to the target.
+
+### Micro Mark (Unicode)
 ```
- ╎P╎
-  ▼ 
+│
+│
+└──▼
 ```
-- **NO_COLOR Fallback**: Monogram & pointer rendered with high contrast.
-- **Screen Reader Label**: "PLUMB suspended monogram mark"
+
+### Micro Mark (ASCII Fallback)
+```
+|
+|
++--v
+```
+
+- **One-line Wordmark**: `L▼ PLUMB`
+- **Compact Header**: `L▼ PLUMB │ 1.0.0`
+- **Screen Reader Label**: "PLUMB L alignment plumb mark"
+- **Width & Bounds**: 4 columns wide x 3 rows high. Verified width-safe at 80x24, 120x36, 160x50.
 
 ---
 
-## 4. Status Matrix
+## 3. Direction C — Abstract Alignment Mark
+- **Concept**: Geometric vertical alignment axis with a centered terminal weight `◈`.
 
-| Candidate ID | Name | Default Status | Selection Requirement |
+### Micro Mark (Unicode)
+```
+╷
+│
+◈
+```
+
+### Micro Mark (ASCII Fallback)
+```
+|
+|
+o
+```
+
+- **One-line Wordmark**: `╷◈ PLUMB`
+- **Compact Header**: `╷◈ PLUMB │ 1.0.0`
+- **Screen Reader Label**: "PLUMB abstract alignment point mark"
+- **Width & Bounds**: 1 column wide x 3 rows high. Verified width-safe at 80x24, 120x36, 160x50.
+
+---
+
+## Status Matrix
+
+| Direction ID | Name | Default Status | Selection Requirement |
 | :--- | :--- | :--- | :--- |
-| `NEW_CANDIDATE_A` | Pure Vertical Minimal Plumb | `UNSELECTED` | Requires explicit user visual approval |
-| `NEW_CANDIDATE_B` | ASCII Plumb Line | `UNSELECTED` | Requires explicit user visual approval |
-| `NEW_CANDIDATE_C` | Original Compact PLUMB Monogram | `UNSELECTED` | Requires explicit user visual approval |
+| `DIRECTION_A` | Geometric P + Plumb Bob Monogram | `UNSELECTED` | Requires explicit user visual choice |
+| `DIRECTION_B` | L Alignment Mark | `UNSELECTED` | Requires explicit user visual choice |
+| `DIRECTION_C` | Abstract Alignment Mark | `UNSELECTED` | Requires explicit user visual choice |
