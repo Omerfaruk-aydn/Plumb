@@ -13,47 +13,29 @@ import {
   BRAND_CONSTANTS,
   getLogoPrimitive,
   getLogoWordmark,
-  isRejectedDirection,
-  isBobStemAligned,
-  verifyLogoGeometry,
+  isSymbolicLogoRejected,
+  verifyWordmarkOnly,
 } from '../../../../core/src/brand/index.js';
 
-describe('PLUMB Phase 3 Locked Typographic Geometry & Production Frames', () => {
-  // 1. Geometry & Exact Vertical Alignment Tests
-  it('verifies exact 100% vertical stem, line, and bob column alignment on Welcome mark', () => {
-    const welcome = getLogoPrimitive('TYPOGRAPHIC_WELCOME');
-    expect(welcome).toContain('PLUMB');
-    expect(welcome).toContain('│');
-    expect(welcome).toContain('◆');
-    expect(isBobStemAligned('TYPOGRAPHIC_WELCOME')).toBe(true);
-    expect(verifyLogoGeometry('TYPOGRAPHIC_WELCOME').valid).toBe(true);
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.height).toBeLessThanOrEqual(3);
+describe('PLUMB Phase 3 Wordmark-Only Production Frames', () => {
+  // 1. Wordmark-Only Brand Verification
+  it('renders PLUMB plain text wordmark cleanly for all logo requests', () => {
+    expect(getLogoPrimitive()).toBe('PLUMB');
+    expect(getLogoWordmark()).toBe('PLUMB');
+    expect(verifyWordmarkOnly()).toBe(true);
   });
 
-  it('renders Compact Header Mark correctly', () => {
-    const compact = getLogoPrimitive('TYPOGRAPHIC_COMPACT');
-    expect(compact).toBe('PLUMB');
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_COMPACT.height).toBe(1);
+  it('rejects all legacy symbolic logo candidate IDs', () => {
+    expect(isSymbolicLogoRejected('DIRECTION_A')).toBe(true);
+    expect(isSymbolicLogoRejected('DIRECTION_B')).toBe(true);
+    expect(isSymbolicLogoRejected('DIRECTION_C')).toBe(true);
+    expect(isSymbolicLogoRejected('TYPOGRAPHIC_WELCOME')).toBe(true);
+    expect(isSymbolicLogoRejected('BOXED_P')).toBe(true);
   });
 
-  it('renders Micro Mark correctly within 2x2 cell boundary', () => {
-    const micro = getLogoPrimitive('TYPOGRAPHIC_MICRO');
-    expect(micro).toBe('│\n◆');
-    expect(verifyLogoGeometry('TYPOGRAPHIC_MICRO').valid).toBe(true);
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_MICRO.width).toBeLessThanOrEqual(2);
-  });
-
-  it('renders ASCII Fallbacks for all locked variants under NO_COLOR', () => {
-    const asciiWelcome = getLogoPrimitive('TYPOGRAPHIC_WELCOME', { noColor: true });
-    const asciiMicro = getLogoPrimitive('TYPOGRAPHIC_MICRO', { noColor: true });
-    expect(asciiWelcome).toContain('PLUMB\n|\nv');
-    expect(asciiMicro).toBe('|\nv');
-  });
-
-  it('verifies Screen Reader Labels for all locked variants', () => {
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.screenReaderLabel).toContain('welcome');
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_COMPACT.screenReaderLabel).toContain('compact');
-    expect(BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_MICRO.screenReaderLabel).toContain('micro');
+  it('renders NO_COLOR fallback cleanly as PLUMB wordmark', () => {
+    const ascii = getLogoPrimitive(undefined, { noColor: true });
+    expect(ascii).toBe('PLUMB');
   });
 
   // 2. UI Surfaces
@@ -80,30 +62,21 @@ describe('PLUMB Phase 3 Locked Typographic Geometry & Production Frames', () => 
   });
 
   // 3. Negative Mutation Controls
-  it('Negative Control 1: One-byte frame mutation alters SHA-256 string', () => {
-    const frame1 = getLogoPrimitive('TYPOGRAPHIC_WELCOME');
+  it('Negative Control 1: One-byte frame mutation alters string', () => {
+    const frame1 = getLogoPrimitive();
     const frame2 = frame1 + ' ';
     expect(frame1).not.toBe(frame2);
   });
 
-  it('Negative Control 2: Width mutation fails expected width boundary', () => {
-    const width = BRAND_CONSTANTS.LOGOS.TYPOGRAPHIC_WELCOME.width;
-    expect(width).toBe(5);
-    expect(width + 5).not.toBe(5);
-  });
-
-  it('Negative Control 3: Obsolete boxed P directions are rejected', () => {
-    expect(isRejectedDirection('DIRECTION_A')).toBe(true);
-    expect(isRejectedDirection('DIRECTION_B')).toBe(true);
-    expect(isRejectedDirection('DIRECTION_C')).toBe(true);
-  });
-
-  it('Negative Control 4: Active default logo remains null pending explicit user visual approval', () => {
+  it('Negative Control 2: Active default logo remains null pending user approval', () => {
     expect(BRAND_CONSTANTS.ACTIVE_DEFAULT_LOGO).toBe(null);
   });
 
-  it('Negative Control 5: Unselected default renders plain text PLUMB fallback', () => {
-    const fallback = getLogoPrimitive(undefined);
-    expect(fallback).toBe('PLUMB');
+  it('Negative Control 3: Output contains zero ASCII/Unicode symbol art', () => {
+    const logo = getLogoPrimitive();
+    expect(logo).not.toContain('┌');
+    expect(logo).not.toContain('│');
+    expect(logo).not.toContain('◆');
+    expect(logo).not.toContain('▼');
   });
 });
