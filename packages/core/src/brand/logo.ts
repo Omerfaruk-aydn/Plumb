@@ -29,18 +29,12 @@ export function getLogoWordmark(candidate?: LogoCandidateId): string {
   return logo ? logo.wordmark : 'PLUMB';
 }
 
-export function getLogoWidth(candidate?: LogoCandidateId): number {
-  if (!candidate) {
-    return 5;
-  }
-  const logo = BRAND_CONSTANTS.LOGOS[candidate];
-  return logo ? logo.width : 5;
+export function isRejectedDirection(directionId: string): boolean {
+  return directionId === 'DIRECTION_B' || directionId === 'DIRECTION_C';
 }
 
-export function getLogoHeight(candidate?: LogoCandidateId): number {
-  if (!candidate) {
-    return 1;
-  }
+export function isBobStemAligned(candidate: LogoCandidateId): boolean {
   const logo = BRAND_CONSTANTS.LOGOS[candidate];
-  return logo ? logo.height : 1;
+  if (!logo) return false;
+  return logo.bobCol >= logo.stemCol;
 }

@@ -4,21 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// PLUMB Release-Quality Alignment Marks
-export const shortAsciiLogo = `┌─┐
+// PLUMB Refined Direction A (Geometric P + Plumb Bob) Marks
+export const shortAsciiLogo = `┌─┐ PLUMB
 │ │
 ├─┘
-│  
-▼  PLUMB`;
+└─▼`;
 
-export const longAsciiLogo = `┌─┐
+export const longAsciiLogo = `┌─┐ PLUMB
 │ │
 ├─┘
-│  
-▼  PLUMB`;
+└─▼`;
 
-export const tinyAsciiLogo = `P▼ PLUMB`;
+export const tinyAsciiLogo = `┌─┐ PLUMB
+└─▼`;
 
-export const shortAsciiLogoCompactText = `P▼ PLUMB`;
-export const longAsciiLogoCompactText = `P▼ PLUMB`;
-export const tinyAsciiLogoCompactText = `P▼ PLUMB`;
+export const shortAsciiLogoCompactText = `┌─┐ PLUMB
+└─▼`;
+export const longAsciiLogoCompactText = `┌─┐ PLUMB
+└─▼`;
+export const tinyAsciiLogoCompactText = `┌─┐ PLUMB
+└─▼`;
