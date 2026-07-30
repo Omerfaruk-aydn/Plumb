@@ -16,6 +16,7 @@ import { GoogleCode } from './builtin/light/googlecode-light.js';
 import { Holiday } from './builtin/dark/holiday-dark.js';
 import { DefaultLight } from './builtin/light/default-light.js';
 import { DefaultDark } from './builtin/dark/default-dark.js';
+import { PlumbDark } from './builtin/dark/plumb-dark.js';
 import { ShadesOfPurple } from './builtin/dark/shades-of-purple-dark.js';
 import { SolarizedDark } from './builtin/dark/solarized-dark.js';
 import { SolarizedLight } from './builtin/light/solarized-light.js';
@@ -73,6 +74,7 @@ class ThemeManager {
     this.homedir = dependencies?.homedir ?? homedir;
 
     this.availableThemes = [
+      PlumbDark,
       AyuDark,
       AyuLight,
       AtomOneDark,
