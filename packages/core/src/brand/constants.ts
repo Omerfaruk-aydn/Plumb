@@ -15,38 +15,42 @@ export const BRAND_CONSTANTS = {
   LEGACY_ENV_PREFIX: 'GEMINI_',
   SLOGAN_FORBIDDEN: true,
   DASHBOARD_BORDER_FORBIDDEN: true,
+  ACTIVE_DEFAULT_LOGO: null, // Unselected — pending user visual selection
 
   LOGOS: {
-    CANDIDATE_A: {
-      id: 'A',
-      name: 'ASCII Minimalist Plumb',
-      lines: [' | | ', '|---|', ' \\v/ '],
-      width: 5,
+    NEW_CANDIDATE_A: {
+      id: 'NEW_CANDIDATE_A',
+      name: 'Pure Vertical Minimal Plumb',
+      lines: [' │ ', ' │ ', ' ◆ '],
+      width: 3,
       height: 3,
-      screenReaderLabel: 'PLUMB ASCII alignment mark',
+      screenReaderLabel: 'PLUMB pure vertical alignment mark',
     },
-    CANDIDATE_B: {
-      id: 'B',
-      name: 'Unicode Precision Plumb',
-      lines: [' │ │ ', '├─┼─┤', '  ▼  '],
-      width: 5,
+    NEW_CANDIDATE_B: {
+      id: 'NEW_CANDIDATE_B',
+      name: 'ASCII Plumb Line',
+      lines: [' | ', ' | ', ' v '],
+      width: 3,
       height: 3,
-      screenReaderLabel: 'PLUMB vertical alignment mark',
+      screenReaderLabel: 'PLUMB ASCII vertical plumb mark',
     },
-    CANDIDATE_C: {
-      id: 'C',
-      name: 'Compact One-Line Identity',
-      lines: ['PLUMB │▼│'],
-      width: 9,
-      height: 1,
-      screenReaderLabel: 'PLUMB compact mark',
+    NEW_CANDIDATE_C: {
+      id: 'NEW_CANDIDATE_C',
+      name: 'Original Compact PLUMB Monogram',
+      lines: [' ╎P╎', '  ▼ '],
+      width: 4,
+      height: 2,
+      screenReaderLabel: 'PLUMB suspended monogram mark',
     },
   },
 } as const;
 
 export type LogoCandidateId = keyof typeof BRAND_CONSTANTS.LOGOS;
 
-export function renderBrandLogo(candidate: LogoCandidateId = 'CANTIDATE_B' as any, options: { noColor?: boolean } = {}): string {
-  const logo = BRAND_CONSTANTS.LOGOS[candidate] || BRAND_CONSTANTS.LOGOS.CANDIDATE_B;
-  return logo.lines.join('\n');
+export function renderBrandLogo(candidate?: LogoCandidateId, options: { noColor?: boolean } = {}): string {
+  if (!candidate) {
+    return 'PLUMB'; // Text fallback when no candidate is selected by user
+  }
+  const logo = BRAND_CONSTANTS.LOGOS[candidate];
+  return logo ? logo.lines.join('\n') : 'PLUMB';
 }
