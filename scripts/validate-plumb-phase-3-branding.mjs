@@ -38,7 +38,7 @@ export function validatePhase3Branding(baseDir = rootDir) {
     errors.push('[MISSING_MIGRATION_TESTS] PlumbMigrationService test file is missing.');
   }
 
-  // 3. Validate brand tokens exist & no unapproved logo marked default
+  // 3. Validate brand tokens & unapproved default logo status
   const brandConstantsPath = path.join(baseDir, 'packages/core/src/brand/constants.ts');
   if (!fs.existsSync(brandConstantsPath)) {
     errors.push('[MISSING_BRAND_TOKENS] Core brand/constants.ts is missing.');
@@ -52,8 +52,7 @@ export function validatePhase3Branding(baseDir = rootDir) {
     }
   }
 
-  // 4. Validate no Qwen production code imported before Phase 4
-  const qwenImports = [];
+  // 4. Validate imports & renderers
   const searchDirs = ['packages/cli/src', 'packages/core/src'];
   for (const dir of searchDirs) {
     const fullDir = path.join(baseDir, dir);
@@ -63,60 +62,26 @@ export function validatePhase3Branding(baseDir = rootDir) {
         if (typeof f === 'string' && (f.endsWith('.ts') || f.endsWith('.tsx'))) {
           const content = fs.readFileSync(path.join(fullDir, f), 'utf8');
           if (content.includes('@qwen-code/') || content.includes('from "qwen-code"')) {
-            qwenImports.push(`${dir}/${f}`);
+            errors.push(`[UNAUTHORIZED_QWEN_IMPORT] Qwen source imported before Phase 4 in: ${dir}/${f}`);
+          }
+          if (content.includes('@kesit/') || content.includes('from "kesit"')) {
+            errors.push(`[UNAUTHORIZED_KESIT_IMPORT] Kesit source imported before Phase 5 in: ${dir}/${f}`);
+          }
+          if (content.includes('@oh-my-pi/') || content.includes('omp-tui')) {
+            errors.push(`[UNAUTHORIZED_OMP_IMPORT] OMP source imported in: ${dir}/${f}`);
           }
           if (content.includes('import Blessed') || content.includes('blessed.screen')) {
             errors.push(`[SECOND_RENDERER_DETECTED] Secondary renderer detected in ${dir}/${f}`);
           }
-        }
-      }
-    }
-  }
-  if (qwenImports.length > 0) {
-    errors.push(`[UNAUTHORIZED_QWEN_IMPORT] Qwen source imported before Phase 4 in: ${qwenImports.join(', ')}`);
-  }
-
-  // 5. Validate no Kesit production code imported before Phase 5
-  const kesitImports = [];
-  for (const dir of searchDirs) {
-    const fullDir = path.join(baseDir, dir);
-    if (fs.existsSync(fullDir)) {
-      const files = fs.readdirSync(fullDir, { recursive: true });
-      for (const f of files) {
-        if (typeof f === 'string' && (f.endsWith('.ts') || f.endsWith('.tsx'))) {
-          const content = fs.readFileSync(path.join(fullDir, f), 'utf8');
-          if (content.includes('@kesit/') || content.includes('from "kesit"')) {
-            kesitImports.push(`${dir}/${f}`);
+          if (content.includes('Architecture Proof') || content.includes('PROOF_TEXT')) {
+            errors.push(`[ARCHITECTURE_PROOF_TEXT] Proof text detected in: ${dir}/${f}`);
           }
         }
       }
     }
   }
-  if (kesitImports.length > 0) {
-    errors.push(`[UNAUTHORIZED_KESIT_IMPORT] Kesit source imported before Phase 5 in: ${kesitImports.join(', ')}`);
-  }
 
-  // 6. Validate no OMP code imported
-  const ompImports = [];
-  for (const dir of searchDirs) {
-    const fullDir = path.join(baseDir, dir);
-    if (fs.existsSync(fullDir)) {
-      const files = fs.readdirSync(fullDir, { recursive: true });
-      for (const f of files) {
-        if (typeof f === 'string' && (f.endsWith('.ts') || f.endsWith('.tsx'))) {
-          const content = fs.readFileSync(path.join(fullDir, f), 'utf8');
-          if (content.includes('@oh-my-pi/') || content.includes('omp-tui')) {
-            ompImports.push(`${dir}/${f}`);
-          }
-        }
-      }
-    }
-  }
-  if (ompImports.length > 0) {
-    errors.push(`[UNAUTHORIZED_OMP_IMPORT] OMP source imported in: ${ompImports.join(', ')}`);
-  }
-
-  // 7. Validate Legal Attribution preserved
+  // 5. Validate Legal Attribution preserved
   const thirdPartyNoticesPath = path.join(baseDir, 'THIRD_PARTY_NOTICES.md');
   if (!fs.existsSync(thirdPartyNoticesPath)) {
     errors.push('[MISSING_LEGAL_ATTRIBUTION] THIRD_PARTY_NOTICES.md is missing.');
@@ -126,13 +91,13 @@ export function validatePhase3Branding(baseDir = rootDir) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  console.log('Running Expanded PLUMB Phase 3 Branding Governance Validation:');
+  console.log('Running Complete 22-Category PLUMB Phase 3 Branding Governance Validation:');
   const res = validatePhase3Branding();
   if (res.valid) {
-    console.log('✅ PLUMB PHASE 3 BRANDING GOVERNANCE VALIDATION PASSED');
+    console.log('✅ ALL BRANDING GOVERNANCE VALIDATIONS PASSED');
     process.exit(0);
   } else {
-    console.error('❌ PLUMB PHASE 3 BRANDING GOVERNANCE VALIDATION FAILED:');
+    console.error('❌ BRANDING GOVERNANCE VALIDATION FAILED:');
     res.errors.forEach(e => console.error(`  - ${e}`));
     process.exit(1);
   }

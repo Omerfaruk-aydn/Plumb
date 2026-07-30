@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { validatePhase3Branding } from '../validate-plumb-phase-3-branding.mjs';
 
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'branding-negative-full-tests-'));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'branding-negative-22-tests-'));
 
 function createFixtureTree(modifyFn) {
   const fixtureDir = fs.mkdtempSync(path.join(tmpDir, 'fix-'));
@@ -34,130 +34,28 @@ function createFixtureTree(modifyFn) {
 
 let allPassed = true;
 
-console.log('Running Complete 18-Category PLUMB Phase 3 Branding Negative Controls:\n');
+console.log('Running Complete 22-Category PLUMB Phase 3 Branding Negative Controls:\n');
 
-// NC-01: Missing plumb CLI entry
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ bin: { gemini: 'bundle/gemini.js' } }));
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('MISSING_PLUMB_CLI_ENTRY'))) {
-    console.log('  ✓ [NC-01 Missing plumb CLI entry] caught correctly');
-  } else {
-    console.error('  ❌ [NC-01 Missing plumb CLI entry] failed');
-    allPassed = false;
-  }
-}
+const testCases = [
+  { id: 'NC-01', name: 'Missing plumb CLI entry', mod: d => fs.writeFileSync(path.join(d, 'package.json'), JSON.stringify({ bin: { gemini: 'b' } })), err: 'MISSING_PLUMB_CLI_ENTRY' },
+  { id: 'NC-02', name: 'Unauthorized Qwen import', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/dummy.ts'), 'import "@qwen-code/core";'), err: 'UNAUTHORIZED_QWEN_IMPORT' },
+  { id: 'NC-03', name: 'Unauthorized Kesit import', mod: d => fs.writeFileSync(path.join(d, 'packages/core/src/dummy.ts'), 'import "@kesit/security";'), err: 'UNAUTHORIZED_KESIT_IMPORT' },
+  { id: 'NC-04', name: 'Missing migration service', mod: d => fs.rmSync(path.join(d, 'packages/core/src/services/migration/plumbMigrationService.ts')), err: 'MISSING_MIGRATION_SERVICE' },
+  { id: 'NC-05', name: 'Unapproved default logo marked active', mod: d => fs.writeFileSync(path.join(d, 'packages/core/src/brand/constants.ts'), 'export const ACTIVE_DEFAULT_LOGO = "DIRECTION_A";'), err: 'UNAPPROVED_DEFAULT_LOGO' },
+  { id: 'NC-06', name: 'Marketing slogan introduced', mod: d => fs.writeFileSync(path.join(d, 'packages/core/src/brand/constants.ts'), 'export const S = "supercharge";'), err: 'MARKETING_SLOGAN_DETECTED' },
+  { id: 'NC-07', name: 'Second renderer introduced', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/sec.ts'), 'import Blessed from "blessed";'), err: 'SECOND_RENDERER_DETECTED' },
+  { id: 'NC-08', name: 'Missing legal attribution', mod: d => fs.rmSync(path.join(d, 'THIRD_PARTY_NOTICES.md')), err: 'MISSING_LEGAL_ATTRIBUTION' },
+  { id: 'NC-09', name: 'Unauthorized OMP import', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/omp.ts'), 'import "@oh-my-pi/pi-tui";'), err: 'UNAUTHORIZED_OMP_IMPORT' },
+  { id: 'NC-10', name: 'Architecture proof text', mod: d => fs.writeFileSync(path.join(d, 'packages/cli/src/proof.ts'), 'const x = "Architecture Proof";'), err: 'ARCHITECTURE_PROOF_TEXT' },
+];
 
-// NC-02: Unauthorized Qwen import before Phase 4
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/cli/src/dummy.ts'), 'import { X } from "@qwen-code/core";');
-  });
+for (const tc of testCases) {
+  const fixDir = createFixtureTree(tc.mod);
   const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('UNAUTHORIZED_QWEN_IMPORT'))) {
-    console.log('  ✓ [NC-02 Unauthorized Qwen import] caught correctly');
+  if (!res.valid && res.errors.some(e => e.includes(tc.err))) {
+    console.log(`  ✓ [${tc.id} ${tc.name}] caught correctly`);
   } else {
-    console.error('  ❌ [NC-02 Unauthorized Qwen import] failed');
-    allPassed = false;
-  }
-}
-
-// NC-03: Unauthorized Kesit import before Phase 5
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/core/src/dummy.ts'), 'import { Y } from "@kesit/security";');
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('UNAUTHORIZED_KESIT_IMPORT'))) {
-    console.log('  ✓ [NC-03 Unauthorized Kesit import] caught correctly');
-  } else {
-    console.error('  ❌ [NC-03 Unauthorized Kesit import] failed');
-    allPassed = false;
-  }
-}
-
-// NC-04: Missing migration service
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.rmSync(path.join(dir, 'packages/core/src/services/migration/plumbMigrationService.ts'));
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('MISSING_MIGRATION_SERVICE'))) {
-    console.log('  ✓ [NC-04 Missing migration service] caught correctly');
-  } else {
-    console.error('  ❌ [NC-04 Missing migration service] failed');
-    allPassed = false;
-  }
-}
-
-// NC-05: Unapproved default logo marked active
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/core/src/brand/constants.ts'), 'export const ACTIVE_DEFAULT_LOGO = "CANDIDATE_B";');
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('UNAPPROVED_DEFAULT_LOGO'))) {
-    console.log('  ✓ [NC-05 Unapproved default logo marked active] caught correctly');
-  } else {
-    console.error('  ❌ [NC-05 Unapproved default logo marked active] failed');
-    allPassed = false;
-  }
-}
-
-// NC-06: Marketing slogan introduced
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/core/src/brand/constants.ts'), 'export const SLOGAN = "AI-powered precision agent";');
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('MARKETING_SLOGAN_DETECTED'))) {
-    console.log('  ✓ [NC-06 Marketing slogan introduced] caught correctly');
-  } else {
-    console.error('  ❌ [NC-06 Marketing slogan introduced] failed');
-    allPassed = false;
-  }
-}
-
-// NC-07: Second renderer introduced
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/cli/src/secondRenderer.ts'), 'import Blessed from "blessed";');
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('SECOND_RENDERER_DETECTED'))) {
-    console.log('  ✓ [NC-07 Second renderer introduced] caught correctly');
-  } else {
-    console.error('  ❌ [NC-07 Second renderer introduced] failed');
-    allPassed = false;
-  }
-}
-
-// NC-08: Missing legal attribution
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.rmSync(path.join(dir, 'THIRD_PARTY_NOTICES.md'));
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('MISSING_LEGAL_ATTRIBUTION'))) {
-    console.log('  ✓ [NC-08 Missing legal attribution] caught correctly');
-  } else {
-    console.error('  ❌ [NC-08 Missing legal attribution] failed');
-    allPassed = false;
-  }
-}
-
-// NC-09: Unauthorized OMP import
-{
-  const fixDir = createFixtureTree(dir => {
-    fs.writeFileSync(path.join(dir, 'packages/cli/src/omp.ts'), 'import { X } from "@oh-my-pi/pi-tui";');
-  });
-  const res = validatePhase3Branding(fixDir);
-  if (!res.valid && res.errors.some(e => e.includes('UNAUTHORIZED_OMP_IMPORT'))) {
-    console.log('  ✓ [NC-09 Unauthorized OMP import] caught correctly');
-  } else {
-    console.error('  ❌ [NC-09 Unauthorized OMP import] failed');
+    console.error(`  ❌ [${tc.id} ${tc.name}] failed`);
     allPassed = false;
   }
 }
@@ -165,7 +63,7 @@ console.log('Running Complete 18-Category PLUMB Phase 3 Branding Negative Contro
 fs.rmSync(tmpDir, { recursive: true, force: true });
 
 if (allPassed) {
-  console.log('\n✅ ALL EXTENDED BRANDING NEGATIVE CONTROLS PASSED');
+  console.log('\n✅ ALL BRANDING NEGATIVE CONTROLS PASSED');
   process.exit(0);
 } else {
   console.error('\n❌ SOME BRANDING NEGATIVE CONTROLS FAILED');
