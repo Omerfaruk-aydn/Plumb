@@ -27,22 +27,13 @@ interface AppHeaderProps {
   showDetails?: boolean;
 }
 
-const DEFAULT_ICON = `▝▜▄  
-  ▝▜▄
- ▗▟▀ 
-▝▀    `;
+const DEFAULT_ICON = ` │ │ 
+├─┼─┤
+  ▼  `;
 
-/**
- * The default Apple Terminal.app adds significant line-height padding between
- * rows. This breaks Unicode block-drawing characters that rely on vertical
- * adjacency (like half-blocks). This version is perfectly symmetric vertically,
- * which makes the padding gaps look like an intentional "scanline" design
- * rather than a broken image.
- */
-const MAC_TERMINAL_ICON = `▝▜▄  
-  ▝▜▄
-  ▗▟▀
-▗▟▀  `;
+const MAC_TERMINAL_ICON = ` │ │ 
+├─┼─┤
+  ▼  `;
 
 /**
  * The horizontal padding (in columns) required for metadata (version, identity, etc.)
