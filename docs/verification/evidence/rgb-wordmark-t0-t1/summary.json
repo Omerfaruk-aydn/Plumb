@@ -1,0 +1,54 @@
+{
+  "capturedAt": "2026-07-31T19:21:18.263Z",
+  "platform": "win32",
+  "productionEmbeddedHead": "41f95108dced34d8fec000328ea55c6ee3470885",
+  "renderingRoute": "AppHeader.tsx → PlumbAnimatedWordmark → @jrichman/ink-gradient (the same stack Windows Terminal hosts)",
+  "wordmark": {
+    "t0Length": 2270,
+    "t1Length": 2240,
+    "t2Length": 2270,
+    "rgbVisibleT0": 125,
+    "rgbVisibleT1": 125,
+    "rgbVisibleT2": 125,
+    "blockWordmarkPresent": true,
+    "paletteSampleT0": [
+      "\u001b[38;2;0;255;255m",
+      "\u001b[38;2;0;213;255m",
+      "\u001b[38;2;0;170;255m",
+      "\u001b[38;2;0;128;255m",
+      "\u001b[38;2;0;85;255m",
+      "\u001b[38;2;32;64;255m",
+      "\u001b[38;2;64;43;255m",
+      "\u001b[38;2;95;21;255m"
+    ],
+    "paletteSampleT1": [
+      "\u001b[38;2;0;0;255m",
+      "\u001b[38;2;43;0;255m",
+      "\u001b[38;2;85;0;255m",
+      "\u001b[38;2;128;0;255m",
+      "\u001b[38;2;170;0;255m",
+      "\u001b[38;2;191;0;223m",
+      "\u001b[38;2;213;0;192m",
+      "\u001b[38;2;234;0;160m"
+    ],
+    "paletteSampleT2": [
+      "\u001b[38;2;255;0;255m",
+      "\u001b[38;2;255;0;213m",
+      "\u001b[38;2;255;0;170m",
+      "\u001b[38;2;255;0;128m",
+      "\u001b[38;2;255;0;85m",
+      "\u001b[38;2;255;32;64m",
+      "\u001b[38;2;255;64;43m",
+      "\u001b[38;2;255;96;21m"
+    ],
+    "paletteRotatesT0T1": true,
+    "paletteRotatesT1T2": true,
+    "geometryStable": true
+  },
+  "providerFirst": {
+    "length": 4253,
+    "showsPlumbProviderSetupTitle": false,
+    "asksForConnectionType": false,
+    "noGoogleFirst": true
+  }
+}

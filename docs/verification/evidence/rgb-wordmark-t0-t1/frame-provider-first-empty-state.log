@@ -1,0 +1,73 @@
+
+ [37m[41m ERROR [39m[49m useKeypressContext must be used within a KeypressProvider
+
+ [2mfile:///D:/PLUMB-production/packages/cli/dist/src/ui/contexts/KeypressContext.[22m
+ [2mjs:692:15[22m
+
+ [2m-[1museKeypressCont[22m
+  [1m[2mext[22m           [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/contexts/[39m[22m
+                [2m[90mKeypressContext.js:692:15)[39m[22m
+ [2m-[1museKeypress[22m
+            [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/hooks/useKeyp[39m[22m
+            [2m[90mress.js:17:40)[39m[22m
+ [2m-[1mPlumbProviderSetup[22m
+  [1m[2mDialog[22m            [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/compo[39m[22m
+                    [2m[90mnents/PlumbProviderSetupDialog.js:117:5)[39m[22m
+ [2m-[1mreact-stack-bottom-[22m
+  [1m[2mframe[22m             [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.develop[39m[22m
+                    [2m[90mment.js:15859:20)[39m[22m
+ [2m-[1mrenderWithHook[22m
+  [1m[2ms[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.[39m[22m
+               [2m[90mjs:3221:22)[39m[22m
+ [2m-[1mupdateFunctionCompo[22m
+  [1m[2mnent[22m              [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.develop[39m[22m
+                    [2m[90mment.js:6475:19)[39m[22m
+ [2m-[1mbeginWork[22m
+          [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.js:80[39m[22m
+          [2m[90m09:18)[39m[22m
+ [2m-[1mrunWithFiberInD[22m
+  [1m[2mEV[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development[39m[22m
+                [2m[90m.js:1735:30)[39m[22m
+ [2m-[1mperformUnitOfWo[22m
+  [1m[2mrk[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development[39m[22m
+                [2m[90m.js:12834:22)[39m[22m
+ [2m-[1mworkLoopSyn[22m
+  [1m[2mc[22m          [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.js[39m[22m
+             [2m[90m:12644:41)[39m[22m
+
+[2J[0f
+ [37m[41m ERROR [39m[49m useKeypressContext must be used within a KeypressProvider
+
+ [2mfile:///D:/PLUMB-production/packages/cli/dist/src/ui/contexts/KeypressContext.[22m
+ [2mjs:692:15[22m
+
+ [2m-[1museKeypressCont[22m
+  [1m[2mext[22m           [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/contexts/[39m[22m
+                [2m[90mKeypressContext.js:692:15)[39m[22m
+ [2m-[1museKeypress[22m
+            [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/hooks/useKeyp[39m[22m
+            [2m[90mress.js:17:40)[39m[22m
+ [2m-[1mPlumbProviderSetup[22m
+  [1m[2mDialog[22m            [2m[90m(file:///D:/PLUMB-production/packages/cli/dist/src/ui/compo[39m[22m
+                    [2m[90mnents/PlumbProviderSetupDialog.js:117:5)[39m[22m
+ [2m-[1mreact-stack-bottom-[22m
+  [1m[2mframe[22m             [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.develop[39m[22m
+                    [2m[90mment.js:15859:20)[39m[22m
+ [2m-[1mrenderWithHook[22m
+  [1m[2ms[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.[39m[22m
+               [2m[90mjs:3221:22)[39m[22m
+ [2m-[1mupdateFunctionCompo[22m
+  [1m[2mnent[22m              [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.develop[39m[22m
+                    [2m[90mment.js:6475:19)[39m[22m
+ [2m-[1mbeginWork[22m
+          [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.js:80[39m[22m
+          [2m[90m09:18)[39m[22m
+ [2m-[1mrunWithFiberInD[22m
+  [1m[2mEV[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development[39m[22m
+                [2m[90m.js:1735:30)[39m[22m
+ [2m-[1mperformUnitOfWo[22m
+  [1m[2mrk[22m            [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development[39m[22m
+                [2m[90m.js:12834:22)[39m[22m
+ [2m-[1mworkLoopSyn[22m
+  [1m[2mc[22m          [2m[90m(node_modules/react-reconciler/cjs/react-reconciler.development.js[39m[22m
+             [2m[90m:12644:41)[39m[22m
