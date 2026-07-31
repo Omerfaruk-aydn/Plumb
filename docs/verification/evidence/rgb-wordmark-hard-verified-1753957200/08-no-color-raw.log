@@ -1,0 +1,335 @@
+[?u]11;?\[>q[2J[m[8m[H]0;C:\Program Files\nodejs\node.exe[?25h[28m]0;◇  Ready (PLUMB-production)                                                     [?25l
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ ? Get started                                                                │
+│                                                                              │
+│   How would you like to authenticate for this project?                       │
+│                                                                              │
+│   ● 1. Sign in with Google                                                   │
+│     2. Use Gemini API Key                                                    │
+│     3. Vertex AI                                                             │
+│                                                                              │
+│   Failed to sign in. Message: Authentication consent could not be obtained.  │
+│   Please run Gemini CLI in an interactive terminal to authenticate, or use   │
+│   NO_BROWSER=true for manual authentication.                                 │
+│                                                                              │
+│   (Use Enter to select)                                                      │
+│                                                                              │
+│   Terms of Services and Privacy Notice for Gemini CLI                        │
+│                                                                              │
+│   https://geminicli.com/docs/resources/tos-privacy/                          │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[80C[?1004h[?2004h[H[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+[K
+[K
+[K
+[K[80C[21;1HLoading ignore patterns from: D:\PLUMB-production\.geminiignore
+Ripgrep is not available. Falling back to GrepTool.[2;1H[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │     - full-context                                                         │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+[80C
+[80CWorkspace skills disabled because folder is not trusted.
+Project hooks disabled because the folder is not trusted.[23C
+Hook registry initialized with 0 hook entries[35C
+Hook system initialized successfully[44C
+[80C[H[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C
+[80C[STARTUP] StartupProfiler.flush() called with 10 phases
+[80C[STARTUP] Recording metric for phase: cli_startup duration: 646.6946999999999
+[STARTUP] Recording metric for phase: load_settings duration: 12.930700000000002
+[STARTUP] Recording metric for phase: cleanup_ops duration: 176.7777000000001   
+[STARTUP] Recording metric for phase: parse_arguments duration: 41.1444000000000
+2[79C
+[STARTUP] Recording metric for phase: load_cli_config duration: 174.801300000000
+08[78C
+[STARTUP] Recording metric for phase: setup_terminal duration: 2.479199999999991
+6[79C
+[STARTUP] Recording metric for phase: initialize_app duration: 3.201600000000098
+6[79C
+[STARTUP] Recording metric for phase: authenticate duration: 0.2857000000001335 
+[STARTUP] Phase 'load_builtin_commands' was started but never ended. Skipping me
+trics.[74C
+[STARTUP] Recording metric for phase: discover_tools duration: 149.8998999999994
+3[79C
+[80C[H[K
+ ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛[K
+   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌[K
+  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[K
+ ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[K
+[K
+ Gemini CLI v0.55.0-nightly.20260729.g3499c84f7[K
+[K
+[K
+[K
+ℹ Skipping project agents due to untrusted folder. To enable, ensure that the   
+  project root is trusted.[K
+[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C
+[80C[H[K
+ ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛[K
+   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌[K
+  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[K
+ ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[K
+[K
+ Gemini CLI v0.55.0-nightly.20260729.g3499c84f7[K
+[K
+[K
+[K
+ℹ Skipping project agents due to untrusted folder. To enable, ensure that the   
+  project root is trusted.[K
+[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C
+[80C[SessionSummary] No previous session needs summary generation
+[80C[H[K
+ ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛[K
+   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌[K
+  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[K
+ ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[K
+[K
+ Gemini CLI v0.55.0-nightly.20260729.g3499c84f7[K
+[K
+[K
+[K
+ℹ Skipping project agents due to untrusted folder. To enable, ensure that the   
+  project root is trusted.[K
+[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C
+[80C[H[K
+ ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛[K
+   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌[K
+  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[K
+ ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[K
+[K
+ Gemini CLI v0.55.0-nightly.20260729.g3499c84f7[K
+[K
+[K
+[K
+ℹ Skipping project agents due to untrusted folder. To enable, ensure that the   
+  project root is trusted.[K
+[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C
+[80C[H[K
+ ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛[K
+   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌[K
+  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[K
+ ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[K
+[K
+ Gemini CLI v0.55.0-nightly.20260729.g3499c84f7[K
+[K
+[K
+[K
+ℹ Skipping project agents due to untrusted folder. To enable, ensure that the   
+  project root is trusted.[K
+[K
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.[K
+[K
+[K
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │                                                                            │ 
+ │ Do you trust the files in this folder?                                     │ 
+ │                                                                            │ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.                                                       │ 
+ │                                                                            │ 
+ │ This folder contains:                                                      │ 
+ │   • Commands (11):                                                         │ 
+ │     - code-guide                                                           │ 
+ │     - core                                                                 │ 
+ │     - find-docs                                                            │ 
+ │     - frontend                                                             │ 
+ │ ... last 25 lines hidden (Ctrl+O to show) ...                              │ 
+ │                                                                            │ 
+ │ ● 1. Trust folder (PLUMB-production)                                       │ 
+ │   2. Trust parent folder ()                                                │ 
+ │   3. Don't trust                                                           │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+   Press Ctrl+O to show more lines[46C
+[80C[?1004l[<u[>4;0m[?2004l
+]0;[?25h
