@@ -1,0 +1,49 @@
+[?u]11;?\q]0;C:\Program Files\nodejs\node.exe]0;◇  Ready (PLUMB-production)                                                     
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+││
+│ ? Get started│
+││
+│   How would you like to authenticate for this project?│
+││
+│   ● 1. Sign in with Google│
+│     2. Use Gemini API Key│
+│     3. Vertex AI│
+││
+│   Failed to sign in. Message: Authentication consent could not be obtained.  │
+│   Please run Gemini CLI in an interactive terminal to authenticate, or use   │
+│   NO_BROWSER=true for manual authentication.│
+││
+│   (Use Enter to select)│
+││
+│   Terms of Services and Privacy Notice for Gemini CLI│
+││
+│   https://geminicli.com/docs/resources/tos-privacy/│
+││
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+⚠  Warning: Windows 10 detected. Some UI features like smooth scrolling may be  
+   degraded. Windows 11 is recommended for the best experience.
+
+
+ ╭────────────────────────────────────────────────────────────────────────────╮ 
+ │X│ 
+ │ Do you trust the files in this folder?X│ 
+ │X│ 
+ │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
+ │ These configurations could execute code on your behalf or change the       │ 
+ │ behavior of the CLI.X│ 
+ │X│ 
+ │X│ 
+ │ ● 1. Trust folder (PLUMB-production)X│ 
+ │   2. Trust parent folder ()X│ 
+ │   3. Don't trustX│ 
+ │X│ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+
+
+

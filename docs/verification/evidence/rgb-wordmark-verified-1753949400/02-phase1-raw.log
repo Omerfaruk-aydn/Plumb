@@ -1,0 +1,50 @@
+[?u]11;?\[>q[2J[m[8m[H]0;C:\Program Files\nodejs\node.exe[?25h[28m]0;◇  Ready (PLUMB-production)                                                     [?25l[38;2;255;255;175m
+⚠ [m [38;2;255;255;175mWarning: Windows 10 detected. Some UI features like smooth scrolling may be[m  
+   [38;2;255;255;175mdegraded. Windows 11 is recommended for the best experience.[m[K
+[K
+[K[38;2;215;255;215m
+╭──────────────────────────────────────────────────────────────────────────────╮
+│[m[K[38;2;215;255;215m[78C│
+│[m [38;2;215;175;255m? [1m[38;2;255;255;255mGet started[m[K[38;2;215;255;215m[64C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;255;255;255mHow would you like to authenticate for this project?[m[K[38;2;215;255;215m[23C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;215;255;215m[48;2;0;95;0m●[39m [38;2;215;255;215m1.[39m [38;2;215;255;215mSign in with Google[m[K[38;2;215;255;215m[51C│
+│[m   [38;2;255;255;255m [m [38;2;255;255;255m2.[m [38;2;255;255;255mUse Gemini API Key[m[K[38;2;215;255;215m[52C│
+│[m   [38;2;255;255;255m [m [38;2;255;255;255m3.[m [38;2;255;255;255mVertex AI[m[K[38;2;215;255;215m[61C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;255;135;175mFailed to sign in. Message: Authentication consent could not be obtained.[m  [38;2;215;255;215m│
+│[m   [38;2;255;135;175mPlease run Gemini CLI in an interactive terminal to authenticate, or use[m   [38;2;215;255;215m│
+│[m   [38;2;255;135;175mNO_BROWSER=true for manual authentication.[m[K[38;2;215;255;215m[33C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;175;175;175m(Use Enter to select)[m[K[38;2;215;255;215m[54C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;255;255;255mTerms of Services and Privacy Notice for Gemini CLI[m[K[38;2;215;255;215m[24C│
+│[m[K[38;2;215;255;215m[78C│
+│[m   [38;2;135;175;255mhttps://geminicli.com/docs/resources/tos-privacy/[m[K[38;2;215;255;215m[26C│[m
+[38;2;215;255;215m│[m[K[38;2;215;255;215m[78C│[m
+[38;2;215;255;215m╰──────────────────────────────────────────────────────────────────────────────╯[m
+[80C[?1004h[?2004h[H[K[38;2;255;255;175m
+⚠ [m [38;2;255;255;175mWarning: Windows 10 detected. Some UI features like smooth scrolling may be[m  
+   [38;2;255;255;175mdegraded. Windows 11 is recommended for the best experience.[m[K
+[K
+[K
+ [38;2;255;255;175m╭────────────────────────────────────────────────────────────────────────────╮[m 
+ [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
+ [38;2;255;255;175m│[m [1m[38;2;255;255;255mDo you trust the files in this folder?[m[37X[38;2;255;255;175m[37C│[m 
+ [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows Gemini CLI to load its local configurations,[m      [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mincluding custom commands, hooks, MCP servers, agent skills, and settings.[m [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mThese configurations could execute code on your behalf or change the[m       [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mbehavior of the CLI.[m[55X[38;2;255;255;175m[55C│[m 
+ [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
+ [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
+ [38;2;255;255;175m│[m [38;2;215;255;215m[48;2;0;95;0m●[39m [38;2;215;255;215m1.[39m [38;2;215;255;215mTrust folder (PLUMB-production)[m[39X[38;2;255;255;175m[39C│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255m [m [38;2;255;255;255m2.[m [38;2;255;255;255mTrust parent folder ()[m[48X[38;2;255;255;175m[48C│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255m [m [38;2;255;255;255m3.[m [38;2;255;255;255mDon't trust[m[59X[38;2;255;255;175m[59C│[m 
+ [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
+ [38;2;255;255;175m╰────────────────────────────────────────────────────────────────────────────╯[m 
+[K
+[K
+[K
+[K[80C
