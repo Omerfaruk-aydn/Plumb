@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
-const timestamp = 'rgb-final-1753909500';
-const evidenceDir = path.join(rootDir, `docs/verification/evidence/${timestamp}`);
+const currentEpoch = '1753949400';
+const evidenceDir = path.join(rootDir, `docs/verification/evidence/rgb-wordmark-verified-${currentEpoch}`);
 
 if (!fs.existsSync(evidenceDir)) {
   fs.mkdirSync(evidenceDir, { recursive: true });
@@ -32,7 +32,7 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
   const mergedEnv = {
     ...process.env,
     TERM: 'xterm-256color',
-    FORCE_COLOR: env.NO_COLOR ? '0' : '1',
+    FORCE_COLOR: env.NO_COLOR ? '0' : '3',
     ...env
   };
 
@@ -92,23 +92,26 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
 }
 
 async function main() {
-  console.log(`🚀 Running Animated RGB Wordmark ConPTY Capture Harness in ${evidenceDir}...`);
+  console.log(`🚀 Running Truly Fresh RGB ConPTY Capture Harness in ${evidenceDir}...`);
 
-  const w80 = await captureSession('01-welcome-80x24', 80, 24, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
-  const w120 = await captureSession('02-welcome-120x36', 120, 36, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
-  const w160 = await captureSession('03-welcome-160x50', 160, 50, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
-  const phase0 = await captureSession('04-phase0', 80, 24, {}, [{ delay: 500 }, { write: '/quit\r', delay: 300 }]);
-  const phase1 = await captureSession('05-phase1', 80, 24, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
-  const noColor = await captureSession('07-no-color', 80, 24, { NO_COLOR: '1' }, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
+  const p0 = await captureSession('01-phase0', 80, 24, {}, [{ delay: 300 }, { write: '/quit\r', delay: 300 }]);
+  const p1 = await captureSession('02-phase1', 80, 24, {}, [{ delay: 600 }, { write: '/quit\r', delay: 300 }]);
+  const p2 = await captureSession('03-phase2', 80, 24, {}, [{ delay: 900 }, { write: '/quit\r', delay: 300 }]);
+  const p3 = await captureSession('04-phase3', 80, 24, {}, [{ delay: 1200 }, { write: '/quit\r', delay: 300 }]);
+  const w120 = await captureSession('05-welcome-120x36', 120, 36, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
+  const w160 = await captureSession('06-welcome-160x50', 160, 50, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
+  const narrow = await captureSession('07-narrow-fallback', 40, 24, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
+  const noColor = await captureSession('08-no-color', 80, 24, { NO_COLOR: '1' }, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
+  const settings = await captureSession('11-settings-visible', 80, 24, {}, [{ delay: 800 }, { write: '/settings\r', delay: 600 }, { write: '\x03', delay: 300 }]);
 
-  console.log('✅ Animated RGB Wordmark ConPTY Captures completed!');
+  console.log('✅ TRULY FRESH RGB ConPTY Captures completed!');
   console.log('Evidence Directory:', evidenceDir);
-  console.log('Welcome 80x24 Raw Hash:', w80.rawHash);
-  console.log('Welcome 120x36 Raw Hash:', w120.rawHash);
-  console.log('Welcome 160x50 Raw Hash:', w160.rawHash);
-  console.log('Phase 0 Raw Hash:', phase0.rawHash);
-  console.log('Phase 1 Raw Hash:', phase1.rawHash);
+  console.log('Phase 0 Raw Hash:', p0.rawHash);
+  console.log('Phase 1 Raw Hash:', p1.rawHash);
+  console.log('Phase 2 Raw Hash:', p2.rawHash);
+  console.log('Phase 3 Raw Hash:', p3.rawHash);
   console.log('NO_COLOR Raw Hash:', noColor.rawHash);
+  console.log('Settings Raw Hash:', settings.rawHash);
 }
 
 main().catch(err => {
