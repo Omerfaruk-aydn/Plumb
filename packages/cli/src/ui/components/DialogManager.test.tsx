@@ -62,6 +62,16 @@ vi.mock('./IdeTrustChangeDialog.js', () => ({
 vi.mock('./AgentConfigDialog.js', () => ({
   AgentConfigDialog: () => <Text>AgentConfigDialog</Text>,
 }));
+vi.mock('./PlumbProviderSetupDialog.js', () => ({
+  PlumbProviderSetupDialog: () => <Text>PlumbProviderSetupDialog</Text>,
+}));
+vi.mock('../hooks/useProviderSetupData.js', () => ({
+  useProviderSetupData: () => ({
+    providers: [],
+    categoryGroups: new Map(),
+    models: [],
+  }),
+}));
 
 describe('DialogManager', () => {
   const defaultProps = {
@@ -158,6 +168,7 @@ describe('DialogManager', () => {
     [{ isAuthenticating: true }, 'AuthInProgress'],
     [{ isAwaitingApiKeyInput: true }, 'ApiAuthDialog'],
     [{ isAuthDialogOpen: true }, 'AuthDialog'],
+    [{ isProviderSetupDialogOpen: true }, 'PlumbProviderSetupDialog'],
     [{ isEditorDialogOpen: true }, 'EditorSettingsDialog'],
     [{ showPrivacyNotice: true }, 'PrivacyNotice'],
     [{ isPermissionsDialogOpen: true }, 'PermissionsModifyTrustDialog'],
@@ -201,4 +212,23 @@ describe('DialogManager', () => {
       unmount();
     },
   );
+
+  it('mounts the provider-first setup dialog instead of the Google-first auth dialog', async () => {
+    const { lastFrame, unmount } = await renderWithProviders(
+      <DialogManager {...defaultProps} />,
+      {
+        uiState: {
+          ...baseUiState,
+          isProviderSetupDialogOpen: true,
+          isAuthDialogOpen: true,
+          isAuthenticating: true,
+        } as Partial<UIState> as UIState,
+      },
+    );
+    const frame = lastFrame();
+    expect(frame).toContain('PlumbProviderSetupDialog');
+    expect(frame).not.toContain('AuthDialog');
+    expect(frame).not.toContain('AuthInProgress');
+    unmount();
+  });
 });

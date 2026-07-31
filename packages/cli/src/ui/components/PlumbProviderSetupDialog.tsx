@@ -18,6 +18,7 @@ import {
   PlumbProviderCategory,
   type PlumbProvider,
 } from '@google/gemini-cli-provider';
+import { useKeypress } from '../hooks/useKeypress.js';
 
 // ─── Steps ─────────────────────────────────────────────────────────────
 
@@ -180,10 +181,108 @@ export const PlumbProviderSetupDialog: React.FC<
     });
   }, [state, onComplete]);
 
-  // ── Render step ─────────────────────────────────────────────────────
-
+  // ── Keyboard handling (the dialog is modal while mounted) ─────────────
   const step = state.step;
   const provider = state.selectedProvider;
+  const listItemCount =
+    step === 'connection-type'
+      ? connectionTypeOptions.length
+      : step === 'provider-select'
+        ? categoryProviders.length
+        : step === 'model-select'
+          ? providerModels.length
+          : 0;
+
+  useKeypress(
+    (key) => {
+      if (key.name === 'escape') {
+        onCancel();
+        return true;
+      }
+
+      if (step === 'authenticate') {
+        if (key.name === 'return') {
+          handleApiKeySubmit(apiKeyInput);
+          return true;
+        }
+        if (key.name === 'backspace') {
+          if (apiKeyInput.length === 0) {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+            setSelectedIndex(0);
+          } else {
+            setApiKeyInput((prev) => prev.slice(0, -1));
+          }
+          return true;
+        }
+        if (key.insertable && key.sequence && !key.ctrl && !key.alt && !key.cmd) {
+          setApiKeyInput((prev) => prev + key.sequence);
+          return true;
+        }
+        return true;
+      }
+
+      if (step === 'confirm') {
+        if (key.name === 'return') {
+          handleConfirm();
+          return true;
+        }
+        if (key.name === 'backspace') {
+          setState((s) => ({ ...s, step: 'model-select', selectedModel: null }));
+          setSelectedIndex(0);
+          return true;
+        }
+        return true;
+      }
+
+      // List steps: connection-type, provider-select, model-select
+      if (key.name === 'up') {
+        setSelectedIndex(
+          (i) => (i - 1 + Math.max(listItemCount, 1)) % Math.max(listItemCount, 1),
+        );
+        return true;
+      }
+      if (key.name === 'down') {
+        setSelectedIndex((i) => (i + 1) % Math.max(listItemCount, 1));
+        return true;
+      }
+      if (key.name === 'backspace') {
+        if (step === 'provider-select') {
+          setState((s) => ({ ...s, step: 'connection-type', category: null }));
+          setSelectedIndex(0);
+        } else if (step === 'model-select') {
+          setState((s) => ({
+            ...s,
+            step: provider?.allowUnauthenticated
+              ? 'provider-select'
+              : 'authenticate',
+          }));
+          setSelectedIndex(0);
+        }
+        return true;
+      }
+      if (key.name === 'return') {
+        if (step === 'connection-type') {
+          const option = connectionTypeOptions[selectedIndex];
+          if (option) handleConnectionTypeSelect(option.key);
+        } else if (step === 'provider-select') {
+          const selected = categoryProviders[selectedIndex];
+          if (selected) void handleProviderSelect(selected);
+        } else if (step === 'model-select') {
+          const model = providerModels[selectedIndex];
+          if (model) handleModelSelect(model.id);
+        }
+        return true;
+      }
+      return true;
+    },
+    { isActive: true },
+  );
+
+  // ── Render step ─────────────────────────────────────────────────────
 
   return (
     <Box
@@ -404,6 +503,10 @@ function AuthStep({
         {hasApiKey && (
           <Box flexDirection="column" marginBottom={1}>
             <Text>Enter your API key for {provider.name}:</Text>
+            <Text>
+              Key: {'•'.repeat(apiKeyInput.length)}
+              <Text dimColor>▌</Text>
+            </Text>
             {provider.envVars && provider.envVars.length > 0 && (
               <Text dimColor>
                 Or set {provider.envVars.join(' / ')} environment variable.

@@ -40,6 +40,8 @@ import { NewAgentsNotification } from './NewAgentsNotification.js';
 import { AgentConfigDialog } from './AgentConfigDialog.js';
 import { PolicyUpdateDialog } from './PolicyUpdateDialog.js';
 import { LoginRestartDialog } from '../auth/LoginRestartDialog.js';
+import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
+import { useProviderSetupData } from '../hooks/useProviderSetupData.js';
 
 interface DialogManagerProps {
   addItem: UseHistoryManagerReturn['addItem'];
@@ -63,6 +65,9 @@ export const DialogManager = ({
     staticExtraHeight,
     terminalWidth: uiTerminalWidth,
   } = uiState;
+  const providerSetupData = useProviderSetupData(
+    uiState.isProviderSetupDialogOpen,
+  );
 
   if (uiState.adminSettingsChanged) {
     return <AdminSettingsChangedDialog />;
@@ -280,6 +285,22 @@ export const DialogManager = ({
           onChangeAuth={() => {
             uiActions.clearAccountSuspension();
           }}
+        />
+      </Box>
+    );
+  }
+  // PLUMB provider-first route: the multi-provider setup dialog owns the
+  // screen whenever it is open — including the empty-state startup where it
+  // replaces the legacy Google-first auth dialog.
+  if (uiState.isProviderSetupDialogOpen) {
+    return (
+      <Box flexDirection="column">
+        <PlumbProviderSetupDialog
+          providers={providerSetupData.providers}
+          categoryGroups={providerSetupData.categoryGroups}
+          models={providerSetupData.models}
+          onComplete={uiActions.handleProviderSetupComplete}
+          onCancel={uiActions.closeProviderSetupDialog}
         />
       </Box>
     );

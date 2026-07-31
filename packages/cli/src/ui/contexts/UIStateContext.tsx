@@ -100,6 +100,7 @@ export interface UIState {
   authError: string | null;
   accountSuspensionInfo: AccountSuspensionInfo | null;
   isAuthDialogOpen: boolean;
+  isProviderSetupDialogOpen: boolean;
   isAwaitingApiKeyInput: boolean;
   isAwaitingLoginRestart: boolean;
   loginRestartMessage?: string;

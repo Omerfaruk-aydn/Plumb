@@ -43,6 +43,7 @@ export const useAuthCommand = (
   config: Config,
   initialAuthError: string | null = null,
   initialAccountSuspensionInfo: AccountSuspensionInfo | null = null,
+  onProviderSetupRequest?: () => void,
 ) => {
   const [authState, setAuthState] = useState<AuthState>(
     initialAuthError ? AuthState.Updating : AuthState.Unauthenticated,
@@ -93,6 +94,15 @@ export const useAuthCommand = (
 
       const authType = settings.merged.security.auth.selectedType;
       if (!authType) {
+        // PLUMB provider-first startup: when no auth method is configured,
+        // request the multi-provider setup dialog instead of forcing the
+        // legacy Google-first auth dialog. Google login, Gemini API key, and
+        // Vertex AI remain available as providers inside the setup flow and
+        // via the /auth command.
+        if (onProviderSetupRequest) {
+          onProviderSetupRequest();
+          return;
+        }
         if (process.env['GEMINI_API_KEY']) {
           onAuthError(
             'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.',
@@ -165,6 +175,7 @@ export const useAuthCommand = (
     setAuthError,
     onAuthError,
     reloadApiKey,
+    onProviderSetupRequest,
   ]);
 
   return {

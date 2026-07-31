@@ -122,7 +122,12 @@ import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useAgentStream } from './hooks/useAgentStream.js';
 import { type BackgroundTask } from './hooks/useExecutionLifecycle.js';
 import { useVim } from './hooks/vim.js';
-import { type LoadableSettingScope, SettingScope } from '../config/settings.js';
+import {
+  type LoadableSettingScope,
+  SettingScope,
+  saveModelChange,
+} from '../config/settings.js';
+import { type PlumbProviderSetupResult } from './components/PlumbProviderSetupDialog.js';
 import { type InitializationResult } from '../core/initializer.js';
 import { startAutoMemoryIfEnabled } from '../utils/autoMemory.js';
 import { useFocus } from './hooks/useFocus.js';
@@ -716,6 +721,18 @@ export const AppContainer = (props: AppContainerProps) => {
   );
   // Poll for terminal background color changes to auto-switch theme
   useTerminalTheme(handleThemeSelect, config, refreshStatic);
+  // PLUMB provider-first route: the multi-provider setup dialog replaces the
+  // legacy Google-first auth dialog on empty-state startup, and is also
+  // reachable via the /provider, /plans, and /login slash commands.
+  const [isProviderSetupDialogOpen, setIsProviderSetupDialogOpen] =
+    useState(false);
+  const openProviderSetupDialog = useCallback(() => {
+    setIsProviderSetupDialogOpen(true);
+  }, []);
+  const closeProviderSetupDialog = useCallback(() => {
+    setIsProviderSetupDialogOpen(false);
+  }, []);
+
   const {
     authState,
     setAuthState,
@@ -730,6 +747,7 @@ export const AppContainer = (props: AppContainerProps) => {
     config,
     initializationResult.authError,
     initializationResult.accountSuspensionInfo,
+    openProviderSetupDialog,
   );
   const [authContext, setAuthContext] = useState<{ requiresRestart?: boolean }>(
     {},
@@ -765,9 +783,13 @@ export const AppContainer = (props: AppContainerProps) => {
 
   // Derive auth state variables for backward compatibility with UIStateContext
   const isAuthDialogOpen = authState === AuthState.Updating;
+  // PLUMB: with no auth method selected the app renders without credentials
+  // (provider-first setup opens as a dialog instead). Only block on the
+  // authenticating screen when an auth method is actually being validated.
   // TODO: Consider handling other auth types that should also skip the blocking screen
   const isAuthenticating =
     authState === AuthState.Unauthenticated &&
+    settings.merged.security.auth.selectedType !== undefined &&
     settings.merged.security.auth.selectedType !== AuthType.USE_GEMINI;
 
   // Session browser and resume functionality
@@ -874,6 +896,58 @@ Logging in with Google... Restarting Gemini CLI to continue.
     [setAuthState, onAuthError, reloadApiKey, config],
   );
 
+  const handleProviderSetupComplete = useCallback(
+    async (result: PlumbProviderSetupResult) => {
+      // Persist the PLUMB multi-provider selection. The legacy Google auth
+      // types remain available via /auth but are never forced first.
+      settings.setValue(
+        SettingScope.User,
+        'security.auth.selectedType',
+        AuthType.PLUMB_PROVIDER,
+      );
+      settings.setValue(SettingScope.User, 'plumb.provider.id', result.providerId);
+
+      if (result.apiKey) {
+        try {
+          const { ensurePlumbCredentialStore } = await import(
+            '@google/gemini-cli-provider'
+          );
+          const store = await ensurePlumbCredentialStore();
+          await store.storeApiKeyCredential(result.providerId, {
+            type: 'api_key',
+            provider: result.providerId,
+            key: result.apiKey,
+          });
+        } catch (e) {
+          debugLogger.warn(
+            `Failed to store provider credential: ${getErrorMessage(e)}`,
+          );
+        }
+      }
+
+      if (result.modelId) {
+        config.setModel(result.modelId, true);
+        saveModelChange(settings, result.modelId);
+      }
+
+      setIsProviderSetupDialogOpen(false);
+
+      try {
+        config.setRemoteAdminSettings(undefined);
+        await config.refreshAuth(AuthType.PLUMB_PROVIDER);
+        setAuthState(AuthState.Authenticated);
+      } catch (e) {
+        // The app remains usable without a completed auth flow; the user can
+        // finish authenticating via /login.
+        debugLogger.warn(
+          `Provider auth refresh after setup failed: ${getErrorMessage(e)}`,
+        );
+        setAuthState(AuthState.Unauthenticated);
+      }
+    },
+    [settings, config, setAuthState],
+  );
+
   const handleApiKeyCancel = useCallback(() => {
     // Go back to auth method selection
     setAuthState(AuthState.Updating);
@@ -960,6 +1034,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
   const slashCommandActions = useMemo(
     () => ({
       openAuthDialog: () => setAuthState(AuthState.Updating),
+      openProviderSetupDialog,
       openThemeDialog,
       openEditorDialog,
       openPrivacyNotice: () => setShowPrivacyNotice(true),
@@ -999,6 +1074,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
     }),
     [
       setAuthState,
+      openProviderSetupDialog,
       openThemeDialog,
       closeThemeDialog,
       openEditorDialog,
@@ -2195,6 +2271,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
     isPermissionsDialogOpen ||
     isAuthenticating ||
     isAuthDialogOpen ||
+    isProviderSetupDialogOpen ||
     isEditorDialogOpen ||
     showPrivacyNotice ||
     showIdeRestartPrompt ||
@@ -2437,6 +2514,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
       authError,
       accountSuspensionInfo,
       isAuthDialogOpen,
+      isProviderSetupDialogOpen,
       isAwaitingApiKeyInput: authState === AuthState.AwaitingApiKeyInput,
       isAwaitingLoginRestart,
       loginRestartMessage,
@@ -2554,6 +2632,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
       authError,
       accountSuspensionInfo,
       isAuthDialogOpen,
+      isProviderSetupDialogOpen,
       editorError,
       isEditorDialogOpen,
       showPrivacyNotice,
@@ -2675,6 +2754,8 @@ Logging in with Google... Restarting Gemini CLI to continue.
       handleAuthSelect,
       setAuthState,
       onAuthError,
+      closeProviderSetupDialog,
+      handleProviderSetupComplete,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,
@@ -2777,6 +2858,8 @@ Logging in with Google... Restarting Gemini CLI to continue.
       handleAuthSelect,
       setAuthState,
       onAuthError,
+      closeProviderSetupDialog,
+      handleProviderSetupComplete,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,

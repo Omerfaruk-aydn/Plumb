@@ -336,6 +336,17 @@ their corresponding top-level category object in your `settings.json` file.
     reads) in a compact, structured format.
   - **Default:** `true`
 
+- **`ui.animatedLogo`** (boolean):
+
+  - **Description:** Enable smooth animated RGB gradient on the welcome screen
+    PLUMB wordmark logo.
+  - **Default:** `true`
+
+- **`ui.logoAnimationFps`** (number):
+
+  - **Description:** Frame rate for the animated RGB logo (1-10 FPS).
+  - **Default:** `8`
+
 - **`ui.hideBanner`** (boolean):
 
   - **Description:** Hide the application banner

@@ -15,6 +15,7 @@ import {
 } from '@google/gemini-cli-core';
 import { type LoadableSettingScope } from '../../config/settings.js';
 import type { AuthState } from '../types.js';
+import type { PlumbProviderSetupResult } from '../components/PlumbProviderSetupDialog.js';
 import { type PermissionsDialogProps } from '../components/PermissionsModifyTrustDialog.js';
 import type { SessionInfo } from '../../utils/sessionUtils.js';
 import { type NewAgentsChoice } from '../components/NewAgentsNotification.js';
@@ -33,6 +34,10 @@ export interface UIActions {
   ) => void;
   setAuthState: (state: AuthState) => void;
   onAuthError: (error: string | null) => void;
+  closeProviderSetupDialog: () => void;
+  handleProviderSetupComplete: (
+    result: PlumbProviderSetupResult,
+  ) => Promise<void>;
   handleEditorSelect: (
     editorType: EditorType | undefined,
     scope: LoadableSettingScope,
