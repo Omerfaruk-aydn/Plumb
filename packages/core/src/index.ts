@@ -55,6 +55,20 @@ export * from './core/recordingContentGenerator.js';
 export * from './core/plumbContentGenerator.js';
 export { initializePlumbProviders } from './config/plumbInit.js';
 
+// PLUMB OS-protected credential storage
+export {
+  PlumbSecureCredentialStore,
+  getPlumbCredentialStore,
+  resetPlumbCredentialStore,
+} from './auth/plumbSecureCredentialStore.js';
+export type {
+  PlumbOAuthCredential,
+  PlumbApiKeyCredential,
+  PlumbCredential,
+  PlumbCredentialSource,
+  PlumbCredentialEntry,
+} from './auth/plumbSecureCredentialStore.js';
+
 // Export Routing
 export * from './routing/routingStrategy.js';
 export * from './routing/modelRouterService.js';

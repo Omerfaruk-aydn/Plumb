@@ -3,28 +3,24 @@
  * Copyright 2026 PLUMB Authors
  * SPDX-License-Identifier: Apache-2.0
  *
- * OMP-derived provider registry for PLUMB.
- * Manages the active provider set, auth state, and provider lifecycle.
- * Upstream source: D:\Kesit-next\packages\ai\src\registry\registry.ts
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
+ * PlumbProviderRegistry — single authority for provider state and auth.
+ * Uses OS-protected credential storage via KeychainService.
  */
 
 import {
   type PlumbProvider,
   type PlumbProviderId,
-  type PlumbModel,
   type PlumbApiKeyCredential,
   type PlumbOAuthCredential,
 } from '../types.js';
 import {
   SELECTABLE_PROVIDERS,
   getPlumbProvider,
-  getProvidersByCategory,
   getProviderSetupGroups,
 } from '../catalog/providers.js';
 import {
-  getPlumbCredentialStore,
-  type PlumbCredentialStore,
+  type IPlumbCredentialStore,
+  ensurePlumbCredentialStore,
 } from '../auth/credential-store.js';
 
 // ─── Auth state ────────────────────────────────────────────────────────
@@ -46,20 +42,16 @@ export interface PlumbProviderState {
 // ─── Provider registry ────────────────────────────────────────────────
 
 export class PlumbProviderRegistry {
-  readonly #credentialStore: PlumbCredentialStore;
+  #credentialStore: IPlumbCredentialStore | null = null;
   readonly #activeProviders = new Map<PlumbProviderId, PlumbProviderState>();
   #selectedProvider: PlumbProviderId | null = null;
   #initialized = false;
 
-  constructor(credentialStore?: PlumbCredentialStore) {
-    this.#credentialStore = credentialStore ?? getPlumbCredentialStore();
-  }
-
   // ── Initialization ────────────────────────────────────────────────
 
-  /** Initialize the registry: load stored credentials and resolve provider states. */
   async initialize(): Promise<void> {
     if (this.#initialized) return;
+    this.#credentialStore = await ensurePlumbCredentialStore();
 
     const authenticated =
       await this.#credentialStore.listAuthenticatedProviders();
@@ -83,7 +75,6 @@ export class PlumbProviderRegistry {
       });
     }
 
-    // Mark available local/keyless providers
     for (const provider of SELECTABLE_PROVIDERS) {
       if (
         provider.allowUnauthenticated &&
@@ -100,43 +91,39 @@ export class PlumbProviderRegistry {
     this.#initialized = true;
   }
 
+  #ensureStore(): IPlumbCredentialStore {
+    if (!this.#credentialStore) {
+      throw new Error('Registry not initialized. Call initialize() first.');
+    }
+    return this.#credentialStore;
+  }
+
   // ── Provider access ───────────────────────────────────────────────
 
-  /** Get all available providers (from catalog). */
   getAllProviders(): readonly PlumbProvider[] {
     return SELECTABLE_PROVIDERS;
   }
 
-  /** Get providers grouped by category for setup UI. */
   getProviderSetupGroups(): Map<string, PlumbProvider[]> {
     return getProviderSetupGroups();
   }
 
-  /** Get providers in a specific category. */
-  getProvidersByCategory(category: string): PlumbProvider[] {
-    return SELECTABLE_PROVIDERS.filter((p) => p.category === category);
-  }
-
-  /** Get the state of a specific provider. */
   getProviderState(
     providerId: PlumbProviderId,
   ): PlumbProviderState | undefined {
     return this.#activeProviders.get(providerId);
   }
 
-  /** Get all active (authenticated or local) provider states. */
   getActiveProviderStates(): PlumbProviderState[] {
     return [...this.#activeProviders.values()].filter(
       (s) => s.authState === 'authenticated',
     );
   }
 
-  /** Check if any provider is authenticated and usable. */
   hasUsableProvider(): boolean {
     return this.getActiveProviderStates().length > 0;
   }
 
-  /** Check if a specific provider is authenticated. */
   isProviderAuthenticated(providerId: PlumbProviderId): boolean {
     const state = this.#activeProviders.get(providerId);
     return state?.authState === 'authenticated';
@@ -144,12 +131,10 @@ export class PlumbProviderRegistry {
 
   // ── Provider selection ────────────────────────────────────────────
 
-  /** Get the currently selected/default provider. */
   getSelectedProvider(): PlumbProviderId | null {
     return this.#selectedProvider;
   }
 
-  /** Set the active provider. */
   selectProvider(providerId: PlumbProviderId): void {
     if (!getPlumbProvider(providerId)) {
       throw new Error(`Unknown provider: ${providerId}`);
@@ -159,7 +144,6 @@ export class PlumbProviderRegistry {
 
   // ── Auth operations ───────────────────────────────────────────────
 
-  /** Mark a provider as authenticating. */
   setAuthenticating(providerId: PlumbProviderId): void {
     const provider = getPlumbProvider(providerId);
     if (!provider) return;
@@ -170,7 +154,6 @@ export class PlumbProviderRegistry {
     });
   }
 
-  /** Mark a provider as authenticated with credentials. */
   async setAuthenticated(
     providerId: PlumbProviderId,
     credential: PlumbOAuthCredential | PlumbApiKeyCredential,
@@ -178,7 +161,7 @@ export class PlumbProviderRegistry {
     const provider = getPlumbProvider(providerId);
     if (!provider) return;
 
-    await this.#credentialStore.storeCredential(providerId, credential);
+    await this.#ensureStore().storeCredential(providerId, credential);
 
     this.#activeProviders.set(providerId, {
       provider,
@@ -186,13 +169,11 @@ export class PlumbProviderRegistry {
       credentials: credential,
     });
 
-    // Auto-select if no provider is selected
     if (!this.#selectedProvider) {
       this.#selectedProvider = providerId;
     }
   }
 
-  /** Mark a provider as having an auth error. */
   setAuthError(providerId: PlumbProviderId, error: string): void {
     const existing = this.#activeProviders.get(providerId);
     this.#activeProviders.set(providerId, {
@@ -203,27 +184,23 @@ export class PlumbProviderRegistry {
     });
   }
 
-  /** Log out (remove credentials) for a provider. */
   async logout(providerId: PlumbProviderId): Promise<void> {
-    await this.#credentialStore.removeCredentials(providerId);
+    await this.#ensureStore().removeCredentials(providerId);
     this.#activeProviders.delete(providerId);
     if (this.#selectedProvider === providerId) {
       this.#selectedProvider = null;
     }
   }
 
-  /** Get API key for a provider. Resolves stored creds > env vars. */
   async getApiKey(providerId: PlumbProviderId): Promise<string | undefined> {
-    return this.#credentialStore.getApiKey(providerId);
+    return this.#ensureStore().getApiKey(providerId);
   }
 
-  /** Check and refresh OAuth credentials if needed. */
   async ensureValidCredentials(providerId: PlumbProviderId): Promise<boolean> {
     const state = this.#activeProviders.get(providerId);
     if (!state) return false;
 
     if (state.authState === 'authenticated') {
-      // Check OAuth expiry
       if (
         state.credentials?.type === 'oauth' &&
         state.credentials.expires <= Date.now() + 60_000
@@ -233,7 +210,6 @@ export class PlumbProviderRegistry {
       }
       return true;
     }
-
     return false;
   }
 }

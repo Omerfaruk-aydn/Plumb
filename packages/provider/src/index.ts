@@ -58,10 +58,11 @@ export {
   UNAUTHENTICATED_PROVIDERS,
 } from './catalog/providers.js';
 
-// Credential store (DPAPI-encrypted)
+// Credential store (OS-protected via KeychainService in core)
 export {
-  PlumbSecureCredentialStore,
-  PlumbSecureCredentialStore as PlumbCredentialStore, // backward compat alias
+  type IPlumbCredentialStore,
+  createPlumbCredentialStore,
+  ensurePlumbCredentialStore,
   getPlumbCredentialStore,
   resetPlumbCredentialStore,
 } from './auth/credential-store.js';
@@ -92,3 +93,18 @@ export {
   registerPlumbTransport,
   hasPlumbTransport,
 } from './transports/streaming.js';
+
+// Coding plan implementations
+export {
+  ZHIPU_CODING_PLAN_PROVIDER,
+  ZHIPU_API_BASE_URL,
+  ZHIPU_AUTH_URL,
+  ZHIPU_CODING_PLAN_MODELS,
+  validateZhipuCodingPlanKey,
+  discoverZhipuCodingPlanModels,
+  loginZhipuCodingPlan,
+} from './plans/zhipu-coding-plan.js';
+export type {
+  ZhipuLoginCallbacks,
+  ZhipuLoginResult,
+} from './plans/zhipu-coding-plan.js';
