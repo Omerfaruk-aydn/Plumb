@@ -265,8 +265,8 @@ describe('<AppHeader />', () => {
     );
     await waitUntilReady();
 
-    // Check for block characters from the logo
-    expect(lastFrame()).toContain('▗█▀▀▜▙');
+    // Check for block characters from the PLUMB logo
+    expect(lastFrame()).toContain('████');
     expect(lastFrame()).toMatchSnapshot();
     unmount();
   });
