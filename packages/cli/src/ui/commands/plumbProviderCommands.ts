@@ -8,7 +8,6 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
- 
 
 import type { SlashCommand, CommandContext } from './types.js';
 import { AuthType } from '@google/gemini-cli-core';
@@ -246,10 +245,10 @@ export const accountsCommand: SlashCommand = {
   autoExecute: true,
   async action(context: CommandContext) {
     try {
-      const { getPlumbCredentialStore } = await import(
+      const { ensurePlumbCredentialStore } = await import(
         '@google/gemini-cli-provider'
       );
-      const store = getPlumbCredentialStore();
+      const store = await ensurePlumbCredentialStore();
       const authenticated = await store.listAuthenticatedProviders();
 
       if (authenticated.length === 0) {
@@ -303,10 +302,11 @@ export const credentialsCommand: SlashCommand = {
 
     if (trimmed === 'clear' || trimmed === 'reset') {
       try {
-        const { getPlumbCredentialStore } = await import(
+        const { ensurePlumbCredentialStore } = await import(
           '@google/gemini-cli-provider'
         );
-        await getPlumbCredentialStore().clearAll();
+        const store = await ensurePlumbCredentialStore();
+        await store.clearAll();
         context.ui.addItem({
           id: `creds-cleared-${Date.now()}`,
           type: 'info',

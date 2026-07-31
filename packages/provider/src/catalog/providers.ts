@@ -968,6 +968,7 @@ export const PRODUCTION_READY_PROVIDER_IDS = new Set<string>([
   'llama-cpp',
   'vllm',
   'custom-openai-compat',
+  'zhipu-coding-plan',
 ]);
 
 /** Providers that are safe to display and select in the UI. */
