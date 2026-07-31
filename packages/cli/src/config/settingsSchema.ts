@@ -643,6 +643,25 @@ const SETTINGS_SCHEMA = {
           'Display tool outputs (like directory listings and file reads) in a compact, structured format.',
         showInDialog: true,
       },
+      animatedLogo: {
+        type: 'boolean',
+        label: 'Animated RGB Logo',
+        category: 'UI',
+        requiresRestart: false,
+        default: true,
+        description:
+          'Enable smooth animated RGB gradient on the welcome screen PLUMB wordmark logo.',
+        showInDialog: true,
+      },
+      logoAnimationFps: {
+        type: 'number',
+        label: 'Logo Animation FPS',
+        category: 'UI',
+        requiresRestart: false,
+        default: 8,
+        description: 'Frame rate for the animated RGB logo (1-10 FPS).',
+        showInDialog: true,
+      },
       hideBanner: {
         type: 'boolean',
         label: 'Hide Banner',
