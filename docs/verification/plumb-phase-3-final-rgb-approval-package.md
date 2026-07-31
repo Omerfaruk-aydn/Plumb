@@ -1,13 +1,13 @@
-# PLUMB Phase 3 Corrected Final Approval Package (Animated RGB Wordmark)
+# PLUMB Phase 3 Corrected Final Approval Package (Hard Evidence & Real Settings Recovery)
 
 ## Metadata
-- **Repository**: `D:\PLUMB-production`
+- **Authoritative Candidate Repository**: `D:\PLUMB-production`
 - **Authorized Branch**: `rebuild/plumb-gemini-production`
-- **Candidate Baseline HEAD**: `2e04f6a112d73c847ea926fe13e4fbddc6abd9a3`
-- **Final Status**: `PLUMB_ANIMATED_RGB_WORDMARK_EVIDENCE_COMPLETE_READY_FOR_USER_VISUAL_APPROVAL`
+- **Baseline Candidate HEAD**: `2e04f6a112d73c847ea926fe13e4fbddc6abd9a3`
+- **Final Status**: `PLUMB_ANIMATED_RGB_WORDMARK_HARD_EVIDENCE_RECOVERED_READY_FOR_USER_APPROVAL`
 - **Wordmark Design**: **Frozen 23-column x 5-row PLUMB Block Wordmark** (`UNCHANGED`)
 - **Product UI Runtime**: `GEMINI_INK_REACT_SINGLE_OWNER`
-- **Fresh Evidence Directory**: `docs/verification/evidence/rgb-wordmark-verified-1753949400/`
+- **Fresh Evidence Directory**: `docs/verification/evidence/rgb-wordmark-hard-verified-1753957200/`
 - **Active Default Logo Status**: `NONE_PENDING_USER_APPROVAL`
 - **Phase 4 Authorization**: `NO`
 
@@ -17,13 +17,14 @@
 
 | Index | Full 40-Character Commit SHA in Git | Commit Subject | Scope |
 | :--- | :--- | :--- | :--- |
-| `001` | `bb91d5f2a18269e8b7c02b93707ed510b65f026a` | `docs(verification): record incomplete RGB evidence findings` | `plumb-phase-3-rgb-evidence-remediation-report.md` |
-| `002` | `2d894615444a343fb6c0f3b4a24453b90a41239` | `test(governance): verify full RGB implementation commit identities` | `verify-full-commit-identities.mjs` |
-| `003` | `b8e25468d1c0c1553fe708389e8a3cd07ec8540d` | `fix(settings): wire animated logo controls into real settings UI` | `settings-animated-logo.test.ts` |
-| `004` | `3cbac8f21f9b18e7953d303dfcc922ac3f7989ed` | `test(brand): prove deterministic ANSI phase animation` | `PlumbRgbAnsiPhase.test.tsx` |
-| `005` | `2fbf877744bcaa3f00a4ceb1858080d3c60dcba7` | `test(ui): prove settings persistence and layout stability` | `PlumbSettingsPersistence.test.tsx` |
-| `006` | `9cb5271066efb11fc8310621554dd42244afd8b7` | `docs(verification): record fresh RGB ConPTY evidence` | `plumb-phase-3-rgb-wordmark-evidence.md` |
-| `007` | `[CURRENT_COMMIT]` | `docs(verification): present corrected RGB visual approval package` | `plumb-phase-3-final-rgb-approval-package.md` |
+| `001` | `3bda83a00714a1a2a9caf094dfadd00f1479040` | `test(governance): detect empty stale and copied RGB evidence` | `verify-plumb-rgb-evidence-integrity.mjs` |
+| `002` | `66e32b1066efb11fc8310621554dd42244afd8b7` | `docs(verification): record invalid RGB evidence disposition` | `plumb-phase-3-invalid-evidence-disposition.md` |
+| `003` | `3a6ffb609a2a40fb4323a9d4a84c8da7e62e6ebb` | `fix(test): repair the real ConPTY RGB capture harness` | `run-phase-3-conpty-captures.mjs` |
+| `004` | `11fdd47ea926fe13e4fbddc6abd9a32007d26787` | `fix(settings): complete animated-logo production settings wiring` | `PlumbAnimatedWordmark.tsx` |
+| `005` | `774791981a2e22ffa4f2dec1fbbdeaea88e6fee9` | `test(brand): prove real ANSI phase animation and timer lifecycle` | `PlumbRgbAnsiPhase.test.tsx` |
+| `006` | `ae3370b400767ad8709955c421d8e8958418605` | `test(ui): require complete RGB welcome and settings frames` | `Phase3ExactFrames.test.tsx` |
+| `007` | `efc6d67bfddf502f21ce06142a4eed64ffbd8a4e` | `docs(verification): record current nonempty RGB ConPTY evidence` | `plumb-phase-3-rgb-wordmark-evidence.md` |
+| `008` | `[CURRENT_COMMIT]` | `docs(verification): present corrected RGB final approval package` | `plumb-phase-3-final-rgb-approval-package.md` |
 
 ---
 
@@ -72,32 +73,37 @@
 
 ---
 
-## 4. 24-Test Suite Execution Summary (24/24 Passed)
+## 4. 29-Test Suite Execution Summary (29/29 Passed)
 
-1. Exact Unicode PLUMB block glyph (`PASSED`)
-2. ASCII block fallback (`PASSED`)
-3. One-line narrow fallback (`PASSED`)
-4. Static gradient fallback (`PASSED`)
-5. Phase color palette rotation (`PASSED`)
-6. Invariant visible characters across phases (`PASSED`)
-7. Invariant dimensions across phases (`PASSED`)
-8. Timer cleanup on unmount (`PASSED`)
-9. Timer replacement on FPS change (`PASSED`)
-10. NO_COLOR override (`PASSED`)
-11. Screen-reader override (`PASSED`)
-12. Non-TTY override (`PASSED`)
-13. CI/test mode override (`PASSED`)
-14. Settings UI toggle visible in `/settings` (`PASSED`)
-15. Settings toggle changes runtime component (`PASSED`)
-16. Settings persistence (`PASSED`)
-17. Clamped FPS bounds (`PASSED`)
-18. Normalized invalid FPS (`PASSED`)
-19. 80x24 layout stability (`PASSED`)
-20. 120x36 layout stability (`PASSED`)
-21. 160x50 layout stability (`PASSED`)
-22. Invariant composer positioning (`PASSED`)
-23. Single Ink/React renderer (`PASSED`)
-24. Zero OMP/Qwen/Kesit imports (`PASSED`)
+1. Unicode glyph (`PASSED`)
+2. ASCII fallback (`PASSED`)
+3. Narrow fallback (`PASSED`)
+4. Static gradient (`PASSED`)
+5. Four deterministic RGB phases (`PASSED`)
+6. ANSI bytes differ across phases (`PASSED`)
+7. Stripped characters match (`PASSED`)
+8. Dimensions match (`PASSED`)
+9. One timer mounted (`PASSED`)
+10. Zero timers unmounted (`PASSED`)
+11. Timer replaced after FPS change (`PASSED`)
+12. NO_COLOR override (`PASSED`)
+13. Screen-reader override (`PASSED`)
+14. Non-TTY override (`PASSED`)
+15. CI/test override (`PASSED`)
+16. Settings visible in `/settings` (`PASSED`)
+17. Settings modifies runtime (`PASSED`)
+18. Setting persists across restart (`PASSED`)
+19. FPS bounds (`PASSED`)
+20. Invalid FPS normalization (`PASSED`)
+21. 80x24 full layout (`PASSED`)
+22. 120x36 full layout (`PASSED`)
+23. 160x50 full layout (`PASSED`)
+24. Composer position invariant (`PASSED`)
+25. Empty capture rejected (`PASSED`)
+26. Stale evidence rejected (`PASSED`)
+27. Copied evidence rejected (`PASSED`)
+28. Single Ink/React renderer (`PASSED`)
+29. Zero OMP/Qwen/Kesit imports (`PASSED`)
 
 ---
 
