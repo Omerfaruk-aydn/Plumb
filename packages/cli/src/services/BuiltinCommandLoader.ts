@@ -65,6 +65,16 @@ import { terminalSetupCommand } from '../ui/commands/terminalSetupCommand.js';
 import { upgradeCommand } from '../ui/commands/upgradeCommand.js';
 import { gemmaStatusCommand } from '../ui/commands/gemmaStatusCommand.js';
 import { voiceCommand } from '../ui/commands/voiceCommand.js';
+import {
+  providerCommand,
+  plansCommand,
+  loginCommand,
+  logoutCommand,
+  modelsCommand,
+  accountsCommand,
+  credentialsCommand,
+  localModelsCommand,
+} from '../ui/commands/plumbProviderCommands.js';
 
 /**
  * Loads the core, hard-coded slash commands that are an integral part
@@ -237,6 +247,16 @@ export class BuiltinCommandLoader implements ICommandLoader {
       AuthType.LOGIN_WITH_GOOGLE
         ? [upgradeCommand]
         : []),
+
+      // PLUMB multi-provider commands
+      providerCommand,
+      plansCommand,
+      loginCommand,
+      logoutCommand,
+      modelsCommand,
+      accountsCommand,
+      credentialsCommand,
+      localModelsCommand,
     ];
     handle?.end();
     return allDefinitions.filter((cmd): cmd is SlashCommand => cmd !== null);

@@ -479,9 +479,12 @@ export async function main() {
     validateDnsResolutionOrder(settings.merged.advanced.dnsResolutionOrder),
   );
 
-  // Set a default auth type if one isn't set or is set to a legacy type
+  // PLUMB: Do NOT auto-set Google as the default auth type.
+  // The application renders without credentials and presents the provider
+  // selection UI. Google/Gemini/Vertex remain available as optional providers.
+  //
+  // Legacy Cloud Shell detection still works for existing Cloud Shell users.
   if (
-    !settings.merged.security.auth.selectedType ||
     settings.merged.security.auth.selectedType === AuthType.LEGACY_CLOUD_SHELL
   ) {
     if (
@@ -504,29 +507,54 @@ export async function main() {
 
   adminControlsListner.setConfig(partialConfig);
 
-  // Refresh auth to fetch remote admin settings from CCPA and before entering
-  // the sandbox because the sandbox will interfere with the Oauth2 web
-  // redirect.
-  let initialAuthFailed = false;
-  if (!settings.merged.security.auth.useExternal && !argv.isCommand) {
+  // PLUMB: Initialize the multi-provider subsystem.
+  // Loads bundled model catalog and saved credentials.
+  {
     try {
-      if (
-        partialConfig.isInteractive() &&
-        settings.merged.security.auth.selectedType
-      ) {
-        const err = await validateAuthMethod(
-          settings.merged.security.auth.selectedType,
-        );
+      const { initializePlumbProviders } = await import(
+        '@google/gemini-cli-core'
+      );
+      initializePlumbProviders().catch((err) =>
+        debugLogger.warn('PLUMB provider init failed:', err),
+      );
+    } catch {
+      // Provider subsystem not available — app works without it
+    }
+  }
+
+  // PLUMB: Auth is now optional at startup. The application will present
+  // the provider selection UI if no provider is configured. Google/Vertex
+  // auth flows remain available when explicitly selected.
+  //
+  // Only attempt auth refresh when:
+  //   - A non-PLUMB provider is selected AND we are interactive
+  //   - The user explicitly requested Google/Vertex/Gemini auth
+  let initialAuthFailed = false;
+  const selectedAuthType = settings.merged.security.auth.selectedType;
+  const isGoogleAuth =
+    selectedAuthType === AuthType.LOGIN_WITH_GOOGLE ||
+    selectedAuthType === AuthType.COMPUTE_ADC ||
+    selectedAuthType === AuthType.USE_GEMINI ||
+    selectedAuthType === AuthType.USE_VERTEX_AI ||
+    selectedAuthType === AuthType.GATEWAY;
+
+  if (
+    !settings.merged.security.auth.useExternal &&
+    !argv.isCommand &&
+    selectedAuthType &&
+    isGoogleAuth
+  ) {
+    try {
+      if (partialConfig.isInteractive()) {
+        const err = await validateAuthMethod(selectedAuthType);
         if (err) {
           throw new Error(err);
         }
 
-        await partialConfig.refreshAuth(
-          settings.merged.security.auth.selectedType,
-        );
+        await partialConfig.refreshAuth(selectedAuthType);
       } else if (!partialConfig.isInteractive()) {
         const authType = await validateNonInteractiveAuth(
-          settings.merged.security.auth.selectedType,
+          selectedAuthType,
           settings.merged.security.auth.useExternal,
           partialConfig,
           settings,
@@ -549,6 +577,10 @@ export async function main() {
       }
     }
   }
+
+  // PLUMB_PROVIDER mode: defer auth to the provider setup UI.
+  // The application starts, shows the provider picker, and authenticates
+  // on user selection — no Google credential required to render.
 
   const remoteAdminSettings = partialConfig.getRemoteAdminSettings();
   // Set remote admin settings if returned from CCPA.

@@ -11,6 +11,13 @@ export async function validateAuthMethod(
   authMethod: string,
 ): Promise<string | null> {
   loadEnvironment(loadSettings().merged, process.cwd());
+
+  // PLUMB_PROVIDER uses the multi-provider subsystem — no env-var check needed.
+  // Credentials are resolved from the PlumbCredentialStore at stream time.
+  if (authMethod === AuthType.PLUMB_PROVIDER) {
+    return null;
+  }
+
   if (
     authMethod === AuthType.LOGIN_WITH_GOOGLE ||
     authMethod === AuthType.COMPUTE_ADC
