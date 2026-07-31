@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import {
   PlumbAnimatedWordmark,

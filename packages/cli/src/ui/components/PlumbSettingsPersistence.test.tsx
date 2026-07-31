@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 import { getDefaultValue } from '../../utils/settingsUtils.js';

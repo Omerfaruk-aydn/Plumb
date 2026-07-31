@@ -1,7 +1,7 @@
 {
-  "name": "@google/gemini-cli",
+  "name": "plumb-cli",
   "version": "0.55.0-nightly.20260729.g3499c84f7",
-  "description": "Gemini CLI",
+  "description": "PLUMB CLI — provider-first multi-provider terminal agent. The 'plumb' command is the primary entry point; the 'gemini' bin alias is retained for backwards compatibility and resolves to the same PLUMB-owned dist entry.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,6 +14,7 @@
     "gemini": "dist/index.js"
   },
   "scripts": {
+    "prebuild": "node ../../scripts/generate-build-identity.js",
     "build": "node ../../scripts/build_package.js",
     "start": "node dist/index.js",
     "debug": "node --inspect-brk dist/index.js",

@@ -5,13 +5,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { AboutBox } from './AboutBox.js';
 import { Help } from './Help.js';
 import { AppHeader } from './AppHeader.js';
 import {
-  BRAND_CONSTANTS,
   getLogoPrimitive,
   getLogoWordmark,
   isSymbolicLogoRejected,
@@ -60,7 +58,7 @@ describe('PLUMB Phase 3 Full-Frame RGB Wordmark Production Suite', () => {
   });
 
   it('6. Help screen renders cleanly without slogans', async () => {
-    const { lastFrame } = await renderWithProviders(<Help />);
+    const { lastFrame } = await renderWithProviders(<Help commands={[]} />);
     const output = lastFrame();
     expect(output).not.toContain('supercharge');
     expect(output).not.toContain('AI-powered');

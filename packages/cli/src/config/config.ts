@@ -110,6 +110,8 @@ export interface CliArgs {
   acceptRawOutputRisk: boolean | undefined;
   skipTrust: boolean | undefined;
   isCommand: boolean | undefined;
+  runtimeIdentity: boolean | undefined;
+  diagnoseLogo: boolean | undefined;
 }
 
 /**
@@ -494,6 +496,16 @@ export async function parseArguments(
         .option('accept-raw-output-risk', {
           type: 'boolean',
           description: 'Suppress the security warning when using --raw-output.',
+        })
+        .option('runtime-identity', {
+          type: 'boolean',
+          description:
+            'Print the PLUMB runtime identity (package, entry, embedded build HEAD, provider and wordmark modules) and exit. Fails when the embedded build HEAD does not match the current repository HEAD.',
+        })
+        .option('diagnose-logo', {
+          type: 'boolean',
+          description:
+            'Print PLUMB logo diagnostics (TTY, color environment, settings, selected rendering mode, mounted wordmark module) and exit.',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json
