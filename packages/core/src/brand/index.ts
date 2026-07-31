@@ -6,3 +6,4 @@
 
 export * from './constants.js';
 export * from './logo.js';
+export * from './glyphRenderer.js';
