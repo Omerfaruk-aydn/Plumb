@@ -1,0 +1,92 @@
+{
+  "canonical_repository": "https://github.com/can1357/oh-my-pi.git",
+  "canonical_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+  "license": "MIT",
+  "copyright": "(c) 2025 Mario Zechner, (c) 2025-2026 Can Boluk",
+  "imported_units": [
+    {
+      "source_path": "packages/catalog/src/types.ts",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/types.ts",
+      "modifications": [
+        "Renamed all types to Plumb* prefix",
+        "Added PlumbProviderCategory enum",
+        "Added PlumbAuthMethod union",
+        "Added PlumbStreamEvent types",
+        "Adapted for Node.js module system"
+      ],
+      "consumer": "packages/core/src/core/plumbContentGenerator.ts, packages/cli/src/ui/commands/plumbProviderCommands.ts"
+    },
+    {
+      "source_path": "packages/catalog/src/provider-models/descriptors.ts",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/catalog/providers.ts",
+      "modifications": [
+        "Flattened to single PlumbProvider[] array",
+        "Added category grouping",
+        "Added auth method descriptors",
+        "Added UI group labels"
+      ],
+      "consumer": "packages/provider/src/registry/provider-registry.ts"
+    },
+    {
+      "source_path": "packages/catalog/src/models.json",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/catalog/models.ts",
+      "modifications": [
+        "Extracted representative subset",
+        "Normalized to PlumbModel interface",
+        "Added initBundledModels() loader"
+      ],
+      "consumer": "packages/provider/src/registry/model-registry.ts"
+    },
+    {
+      "source_path": "packages/ai/src/auth-storage.ts",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/auth/credential-store.ts",
+      "modifications": [
+        "Replaced SQLite with JSON file backend",
+        "Simplified to single-store model",
+        "Added DPAPI encryption layer",
+        "Removed usage-tracking",
+        "Removed broker support"
+      ],
+      "consumer": "packages/provider/src/registry/provider-registry.ts"
+    },
+    {
+      "source_path": "packages/ai/src/registry/registry.ts",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/registry/provider-registry.ts",
+      "modifications": [
+        "Decoupled from OAuthProviderInterface",
+        "Uses PlumbProvider from catalog instead",
+        "Added auth state machine",
+        "Added singleton pattern"
+      ],
+      "consumer": "packages/core/src/config/plumbInit.ts"
+    },
+    {
+      "source_path": "packages/ai/src/stream.ts",
+      "source_sha": "4df68d60438423b384b2b47fb3d6835641624757",
+      "dest_path": "packages/provider/src/transports/streaming.ts",
+      "modifications": [
+        "Reimplemented using native fetch (no Bun)",
+        "Added PlumbStreamEvent normalization",
+        "Added transport registry pattern",
+        "Self-contained SSE parsing"
+      ],
+      "consumer": "packages/core/src/core/plumbContentGenerator.ts"
+    }
+  ],
+  "excluded_components": [
+    "packages/tui/ (OMP TUI)",
+    "packages/agent/ (OMP agent runtime)",
+    "packages/coding-agent/src/modes/ (interactive mode)",
+    "packages/coding-agent/src/tools/ (OMP tools)",
+    "packages/coding-agent/src/tui/ (TUI rendering)",
+    "packages/coding-agent/src/session/ (session UI)",
+    "packages/stats/ (observability)",
+    "packages/natives/ (native bindings)",
+    "crates/pi-natives/ (Rust native)"
+  ]
+}

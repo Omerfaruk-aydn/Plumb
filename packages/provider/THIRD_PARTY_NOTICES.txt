@@ -1,0 +1,70 @@
+PLUMB Provider Subsystem - Third-Party Notices
+================================================
+
+This package (packages/provider/) incorporates source code and data
+structures derived from Oh My Pi (OMP), an open-source project.
+
+Original Project: Oh My Pi (OMP)
+Upstream Repository: https://github.com/can1357/oh-my-pi.git
+Upstream Commit SHA: 4df68d60438423b384b2b47fb3d6835641624757
+Upstream Packages: packages/catalog/, packages/ai/, packages/coding-agent/
+License: MIT
+
+Copyright (c) 2025 Mario Zechner
+Copyright (c) 2025-2026 Can Boluk
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Modifications for PLUMB:
+- All public-facing APIs renamed to use Plumb prefix
+- Adapted for Node.js/npm module system (from Bun workspace origin)
+- Streaming transports reimplemented using native fetch API
+- Credential storage replaced with AES-256-GCM encrypted storage
+- Provider catalog filtered to production-ready subset only
+- OMP TUI, agent runtime, and interactive mode excluded
+- Google-specific branding removed; Google providers remain as optional entries
+
+Source-file provenance:
+  packages/provider/src/types.ts
+    -> packages/catalog/src/types.ts
+    -> packages/ai/src/registry/types.ts
+
+  packages/provider/src/catalog/providers.ts
+    -> packages/catalog/src/provider-models/descriptors.ts
+    -> packages/ai/src/registry/registry.ts
+
+  packages/provider/src/catalog/models.ts
+    -> packages/catalog/src/models.json
+
+  packages/provider/src/auth/credential-store.ts
+    -> packages/ai/src/auth-storage.ts
+
+  packages/provider/src/registry/provider-registry.ts
+    -> packages/ai/src/registry/registry.ts
+
+  packages/provider/src/registry/model-registry.ts
+    -> packages/coding-agent/src/config/model-registry.ts
+    -> packages/catalog/src/model-manager.ts
+
+  packages/provider/src/transports/streaming.ts
+    -> packages/ai/src/stream.ts
+    -> packages/ai/src/providers/anthropic.ts
+    -> packages/ai/src/providers/openai-completions.ts
