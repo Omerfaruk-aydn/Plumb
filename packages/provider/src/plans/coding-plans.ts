@@ -260,7 +260,8 @@ export const CODING_PLANS: CodingPlanDefinition[] = [
   {
     id: 'qwen-portal',
     name: 'Qwen Portal',
-    description: 'Alibaba Qwen portal access.',
+    description:
+      'Alibaba Qwen portal. Accepts OAuth tokens AND API keys. Open chat.qwen.ai to get your credentials.',
     authUrl: 'https://chat.qwen.ai',
     endpoint: 'https://portal.qwen.ai/v1',
     validationKind: 'chat-completions',
@@ -277,6 +278,33 @@ export const CODING_PLANS: CodingPlanDefinition[] = [
     ],
   },
 ];
+
+// ─── Qwen Portal dual-auth login ─────────────────────────────────────
+
+/**
+ * Qwen Portal login — accepts both OAuth tokens and API keys.
+ * Matching upstream: packages/ai/src/registry/qwen-portal.ts
+ */
+export async function loginQwenPortal(
+  apiKey: string,
+): Promise<{ key: string }> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    throw new Error('Qwen OAuth token or API key is required.');
+  }
+
+  const result = await validateWithChatCompletions(
+    'https://portal.qwen.ai/v1',
+    trimmed,
+    'coder-model',
+  );
+
+  if (!result.valid) {
+    throw new Error(result.error ?? 'Invalid Qwen credentials.');
+  }
+
+  return { key: trimmed };
+}
 
 // ─── Provider factory ──────────────────────────────────────────────────
 

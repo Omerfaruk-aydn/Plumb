@@ -117,6 +117,7 @@ export {
   getAllCodingPlanProviders,
   validateCodingPlanApiKey,
   loginCodingPlan,
+  loginQwenPortal,
 } from './plans/coding-plans.js';
 export type {
   CodingPlanDefinition,
