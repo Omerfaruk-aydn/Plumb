@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import {
@@ -17,11 +17,14 @@ describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
   let oldForceColor: string | undefined;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     oldForceColor = process.env.FORCE_COLOR;
     process.env.FORCE_COLOR = '3';
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
     if (oldForceColor !== undefined) {
       process.env.FORCE_COLOR = oldForceColor;
     } else {
@@ -58,26 +61,21 @@ describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
     const clean1 = stripAnsi(raw1);
     res1.unmount();
 
-    // 1. Visible character geometry is byte-identical
     expect(clean0).toBe(clean1);
     expect(clean0).toContain('████');
   });
 
-  it('3. proves phase 2 and phase 3 maintain exact geometry while palette advances cyclically', async () => {
-    const pal90 = getRgbPaletteForPhase(90);
-    const pal135 = getRgbPaletteForPhase(135);
-    expect(pal90).not.toEqual(pal135);
+  it('3. proves exactly 1 timer when mounted and 0 timers after unmount', async () => {
+    const setIntervalSpy = vi.spyOn(global, 'setInterval');
+    const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
 
-    const res2 = await renderWithProviders(<PlumbAnimatedWordmark phase={90} />);
-    const raw2 = res2.lastFrame();
-    const clean2 = stripAnsi(raw2);
-    res2.unmount();
+    const { unmount } = await renderWithProviders(
+      <PlumbAnimatedWordmark fps={8} />,
+    );
 
-    const res3 = await renderWithProviders(<PlumbAnimatedWordmark phase={135} />);
-    const raw3 = res3.lastFrame();
-    const clean3 = stripAnsi(raw3);
-    res3.unmount();
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
 
-    expect(clean2).toBe(clean3);
+    unmount();
+    expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
   });
 });
