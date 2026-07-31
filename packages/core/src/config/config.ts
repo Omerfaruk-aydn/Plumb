@@ -828,6 +828,8 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private model: string;
+  /** PLUMB multi-provider: the active provider ID when authType is PLUMB_PROVIDER. */
+  private plumbProviderId: string | null = null;
   private readonly disableLoopDetection: boolean;
   // null = unknown (quota not fetched); true = has access; false = definitively no access
   private hasAccessToPreviewModel: boolean | null = null;
@@ -1915,6 +1917,16 @@ export class Config implements McpContext, AgentLoopContext {
 
   getModel(): string {
     return this.model;
+  }
+
+  /** Get the active PLUMB provider ID (only set when authType is PLUMB_PROVIDER). */
+  getPlumbProvider(): string | null {
+    return this.plumbProviderId;
+  }
+
+  /** Set the active PLUMB provider ID. */
+  setPlumbProvider(providerId: string): void {
+    this.plumbProviderId = providerId;
   }
 
   getDisableLoopDetection(): boolean {

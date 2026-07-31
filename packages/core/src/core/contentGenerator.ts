@@ -32,6 +32,7 @@ import { getVersion, resolveModel } from '../../index.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
 import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
+import { PlumbContentGenerator } from './plumbContentGenerator.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -67,6 +68,8 @@ export enum AuthType {
   LEGACY_CLOUD_SHELL = 'cloud-shell',
   COMPUTE_ADC = 'compute-default-credentials',
   GATEWAY = 'gateway',
+  /** PLUMB multi-provider mode — provider selected via PlumbProviderRegistry. */
+  PLUMB_PROVIDER = 'plumb-provider',
 }
 
 /**
@@ -95,6 +98,11 @@ export function getAuthTypeFromEnv(): AuthType | undefined {
     process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true'
   ) {
     return AuthType.COMPUTE_ADC;
+  }
+  // PLUMB: Detect PLUMB_PROVIDER mode when the PLUMB env prefix is set
+  // or when a .plumb credentials file exists.
+  if (process.env['PLUMB_PROVIDER'] || process.env['PLUMB_PROVIDER_ID']) {
+    return AuthType.PLUMB_PROVIDER;
   }
   return undefined;
 }
@@ -168,6 +176,13 @@ export async function createContentGeneratorConfig(
     authType === AuthType.LOGIN_WITH_GOOGLE ||
     authType === AuthType.COMPUTE_ADC
   ) {
+    return contentGeneratorConfig;
+  }
+
+  // PLUMB_PROVIDER: apiKey is resolved from PlumbCredentialStore at stream time.
+  // No env-var check needed at config creation time.
+  if (authType === AuthType.PLUMB_PROVIDER) {
+    contentGeneratorConfig.apiKey = apiKey ?? '';
     return contentGeneratorConfig;
   }
 
@@ -409,6 +424,24 @@ export async function createContentGenerator(
       });
       return new LoggingContentGenerator(googleGenAI.models, gcConfig);
     }
+
+    if (config.authType === AuthType.PLUMB_PROVIDER) {
+      const providerId = gcConfig.getPlumbProvider?.() ?? '';
+      const modelId = gcConfig.getModel();
+      const apiKey = config.apiKey ?? '';
+
+      if (!providerId || !modelId) {
+        throw new Error(
+          'PLUMB provider mode requires a selected provider and model.',
+        );
+      }
+
+      return new LoggingContentGenerator(
+        new PlumbContentGenerator(providerId, modelId, apiKey, gcConfig),
+        gcConfig,
+      );
+    }
+
     throw new Error(
       `Error creating contentGenerator: Unsupported authType: ${config.authType}`,
     );

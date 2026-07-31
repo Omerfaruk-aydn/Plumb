@@ -51,6 +51,10 @@ export * from './scheduler/tool-executor.js';
 export * from './scheduler/policy.js';
 export * from './core/recordingContentGenerator.js';
 
+// PLUMB multi-provider adapter
+export * from './core/plumbContentGenerator.js';
+export { initializePlumbProviders } from './config/plumbInit.js';
+
 // Export Routing
 export * from './routing/routingStrategy.js';
 export * from './routing/modelRouterService.js';
