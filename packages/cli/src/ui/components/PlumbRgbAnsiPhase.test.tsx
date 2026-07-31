@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import {
   PlumbAnimatedWordmark,
@@ -18,17 +17,17 @@ describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    oldForceColor = process.env.FORCE_COLOR;
-    process.env.FORCE_COLOR = '3';
+    oldForceColor = process.env['FORCE_COLOR'];
+    process.env['FORCE_COLOR'] = '3';
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     if (oldForceColor !== undefined) {
-      process.env.FORCE_COLOR = oldForceColor;
+      process.env['FORCE_COLOR'] = oldForceColor;
     } else {
-      delete process.env.FORCE_COLOR;
+      delete process.env['FORCE_COLOR'];
     }
   });
 

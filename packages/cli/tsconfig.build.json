@@ -5,6 +5,7 @@
     "jsx": "react-jsx",
     "composite": false,
     "incremental": false,
+    "skipLibCheck": true,
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "types": ["node", "vitest/globals"]
   },

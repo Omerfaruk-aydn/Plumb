@@ -60,7 +60,7 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
           fps={settings.merged.ui.logoAnimationFps ?? 8}
           terminalWidth={terminalWidth}
           isNarrow={isNarrow}
-          noColor={!!process.env.NO_COLOR}
+          noColor={!!process.env['NO_COLOR']}
           screenReader={config.getScreenReader()}
         />
       </Box>
