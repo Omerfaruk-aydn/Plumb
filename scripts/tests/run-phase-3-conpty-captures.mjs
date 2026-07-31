@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
-const timestamp = '1753909500';
-const evidenceDir = path.join(rootDir, `docs/verification/evidence/phase3-wordmark-final-${timestamp}`);
+const timestamp = 'rgb-final-1753909500';
+const evidenceDir = path.join(rootDir, `docs/verification/evidence/${timestamp}`);
 
 if (!fs.existsSync(evidenceDir)) {
   fs.mkdirSync(evidenceDir, { recursive: true });
@@ -92,24 +92,22 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
 }
 
 async function main() {
-  console.log(`🚀 Running Fresh ConPTY Capture Harness in ${evidenceDir}...`);
+  console.log(`🚀 Running Animated RGB Wordmark ConPTY Capture Harness in ${evidenceDir}...`);
 
   const w80 = await captureSession('01-welcome-80x24', 80, 24, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
   const w120 = await captureSession('02-welcome-120x36', 120, 36, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
   const w160 = await captureSession('03-welcome-160x50', 160, 50, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
-  const compact = await captureSession('04-compact-header', 80, 24, {}, [{ delay: 1000 }, { write: '/help\r', delay: 500 }, { write: '/quit\r', delay: 300 }]);
-  const slash = await captureSession('06-slash-completion', 80, 24, {}, [{ delay: 1000 }, { write: '/', delay: 500 }, { write: '\x03', delay: 300 }]);
-  const settings = await captureSession('07-settings', 80, 24, {}, [{ delay: 1000 }, { write: '/settings\r', delay: 500 }, { write: '\x03', delay: 300 }]);
-  const noColor = await captureSession('13-no-color-80x24', 80, 24, { NO_COLOR: '1' }, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
+  const phase0 = await captureSession('04-phase0', 80, 24, {}, [{ delay: 500 }, { write: '/quit\r', delay: 300 }]);
+  const phase1 = await captureSession('05-phase1', 80, 24, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
+  const noColor = await captureSession('07-no-color', 80, 24, { NO_COLOR: '1' }, [{ delay: 1000 }, { write: '/quit\r', delay: 300 }]);
 
-  console.log('✅ TRULY FRESH ConPTY Visual Captures completed!');
+  console.log('✅ Animated RGB Wordmark ConPTY Captures completed!');
   console.log('Evidence Directory:', evidenceDir);
   console.log('Welcome 80x24 Raw Hash:', w80.rawHash);
   console.log('Welcome 120x36 Raw Hash:', w120.rawHash);
   console.log('Welcome 160x50 Raw Hash:', w160.rawHash);
-  console.log('Compact Header Raw Hash:', compact.rawHash);
-  console.log('Slash Completion Raw Hash:', slash.rawHash);
-  console.log('Settings Raw Hash:', settings.rawHash);
+  console.log('Phase 0 Raw Hash:', phase0.rawHash);
+  console.log('Phase 1 Raw Hash:', phase1.rawHash);
   console.log('NO_COLOR Raw Hash:', noColor.rawHash);
 }
 
