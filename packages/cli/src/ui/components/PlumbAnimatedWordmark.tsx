@@ -43,10 +43,12 @@ export const PlumbAnimatedWordmark: React.FC<PlumbAnimatedWordmarkProps> = ({
   const activePhase = injectedPhase !== undefined ? injectedPhase : currentPhase;
   const isAnimated = !disabled && !noColor && !screenReader && injectedPhase === undefined;
 
+  const safeFps = Math.min(10, Math.max(1, fps || 8));
+
   useEffect(() => {
     if (!isAnimated) return;
 
-    const intervalMs = Math.max(50, Math.floor(1000 / Math.min(10, Math.max(1, fps))));
+    const intervalMs = Math.max(100, Math.floor(1000 / safeFps));
     const timer = setInterval(() => {
       setCurrentPhase(prev => (prev + 15) % 360);
     }, intervalMs);
@@ -54,7 +56,7 @@ export const PlumbAnimatedWordmark: React.FC<PlumbAnimatedWordmarkProps> = ({
     return () => {
       clearInterval(timer);
     };
-  }, [isAnimated, fps]);
+  }, [isAnimated, safeFps]);
 
   if (screenReader) {
     return <Text>PLUMB</Text>;
