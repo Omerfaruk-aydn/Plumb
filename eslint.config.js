@@ -65,6 +65,7 @@ export default tseslint.config(
       'packages/test-utils/**',
       '.gemini/**',
       '**/*.d.ts',
+      'packages/provider/**',
     ],
   },
   eslint.configs.recommended,
