@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
 import colorConvert from 'color-convert';
-import { renderPlumbBlockWordmark } from '@google/gemini-cli-core';
+import { renderPlumbBlockWordmark } from '../../../../core/src/brand/index.js';
 
 export interface PlumbAnimatedWordmarkProps {
   phase?: number;
