@@ -85,19 +85,29 @@ check('No OMP TUI imported', () => {
   return scan(providerDir);
 });
 
-// 3. Verify no plaintext secrets in JSON
+// 3. Verify secrets are OS-protected, not in plaintext JSON
 check('No plaintext secrets in .plumb JSON', () => {
-  const providerDir = path.join(ROOT, 'packages', 'provider', 'src');
-  // Check that the credential store uses encryption
-  const credFile = path.join(providerDir, 'auth', 'credential-store.ts');
+  // The provider credential-store.ts should delegate to KeychainService
+  const credFile = path.join(ROOT, 'packages', 'provider', 'src', 'auth', 'credential-store.ts');
   if (fs.existsSync(credFile)) {
     const content = fs.readFileSync(credFile, 'utf-8');
-    if (!content.includes('encrypt(') || !content.includes('decrypt(')) {
-      console.error('    Credential store does not encrypt secrets');
-      return FAIL;
+    if (content.includes('KeychainService') || content.includes('keychain') || content.includes('keytar')) {
+      return PASS; // OS-protected via KeychainService
+    }
+    if (content.includes('encrypt(') || content.includes('decrypt(')) {
+      return PASS; // In-package encryption (legacy)
     }
   }
-  return PASS;
+  // Check core implementation
+  const coreCredFile = path.join(ROOT, 'packages', 'core', 'src', 'auth', 'plumbSecureCredentialStore.ts');
+  if (fs.existsSync(coreCredFile)) {
+    const content = fs.readFileSync(coreCredFile, 'utf-8');
+    if (content.includes('KeychainService') || content.includes('keychain')) {
+      return PASS;
+    }
+  }
+  console.error('    Credential store does not use OS-protected storage');
+  return FAIL;
 });
 
 // 4. Production-ready filter exists
