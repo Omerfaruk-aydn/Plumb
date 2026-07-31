@@ -14,32 +14,13 @@ import { Banner } from './Banner.js';
 import { useBanner } from '../hooks/useBanner.js';
 import { useTips } from '../hooks/useTips.js';
 import { theme } from '../semantic-colors.js';
-import { ThemedGradient } from './ThemedGradient.js';
 import { CliSpinner } from './CliSpinner.js';
-
-import { isAppleTerminal } from '@google/gemini-cli-core';
-
-import { longAsciiLogoCompactText } from './AsciiArt.js';
-import { getAsciiArtWidth } from '../utils/textUtils.js';
+import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 
 interface AppHeaderProps {
   version: string;
   showDetails?: boolean;
 }
-
-const DEFAULT_ICON = ` │ │ 
-├─┼─┤
-  ▼  `;
-
-const MAC_TERMINAL_ICON = ` │ │ 
-├─┼─┤
-  ▼  `;
-
-/**
- * The horizontal padding (in columns) required for metadata (version, identity, etc.)
- * when rendered alongside the ASCII logo.
- */
-const LOGO_METADATA_PADDING = 20;
 
 /**
  * The terminal width below which we switch to a narrow/column layout to prevent
@@ -69,41 +50,29 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
     settings.merged.ui.hideBanner || config.getScreenReader()
   );
 
-  const ICON = isAppleTerminal() ? MAC_TERMINAL_ICON : DEFAULT_ICON;
-
-  let logoTextArt = '';
-  if (loggedOut) {
-    const widthOfLongLogo =
-      getAsciiArtWidth(longAsciiLogoCompactText) + LOGO_METADATA_PADDING;
-
-    if (terminalWidth >= widthOfLongLogo) {
-      logoTextArt = longAsciiLogoCompactText.trim();
-    }
-  }
-
-  // If the terminal is too narrow to fit the icon and metadata (especially long nightly versions)
-  // side-by-side, we switch to column mode to prevent wrapping.
   const isNarrow = terminalWidth < NARROW_TERMINAL_BREAKPOINT;
 
   const renderLogo = () => (
     <Box flexDirection="row">
       <Box flexShrink={0}>
-        <ThemedGradient>{ICON}</ThemedGradient>
+        <PlumbAnimatedWordmark
+          disabled={settings.merged.ui.animatedLogo === false}
+          fps={settings.merged.ui.logoAnimationFps ?? 8}
+          terminalWidth={terminalWidth}
+          isNarrow={isNarrow}
+          noColor={!!process.env.NO_COLOR}
+          screenReader={config.getScreenReader()}
+        />
       </Box>
-      {logoTextArt && (
-        <Box marginLeft={3}>
-          <Text color={theme.text.primary}>{logoTextArt}</Text>
-        </Box>
-      )}
     </Box>
   );
 
   const renderMetadata = (isBelow = false) => (
     <Box marginLeft={isBelow ? 0 : 2} flexDirection="column">
-      {/* Line 1: Gemini CLI vVersion [Updating] */}
+      {/* Line 1: PLUMB CLI vVersion [Updating] */}
       <Box>
         <Text bold color={theme.text.primary}>
-          Gemini CLI
+          PLUMB CLI
         </Text>
         <Text color={theme.text.secondary}> v{version}</Text>
         {updateInfo?.isUpdating && (
@@ -129,7 +98,7 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
     </Box>
   );
 
-  const useColumnLayout = !!logoTextArt || isNarrow;
+  const useColumnLayout = loggedOut || isNarrow;
 
   return (
     <Box flexDirection="column">
