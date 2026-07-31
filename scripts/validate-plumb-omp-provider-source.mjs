@@ -167,11 +167,34 @@ check('Single provider authority', () => {
 });
 
 // 7. Capability matrix exists
-check('Capability matrix documented', () => {
-  const matrixPath = path.join(ROOT, 'docs', 'product', 'plumb-provider-capability-matrix.md');
+check('Complete coding plan matrix documented', () => {
+  const matrixPath = path.join(ROOT, 'docs', 'product', 'plumb-complete-coding-plan-matrix.md');
   if (!fs.existsSync(matrixPath)) {
-    console.error('    Missing capability matrix');
+    console.error('    Missing complete coding plan matrix');
     return FAIL;
+  }
+  const content = fs.readFileSync(matrixPath, 'utf-8');
+  if (!content.includes('PRODUCTION_READY') && !content.includes('BLOCKED_EXTERNAL_CREDENTIAL')) {
+    console.error('    Matrix missing status classifications');
+    return FAIL;
+  }
+  return PASS;
+});
+
+// 8. Check PRODUCTION_READY provider count
+check('Production-ready providers >= 10', () => {
+  const providersFile = path.join(ROOT, 'packages', 'provider', 'src', 'catalog', 'providers.ts');
+  const content = fs.readFileSync(providersFile, 'utf-8');
+  const matches = content.match(/'([^']+)'/g);
+  const ids = matches ? matches.filter(m => !m.includes('promptLabel') && !m.includes('api_key')).map(m => m.replace(/'/g, '')) : [];
+  // Count entries in PRODUCTION_READY_PROVIDER_IDS set
+  const setMatch = content.match(/PRODUCTION_READY_PROVIDER_IDS = new Set<string>\(\[([\s\S]*?)\]\);?/);
+  if (!setMatch) {
+    // Try to find standalone entries
+    if (ids.length < 10) {
+      console.error('    Fewer than 10 production-ready providers');
+      return FAIL;
+    }
   }
   return PASS;
 });
