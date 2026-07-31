@@ -547,6 +547,8 @@ const mockUIActions: UIActions = {
   handleAuthSelect: vi.fn(),
   setAuthState: vi.fn(),
   onAuthError: vi.fn(),
+  closeProviderSetupDialog: vi.fn(),
+  handleProviderSetupComplete: vi.fn(),
   handleEditorSelect: vi.fn(),
   exitEditorDialog: vi.fn(),
   exitPrivacyNotice: vi.fn(),

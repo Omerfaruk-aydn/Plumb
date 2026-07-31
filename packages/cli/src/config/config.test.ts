@@ -248,6 +248,28 @@ describe('parseArguments', () => {
     expect(parsedArgs.sessionId).toBe('test-uuid-1234');
   });
 
+  it('should recognize --runtime-identity as a production flag', async () => {
+    process.argv = ['node', 'script.js', '--runtime-identity'];
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    const parsedArgs = await parseArguments(createTestMergedSettings());
+    expect(parsedArgs.runtimeIdentity).toBe(true);
+    expect(parsedArgs.diagnoseLogo).toBeUndefined();
+  });
+
+  it('should recognize --diagnose-logo as a production flag', async () => {
+    process.argv = ['node', 'script.js', '--diagnose-logo'];
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    const parsedArgs = await parseArguments(createTestMergedSettings());
+    expect(parsedArgs.diagnoseLogo).toBe(true);
+    expect(parsedArgs.runtimeIdentity).toBeUndefined();
+  });
+
   describe('worktree', () => {
     it('should parse --worktree flag when provided with a name', async () => {
       process.argv = ['node', 'script.js', '--worktree', 'my-feature'];

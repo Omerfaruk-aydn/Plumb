@@ -186,6 +186,77 @@ describe('useAuth', () => {
       expect(result.current.authState).toBe(AuthState.Updating);
     });
 
+    describe('PLUMB provider-first startup', () => {
+      it('requests the provider setup dialog on empty state instead of the Google-first auth dialog', async () => {
+        const onProviderSetupRequest = vi.fn();
+        const { result } = await renderHook(() =>
+          useAuthCommand(
+            createSettings(undefined),
+            mockConfig,
+            null,
+            null,
+            onProviderSetupRequest,
+          ),
+        );
+
+        expect(onProviderSetupRequest).toHaveBeenCalledTimes(1);
+        // The legacy Google-first route is not taken: no forced auth error,
+        // no transition into the auth dialog state.
+        expect(result.current.authError).toBeNull();
+        expect(result.current.authState).toBe(AuthState.Unauthenticated);
+      });
+
+      it('does not present Google login, Gemini API key, or Vertex first on empty state', async () => {
+        const onProviderSetupRequest = vi.fn();
+        const { result } = await renderHook(() =>
+          useAuthCommand(
+            createSettings(undefined),
+            mockConfig,
+            null,
+            null,
+            onProviderSetupRequest,
+          ),
+        );
+
+        // AuthState.Updating is what mounts the Google-first AuthDialog.
+        expect(result.current.authState).not.toBe(AuthState.Updating);
+        expect(mockValidateAuthMethod).not.toHaveBeenCalledWith(
+          AuthType.LOGIN_WITH_GOOGLE,
+        );
+        expect(mockValidateAuthMethod).not.toHaveBeenCalledWith(
+          AuthType.USE_GEMINI,
+        );
+        expect(mockValidateAuthMethod).not.toHaveBeenCalledWith(
+          AuthType.USE_VERTEX_AI,
+        );
+        expect(mockConfig.refreshAuth).not.toHaveBeenCalled();
+      });
+
+      it('still authenticates directly when a provider auth type is already configured', async () => {
+        const onProviderSetupRequest = vi.fn();
+        mockValidateAuthMethod.mockResolvedValue(null);
+        const { result } = await renderHook(() =>
+          useAuthCommand(
+            createSettings(AuthType.PLUMB_PROVIDER),
+            mockConfig,
+            null,
+            null,
+            onProviderSetupRequest,
+          ),
+        );
+
+        await act(async () => {
+          deferredRefreshAuth.resolve();
+        });
+
+        expect(onProviderSetupRequest).not.toHaveBeenCalled();
+        expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+          AuthType.PLUMB_PROVIDER,
+        );
+        expect(result.current.authState).toBe(AuthState.Authenticated);
+      });
+    });
+
     it('should transition to AwaitingApiKeyInput if USE_GEMINI and no key found', async () => {
       let deferredLoadKey: { resolve: (k: string | null) => void };
       mockLoadApiKey.mockImplementation(
