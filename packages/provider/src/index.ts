@@ -108,3 +108,19 @@ export type {
   ZhipuLoginCallbacks,
   ZhipuLoginResult,
 } from './plans/zhipu-coding-plan.js';
+
+// Generic coding plan integration
+export {
+  CODING_PLANS,
+  getCodingPlan,
+  createCodingPlanProvider,
+  getAllCodingPlanProviders,
+  validateCodingPlanApiKey,
+  loginCodingPlan,
+} from './plans/coding-plans.js';
+export type {
+  CodingPlanDefinition,
+  CodingPlanLoginCallbacks,
+  CodingPlanLoginResult,
+  ApiKeyValidationResult,
+} from './plans/coding-plans.js';

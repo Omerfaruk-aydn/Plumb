@@ -1224,6 +1224,152 @@ const BUNDLED_CATALOG: Map<ProviderId, PlumbModel[]> = new Map([
       },
     ],
   ],
+  // ── Coding plans (newly activated) ──────────────────────────────
+  [
+    'alibaba-coding-plan',
+    [
+      {
+        id: 'qwen3.7-plus',
+        provider: 'alibaba-coding-plan',
+        api: 'openai-completions' as Api,
+        contextWindow: 256000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Qwen 3.7 Plus',
+      },
+      {
+        id: 'qwen3.7-coder-plus',
+        provider: 'alibaba-coding-plan',
+        api: 'openai-completions' as Api,
+        contextWindow: 256000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Qwen 3.7 Coder Plus',
+      },
+    ],
+  ],
+  [
+    'minimax-code',
+    [
+      {
+        id: 'MiniMax-M3',
+        provider: 'minimax-code',
+        api: 'openai-completions' as Api,
+        contextWindow: 1000000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'MiniMax M3',
+      },
+    ],
+  ],
+  [
+    'minimax-code-cn',
+    [
+      {
+        id: 'MiniMax-M3',
+        provider: 'minimax-code-cn',
+        api: 'openai-completions' as Api,
+        contextWindow: 1000000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'MiniMax M3',
+      },
+    ],
+  ],
+  [
+    'umans',
+    [
+      {
+        id: 'umans-coder',
+        provider: 'umans',
+        api: 'openai-completions' as Api,
+        contextWindow: 128000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Umans Coder',
+      },
+    ],
+  ],
+  [
+    'sakana',
+    [
+      {
+        id: 'fugu',
+        provider: 'sakana',
+        api: 'openai-completions' as Api,
+        contextWindow: 128000,
+        maxTokens: 16384,
+        reasoning: false,
+        input: 'text',
+        name: 'Fugu',
+      },
+    ],
+  ],
+  [
+    'firepass',
+    [
+      {
+        id: 'kimi-k2.6-turbo',
+        provider: 'firepass',
+        api: 'openai-completions' as Api,
+        contextWindow: 256000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Kimi K2.6 Turbo',
+      },
+    ],
+  ],
+  [
+    'opencode-go',
+    [
+      {
+        id: 'kimi-k2.7-code',
+        provider: 'opencode-go',
+        api: 'openai-completions' as Api,
+        contextWindow: 256000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Kimi K2.7 Code',
+      },
+    ],
+  ],
+  [
+    'opencode-zen',
+    [
+      {
+        id: 'claude-opus-4-8',
+        provider: 'opencode-zen',
+        api: 'anthropic-messages' as Api,
+        contextWindow: 200000,
+        maxTokens: 32000,
+        reasoning: true,
+        input: 'text+image',
+        name: 'Claude Opus 4.8',
+      },
+    ],
+  ],
+  [
+    'qwen-portal',
+    [
+      {
+        id: 'coder-model',
+        provider: 'qwen-portal',
+        api: 'openai-completions' as Api,
+        contextWindow: 256000,
+        maxTokens: 65536,
+        reasoning: true,
+        input: 'text',
+        name: 'Qwen Coder',
+      },
+    ],
+  ],
 ]);
 
 // NOTE: The following provider IDs from the OMP catalog use the same

@@ -954,6 +954,7 @@ export const PLUMB_PROVIDERS: readonly PlumbProvider[] = [
  * until their auth, transport, and discovery implementations are complete.
  */
 export const PRODUCTION_READY_PROVIDER_IDS = new Set<string>([
+  // API providers
   'openai',
   'google',
   'google-vertex',
@@ -963,12 +964,25 @@ export const PRODUCTION_READY_PROVIDER_IDS = new Set<string>([
   'groq',
   'openrouter',
   'xai',
+  // Local
   'ollama',
   'lm-studio',
   'llama-cpp',
   'vllm',
+  // Custom
   'custom-openai-compat',
+  // Coding plans (API-key based, verified)
   'zhipu-coding-plan',
+  'alibaba-coding-plan',
+  'minimax-code',
+  'minimax-code-cn',
+  'umans',
+  'sakana',
+  'firepass',
+  'wafer-serverless',
+  'opencode-go',
+  'opencode-zen',
+  'qwen-portal',
 ]);
 
 /** Providers that are safe to display and select in the UI. */
