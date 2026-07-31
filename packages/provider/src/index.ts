@@ -58,10 +58,10 @@ export {
   UNAUTHENTICATED_PROVIDERS,
 } from './catalog/providers.js';
 
-// Credential store (OS-protected via KeychainService in core)
+// Credential store (pure interface, factory-registered at runtime)
 export {
   type IPlumbCredentialStore,
-  createPlumbCredentialStore,
+  registerPlumbCredentialStoreFactory,
   ensurePlumbCredentialStore,
   getPlumbCredentialStore,
   resetPlumbCredentialStore,

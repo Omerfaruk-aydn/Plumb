@@ -4,17 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Credential store interface for the PLUMB provider subsystem.
- * The production implementation lives in @google/gemini-cli-core
- * and uses KeychainService (Windows Credential Manager / macOS Keychain / libsecret).
- *
- * This file provides the interface contract and a factory that imports
- * the real implementation from core at runtime.
+ * The production implementation uses OS-protected storage
+ * (Windows Credential Manager via @github/keytar).
+ * This file is the PURE INTERFACE with no runtime dependencies.
  */
 
 import type {
   PlumbCredential,
   PlumbCredentialEntry,
-  PlumbCredentialSource,
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
 } from '../types.js';
@@ -50,7 +47,9 @@ export interface IPlumbCredentialStore {
       disabled: boolean;
     }>,
   ): Promise<void>;
-  getProviderMetadata(provider: string): Promise<{
+  getProviderMetadata(
+    provider: string,
+  ): Promise<{
     selectedModel?: string;
     smolModel?: string;
     planningModel?: string;
@@ -61,44 +60,42 @@ export interface IPlumbCredentialStore {
   healthCheck(): Promise<{ available: boolean; usingFallback: boolean }>;
 }
 
-// ─── Factory ───────────────────────────────────────────────────────────
+// ─── Singleton registry ────────────────────────────────────────────────
 
 /**
- * Get the production credential store.
- * Uses OS-protected storage (Windows Credential Manager via @github/keytar,
- * macOS Keychain, Linux libsecret) with encrypted file fallback.
+ * Registered credential store factory.
+ * Set by the core package during PlumbProviderRegistry initialization.
  */
-export async function createPlumbCredentialStore(): Promise<IPlumbCredentialStore> {
-  // Dynamic import to avoid static circular dependency between provider and core
-  const core = await import('@google/gemini-cli-core');
-  const store = core.getPlumbCredentialStore();
-  return store as unknown as IPlumbCredentialStore;
-}
+let storeFactory: (() => Promise<unknown>) | null = null;
+let defaultStore: IPlumbCredentialStore | null = null;
 
-// ─── Singleton ─────────────────────────────────────────────────────────
-
-let defaultStore: IPlumbCredentialStore | undefined;
-let storePromise: Promise<IPlumbCredentialStore> | undefined;
-
-export function getPlumbCredentialStore(): IPlumbCredentialStore {
-  if (defaultStore) return defaultStore;
-  // Synchronous fallback: return a stub that throws if not yet initialized.
-  // Callers should use createPlumbCredentialStore() or await initialization.
-  throw new Error(
-    'PlumbCredentialStore not initialized. Call createPlumbCredentialStore() first.',
-  );
+export function registerPlumbCredentialStoreFactory(
+  factory: () => Promise<unknown>,
+): void {
+  storeFactory = factory;
 }
 
 export async function ensurePlumbCredentialStore(): Promise<IPlumbCredentialStore> {
   if (defaultStore) return defaultStore;
-  if (!storePromise) {
-    storePromise = createPlumbCredentialStore();
+  if (!storeFactory) {
+    throw new Error(
+      'PlumbCredentialStore not configured. Call registerPlumbCredentialStoreFactory() first.',
+    );
   }
-  defaultStore = await storePromise;
+  defaultStore = (await storeFactory()) as IPlumbCredentialStore;
+  return defaultStore;
+}
+
+export function getPlumbCredentialStore(): IPlumbCredentialStore {
+  if (!defaultStore) {
+    throw new Error(
+      'PlumbCredentialStore not initialized. Call ensurePlumbCredentialStore() first.',
+    );
+  }
   return defaultStore;
 }
 
 export function resetPlumbCredentialStore(): void {
-  defaultStore = undefined;
-  storePromise = undefined;
+  defaultStore = null;
+  storeFactory = null;
 }
