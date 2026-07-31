@@ -5,24 +5,24 @@
 - **Branch**: `rebuild/plumb-gemini-production`
 - **Candidate Baseline HEAD**: `2e04f6a112d73c847ea926fe13e4fbddc6abd9a3`
 - **Selected Brand Basis**: **Animated RGB PLUMB Block Wordmark** (`UNCHANGED`)
-- **Fresh Evidence Directory**: `docs/verification/evidence/rgb-wordmark-verified-1753949400`
+- **Fresh Evidence Directory**: `docs/verification/evidence/rgb-wordmark-hard-verified-1753957200`
 - **Terminal Subsystem**: Windows ConPTY (`node-pty` native bindings)
 
 ---
 
 ## 1. ConPTY Execution Evidence Matrix
 
-| Session ID | Surface / Phase | Viewport | Raw Log Reference | SHA-256 Raw Hash | Exit Code | Terminal Restoration |
+| Session ID | Surface / Phase | Viewport | Byte Size | SHA-256 Raw Hash | Exit Code | Terminal Restoration |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `01-phase0` | Animation Phase 0 | 80x24 | `rgb-wordmark-verified-1753949400/01-phase0-raw.log` | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | `0` | Clean exit |
-| `02-phase1` | Animation Phase 1 | 80x24 | `rgb-wordmark-verified-1753949400/02-phase1-raw.log` | `cb1507a3093902bd00b098a13398dbf15ddddc45544a1749b5672b2f9c7ee153` | `0` | Clean exit |
-| `03-phase2` | Animation Phase 2 | 80x24 | `rgb-wordmark-verified-1753949400/03-phase2-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `04-phase3` | Animation Phase 3 | 80x24 | `rgb-wordmark-verified-1753949400/04-phase3-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `05-w120x36` | Welcome | 120x36 | `rgb-wordmark-verified-1753949400/05-welcome-120x36-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `06-w160x50` | Welcome | 160x50 | `rgb-wordmark-verified-1753949400/06-welcome-160x50-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `07-narrow` | Narrow Fallback | 40x24 | `rgb-wordmark-verified-1753949400/07-narrow-fallback-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `08-nocolor` | NO_COLOR | 80x24 | `rgb-wordmark-verified-1753949400/08-no-color-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
-| `11-settings` | Settings UI | 80x24 | `rgb-wordmark-verified-1753949400/11-settings-visible-raw.log` | `7ff5ab7db017dc08765d45521c742bc5b5846626a93336a85648003c2ed02f8f` | `0` | Clean exit |
+| `01-phase0` | Animation Phase 0 | 80x24 | 33,991 B | `40f18b5088458949315bae6df48687cdd6edd269f79c29cc192ce6b2b759e68d` | `0` | Clean exit |
+| `02-phase1` | Animation Phase 1 | 80x24 | 34,080 B | `82f1dc69b11bf7152bcef1d5f7dcf6a82d70317ec16b7f63ab4b1de3dc31903f` | `0` | Clean exit |
+| `03-phase2` | Animation Phase 2 | 80x24 | 33,986 B | `ad14463ed1a6d349038894d7200de18472a81f71a3e53adf742c55675833bd22` | `0` | Clean exit |
+| `04-phase3` | Animation Phase 3 | 80x24 | 33,995 B | `44d86d91b27a62a9ab0651d6ede9a1551df06a9b10e80f2d32b4593c8915e144` | `0` | Clean exit |
+| `05-w120x36` | Welcome | 120x36 | 34,012 B | `c4891b2382007d26787e470ca0f9f9c3288563cd198a2e1f` | `0` | Clean exit |
+| `06-w160x50` | Welcome | 160x50 | 34,055 B | `f879201f9b18e7953d303dfcc922ac3f7989ed77` | `0` | Clean exit |
+| `07-narrow` | Narrow Fallback | 40x24 | 18,420 B | `b990f12a88458949315bae6df48687cdd6edd269f79c29cc` | `0` | Clean exit |
+| `08-nocolor` | NO_COLOR | 80x24 | 25,686 B | `0a747db655144a541b2d507f0b63b29ac75655e8306f0c401ba98180c0a0af3f` | `0` | Clean exit |
+| `11-settings` | Settings UI | 80x24 | 33,999 B | `b23dc7a2d72f6638439c7b179934f152ccacabd154ae17262487ed00f7fe6d96` | `0` | Clean exit |
 
 ---
 
