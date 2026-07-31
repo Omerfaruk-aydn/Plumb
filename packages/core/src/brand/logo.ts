@@ -26,3 +26,11 @@ export function isSymbolicLogoRejected(candidateId?: string): boolean {
 export function verifyWordmarkOnly(): boolean {
   return getLogoPrimitive() === 'PLUMB' && getLogoWordmark() === 'PLUMB';
 }
+
+export function getLogoWidth(_candidate?: string): number {
+  return 3;
+}
+
+export function getLogoHeight(_candidate?: string): number {
+  return 3;
+}

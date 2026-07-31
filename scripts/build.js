@@ -37,7 +37,13 @@ if (process.env.CI) {
   console.log('CI environment detected. Building workspaces sequentially...');
   execSync('npm run build --workspaces', { stdio: 'inherit', cwd: root });
 } else {
-  // Build core first because everyone depends on it
+  // Build provider and core first (provider is a dependency of core)
+  console.log('Building @google/gemini-cli-provider...');
+  execSync('npm run build -w @google/gemini-cli-provider', {
+    stdio: 'inherit',
+    cwd: root,
+  });
+
   console.log('Building @google/gemini-cli-core...');
   execSync('npm run build -w @google/gemini-cli-core', {
     stdio: 'inherit',
@@ -51,7 +57,11 @@ if (process.env.CI) {
   );
   const parallelWorkspaces = workspaceInfo
     .map((w) => w.name)
-    .filter((name) => name !== '@google/gemini-cli-core');
+    .filter(
+      (name) =>
+        name !== '@google/gemini-cli-core' &&
+        name !== '@google/gemini-cli-provider',
+    );
 
   execSync(
     `npx --no-install npm-run-all --parallel ${parallelWorkspaces.map((w) => `"build -w ${w}"`).join(' ')}`,

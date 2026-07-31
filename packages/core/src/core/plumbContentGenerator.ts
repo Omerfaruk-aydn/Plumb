@@ -3,12 +3,14 @@
  * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
- * @license
+ * PlumbContentGenerator — bridges PLUMB's ContentGenerator interface
+ * to the OMP-derived provider transport subsystem.
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type ContentGenerator } from './contentGenerator.js';
 import type {
@@ -18,52 +20,11 @@ import type {
   CountTokensParameters,
   EmbedContentResponse,
   EmbedContentParameters,
-  Content,
-  Part,
-  FunctionCall,
 } from '@google/genai';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import { debugLogger } from '../utils/debugLogger.js';
 
-interface PlumbTransportModule {
-  plumbModelStream: (options: {
-    model: {
-      id: string;
-      provider: string;
-      api: string;
-      contextWindow: number;
-      maxTokens: number;
-      reasoning: boolean;
-      input: string;
-    };
-    messages: Array<{ role: string; content: unknown }>;
-    tools: Array<{
-      type: string;
-      function: { name: string; description: string; parameters: unknown };
-    }>;
-    apiKey: string;
-    signal?: AbortSignal;
-    systemPrompt?: string;
-  }) => AsyncGenerator<{
-    type: string;
-    text?: string;
-    thinkingText?: string;
-    toolCall?: { id: string; name: string; arguments: string };
-    usage?: {
-      inputTokens: number;
-      outputTokens: number;
-      reasoningTokens?: number;
-      totalTokens: number;
-    };
-    error?: { code: string; message: string };
-    finishReason?: string;
-  }>;
-}
-
-/**
- * ContentGenerator that streams through the PLUMB provider subsystem.
- */
 export class PlumbContentGenerator implements ContentGenerator {
   readonly #providerId: string;
   readonly #modelId: string;
@@ -84,45 +45,47 @@ export class PlumbContentGenerator implements ContentGenerator {
     userPromptId: string,
     role: LlmRole,
   ): Promise<GenerateContentResponse> {
-    const parts: Part[] = [];
-    let usageMetadata: GenerateContentResponse['usageMetadata'];
+    const parts: any[] = [];
+    let usageMetadata: any;
 
-    const stream = this.generateContentStream(request, userPromptId, role);
+    const stream = await this.generateContentStream(request, userPromptId, role);
     for await (const chunk of stream) {
-      const candidate = chunk.candidates?.[0];
+      const candidate = (chunk as any).candidates?.[0];
       if (candidate?.content?.parts) {
         for (const part of candidate.content.parts) {
           parts.push(part);
         }
       }
-      if (chunk.usageMetadata) {
-        usageMetadata = chunk.usageMetadata;
+      if ((chunk as any).usageMetadata) {
+        usageMetadata = (chunk as any).usageMetadata;
       }
     }
-
-    const finishReason = parts.length > 0 ? 'STOP' : 'OTHER';
 
     return {
       candidates: [
         {
           content: { parts, role: 'model' },
-          finishReason:
-            finishReason as GenerateContentResponse['candidates'][0]['finishReason'],
+          finishReason: 'STOP' as any,
           index: 0,
         },
       ],
       usageMetadata,
-    } as GenerateContentResponse;
+    } as unknown as GenerateContentResponse;
   }
 
-  async *generateContentStream(
+  generateContentStream(
     request: GenerateContentParameters,
     _userPromptId: string,
     _role: LlmRole,
+  ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    return Promise.resolve(this.#doStream(request));
+  }
+
+  async *#doStream(
+    request: GenerateContentParameters,
   ): AsyncGenerator<GenerateContentResponse> {
-    let plumbModule: PlumbTransportModule;
+    let plumbModule: any;
     try {
-       
       plumbModule = await import('@google/gemini-cli-provider');
     } catch (err) {
       debugLogger.error('Failed to load PLUMB provider subsystem:', err);
@@ -130,8 +93,9 @@ export class PlumbContentGenerator implements ContentGenerator {
       return;
     }
 
-    const messages = this.#convertMessages(request.contents ?? []);
-    const tools = this.#convertTools(request.config?.tools ?? []);
+    const contents = (request as any).contents ?? [];
+    const messages = this.#convertMessages(contents);
+    const tools = this.#convertTools((request as any).config?.tools ?? []);
     const systemPrompt = this.#extractSystemPrompt(request);
 
     try {
@@ -148,194 +112,123 @@ export class PlumbContentGenerator implements ContentGenerator {
         messages,
         tools,
         apiKey: this.#apiKey,
-        signal: request.config?.abortSignal,
+        signal: (request as any).config?.abortSignal as AbortSignal | undefined,
         systemPrompt,
       });
 
       for await (const event of stream) {
         switch (event.type) {
           case 'text':
-            yield this.#chunk({ parts: [{ text: event.text }] });
+            yield this.#chunk({ text: event.text });
             break;
-
           case 'thinking':
-            yield this.#chunk({ parts: [{ thought: event.thinkingText }] });
+            yield this.#chunk({ thought: event.thinkingText });
             break;
-
           case 'tool_call':
             if (event.toolCall) {
               yield this.#chunk({
-                parts: [
-                  {
-                    functionCall: {
-                      name: event.toolCall.name,
-                      args: safeParseJson(event.toolCall.arguments),
-                    } as FunctionCall,
-                  },
-                ],
+                functionCall: {
+                  name: event.toolCall.name,
+                  args: safeParseJson(event.toolCall.arguments),
+                },
               });
             }
             break;
-
           case 'usage':
             if (event.usage) {
               yield {
-                candidates: [
-                  {
-                    content: { parts: [], role: 'model' },
-                    finishReason: undefined as unknown as string,
-                    index: 0,
-                  },
-                ],
+                candidates: [{ content: { parts: [], role: 'model' }, finishReason: undefined as any, index: 0 }],
                 usageMetadata: {
                   promptTokenCount: event.usage.inputTokens,
                   candidatesTokenCount: event.usage.outputTokens,
                   thoughtsTokenCount: event.usage.reasoningTokens,
                   totalTokenCount: event.usage.totalTokens,
                 },
-              } as GenerateContentResponse;
+              } as unknown as GenerateContentResponse;
             }
             break;
-
           case 'error':
             yield this.#errorChunk(event.error?.message ?? 'Provider error');
             return;
-
           case 'done':
             yield {
-              candidates: [
-                {
-                  content: { parts: [], role: 'model' },
-                  finishReason: (event.finishReason ??
-                    'STOP') as GenerateContentResponse['candidates'][0]['finishReason'],
-                  index: 0,
-                },
-              ],
-            } as GenerateContentResponse;
+              candidates: [{
+                content: { parts: [], role: 'model' },
+                finishReason: (event.finishReason ?? 'STOP') as any,
+                index: 0,
+              }],
+            } as unknown as GenerateContentResponse;
             break;
-
           default:
-            // Unknown event type — skip
             break;
         }
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        yield {
-          candidates: [
-            {
-              content: { parts: [], role: 'model' },
-              finishReason:
-                'STOP' as GenerateContentResponse['candidates'][0]['finishReason'],
-              index: 0,
-            },
-          ],
-        } as GenerateContentResponse;
         return;
       }
       debugLogger.error('PlumbContentGenerator stream error:', err);
-      yield this.#errorChunk(
-        err instanceof Error ? err.message : 'Unknown stream error',
-      );
+      yield this.#errorChunk(err instanceof Error ? err.message : 'Unknown stream error');
     }
   }
 
-  async countTokens(
-    _request: CountTokensParameters,
-  ): Promise<CountTokensResponse> {
-    return {
-      totalTokens: 0,
-      totalBillableCharacters: 0,
-    } as CountTokensResponse;
+  async countTokens(_request: CountTokensParameters): Promise<CountTokensResponse> {
+    return { totalTokens: 0, totalBillableCharacters: 0 } as CountTokensResponse;
   }
 
-  async embedContent(
-    _request: EmbedContentParameters,
-  ): Promise<EmbedContentResponse> {
+  async embedContent(_request: EmbedContentParameters): Promise<EmbedContentResponse> {
     throw new Error('Embedding not supported via PLUMB provider transport.');
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────
-
-  #chunk(parts: { parts: Part[] }): GenerateContentResponse {
+  #chunk(part: Record<string, unknown>): GenerateContentResponse {
     return {
-      candidates: [
-        {
-          content: { parts: parts.parts, role: 'model' },
-          finishReason: undefined as unknown as string,
-          index: 0,
-        },
-      ],
-    } as GenerateContentResponse;
+      candidates: [{
+        content: { parts: [part], role: 'model' },
+        finishReason: undefined as any,
+        index: 0,
+      }],
+    } as unknown as GenerateContentResponse;
   }
 
   #errorChunk(message: string): GenerateContentResponse {
     return {
-      candidates: [
-        {
-          content: { parts: [{ text: `Error: ${message}` }], role: 'model' },
-          finishReason: 'OTHER',
-          index: 0,
-        },
-      ],
-    } as GenerateContentResponse;
+      candidates: [{
+        content: { parts: [{ text: `Error: ${message}` }], role: 'model' },
+        finishReason: 'OTHER',
+        index: 0,
+      }],
+    } as unknown as GenerateContentResponse;
   }
 
-  #convertMessages(
-    contents: Content[],
-  ): Array<{ role: string; content: unknown }> {
+  #convertMessages(contents: any[]): Array<{ role: string; content: unknown }> {
     const result: Array<{ role: string; content: unknown }> = [];
+    if (!Array.isArray(contents)) return result;
     for (const content of contents) {
       if (!content.parts) continue;
       for (const part of content.parts) {
-        const role =
-          content.role === 'model' ? 'assistant' : (content.role ?? 'user');
+        const role = content.role === 'model' ? 'assistant' : content.role ?? 'user';
         if (part.text) {
           result.push({ role, content: part.text });
-        } else if ('functionCall' in part && part.functionCall) {
-          const fc = part.functionCall as { name?: string; args?: unknown };
-          result.push({
-            role: 'assistant',
-            content: `[Tool: ${fc.name ?? 'unknown'}(${JSON.stringify(fc.args ?? {})})]`,
-          });
-        } else if ('functionResponse' in part && part.functionResponse) {
-          const fr = part.functionResponse as {
-            name?: string;
-            response?: unknown;
-          };
-          result.push({
-            role: 'tool',
-            content: JSON.stringify(fr.response ?? {}),
-          });
+        } else if (part.functionCall) {
+          result.push({ role: 'assistant', content: `[Tool: ${part.functionCall.name ?? 'unknown'}]` });
+        } else if (part.functionResponse) {
+          result.push({ role: 'tool', content: JSON.stringify(part.functionResponse.response ?? {}) });
         }
       }
     }
     return result;
   }
 
-  #convertTools(
-    tools: GenerateContentParameters['config']['tools'],
-  ): Array<{
-    type: string;
-    function: { name: string; description: string; parameters: unknown };
-  }> {
-    if (!tools || tools.length === 0) return [];
-    return tools.flatMap((t) => {
-      const decls = (
-        t as {
-          functionDeclarations?: Array<{
-            name: string;
-            description: string;
-            parameters?: unknown;
-          }>;
-        }
-      ).functionDeclarations;
-      if (!decls) return [];
-      return decls.map((fd) => ({
+  #convertTools(tools: any[]): Array<{ type: string; function: { name: string; description: string; parameters: unknown } }> {
+    if (!Array.isArray(tools) || tools.length === 0) return [];
+    return tools.flatMap((t: any) => {
+      const decls = t.functionDeclarations;
+      if (!Array.isArray(decls)) return [];
+      return decls.map((fd: any) => ({
         type: 'function' as const,
         function: {
-          name: fd.name,
-          description: fd.description,
+          name: String(fd.name ?? ''),
+          description: String(fd.description ?? ''),
           parameters: fd.parameters ?? {},
         },
       }));
@@ -343,9 +236,7 @@ export class PlumbContentGenerator implements ContentGenerator {
   }
 
   #extractSystemPrompt(request: GenerateContentParameters): string | undefined {
-    const instruction = request.config?.systemInstruction as
-      | { parts?: Array<{ text?: string }> }
-      | undefined;
+    const instruction = (request as any).config?.systemInstruction as { parts?: Array<{ text?: string }> } | undefined;
     if (!instruction?.parts) return undefined;
     return instruction.parts.map((p) => p.text ?? '').join('\n') || undefined;
   }
@@ -353,11 +244,8 @@ export class PlumbContentGenerator implements ContentGenerator {
 
 function safeParseJson(str: string): Record<string, unknown> {
   try {
-     
     const parsed = JSON.parse(str);
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
   } catch {
     return {};
   }

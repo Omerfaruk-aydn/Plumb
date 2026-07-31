@@ -147,7 +147,7 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
     fs.mkdirSync(path.join(sourceDir, 'skills'), { recursive: true });
     fs.writeFileSync(path.join(sourceDir, 'skills', 'skill1.md'), '# Skill');
 
-    const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
+    PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(fs.existsSync(path.join(targetDir, 'skills', 'skill1.md'))).toBe(true);
   });
 

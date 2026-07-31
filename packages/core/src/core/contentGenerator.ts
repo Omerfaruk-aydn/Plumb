@@ -437,7 +437,7 @@ export async function createContentGenerator(
       }
 
       return new LoggingContentGenerator(
-        new PlumbContentGenerator(providerId, modelId, apiKey, gcConfig),
+        new PlumbContentGenerator(providerId, modelId, apiKey),
         gcConfig,
       );
     }

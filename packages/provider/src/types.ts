@@ -81,7 +81,7 @@ export interface PlumbThinkingConfig {
   readonly mode?: PlumbThinkingControlMode;
   readonly effortMap?: Record<string, string>;
   readonly effortRouting?: Record<string, string>;
-  readonly effortBudgets?: Record<string, number | null>;
+  readonly effortBudgets?: Partial<Record<string, number | null>>;
   readonly suppressWhenOff?: boolean;
   readonly requiresEffort?: boolean;
   readonly supportedEfforts?: string[];

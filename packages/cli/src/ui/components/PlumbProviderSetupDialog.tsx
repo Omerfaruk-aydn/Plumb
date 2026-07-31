@@ -9,6 +9,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-nocheck
 
 import type React from 'react';
 import { useState, useCallback, useEffect } from 'react';

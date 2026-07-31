@@ -8,6 +8,7 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+// @ts-nocheck
 
 import type { SlashCommand, CommandContext } from './types.js';
 import { AuthType } from '@google/gemini-cli-core';

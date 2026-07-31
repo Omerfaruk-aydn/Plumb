@@ -15,7 +15,7 @@ import {
   type PlumbProvider,
   PlumbProviderCategory,
   type PlumbAuthMethod,
-} from './types.js';
+} from '../types.js';
 
 // ─── Provider definitions ────────────────────────────────────────────
 
