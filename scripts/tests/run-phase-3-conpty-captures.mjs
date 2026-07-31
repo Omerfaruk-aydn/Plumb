@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '../..');
-const currentEpoch = '1753949400';
-const evidenceDir = path.join(rootDir, `docs/verification/evidence/rgb-wordmark-verified-${currentEpoch}`);
+const currentEpoch = '1753957200';
+const evidenceDir = path.join(rootDir, `docs/verification/evidence/rgb-wordmark-hard-verified-${currentEpoch}`);
 
 if (!fs.existsSync(evidenceDir)) {
   fs.mkdirSync(evidenceDir, { recursive: true });
@@ -26,7 +26,6 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
   const logPath = path.join(evidenceDir, `${name}-raw.log`);
   const metaPath = path.join(evidenceDir, `${name}-meta.json`);
   const framePath = path.join(evidenceDir, `${name}-frame.txt`);
-  const logStream = fs.createWriteStream(logPath, { flags: 'w' });
 
   const startTime = new Date().toISOString();
   const mergedEnv = {
@@ -49,7 +48,6 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
 
   ptyProcess.onData((data) => {
     fullOutput += data;
-    logStream.write(data);
   });
 
   for (const step of inputs) {
@@ -58,10 +56,16 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
     if (step.write) ptyProcess.write(step.write);
   }
 
-  await new Promise(r => setTimeout(r, 1200));
+  await new Promise(r => setTimeout(r, 2000));
 
   try { ptyProcess.kill(); } catch (e) {}
-  logStream.end();
+  await new Promise(r => setTimeout(r, 300));
+
+  if (!fullOutput || fullOutput.length === 0) {
+    throw new Error(`ConPTY Capture Error: Session ${name} produced an empty raw output buffer.`);
+  }
+
+  fs.writeFileSync(logPath, fullOutput, 'utf8');
 
   const endTime = new Date().toISOString();
   const rawHash = sha256(fullOutput);
@@ -77,7 +81,8 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
     pid,
     exitCode: 0,
     rawHash,
-    frameHash
+    frameHash,
+    byteSize: Buffer.byteLength(fullOutput, 'utf8')
   }, null, 2), 'utf8');
 
   return {
@@ -87,33 +92,35 @@ async function captureSession(name, cols = 80, rows = 24, env = {}, inputs = [])
     rows,
     rawHash,
     frameHash,
+    byteSize: Buffer.byteLength(fullOutput, 'utf8'),
     cleanText: clean.trim()
   };
 }
 
 async function main() {
-  console.log(`🚀 Running Truly Fresh RGB ConPTY Capture Harness in ${evidenceDir}...`);
+  console.log(`🚀 Running Repaired ConPTY Capture Harness in ${evidenceDir}...`);
 
-  const p0 = await captureSession('01-phase0', 80, 24, {}, [{ delay: 300 }, { write: '/quit\r', delay: 300 }]);
-  const p1 = await captureSession('02-phase1', 80, 24, {}, [{ delay: 600 }, { write: '/quit\r', delay: 300 }]);
-  const p2 = await captureSession('03-phase2', 80, 24, {}, [{ delay: 900 }, { write: '/quit\r', delay: 300 }]);
-  const p3 = await captureSession('04-phase3', 80, 24, {}, [{ delay: 1200 }, { write: '/quit\r', delay: 300 }]);
-  const w120 = await captureSession('05-welcome-120x36', 120, 36, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
-  const w160 = await captureSession('06-welcome-160x50', 160, 50, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
-  const narrow = await captureSession('07-narrow-fallback', 40, 24, {}, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
-  const noColor = await captureSession('08-no-color', 80, 24, { NO_COLOR: '1' }, [{ delay: 800 }, { write: '/quit\r', delay: 300 }]);
-  const settings = await captureSession('11-settings-visible', 80, 24, {}, [{ delay: 800 }, { write: '/settings\r', delay: 600 }, { write: '\x03', delay: 300 }]);
+  const p0 = await captureSession('01-phase0', 80, 24, {}, [{ delay: 800 }, { write: '/quit\r', delay: 400 }]);
+  const p1 = await captureSession('02-phase1', 80, 24, {}, [{ delay: 1200 }, { write: '/quit\r', delay: 400 }]);
+  const p2 = await captureSession('03-phase2', 80, 24, {}, [{ delay: 1600 }, { write: '/quit\r', delay: 400 }]);
+  const p3 = await captureSession('04-phase3', 80, 24, {}, [{ delay: 2000 }, { write: '/quit\r', delay: 400 }]);
+  const w120 = await captureSession('05-welcome-120x36', 120, 36, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 400 }]);
+  const w160 = await captureSession('06-welcome-160x50', 160, 50, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 400 }]);
+  const narrow = await captureSession('07-narrow-fallback', 40, 24, {}, [{ delay: 1000 }, { write: '/quit\r', delay: 400 }]);
+  const noColor = await captureSession('08-no-color', 80, 24, { NO_COLOR: '1' }, [{ delay: 1000 }, { write: '/quit\r', delay: 400 }]);
+  const settings = await captureSession('11-settings-visible', 80, 24, {}, [{ delay: 1000 }, { write: '/settings\r', delay: 800 }, { write: '\x03', delay: 400 }]);
 
-  console.log('✅ TRULY FRESH RGB ConPTY Captures completed!');
+  console.log('✅ TRULY FRESH Repaired ConPTY Captures completed!');
   console.log('Evidence Directory:', evidenceDir);
-  console.log('Phase 0 Raw Hash:', p0.rawHash);
-  console.log('Phase 1 Raw Hash:', p1.rawHash);
-  console.log('Phase 2 Raw Hash:', p2.rawHash);
-  console.log('Phase 3 Raw Hash:', p3.rawHash);
-  console.log('NO_COLOR Raw Hash:', noColor.rawHash);
-  console.log('Settings Raw Hash:', settings.rawHash);
+  console.log('Phase 0 Raw Hash:', p0.rawHash, `(${p0.byteSize} bytes)`);
+  console.log('Phase 1 Raw Hash:', p1.rawHash, `(${p1.byteSize} bytes)`);
+  console.log('Phase 2 Raw Hash:', p2.rawHash, `(${p2.byteSize} bytes)`);
+  console.log('Phase 3 Raw Hash:', p3.rawHash, `(${p3.byteSize} bytes)`);
+  console.log('NO_COLOR Raw Hash:', noColor.rawHash, `(${noColor.byteSize} bytes)`);
+  console.log('Settings Raw Hash:', settings.rawHash, `(${settings.byteSize} bytes)`);
 }
 
 main().catch(err => {
   console.error('Capture error:', err);
+  process.exit(1);
 });
