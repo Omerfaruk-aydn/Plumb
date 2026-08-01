@@ -7,10 +7,11 @@
 import type React from 'react';
 import { useState, useCallback, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import type {
- PlumbModel ,
+import {
   PlumbProviderCategory,
-  type PlumbProvider } from '@google/gemini-cli-provider';
+  type PlumbProvider,
+  type PlumbModel,
+} from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
