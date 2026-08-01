@@ -2,25 +2,18 @@
  * @license
  * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// @ts-nocheck
-
 import type React from 'react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import {
   PlumbProviderCategory,
   type PlumbProvider,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
-
-// ─── Steps ─────────────────────────────────────────────────────────────
+import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
+import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 
 type SetupStep =
   | 'connection-type'
@@ -42,8 +35,6 @@ interface SetupState {
   loading: boolean;
 }
 
-// ─── Props ─────────────────────────────────────────────────────────────
-
 export interface PlumbProviderSetupDialogProps {
   onComplete: (config: PlumbProviderSetupResult) => void;
   onCancel: () => void;
@@ -59,8 +50,6 @@ export interface PlumbProviderSetupResult {
   smolModel?: string;
   planningModel?: string;
 }
-
-// ─── Connection type picker ────────────────────────────────────────────
 
 const CONNECTION_TYPES = [
   {
@@ -90,8 +79,6 @@ const CONNECTION_TYPES = [
   },
 ];
 
-// ─── Component ─────────────────────────────────────────────────────────
-
 export const PlumbProviderSetupDialog: React.FC<
   PlumbProviderSetupDialogProps
 > = ({ onComplete, onCancel, providers, categoryGroups, models }) => {
@@ -107,20 +94,56 @@ export const PlumbProviderSetupDialog: React.FC<
     loading: false,
   });
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [apiKeyInput, setApiKeyInput] = useState('');
 
-  const connectionTypeOptions = CONNECTION_TYPES;
-  const categoryProviders = state.category
-    ? (categoryGroups.get(
+  const categoryProviders = useMemo(() => {
+    if (!state.category) return [];
+    return (
+      categoryGroups.get(
         [...categoryGroups.entries()].find(
           ([, ps]) => ps[0]?.category === state.category,
         )?.[0] ?? '',
-      ) ?? providers.filter((p) => p.category === state.category))
-    : [];
-  const providerModels = state.selectedProvider
-    ? models.filter((m) => m.provider === state.selectedProvider!.id)
-    : [];
+      ) ?? providers.filter((p) => p.category === state.category)
+    );
+  }, [state.category, categoryGroups, providers]);
+
+  const providerModels = useMemo(() => {
+    if (!state.selectedProvider) return [];
+    return models.filter((m) => m.provider === state.selectedProvider!.id);
+  }, [state.selectedProvider, models]);
+
+  const connectionTypeItems = useMemo(
+    () =>
+      CONNECTION_TYPES.map((opt) => ({
+        key: opt.key,
+        value: opt.key,
+        title: opt.label,
+        description: opt.description,
+      })),
+    [],
+  );
+
+  const providerItems = useMemo(
+    () =>
+      categoryProviders.map((p) => ({
+        key: p.id,
+        value: p,
+        label: p.name,
+        sublabel: p.description,
+      })),
+    [categoryProviders],
+  );
+
+  const modelItems = useMemo(
+    () =>
+      providerModels.map((m) => ({
+        key: m.id,
+        value: m.id,
+        label: m.name ?? m.id,
+        sublabel: m.provider,
+      })),
+    [providerModels],
+  );
 
   const handleConnectionTypeSelect = useCallback(
     (category: PlumbProviderCategory) => {
@@ -130,29 +153,19 @@ export const PlumbProviderSetupDialog: React.FC<
         category,
         error: null,
       }));
-      setSelectedIndex(0);
     },
     [],
   );
 
-  const handleProviderSelect = useCallback(async (provider: PlumbProvider) => {
+  const handleProviderSelect = useCallback((provider: PlumbProvider) => {
+    setApiKeyInput('');
     setState((s) => ({
       ...s,
-      step: 'authenticate',
+      step: provider.allowUnauthenticated ? 'model-select' : 'authenticate',
       selectedProvider: provider,
       error: null,
       loading: false,
     }));
-    setApiKeyInput('');
-
-    // Auto-skip auth for local/keyless providers
-    if (provider.allowUnauthenticated) {
-      setState((s) => ({
-        ...s,
-        step: 'model-select',
-        selectedProvider: provider,
-      }));
-    }
   }, []);
 
   const handleApiKeySubmit = useCallback((key: string) => {
@@ -162,12 +175,10 @@ export const PlumbProviderSetupDialog: React.FC<
       apiKey: key.trim(),
       error: null,
     }));
-    setSelectedIndex(0);
   }, []);
 
   const handleModelSelect = useCallback((modelId: string) => {
     setState((s) => ({ ...s, step: 'confirm', selectedModel: modelId }));
-    setSelectedIndex(0);
   }, []);
 
   const handleConfirm = useCallback(() => {
@@ -181,17 +192,9 @@ export const PlumbProviderSetupDialog: React.FC<
     });
   }, [state, onComplete]);
 
-  // ── Keyboard handling (the dialog is modal while mounted) ─────────────
+  // Keyboard handling for authenticate/confirm steps and global navigation
   const step = state.step;
   const provider = state.selectedProvider;
-  const listItemCount =
-    step === 'connection-type'
-      ? connectionTypeOptions.length
-      : step === 'provider-select'
-        ? categoryProviders.length
-        : step === 'model-select'
-          ? providerModels.length
-          : 0;
 
   useKeypress(
     (key) => {
@@ -201,7 +204,7 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'authenticate') {
-        if (key.name === 'return') {
+        if (key.name === 'enter') {
           handleApiKeySubmit(apiKeyInput);
           return true;
         }
@@ -212,13 +215,18 @@ export const PlumbProviderSetupDialog: React.FC<
               step: 'provider-select',
               selectedProvider: null,
             }));
-            setSelectedIndex(0);
           } else {
             setApiKeyInput((prev) => prev.slice(0, -1));
           }
           return true;
         }
-        if (key.insertable && key.sequence && !key.ctrl && !key.alt && !key.cmd) {
+        if (
+          key.insertable &&
+          key.sequence &&
+          !key.ctrl &&
+          !key.alt &&
+          !key.cmd
+        ) {
           setApiKeyInput((prev) => prev + key.sequence);
           return true;
         }
@@ -226,33 +234,25 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'confirm') {
-        if (key.name === 'return') {
+        if (key.name === 'enter') {
           handleConfirm();
           return true;
         }
         if (key.name === 'backspace') {
-          setState((s) => ({ ...s, step: 'model-select', selectedModel: null }));
-          setSelectedIndex(0);
+          setState((s) => ({
+            ...s,
+            step: 'model-select',
+            selectedModel: null,
+          }));
           return true;
         }
         return true;
       }
 
-      // List steps: connection-type, provider-select, model-select
-      if (key.name === 'up') {
-        setSelectedIndex(
-          (i) => (i - 1 + Math.max(listItemCount, 1)) % Math.max(listItemCount, 1),
-        );
-        return true;
-      }
-      if (key.name === 'down') {
-        setSelectedIndex((i) => (i + 1) % Math.max(listItemCount, 1));
-        return true;
-      }
+      // Backspace navigation for list steps
       if (key.name === 'backspace') {
         if (step === 'provider-select') {
           setState((s) => ({ ...s, step: 'connection-type', category: null }));
-          setSelectedIndex(0);
         } else if (step === 'model-select') {
           setState((s) => ({
             ...s,
@@ -260,29 +260,14 @@ export const PlumbProviderSetupDialog: React.FC<
               ? 'provider-select'
               : 'authenticate',
           }));
-          setSelectedIndex(0);
         }
         return true;
       }
-      if (key.name === 'return') {
-        if (step === 'connection-type') {
-          const option = connectionTypeOptions[selectedIndex];
-          if (option) handleConnectionTypeSelect(option.key);
-        } else if (step === 'provider-select') {
-          const selected = categoryProviders[selectedIndex];
-          if (selected) void handleProviderSelect(selected);
-        } else if (step === 'model-select') {
-          const model = providerModels[selectedIndex];
-          if (model) handleModelSelect(model.id);
-        }
-        return true;
-      }
-      return true;
+
+      return false;
     },
     { isActive: true },
   );
-
-  // ── Render step ─────────────────────────────────────────────────────
 
   return (
     <Box
@@ -291,7 +276,6 @@ export const PlumbProviderSetupDialog: React.FC<
       borderStyle="round"
       borderColor="cyan"
     >
-      {/* Header */}
       <Box marginBottom={1}>
         <Text bold color="cyan">
           PLUMB Provider Setup
@@ -301,40 +285,47 @@ export const PlumbProviderSetupDialog: React.FC<
         )}
       </Box>
 
-      {/* Error display */}
       {state.error && (
         <Box marginBottom={1}>
           <Text color="red">Error: {state.error}</Text>
         </Box>
       )}
 
-      {/* Loading */}
       {state.loading && (
         <Box marginBottom={1}>
           <Text color="yellow">Loading...</Text>
         </Box>
       )}
 
-      {/* Step content */}
       {step === 'connection-type' && (
-        <ConnectionTypePicker
-          options={connectionTypeOptions}
-          selectedIndex={selectedIndex}
+        <DescriptiveRadioButtonSelect
+          items={connectionTypeItems}
           onSelect={handleConnectionTypeSelect}
-          onNavigate={setSelectedIndex}
+          isFocused={true}
+          showNumbers={false}
         />
       )}
 
       {step === 'provider-select' && (
-        <ProviderPicker
-          providers={categoryProviders}
-          selectedIndex={selectedIndex}
-          onSelect={handleProviderSelect}
-          onNavigate={setSelectedIndex}
-          onBack={() =>
-            setState((s) => ({ ...s, step: 'connection-type', category: null }))
-          }
-        />
+        <>
+          <Text bold>Choose provider:</Text>
+          {providerItems.length === 0 ? (
+            <Box flexDirection="column">
+              <Text dimColor>No providers available in this category.</Text>
+              <Text dimColor>Press Backspace to go back.</Text>
+            </Box>
+          ) : (
+            <RadioButtonSelect
+              items={providerItems}
+              onSelect={handleProviderSelect}
+              isFocused={true}
+              showNumbers={false}
+            />
+          )}
+          <Box marginTop={1}>
+            <Text dimColor>Backspace: back to connection types</Text>
+          </Box>
+        </>
       )}
 
       {step === 'authenticate' && provider && (
@@ -354,20 +345,26 @@ export const PlumbProviderSetupDialog: React.FC<
       )}
 
       {step === 'model-select' && provider && (
-        <ModelPicker
-          models={providerModels}
-          selectedIndex={selectedIndex}
-          onSelect={handleModelSelect}
-          onNavigate={setSelectedIndex}
-          onBack={() =>
-            setState((s) => ({
-              ...s,
-              step: provider.allowUnauthenticated
-                ? 'provider-select'
-                : 'authenticate',
-            }))
-          }
-        />
+        <>
+          <Text bold>Choose model:</Text>
+          {modelItems.length === 0 ? (
+            <Box flexDirection="column">
+              <Text dimColor>No bundled models for this provider.</Text>
+              <Text>You can type a custom model ID later.</Text>
+              <Text dimColor>Press Backspace to go back.</Text>
+            </Box>
+          ) : (
+            <RadioButtonSelect
+              items={modelItems}
+              onSelect={handleModelSelect}
+              isFocused={true}
+              showNumbers={false}
+            />
+          )}
+          <Box marginTop={1}>
+            <Text dimColor>Backspace: back to authentication</Text>
+          </Box>
+        </>
       )}
 
       {step === 'confirm' && provider && state.selectedModel && (
@@ -385,7 +382,6 @@ export const PlumbProviderSetupDialog: React.FC<
         />
       )}
 
-      {/* Footer */}
       <Box marginTop={1}>
         <Text dimColor>ESC to cancel • ↑↓ to navigate • Enter to select</Text>
       </Box>
@@ -393,90 +389,10 @@ export const PlumbProviderSetupDialog: React.FC<
   );
 };
 
-// ─── Sub-components ─────────────────────────────────────────────────────
-
-function ConnectionTypePicker({
-  options,
-  selectedIndex,
-  onSelect,
-  onNavigate,
-}: {
-  options: Array<{
-    key: PlumbProviderCategory;
-    label: string;
-    description: string;
-  }>;
-  selectedIndex: number;
-  onSelect: (category: PlumbProviderCategory) => void;
-  onNavigate: (index: number) => void;
-}) {
-  return (
-    <Box flexDirection="column">
-      <Text bold>Choose connection type:</Text>
-      <Box flexDirection="column" marginY={1}>
-        {options.map((opt, i) => (
-          <Box key={opt.key}>
-            <Text color={i === selectedIndex ? 'cyan' : undefined}>
-              {i === selectedIndex ? '▶ ' : '  '}
-              {opt.label}
-            </Text>
-            {i === selectedIndex && <Text dimColor> — {opt.description}</Text>}
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
-}
-
-function ProviderPicker({
-  providers,
-  selectedIndex,
-  onSelect,
-  onNavigate,
-  onBack,
-}: {
-  providers: PlumbProvider[];
-  selectedIndex: number;
-  onSelect: (provider: PlumbProvider) => void;
-  onNavigate: (index: number) => void;
-  onBack: () => void;
-}) {
-  if (providers.length === 0) {
-    return (
-      <Box flexDirection="column">
-        <Text dimColor>No providers available in this category.</Text>
-        <Text dimColor>Press Backspace to go back.</Text>
-      </Box>
-    );
-  }
-
-  return (
-    <Box flexDirection="column">
-      <Text bold>Choose provider:</Text>
-      <Box flexDirection="column" marginY={1}>
-        {providers.map((p, i) => (
-          <Box key={p.id}>
-            <Text color={i === selectedIndex ? 'cyan' : undefined}>
-              {i === selectedIndex ? '▶ ' : '  '}
-              {p.name}
-            </Text>
-            {i === selectedIndex && p.description && (
-              <Text dimColor> — {p.description}</Text>
-            )}
-          </Box>
-        ))}
-      </Box>
-      <Text dimColor>Backspace: back to connection types</Text>
-    </Box>
-  );
-}
-
 function AuthStep({
   provider,
   apiKeyInput,
-  onApiKeyChange,
-  onSubmit,
-  onBack,
+  onSubmit: _onSubmit,
 }: {
   provider: PlumbProvider;
   apiKeyInput: string;
@@ -538,53 +454,10 @@ function AuthStep({
   );
 }
 
-function ModelPicker({
-  models,
-  selectedIndex,
-  onSelect,
-  onNavigate,
-  onBack,
-}: {
-  models: Array<{ id: string; name?: string; provider: string }>;
-  selectedIndex: number;
-  onSelect: (modelId: string) => void;
-  onNavigate: (index: number) => void;
-  onBack: () => void;
-}) {
-  if (models.length === 0) {
-    return (
-      <Box flexDirection="column">
-        <Text dimColor>No bundled models for this provider.</Text>
-        <Text>You can type a custom model ID later.</Text>
-        <Text dimColor>Press Backspace to go back.</Text>
-      </Box>
-    );
-  }
-
-  return (
-    <Box flexDirection="column">
-      <Text bold>Choose model:</Text>
-      <Box flexDirection="column" marginY={1}>
-        {models.map((m, i) => (
-          <Box key={m.id}>
-            <Text color={i === selectedIndex ? 'cyan' : undefined}>
-              {i === selectedIndex ? '▶ ' : '  '}
-              {m.name ?? m.id}
-            </Text>
-            {i === selectedIndex && <Text dimColor> — {m.provider}</Text>}
-          </Box>
-        ))}
-      </Box>
-      <Text dimColor>Backspace: back to authentication</Text>
-    </Box>
-  );
-}
-
 function ConfirmStep({
   provider,
   modelId,
-  onConfirm,
-  onBack,
+  onConfirm: _onConfirm,
 }: {
   provider: PlumbProvider;
   modelId: string;
@@ -609,8 +482,6 @@ function ConfirmStep({
     </Box>
   );
 }
-
-// ─── Helpers ────────────────────────────────────────────────────────────
 
 function getStepNumber(step: SetupStep): number {
   switch (step) {
