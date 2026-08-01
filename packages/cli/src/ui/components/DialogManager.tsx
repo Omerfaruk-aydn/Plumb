@@ -293,6 +293,18 @@ export const DialogManager = ({
   // screen whenever it is open — including the empty-state startup where it
   // replaces the legacy Google-first auth dialog.
   if (uiState.isProviderSetupDialogOpen) {
+    const refreshModels = async () => {
+      const providerPackage = await import('@google/gemini-cli-provider');
+      return providerPackage
+        .getPlumbModelRegistry()
+        .getAllAvailableModels()
+        .map((model) => ({
+          id: model.id,
+          name: model.name,
+          provider: model.provider,
+        }));
+    };
+
     return (
       <Box flexDirection="column">
         <PlumbProviderSetupDialog
@@ -302,6 +314,7 @@ export const DialogManager = ({
           onComplete={uiActions.handleProviderSetupComplete}
           onCancel={uiActions.closeProviderSetupDialog}
           onOAuthLogin={uiActions.handleProviderOAuthLogin}
+          onRefreshModels={refreshModels}
         />
       </Box>
     );

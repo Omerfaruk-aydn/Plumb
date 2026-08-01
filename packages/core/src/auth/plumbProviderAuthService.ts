@@ -12,10 +12,9 @@ import type {
   PlumbProviderId,
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
-
-  ensurePlumbCredentialStore,
-  type IPlumbCredentialStore} from '@google/gemini-cli-provider';
-import { getPlumbProviderRegistry } from '@google/gemini-cli-provider';
+  IPlumbCredentialStore,
+} from '@google/gemini-cli-provider';
+import { ensurePlumbCredentialStore , getPlumbProviderRegistry } from '@google/gemini-cli-provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────

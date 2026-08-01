@@ -46,6 +46,9 @@ export interface PlumbProviderSetupDialogProps {
   onOAuthLogin?: (
     providerId: string,
   ) => Promise<{ success: boolean; error?: string }>;
+  onRefreshModels?: () => Promise<
+    Array<{ id: string; name?: string; provider: string }>
+  >;
 }
 
 export interface PlumbProviderSetupResult {
@@ -91,8 +94,9 @@ export const PlumbProviderSetupDialog: React.FC<
   onCancel,
   providers,
   categoryGroups,
-  models,
+  models: initialModels,
   onOAuthLogin,
+  onRefreshModels,
 }) => {
   const [state, setState] = useState<SetupState>({
     step: 'connection-type',
@@ -108,6 +112,14 @@ export const PlumbProviderSetupDialog: React.FC<
   });
 
   const [apiKeyInput, setApiKeyInput] = useState('');
+  const [dynamicModels, setDynamicModels] = useState<
+    Array<{ id: string; name?: string; provider: string }>
+  >([]);
+
+  const allModels = useMemo(
+    () => [...initialModels, ...dynamicModels],
+    [initialModels, dynamicModels],
+  );
 
   const categoryProviders = useMemo(() => {
     if (!state.category) return [];
@@ -122,8 +134,8 @@ export const PlumbProviderSetupDialog: React.FC<
 
   const providerModels = useMemo(() => {
     if (!state.selectedProvider) return [];
-    return models.filter((m) => m.provider === state.selectedProvider!.id);
-  }, [state.selectedProvider, models]);
+    return allModels.filter((m) => m.provider === state.selectedProvider!.id);
+  }, [state.selectedProvider, allModels]);
 
   const connectionTypeItems = useMemo(
     () =>
@@ -196,6 +208,15 @@ export const PlumbProviderSetupDialog: React.FC<
     try {
       const result = await onOAuthLogin(state.selectedProvider.id);
       if (result.success) {
+        // Refresh models after successful auth
+        if (onRefreshModels) {
+          try {
+            const refreshed = await onRefreshModels();
+            setDynamicModels(refreshed);
+          } catch {
+            // Model refresh failure is non-fatal
+          }
+        }
         setState((s) => ({
           ...s,
           step: 'model-select',
@@ -220,7 +241,7 @@ export const PlumbProviderSetupDialog: React.FC<
         error: err instanceof Error ? err.message : 'OAuth login failed',
       }));
     }
-  }, [state.selectedProvider, onOAuthLogin]);
+  }, [state.selectedProvider, onOAuthLogin, onRefreshModels]);
 
   const handleApiKeySubmit = useCallback((key: string) => {
     setState((s) => ({
