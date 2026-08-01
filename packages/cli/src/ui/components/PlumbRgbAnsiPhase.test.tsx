@@ -1,18 +1,15 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
-import {
-  PlumbAnimatedWordmark,
-  getRgbPaletteForPhase,
-} from './PlumbAnimatedWordmark.js';
+import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 import stripAnsi from 'strip-ansi';
 
-describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
+describe('PlumbAnimatedWordmark RGB Phase Tests', () => {
   let oldForceColor: string | undefined;
 
   beforeEach(() => {
@@ -31,31 +28,13 @@ describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
     }
   });
 
-  it('1. generates 4 distinct valid cyclic hex palettes for phases 0, 45, 90, 135', () => {
-    const pal0 = getRgbPaletteForPhase(0);
-    const pal45 = getRgbPaletteForPhase(45);
-    const pal90 = getRgbPaletteForPhase(90);
-    const pal135 = getRgbPaletteForPhase(135);
-
-    expect(pal0).not.toEqual(pal45);
-    expect(pal45).not.toEqual(pal90);
-    expect(pal90).not.toEqual(pal135);
-
-    expect(pal0.length).toBe(8);
-    pal0.forEach(hex => expect(hex).toMatch(/^#[0-9a-fA-F]{6}$/));
-  });
-
-  it('2. proves strippedText(phase0) === strippedText(phase1) while hex palettes differ', async () => {
-    const pal0 = getRgbPaletteForPhase(0);
-    const pal45 = getRgbPaletteForPhase(45);
-    expect(pal0).not.toEqual(pal45);
-
+  it('1. different phase values produce same stripped text (characters unchanged)', async () => {
     const res0 = await renderWithProviders(<PlumbAnimatedWordmark phase={0} />);
     const raw0 = res0.lastFrame();
     const clean0 = stripAnsi(raw0);
     res0.unmount();
 
-    const res1 = await renderWithProviders(<PlumbAnimatedWordmark phase={45} />);
+    const res1 = await renderWithProviders(<PlumbAnimatedWordmark phase={1} />);
     const raw1 = res1.lastFrame();
     const clean1 = stripAnsi(raw1);
     res1.unmount();
@@ -64,7 +43,7 @@ describe('PlumbRgbAnsiPhase Deterministic RGB Animation Proof', () => {
     expect(clean0).toContain('████');
   });
 
-  it('3. proves exactly 1 timer when mounted and 0 timers after unmount', async () => {
+  it('2. proves exactly 1 timer when mounted and 0 timers after unmount', async () => {
     const setIntervalSpy = vi.spyOn(global, 'setInterval');
     const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
 

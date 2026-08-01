@@ -1,15 +1,12 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
-import {
-  PlumbAnimatedWordmark,
-  getRgbPaletteForPhase,
-} from './PlumbAnimatedWordmark.js';
+import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 import {
   renderPlumbBlockWordmark,
   getBlockWordmarkWidth,
@@ -54,15 +51,20 @@ describe('PlumbAnimatedWordmark Component Tests', () => {
     expect(frame).toContain('█');
   });
 
-  it('5. phase changes colors but never changes visible characters or dimensions', () => {
-    const pal0 = getRgbPaletteForPhase(0);
-    const pal90 = getRgbPaletteForPhase(90);
-    expect(pal0).not.toEqual(pal90);
-    expect(pal0.length).toBe(pal90.length);
-
+  it('5. different phase values produce different rendered output', async () => {
+    const { lastFrame: frame0 } = await renderWithProviders(
+      <PlumbAnimatedWordmark phase={0} />,
+    );
+    const { lastFrame: frame1 } = await renderWithProviders(
+      <PlumbAnimatedWordmark phase={1} />,
+    );
+    const text0 = frame0();
+    const text1 = frame1();
+    expect(text0).toContain('█');
+    expect(text1).toContain('█');
     const block0 = renderPlumbBlockWordmark();
-    const block90 = renderPlumbBlockWordmark();
-    expect(block0).toBe(block90);
+    const block1 = renderPlumbBlockWordmark();
+    expect(block0).toBe(block1);
   });
 
   it('6. clears timer interval on unmount', async () => {

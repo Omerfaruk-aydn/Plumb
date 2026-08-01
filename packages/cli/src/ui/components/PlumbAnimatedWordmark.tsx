@@ -1,14 +1,16 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
-import colorConvert from 'color-convert';
 import { renderPlumbBlockWordmark } from '@google/gemini-cli-core';
+import { theme } from '../semantic-colors.js';
+import { ThemedGradient } from './ThemedGradient.js';
 
 export interface PlumbAnimatedWordmarkProps {
   phase?: number;
@@ -20,13 +22,11 @@ export interface PlumbAnimatedWordmarkProps {
   screenReader?: boolean;
 }
 
-const BASE_HUES = [180, 220, 270, 310, 340, 30, 140, 180];
-
-export function getRgbPaletteForPhase(phaseDegrees: number): string[] {
-  return BASE_HUES.map(hue => {
-    const rotated = (hue + phaseDegrees) % 360;
-    return '#' + colorConvert.hsl.hex([rotated, 100, 50]);
-  });
+function rotateArray<T>(arr: T[], offset: number): T[] {
+  const len = arr.length;
+  if (len === 0) return arr;
+  const shift = ((offset % len) + len) % len;
+  return [...arr.slice(shift), ...arr.slice(0, shift)];
 }
 
 export const PlumbAnimatedWordmark: React.FC<PlumbAnimatedWordmarkProps> = ({
@@ -38,25 +38,28 @@ export const PlumbAnimatedWordmark: React.FC<PlumbAnimatedWordmarkProps> = ({
   noColor = false,
   screenReader = false,
 }) => {
-  const [currentPhase, setCurrentPhase] = useState(0);
+  const [tick, setTick] = useState(0);
 
-  const activePhase = injectedPhase !== undefined ? injectedPhase : currentPhase;
-  const isAnimated = !disabled && !noColor && !screenReader && injectedPhase === undefined;
-
+  const isAnimated =
+    !disabled && !noColor && !screenReader && injectedPhase === undefined;
   const safeFps = Math.min(10, Math.max(1, fps || 8));
 
   useEffect(() => {
     if (!isAnimated) return;
-
     const intervalMs = Math.max(100, Math.floor(1000 / safeFps));
     const timer = setInterval(() => {
-      setCurrentPhase(prev => (prev + 15) % 360);
+      setTick((prev) => prev + 1);
     }, intervalMs);
-
-    return () => {
-      clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, [isAnimated, safeFps]);
+
+  const activeTick = injectedPhase !== undefined ? injectedPhase : tick;
+  const gradientColors = theme.ui.gradient;
+
+  const rotatedColors = useMemo(() => {
+    if (!gradientColors || gradientColors.length < 2) return null;
+    return rotateArray(gradientColors, activeTick);
+  }, [gradientColors, activeTick]);
 
   if (screenReader) {
     return <Text>PLUMB</Text>;
@@ -72,11 +75,29 @@ export const PlumbAnimatedWordmark: React.FC<PlumbAnimatedWordmarkProps> = ({
     return <Text>{blockText}</Text>;
   }
 
-  const colors = getRgbPaletteForPhase(activePhase);
+  if (disabled) {
+    return (
+      <Box flexDirection="column" flexShrink={0}>
+        <ThemedGradient>
+          <Text>{blockText}</Text>
+        </ThemedGradient>
+      </Box>
+    );
+  }
+
+  if (!rotatedColors) {
+    return (
+      <Box flexDirection="column" flexShrink={0}>
+        <ThemedGradient>
+          <Text>{blockText}</Text>
+        </ThemedGradient>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" flexShrink={0}>
-      <Gradient colors={colors}>
+      <Gradient colors={rotatedColors}>
         <Text>{blockText}</Text>
       </Gradient>
     </Box>
