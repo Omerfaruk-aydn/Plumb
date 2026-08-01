@@ -72,6 +72,16 @@ export {
   PlumbProviderAuthService,
   getPlumbProviderAuthService,
 } from './auth/plumbProviderAuthService.js';
+export {
+  getCodexStatus,
+  readCodexAuthTokens,
+  isCodexTokenValid,
+  discoverCodexModels,
+  getCodexAccountLabel,
+  clearCodexStatusCache,
+  codexLogout,
+  isCodexInstalled,
+} from './auth/codex-bridge.js';
 
 // Export Routing
 export * from './routing/routingStrategy.js';
