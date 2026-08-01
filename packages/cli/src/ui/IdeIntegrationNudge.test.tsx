@@ -59,7 +59,7 @@ describe('IdeIntegrationNudge', () => {
     );
     const frame = lastFrame();
 
-    expect(frame).toContain('Do you want to connect VS Code to Gemini CLI?');
+    expect(frame).toContain('Do you want to connect VS Code to PLUMB?');
     expect(frame).toContain('Yes');
     expect(frame).toContain('No (esc)');
     expect(frame).toContain("No, don't ask again");

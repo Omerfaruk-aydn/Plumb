@@ -1049,8 +1049,7 @@ describe('convertSessionToHistoryFormats', () => {
         id: '1',
         timestamp: new Date().toISOString(),
         type: 'user',
-        content:
-          '<session_context>\nThis is the Gemini CLI\n</session_context>',
+        content: '<session_context>\nThis is the PLUMB\n</session_context>',
       },
       {
         id: '2',
