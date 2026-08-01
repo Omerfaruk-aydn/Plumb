@@ -305,16 +305,23 @@ export const DialogManager = ({
         }));
     };
 
+    const refreshFullModels = async () => {
+      const providerPackage = await import('@google/gemini-cli-provider');
+      return providerPackage.getPlumbModelRegistry().getAllAvailableModels();
+    };
+
     return (
       <Box flexDirection="column">
         <PlumbProviderSetupDialog
           providers={providerSetupData.providers}
           categoryGroups={providerSetupData.categoryGroups}
           models={providerSetupData.models}
+          fullModels={providerSetupData.fullModels}
           onComplete={uiActions.handleProviderSetupComplete}
           onCancel={uiActions.closeProviderSetupDialog}
           onOAuthLogin={uiActions.handleProviderOAuthLogin}
           onRefreshModels={refreshModels}
+          onRefreshFullModels={refreshFullModels}
         />
       </Box>
     );

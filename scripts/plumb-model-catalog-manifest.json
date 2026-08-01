@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-01T08:52:17.468Z",
+  "upstreamRepo": "https://github.com/can1357/oh-my-pi.git",
+  "upstreamSha": "4df68d60438423b384b2b47fb3d6835641624757",
+  "upstreamPath": "packages/catalog/src/models.json",
+  "totalModels": 3895,
+  "totalProviders": 59,
+  "skippedProviders": 2,
+  "schemaVersion": 1
+}

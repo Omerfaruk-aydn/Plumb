@@ -14,7 +14,6 @@ import {
   type PlumbKnownApi,
   type PlumbProviderId,
 } from '../types.js';
-import { registerBundledModels } from '../registry/model-registry.js';
 
 // ─── Initialization ────────────────────────────────────────────────────
 
@@ -22,12 +21,8 @@ let initialized = false;
 
 /** Register all bundled models into the model registry. Call once at startup. */
 export function initBundledModels(): void {
-  if (initialized) return;
-  initialized = true;
-
-  for (const [provider, models] of BUNDLED_CATALOG) {
-    registerBundledModels(provider, models);
-  }
+  // Models are now loaded from the generated catalog (generated-models.json)
+  // This function is kept for backward compatibility but is a no-op.
 }
 
 // ─── Bundled catalog ───────────────────────────────────────────────────

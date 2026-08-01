@@ -81,8 +81,32 @@ export {
   PlumbModelRegistry,
   getPlumbModelRegistry,
   resetPlumbModelRegistry,
-  registerBundledModels,
 } from './registry/model-registry.js';
+
+// Model catalog (generated from OMP upstream)
+export {
+  getCatalogProviders,
+  getCatalogModels,
+  getCatalogModel,
+  getCatalogModelCount,
+  getAllCatalogModels,
+} from './catalog/model-catalog.js';
+
+// Model cache
+export {
+  readModelCache,
+  writeModelCache,
+  invalidateModelCache,
+  invalidateAllModelCache,
+  closeModelCache,
+} from './registry/model-cache.js';
+
+// Model discovery
+export {
+  discoverProviderModels,
+  getDiscovery,
+  getDiscoveryProviderIds,
+} from './registry/model-discovery.js';
 
 // Bundled model catalog initialization
 export { initBundledModels } from './catalog/models.js';

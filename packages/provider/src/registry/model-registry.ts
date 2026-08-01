@@ -1,41 +1,31 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * PlumbModelRegistry — manages model discovery, selection, and compatibility.
- * Derives from OMP's model-manager.ts and model-registry.ts.
- * Upstream source: D:\Kesit-next\packages\coding-agent\src\config\model-registry.ts
- * Upstream source: D:\Kesit-next\packages\catalog\src\model-manager.ts
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
+ * PlumbModelRegistry — single authority for model discovery, caching, and selection.
+ * Integrates: bundled catalog, runtime discovery, cache, custom models.
  */
 
-import {
-  type PlumbModel,
-  type PlumbProviderId,
-  type PlumbModelSpec,
-  type PlumbKnownApi,
-} from '../types.js';
+import type { PlumbModel, PlumbProviderId } from '../types.js';
 import { getPlumbProvider } from '../catalog/providers.js';
-import { getPlumbProviderRegistry } from '../registry/provider-registry.js';
+import { getPlumbProviderRegistry } from './provider-registry.js';
+import {
+  getCatalogModels,
+  getCatalogModel,
+  getCatalogProviders,
+} from '../catalog/model-catalog.js';
+import {
+  readModelCache,
+  writeModelCache,
+  invalidateModelCache,
+  invalidateAllModelCache,
+} from './model-cache.js';
+import {
+  discoverProviderModels,
+  getDiscoveryProviderIds,
+} from './model-discovery.js';
 
-// ─── Bundled model catalog ────────────────────────────────────────────
-
-/**
- * Static model catalog derived from OMP's bundled models.json.
- * Each entry maps provider → model list.
- */
-const BUNDLED_MODELS: Map<PlumbProviderId, PlumbModel[]> = new Map();
-
-/** Register bundled models for a provider. */
-export function registerBundledModels(
-  provider: PlumbProviderId,
-  models: PlumbModel[],
-): void {
-  BUNDLED_MODELS.set(provider, models);
-}
-
-// ─── Model registry ────────────────────────────────────────────────────
+// ─── Model registry ───────────────────────────────────────────────────
 
 export class PlumbModelRegistry {
   #customModels = new Map<string, PlumbModel>();
@@ -43,50 +33,57 @@ export class PlumbModelRegistry {
   #defaultModel: string | null = null;
   #smolModel: string | null = null;
   #planningModel: string | null = null;
+  #listeners: Array<() => void> = [];
 
   // ── Model resolution ──────────────────────────────────────────────
 
   /** Get all models available for a provider. */
   getModelsForProvider(providerId: PlumbProviderId): PlumbModel[] {
-    const bundled = BUNDLED_MODELS.get(providerId) ?? [];
+    const bundled = getCatalogModels(providerId);
     const custom = [...this.#customModels.values()].filter(
       (m) => m.provider === providerId,
     );
     const discovered = [...this.#discoveredModels.values()].filter(
       (m) => m.provider === providerId,
     );
-    // Deduplicate by model ID
+
     const seen = new Set<string>();
     const result: PlumbModel[] = [];
-    for (const m of [...bundled, ...custom, ...discovered]) {
-      if (!seen.has(m.id)) {
-        seen.add(m.id);
-        result.push(m);
+
+    for (const model of [...bundled, ...discovered, ...custom]) {
+      if (!seen.has(model.id)) {
+        seen.add(model.id);
+        result.push(model);
       }
     }
+
     return result;
   }
 
-  /** Get all available models across all authenticated providers. */
+  /** Get all models for all authenticated providers. */
   getAllAvailableModels(): PlumbModel[] {
     const registry = getPlumbProviderRegistry();
-    const active = registry.getActiveProviderStates();
-    const result: PlumbModel[] = [];
-    const seen = new Set<string>();
+    const activeStates = registry.getActiveProviderStates();
+    const models: PlumbModel[] = [];
 
-    for (const state of active) {
-      for (const model of this.getModelsForProvider(state.provider.id)) {
-        const key = `${model.provider}:${model.id}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push(model);
-        }
-      }
+    for (const state of activeStates) {
+      models.push(...this.getModelsForProvider(state.provider.id));
     }
-    return result;
+
+    return models;
   }
 
-  /** Find a model by provider + id. */
+  /** Get all models including unauthenticated providers. */
+  getAllModels(): PlumbModel[] {
+    const providers = getCatalogProviders();
+    const models: PlumbModel[] = [];
+    for (const providerId of providers) {
+      models.push(...this.getModelsForProvider(providerId));
+    }
+    return models;
+  }
+
+  /** Find a specific model by provider and ID. */
   findModel(
     providerId: PlumbProviderId,
     modelId: string,
@@ -95,20 +92,19 @@ export class PlumbModelRegistry {
     return models.find((m) => m.id === modelId || m.requestModelId === modelId);
   }
 
-  /** Find a model by full reference "provider/model-id". */
+  /** Find a model by reference string ("provider/model-id"). */
   findModelByReference(ref: string): PlumbModel | undefined {
     const parts = ref.split('/');
     if (parts.length === 2) {
       return this.findModel(parts[0], parts[1]);
     }
-    // Search all providers
     for (const model of this.getAllAvailableModels()) {
       if (model.id === ref) return model;
     }
     return undefined;
   }
 
-  /** Resolve the best model for a given provider (default model). */
+  /** Resolve the best model for a given provider. */
   resolveDefaultModel(providerId: PlumbProviderId): PlumbModel | undefined {
     const provider = getPlumbProvider(providerId);
     const defaultId = provider?.defaultModel;
@@ -116,31 +112,155 @@ export class PlumbModelRegistry {
       const model = this.findModel(providerId, defaultId);
       if (model) return model;
     }
-    // First available model
     const models = this.getModelsForProvider(providerId);
     return models[0];
   }
 
   // ── Custom models ─────────────────────────────────────────────────
 
-  /** Add a custom model override. */
   addCustomModel(model: PlumbModel): void {
     const key = `${model.provider}:${model.id}`;
     this.#customModels.set(key, model);
+    this.#notifyListeners();
   }
 
-  /** Remove a custom model. */
   removeCustomModel(provider: PlumbProviderId, modelId: string): boolean {
     const key = `${provider}:${modelId}`;
-    return this.#customModels.delete(key);
+    const result = this.#customModels.delete(key);
+    if (result) this.#notifyListeners();
+    return result;
   }
 
-  /** Add discovered models from a provider endpoint. */
+  // ── Discovery ─────────────────────────────────────────────────────
+
+  /** Discover local models (Ollama, LM Studio, llama.cpp, vLLM). */
+  async discoverLocalModels(): Promise<PlumbModel[]> {
+    const localProviders = ['ollama', 'lm-studio', 'llama-cpp', 'vllm'];
+    const discovered: PlumbModel[] = [];
+
+    for (const providerId of localProviders) {
+      try {
+        const models = await discoverProviderModels(providerId, { providerId });
+        for (const m of models) {
+          const plumbModel: PlumbModel = {
+            id: m.id,
+            name: m.name ?? m.id,
+            provider: providerId,
+            api: 'openai-completions',
+            contextWindow: m.contextWindow ?? 131072,
+            maxTokens: m.maxTokens ?? 32768,
+            reasoning: m.reasoning ?? false,
+            input: 'text',
+          };
+          const key = `${providerId}:${m.id}`;
+          this.#discoveredModels.set(key, plumbModel);
+          discovered.push(plumbModel);
+        }
+      } catch {
+        // Discovery failure for a single provider is non-fatal
+      }
+    }
+
+    if (discovered.length > 0) this.#notifyListeners();
+    return discovered;
+  }
+
+  /** Discover models from a remote provider using its API. */
+  async discoverProviderModels(
+    providerId: PlumbProviderId,
+    apiKey?: string,
+    oauthToken?: string,
+  ): Promise<PlumbModel[]> {
+    try {
+      const discovered = await discoverProviderModels(providerId, {
+        providerId,
+        apiKey,
+        oauthToken,
+      });
+
+      const models: PlumbModel[] = [];
+      for (const m of discovered) {
+        const plumbModel: PlumbModel = {
+          id: m.id,
+          name: m.name ?? m.id,
+          provider: providerId,
+          api: 'openai-completions',
+          contextWindow: m.contextWindow ?? 131072,
+          maxTokens: m.maxTokens ?? 32768,
+          reasoning: m.reasoning ?? false,
+          input: 'text',
+        };
+        const key = `${providerId}:${m.id}`;
+        this.#discoveredModels.set(key, plumbModel);
+        models.push(plumbModel);
+      }
+
+      // Cache discovered models
+      if (models.length > 0) {
+        writeModelCache(providerId, models, true);
+        this.#notifyListeners();
+      }
+
+      return models;
+    } catch {
+      return [];
+    }
+  }
+
+  /** Add discovered models from external source. */
   addDiscoveredModels(models: PlumbModel[]): void {
     for (const model of models) {
       const key = `${model.provider}:${model.id}`;
       this.#discoveredModels.set(key, model);
     }
+    this.#notifyListeners();
+  }
+
+  // ── Cache ─────────────────────────────────────────────────────────
+
+  /** Load cached models for a provider. */
+  loadCache(providerId: PlumbProviderId): PlumbModel[] {
+    const entry = readModelCache(providerId);
+    if (!entry) return [];
+
+    // Add cached models to discovered
+    for (const model of entry.models) {
+      const key = `${model.provider}:${model.id}`;
+      if (!this.#discoveredModels.has(key)) {
+        this.#discoveredModels.set(key, model);
+      }
+    }
+
+    return entry.models;
+  }
+
+  /** Invalidate cache for a provider. */
+  invalidateCache(providerId: PlumbProviderId): void {
+    invalidateModelCache(providerId);
+    // Remove discovered models for this provider
+    for (const key of [...this.#discoveredModels.keys()]) {
+      if (key.startsWith(`${providerId}:`)) {
+        this.#discoveredModels.delete(key);
+      }
+    }
+    this.#notifyListeners();
+  }
+
+  /** Invalidate all caches. */
+  invalidateAllCaches(): void {
+    invalidateAllModelCache();
+    this.#discoveredModels.clear();
+    this.#notifyListeners();
+  }
+
+  /** Refresh models for a provider (invalidate + rediscover). */
+  async refreshProvider(
+    providerId: PlumbProviderId,
+    apiKey?: string,
+    oauthToken?: string,
+  ): Promise<PlumbModel[]> {
+    this.invalidateCache(providerId);
+    return this.discoverProviderModels(providerId, apiKey, oauthToken);
   }
 
   // ── Default model preferences ─────────────────────────────────────
@@ -169,67 +289,61 @@ export class PlumbModelRegistry {
     this.#planningModel = ref;
   }
 
-  // ── Discovery ─────────────────────────────────────────────────────
+  // ── Listeners ─────────────────────────────────────────────────────
 
-  /** Discover local models (Ollama, LM Studio, llama.cpp). */
-  async discoverLocalModels(): Promise<PlumbModel[]> {
-    const discovered: PlumbModel[] = [];
+  subscribeToChanges(listener: () => void): () => void {
+    this.#listeners.push(listener);
+    return () => {
+      const idx = this.#listeners.indexOf(listener);
+      if (idx >= 0) this.#listeners.splice(idx, 1);
+    };
+  }
 
-    // Try Ollama
-    try {
-      const ollamaModels = await this.#fetchOllamaModels();
-      for (const m of ollamaModels) {
-        registerBundledModels('ollama', [m]);
-        discovered.push(m);
+  #notifyListeners(): void {
+    for (const listener of this.#listeners) {
+      try {
+        listener();
+      } catch {
+        // Listener failure is non-fatal
       }
-    } catch {
-      // Ollama not available
     }
-
-    // Try LM Studio
-    try {
-      await this.#probeEndpoint('http://127.0.0.1:1234/v1/models');
-      // LM Studio is available — its models are discovered via the bundled list
-    } catch {
-      // LM Studio not available
-    }
-
-    return discovered;
   }
 
-  async #fetchOllamaModels(): Promise<PlumbModel[]> {
-    const response = await fetch('http://127.0.0.1:11434/api/tags', {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) return [];
-    const data = (await response.json()) as { models?: { name: string }[] };
-    return (data.models ?? []).map((m) => ({
-      id: m.name,
-      provider: 'ollama' as PlumbProviderId,
-      api: 'ollama-chat' as PlumbKnownApi,
-      contextWindow: 128000,
-      maxTokens: 16384,
-      reasoning: false,
-      input: 'text' as const,
-    }));
-  }
+  // ── Stats ─────────────────────────────────────────────────────────
 
-  async #probeEndpoint(url: string): Promise<void> {
-    await fetch(url, { signal: AbortSignal.timeout(2000) });
+  getStats(): {
+    bundled: number;
+    discovered: number;
+    custom: number;
+    total: number;
+  } {
+    const bundled =
+      getCatalogModels('').length > 0
+        ? getCatalogProviders().reduce(
+            (sum, p) => sum + getCatalogModels(p).length,
+            0,
+          )
+        : 0;
+    return {
+      bundled,
+      discovered: this.#discoveredModels.size,
+      custom: this.#customModels.size,
+      total: bundled + this.#discoveredModels.size + this.#customModels.size,
+    };
   }
 }
 
 // ─── Singleton ─────────────────────────────────────────────────────────
 
-let defaultModelRegistry: PlumbModelRegistry | undefined;
+let defaultRegistry: PlumbModelRegistry | undefined;
 
 export function getPlumbModelRegistry(): PlumbModelRegistry {
-  if (!defaultModelRegistry) {
-    defaultModelRegistry = new PlumbModelRegistry();
+  if (!defaultRegistry) {
+    defaultRegistry = new PlumbModelRegistry();
   }
-  return defaultModelRegistry;
+  return defaultRegistry;
 }
 
 export function resetPlumbModelRegistry(): void {
-  defaultModelRegistry = undefined;
+  defaultRegistry = undefined;
 }

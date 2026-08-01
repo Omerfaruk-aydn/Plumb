@@ -7,13 +7,14 @@
 import type React from 'react';
 import { useState, useCallback, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import {
+import type {
+ PlumbModel ,
   PlumbProviderCategory,
-  type PlumbProvider,
-} from '@google/gemini-cli-provider';
+  type PlumbProvider } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
+import { SearchableModelPicker } from './SearchableModelPicker.js';
 
 type SetupStep =
   | 'connection-type'
@@ -43,12 +44,14 @@ export interface PlumbProviderSetupDialogProps {
   providers: PlumbProvider[];
   categoryGroups: Map<string, PlumbProvider[]>;
   models: Array<{ id: string; name?: string; provider: string }>;
+  fullModels?: PlumbModel[];
   onOAuthLogin?: (
     providerId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   onRefreshModels?: () => Promise<
     Array<{ id: string; name?: string; provider: string }>
   >;
+  onRefreshFullModels?: () => Promise<PlumbModel[]>;
 }
 
 export interface PlumbProviderSetupResult {
@@ -95,8 +98,10 @@ export const PlumbProviderSetupDialog: React.FC<
   providers,
   categoryGroups,
   models: initialModels,
+  fullModels: initialFullModels,
   onOAuthLogin,
   onRefreshModels,
+  onRefreshFullModels,
 }) => {
   const [state, setState] = useState<SetupState>({
     step: 'connection-type',
@@ -115,10 +120,16 @@ export const PlumbProviderSetupDialog: React.FC<
   const [dynamicModels, setDynamicModels] = useState<
     Array<{ id: string; name?: string; provider: string }>
   >([]);
+  const [dynamicFullModels, setDynamicFullModels] = useState<PlumbModel[]>([]);
 
   const allModels = useMemo(
     () => [...initialModels, ...dynamicModels],
     [initialModels, dynamicModels],
+  );
+
+  const allFullModels = useMemo(
+    () => [...(initialFullModels ?? []), ...dynamicFullModels],
+    [initialFullModels, dynamicFullModels],
   );
 
   const categoryProviders = useMemo(() => {
@@ -136,6 +147,13 @@ export const PlumbProviderSetupDialog: React.FC<
     if (!state.selectedProvider) return [];
     return allModels.filter((m) => m.provider === state.selectedProvider!.id);
   }, [state.selectedProvider, allModels]);
+
+  const providerFullModels = useMemo(() => {
+    if (!state.selectedProvider) return [];
+    return allFullModels.filter(
+      (m) => m.provider === state.selectedProvider!.id,
+    );
+  }, [state.selectedProvider, allFullModels]);
 
   const connectionTypeItems = useMemo(
     () =>
@@ -347,17 +365,10 @@ export const PlumbProviderSetupDialog: React.FC<
         return true;
       }
 
-      // Backspace navigation for list steps
-      if (key.name === 'backspace') {
+      // Backspace navigation for list steps (not model-select, handled by picker)
+      if (key.name === 'backspace' && step !== 'model-select') {
         if (step === 'provider-select') {
           setState((s) => ({ ...s, step: 'connection-type', category: null }));
-        } else if (step === 'model-select') {
-          setState((s) => ({
-            ...s,
-            step: provider?.allowUnauthenticated
-              ? 'provider-select'
-              : 'authenticate',
-          }));
         }
         return true;
       }
@@ -459,24 +470,46 @@ export const PlumbProviderSetupDialog: React.FC<
 
       {step === 'model-select' && provider && (
         <>
-          <Text bold>Choose model:</Text>
-          {modelItems.length === 0 ? (
+          {providerFullModels.length > 0 ? (
+            <SearchableModelPicker
+              models={providerFullModels}
+              onSelect={(model: PlumbModel) => handleModelSelect(model.id)}
+              onCancel={() =>
+                setState((s) => ({
+                  ...s,
+                  step: provider?.allowUnauthenticated
+                    ? 'provider-select'
+                    : 'authenticate',
+                }))
+              }
+              onRefresh={
+                onRefreshFullModels
+                  ? async () => {
+                      const refreshed = await onRefreshFullModels();
+                      setDynamicFullModels(refreshed);
+                    }
+                  : undefined
+              }
+            />
+          ) : modelItems.length > 0 ? (
+            <>
+              <Text bold>Choose model:</Text>
+              <RadioButtonSelect
+                items={modelItems}
+                onSelect={handleModelSelect}
+                isFocused={true}
+                showNumbers={false}
+              />
+              <Box marginTop={1}>
+                <Text dimColor>Backspace: back to authentication</Text>
+              </Box>
+            </>
+          ) : (
             <Box flexDirection="column">
-              <Text dimColor>No bundled models for this provider.</Text>
-              <Text>You can type a custom model ID later.</Text>
+              <Text dimColor>No models available for this provider.</Text>
               <Text dimColor>Press Backspace to go back.</Text>
             </Box>
-          ) : (
-            <RadioButtonSelect
-              items={modelItems}
-              onSelect={handleModelSelect}
-              isFocused={true}
-              showNumbers={false}
-            />
           )}
-          <Box marginTop={1}>
-            <Text dimColor>Backspace: back to authentication</Text>
-          </Box>
         </>
       )}
 
