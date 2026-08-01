@@ -80,7 +80,8 @@ export function getCodexVersion(): string | null {
 
 // ─── Auth status ───────────────────────────────────────────────────────
 
-/** Check codex login status via the CLI. */
+/** Check codex login status. Uses auth.json as primary source since
+ *  the codex CLI writes status output directly to TTY, not stdout. */
 export async function getCodexStatus(): Promise<CodexStatus> {
   if (cachedStatus) return cachedStatus;
 
@@ -92,81 +93,61 @@ export async function getCodexStatus(): Promise<CodexStatus> {
 
   const version = getCodexVersion() ?? undefined;
 
-  try {
-    const output = execSync('codex login status', {
-      timeout: 10000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-      .toString()
-      .trim();
-    const loggedIn = output.toLowerCase().includes('logged in');
+  // Check auth.json directly — the codex CLI writes status to TTY not stdout
+  const tokens = readCodexAuthTokens();
+  const loggedIn = !!tokens?.accessToken;
 
-    let authMode: string | undefined;
-    let accountEmail: string | undefined;
-    let planType: string | undefined;
-    let defaultModel: string | undefined;
+  let authMode: string | undefined;
+  let accountEmail: string | undefined;
+  let planType: string | undefined;
+  let defaultModel: string | undefined;
 
-    if (loggedIn) {
-      // Parse auth mode from output
-      if (output.includes('ChatGPT')) authMode = 'chatgpt';
-      else if (output.includes('API key')) authMode = 'api_key';
-
-      // Try to read additional info from auth.json
-      try {
-        const tokens = readCodexAuthTokens();
-        if (tokens) {
-          accountEmail = tokens.email;
-          // Parse plan type from JWT if available
-          try {
-            const payload = parseJwtPayload(tokens.accessToken);
-            if (payload) {
-              const auth = getJwtField(
-                payload,
-                'https://api.openai.com/auth',
-              ) as Record<string, unknown> | undefined;
-              if (auth) {
-                const pt = auth['chatgpt_plan_type'];
-                if (typeof pt === 'string') planType = pt;
-              }
-            }
-          } catch {
-            // JWT parsing is best-effort
-          }
+  if (loggedIn && tokens) {
+    accountEmail = tokens.email;
+    // Parse plan type from JWT
+    try {
+      const payload = parseJwtPayload(tokens.accessToken);
+      if (payload) {
+        const auth = getJwtField(
+          payload,
+          'https://api.openai.com/auth',
+        ) as Record<string, unknown> | undefined;
+        if (auth) {
+          const pt = auth['chatgpt_plan_type'];
+          if (typeof pt === 'string') planType = pt;
         }
-      } catch {
-        // Auth file reading is best-effort
-      }
-
-      // Read default model from config
-      try {
-        const configPath = getConfigFilePath();
-        if (existsSync(configPath)) {
-          const config = readFileSync(configPath, 'utf-8');
-          const modelMatch = /^model\s*=\s*"([^"]+)"/m.exec(config);
-          if (modelMatch) defaultModel = modelMatch[1];
+        // Determine auth mode from JWT claims
+        const aud = getJwtField(payload, 'aud');
+        if (typeof aud === 'string' && aud.includes('app_')) {
+          authMode = 'chatgpt';
         }
-      } catch {
-        // Config reading is best-effort
       }
+    } catch {
+      // JWT parsing is best-effort
     }
 
-    cachedStatus = {
-      installed: true,
-      version,
-      loggedIn,
-      authMode,
-      accountEmail,
-      planType,
-      defaultModel,
-    };
-  } catch (err) {
-    cachedStatus = {
-      installed: true,
-      version,
-      loggedIn: false,
-      error: err instanceof Error ? err.message : 'Failed to check status',
-    };
+    // Read default model from config
+    try {
+      const configPath = getConfigFilePath();
+      if (existsSync(configPath)) {
+        const config = readFileSync(configPath, 'utf-8');
+        const modelMatch = /^model\s*=\s*"([^"]+)"/m.exec(config);
+        if (modelMatch) defaultModel = modelMatch[1];
+      }
+    } catch {
+      // Config reading is best-effort
+    }
   }
+
+  cachedStatus = {
+    installed: true,
+    version,
+    loggedIn,
+    authMode,
+    accountEmail,
+    planType,
+    defaultModel,
+  };
 
   return cachedStatus;
 }
@@ -313,7 +294,9 @@ export async function codexLogout(): Promise<void> {
 
 // ─── Model discovery ───────────────────────────────────────────────────
 
-/** Discover models available via Codex/ChatGPT subscription. */
+/** Discover models available via Codex/ChatGPT subscription.
+ *  Reads from the Codex CLI's local models cache (~/.codex/models_cache.json)
+ *  which is populated by the official Codex client. */
 export async function discoverCodexModels(): Promise<
   Array<{
     id: string;
@@ -330,6 +313,44 @@ export async function discoverCodexModels(): Promise<
   const tokens = readCodexAuthTokens();
   if (!tokens?.accessToken) return [];
 
+  // First try the Codex CLI's local models cache
+  try {
+    const cachePath = join(getCodexConfigDir(), 'models_cache.json');
+    if (existsSync(cachePath)) {
+      const raw = JSON.parse(readFileSync(cachePath, 'utf-8')) as {
+        models?: Array<{
+          slug?: string;
+          display_name?: string;
+          context_window?: number;
+          supported_reasoning_levels?: unknown[];
+          input_modalities?: string[];
+          visibility?: string;
+        }>;
+      };
+
+      if (raw.models && raw.models.length > 0) {
+        return raw.models
+          .filter((m) => m.slug && m.visibility !== 'hidden')
+          .map((m) => ({
+            id: m.slug!,
+            name: m.display_name ?? m.slug!,
+            provider: 'openai-codex',
+            api: 'openai-codex-responses',
+            contextWindow: m.context_window ?? 272000,
+            maxTokens: 32768,
+            reasoning: (m.supported_reasoning_levels?.length ?? 0) > 0,
+            input: m.input_modalities?.includes('image')
+              ? 'text+image'
+              : 'text',
+            isOAuth: true,
+          }));
+      }
+    }
+  } catch {
+    // Cache read failure — fall through to API fallback
+  }
+
+  // Fallback: try the OpenAI API (may not work with ChatGPT tokens)
   try {
     const response = await fetch('https://api.openai.com/v1/models', {
       headers: {
@@ -344,36 +365,20 @@ export async function discoverCodexModels(): Promise<
       data?: Array<{ id: string; owned_by?: string }>;
     };
 
-    const models: Array<{
-      id: string;
-      name: string;
-      provider: string;
-      api: string;
-      contextWindow: number;
-      maxTokens: number;
-      reasoning: boolean;
-      input: string;
-      isOAuth: boolean;
-    }> = [];
-
-    for (const m of data.data ?? []) {
-      models.push({
-        id: m.id,
-        name: m.id,
-        provider: 'openai-codex',
-        api: 'openai-codex-responses',
-        contextWindow: 131072,
-        maxTokens: 32768,
-        reasoning:
-          m.id.includes('o3') ||
-          m.id.includes('o4') ||
-          m.id.includes('reasoning'),
-        input: 'text',
-        isOAuth: true,
-      });
-    }
-
-    return models;
+    return (data.data ?? []).map((m) => ({
+      id: m.id,
+      name: m.id,
+      provider: 'openai-codex',
+      api: 'openai-codex-responses',
+      contextWindow: 131072,
+      maxTokens: 32768,
+      reasoning:
+        m.id.includes('o3') ||
+        m.id.includes('o4') ||
+        m.id.includes('reasoning'),
+      input: 'text',
+      isOAuth: true,
+    }));
   } catch {
     return [];
   }
