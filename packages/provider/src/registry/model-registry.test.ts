@@ -1,0 +1,119 @@
+/**
+ * Copyright 2026 PLUMB contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Model registry integration tests.
+ * Verifies single authority, catalog integration, and discovery.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { PlumbModelRegistry } from './model-registry.js';
+import type { PlumbModel } from '../types.js';
+
+function makeModel(
+  id: string,
+  provider = 'openai',
+  overrides: Partial<PlumbModel> = {},
+): PlumbModel {
+  return {
+    id,
+    name: id,
+    provider,
+    api: 'openai-completions',
+    contextWindow: 131072,
+    maxTokens: 32768,
+    reasoning: false,
+    input: 'text',
+    ...overrides,
+  };
+}
+
+describe('PlumbModelRegistry', () => {
+  let registry: PlumbModelRegistry;
+
+  beforeEach(() => {
+    registry = new PlumbModelRegistry();
+  });
+
+  it('1. getModelsForProvider returns bundled catalog models', () => {
+    const models = registry.getModelsForProvider('openai');
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.some((m) => m.id === 'gpt-5.5')).toBe(true);
+  });
+
+  it('2. findModel finds by ID', () => {
+    const model = registry.findModel('openai', 'gpt-5.5');
+    expect(model).toBeDefined();
+    expect(model!.id).toBe('gpt-5.5');
+  });
+
+  it('3. findModelByReference parses provider/model', () => {
+    const model = registry.findModelByReference('openai/gpt-5.5');
+    expect(model).toBeDefined();
+    expect(model!.provider).toBe('openai');
+  });
+
+  it('4. resolveDefaultModel uses provider default', () => {
+    const model = registry.resolveDefaultModel('openai');
+    expect(model).toBeDefined();
+    expect(model!.id).toBe('gpt-5.5');
+  });
+
+  it('5. addCustomModel adds to registry', () => {
+    registry.addCustomModel(makeModel('custom-model', 'openai'));
+    const model = registry.findModel('openai', 'custom-model');
+    expect(model).toBeDefined();
+  });
+
+  it('6. removeCustomModel removes from registry', () => {
+    registry.addCustomModel(makeModel('custom-model', 'openai'));
+    const removed = registry.removeCustomModel('openai', 'custom-model');
+    expect(removed).toBe(true);
+    expect(registry.findModel('openai', 'custom-model')).toBeUndefined();
+  });
+
+  it('7. addDiscoveredModels adds to registry', () => {
+    registry.addDiscoveredModels([
+      makeModel('discovered-1', 'ollama'),
+      makeModel('discovered-2', 'ollama'),
+    ]);
+    const models = registry.getModelsForProvider('ollama');
+    expect(models.some((m) => m.id === 'discovered-1')).toBe(true);
+  });
+
+  it('8. deduplicates models by ID', () => {
+    registry.addDiscoveredModels([makeModel('gpt-5.5', 'openai')]);
+    const models = registry.getModelsForProvider('openai');
+    const gpt55 = models.filter((m) => m.id === 'gpt-5.5');
+    expect(gpt55.length).toBe(1);
+  });
+
+  it('9. notifies listeners on change', () => {
+    const listener = vi.fn();
+    registry.subscribeToChanges(listener);
+    registry.addDiscoveredModels([makeModel('new-model', 'test')]);
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it('10. unsubscribe stops notifications', () => {
+    const listener = vi.fn();
+    const unsub = registry.subscribeToChanges(listener);
+    unsub();
+    registry.addDiscoveredModels([makeModel('new-model', 'test')]);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('11. getAllModels returns models for all providers', () => {
+    const all = registry.getAllModels();
+    expect(all.length).toBeGreaterThan(100);
+  });
+
+  it('12. getStats returns correct counts', () => {
+    registry.addDiscoveredModels([makeModel('d1', 'test')]);
+    registry.addCustomModel(makeModel('c1', 'test'));
+    const stats = registry.getStats();
+    expect(stats.bundled).toBeGreaterThan(0);
+    expect(stats.discovered).toBe(1);
+    expect(stats.custom).toBe(1);
+  });
+});

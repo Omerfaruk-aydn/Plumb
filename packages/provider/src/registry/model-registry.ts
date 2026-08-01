@@ -317,13 +317,11 @@ export class PlumbModelRegistry {
     custom: number;
     total: number;
   } {
-    const bundled =
-      getCatalogModels('').length > 0
-        ? getCatalogProviders().reduce(
-            (sum, p) => sum + getCatalogModels(p).length,
-            0,
-          )
-        : 0;
+    const providers = getCatalogProviders();
+    const bundled = providers.reduce(
+      (sum, p) => sum + getCatalogModels(p).length,
+      0,
+    );
     return {
       bundled,
       discovered: this.#discoveredModels.size,
