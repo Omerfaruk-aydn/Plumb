@@ -301,6 +301,7 @@ export const DialogManager = ({
           models={providerSetupData.models}
           onComplete={uiActions.handleProviderSetupComplete}
           onCancel={uiActions.closeProviderSetupDialog}
+          onOAuthLogin={uiActions.handleProviderOAuthLogin}
         />
       </Box>
     );

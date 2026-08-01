@@ -952,6 +952,38 @@ Logging in with Google... Restarting PLUMB to continue.
     [settings, config, setAuthState],
   );
 
+  const handleProviderOAuthLogin = useCallback(
+    async (
+      providerId: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const authServiceModule = await import('@google/gemini-cli-core');
+        const authService =
+          authServiceModule.getPlumbProviderAuthService?.() ??
+          new authServiceModule.PlumbProviderAuthService();
+        const result = await authService.beginLogin(providerId);
+
+        if (result.success) {
+          try {
+            const providerModule = await import('@google/gemini-cli-provider');
+            const registry = providerModule.getPlumbModelRegistry();
+            await registry.discoverLocalModels();
+          } catch {
+            // Model discovery failure is non-fatal
+          }
+        }
+
+        return { success: result.success, error: result.error };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : 'OAuth login failed',
+        };
+      }
+    },
+    [],
+  );
+
   const handleApiKeyCancel = useCallback(() => {
     // Go back to auth method selection
     setAuthState(AuthState.Updating);
@@ -2760,6 +2792,7 @@ Logging in with Google... Restarting PLUMB to continue.
       onAuthError,
       closeProviderSetupDialog,
       handleProviderSetupComplete,
+      handleProviderOAuthLogin,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,
@@ -2864,6 +2897,7 @@ Logging in with Google... Restarting PLUMB to continue.
       onAuthError,
       closeProviderSetupDialog,
       handleProviderSetupComplete,
+      handleProviderOAuthLogin,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,

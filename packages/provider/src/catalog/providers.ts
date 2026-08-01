@@ -983,6 +983,21 @@ export const PRODUCTION_READY_PROVIDER_IDS = new Set<string>([
   'opencode-go',
   'opencode-zen',
   'qwen-portal',
+  // OAuth account providers (source-backed)
+  'openai-codex',
+  'github-copilot',
+  'cursor',
+  'kimi-code',
+  'xai-oauth',
+  'zai-coding-plan',
+  'google-gemini-cli',
+  'google-login',
+  // Coding plans with OAuth
+  'gitlab-duo',
+  'gitlab-duo-agent',
+  'devin',
+  'antigravity',
+  'minimax-code',
 ]);
 
 /** Providers that are safe to display and select in the UI. */

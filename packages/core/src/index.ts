@@ -68,6 +68,10 @@ export type {
   PlumbCredentialSource,
   PlumbCredentialEntry,
 } from './auth/plumbSecureCredentialStore.js';
+export {
+  PlumbProviderAuthService,
+  getPlumbProviderAuthService,
+} from './auth/plumbProviderAuthService.js';
 
 // Export Routing
 export * from './routing/routingStrategy.js';

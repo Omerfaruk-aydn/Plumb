@@ -38,6 +38,9 @@ export interface UIActions {
   handleProviderSetupComplete: (
     result: PlumbProviderSetupResult,
   ) => Promise<void>;
+  handleProviderOAuthLogin: (
+    providerId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   handleEditorSelect: (
     editorType: EditorType | undefined,
     scope: LoadableSettingScope,

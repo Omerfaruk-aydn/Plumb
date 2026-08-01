@@ -19,6 +19,7 @@ type SetupStep =
   | 'connection-type'
   | 'provider-select'
   | 'authenticate'
+  | 'oauth-waiting'
   | 'model-select'
   | 'confirm'
   | 'done';
@@ -33,6 +34,7 @@ interface SetupState {
   planningModel: string | null;
   error: string | null;
   loading: boolean;
+  oauthStatus: string | null;
 }
 
 export interface PlumbProviderSetupDialogProps {
@@ -41,6 +43,9 @@ export interface PlumbProviderSetupDialogProps {
   providers: PlumbProvider[];
   categoryGroups: Map<string, PlumbProvider[]>;
   models: Array<{ id: string; name?: string; provider: string }>;
+  onOAuthLogin?: (
+    providerId: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 export interface PlumbProviderSetupResult {
@@ -81,7 +86,14 @@ const CONNECTION_TYPES = [
 
 export const PlumbProviderSetupDialog: React.FC<
   PlumbProviderSetupDialogProps
-> = ({ onComplete, onCancel, providers, categoryGroups, models }) => {
+> = ({
+  onComplete,
+  onCancel,
+  providers,
+  categoryGroups,
+  models,
+  onOAuthLogin,
+}) => {
   const [state, setState] = useState<SetupState>({
     step: 'connection-type',
     category: null,
@@ -92,6 +104,7 @@ export const PlumbProviderSetupDialog: React.FC<
     planningModel: null,
     error: null,
     loading: false,
+    oauthStatus: null,
   });
 
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -165,8 +178,49 @@ export const PlumbProviderSetupDialog: React.FC<
       selectedProvider: provider,
       error: null,
       loading: false,
+      oauthStatus: null,
     }));
   }, []);
+
+  const handleOAuthStart = useCallback(async () => {
+    if (!state.selectedProvider || !onOAuthLogin) return;
+
+    setState((s) => ({
+      ...s,
+      step: 'oauth-waiting',
+      loading: true,
+      oauthStatus: 'Opening browser...',
+      error: null,
+    }));
+
+    try {
+      const result = await onOAuthLogin(state.selectedProvider.id);
+      if (result.success) {
+        setState((s) => ({
+          ...s,
+          step: 'model-select',
+          loading: false,
+          oauthStatus: null,
+        }));
+      } else {
+        setState((s) => ({
+          ...s,
+          step: 'authenticate',
+          loading: false,
+          oauthStatus: null,
+          error: result.error ?? 'OAuth login failed',
+        }));
+      }
+    } catch (err) {
+      setState((s) => ({
+        ...s,
+        step: 'authenticate',
+        loading: false,
+        oauthStatus: null,
+        error: err instanceof Error ? err.message : 'OAuth login failed',
+      }));
+    }
+  }, [state.selectedProvider, onOAuthLogin]);
 
   const handleApiKeySubmit = useCallback((key: string) => {
     setState((s) => ({
@@ -199,12 +253,31 @@ export const PlumbProviderSetupDialog: React.FC<
   useKeypress(
     (key) => {
       if (key.name === 'escape') {
+        if (step === 'oauth-waiting') {
+          setState((s) => ({
+            ...s,
+            step: 'authenticate',
+            loading: false,
+            oauthStatus: null,
+          }));
+          return true;
+        }
         onCancel();
         return true;
       }
 
       if (step === 'authenticate') {
-        if (key.name === 'enter') {
+        // OAuth option: Enter triggers browser login
+        if (
+          key.name === 'enter' &&
+          provider?.authMethods.some((m) => m.type === 'oauth') &&
+          onOAuthLogin
+        ) {
+          void handleOAuthStart();
+          return true;
+        }
+        // API key input
+        if (key.name === 'enter' && apiKeyInput.length > 0) {
           handleApiKeySubmit(apiKeyInput);
           return true;
         }
@@ -230,6 +303,10 @@ export const PlumbProviderSetupDialog: React.FC<
           setApiKeyInput((prev) => prev + key.sequence);
           return true;
         }
+        return true;
+      }
+
+      if (step === 'oauth-waiting') {
         return true;
       }
 
@@ -293,7 +370,7 @@ export const PlumbProviderSetupDialog: React.FC<
 
       {state.loading && (
         <Box marginBottom={1}>
-          <Text color="yellow">Loading...</Text>
+          <Text color="yellow">{state.oauthStatus ?? 'Loading...'}</Text>
         </Box>
       )}
 
@@ -332,7 +409,7 @@ export const PlumbProviderSetupDialog: React.FC<
         <AuthStep
           provider={provider}
           apiKeyInput={apiKeyInput}
-          onApiKeyChange={setApiKeyInput}
+          onOAuthStart={onOAuthLogin ? handleOAuthStart : undefined}
           onSubmit={handleApiKeySubmit}
           onBack={() =>
             setState((s) => ({
@@ -342,6 +419,21 @@ export const PlumbProviderSetupDialog: React.FC<
             }))
           }
         />
+      )}
+
+      {step === 'oauth-waiting' && (
+        <Box flexDirection="column">
+          <Text bold color="cyan">
+            Waiting for authorization...
+          </Text>
+          <Box marginY={1}>
+            <Text>
+              A browser window has been opened. Please sign in with your{' '}
+              {provider?.name} account.
+            </Text>
+          </Box>
+          <Text dimColor>Press ESC to cancel</Text>
+        </Box>
       )}
 
       {step === 'model-select' && provider && (
@@ -392,23 +484,35 @@ export const PlumbProviderSetupDialog: React.FC<
 function AuthStep({
   provider,
   apiKeyInput,
+  onOAuthStart,
   onSubmit: _onSubmit,
 }: {
   provider: PlumbProvider;
   apiKeyInput: string;
-  onApiKeyChange: (value: string) => void;
+  onOAuthStart?: () => void;
   onSubmit: (key: string) => void;
   onBack: () => void;
 }) {
   const hasOAuth = provider.authMethods.some((m) => m.type === 'oauth');
   const hasApiKey = provider.authMethods.some((m) => m.type === 'api_key');
+  const hasDeviceCode = provider.authMethods.some(
+    (m) => m.type === 'device_code',
+  );
   const hasEnv = provider.authMethods.some((m) => m.type === 'env');
 
   return (
     <Box flexDirection="column">
       <Text bold>Authenticate: {provider.name}</Text>
       <Box flexDirection="column" marginY={1}>
-        {hasOAuth && (
+        {hasOAuth && onOAuthStart && (
+          <Box marginBottom={1}>
+            <Text color="cyan">Press Enter to sign in with your browser</Text>
+            <Text dimColor>
+              This will open {provider.name} in your browser for secure sign-in.
+            </Text>
+          </Box>
+        )}
+        {hasOAuth && !onOAuthStart && (
           <Box marginBottom={1}>
             <Text>
               OAuth login will open your browser to sign in with {provider.name}
@@ -416,9 +520,21 @@ function AuthStep({
             </Text>
           </Box>
         )}
+        {hasDeviceCode && (
+          <Box marginBottom={1}>
+            <Text color="cyan">Press Enter to get a device code</Text>
+            <Text dimColor>
+              You will be given a code to enter on the provider website.
+            </Text>
+          </Box>
+        )}
         {hasApiKey && (
           <Box flexDirection="column" marginBottom={1}>
-            <Text>Enter your API key for {provider.name}:</Text>
+            <Text>
+              {hasOAuth
+                ? 'Or enter your API key directly:'
+                : 'Enter your API key for ' + provider.name + ':'}
+            </Text>
             <Text>
               Key: {'•'.repeat(apiKeyInput.length)}
               <Text dimColor>▌</Text>
@@ -446,8 +562,9 @@ function AuthStep({
       </Box>
       <Box>
         <Text dimColor>
-          Type API key and press Enter, or press Backspace to choose a different
-          provider.
+          {hasOAuth && onOAuthStart
+            ? 'Enter to sign in • Type API key to use directly • Backspace to go back'
+            : 'Type API key and press Enter • Backspace to go back'}
         </Text>
       </Box>
     </Box>
@@ -490,6 +607,7 @@ function getStepNumber(step: SetupStep): number {
     case 'provider-select':
       return 2;
     case 'authenticate':
+    case 'oauth-waiting':
       return 3;
     case 'model-select':
       return 4;
