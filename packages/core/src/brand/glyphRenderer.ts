@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,13 +24,15 @@ export interface RenderGlyphOptions {
   useAscii?: boolean;
 }
 
-export function renderPlumbBlockWordmark(options: RenderGlyphOptions = {}): string {
+export function renderPlumbBlockWordmark(
+  options: RenderGlyphOptions = {},
+): string {
   const map = options.useAscii ? PLUMB_ASCII_GLYPH_MAP : PLUMB_GLYPH_MAP;
   const word = ['P', 'L', 'U', 'M', 'B'] as const;
   const rows: string[] = [];
 
   for (let r = 0; r < 5; r++) {
-    const rowStr = word.map(char => map[char][r]).join(' ');
+    const rowStr = word.map((char) => map[char][r]).join(' ');
     rows.push(rowStr);
   }
 

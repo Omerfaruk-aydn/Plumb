@@ -863,7 +863,7 @@ export const AppContainer = (props: AppContainerProps) => {
         ) {
           writeToStdout(`
 ----------------------------------------------------------------
-Logging in with Google... Restarting Gemini CLI to continue.
+Logging in with Google... Restarting PLUMB to continue.
 ----------------------------------------------------------------
           `);
           await relaunchApp();
@@ -905,7 +905,11 @@ Logging in with Google... Restarting Gemini CLI to continue.
         'security.auth.selectedType',
         AuthType.PLUMB_PROVIDER,
       );
-      settings.setValue(SettingScope.User, 'plumb.provider.id', result.providerId);
+      settings.setValue(
+        SettingScope.User,
+        'plumb.provider.id',
+        result.providerId,
+      );
 
       if (result.apiKey) {
         try {

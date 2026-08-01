@@ -85,7 +85,7 @@ export class GeminiAgent {
       authMethods,
       agentInfo: {
         name: 'gemini-cli',
-        title: 'Gemini CLI',
+        title: 'PLUMB',
         version,
       },
       agentCapabilities: {

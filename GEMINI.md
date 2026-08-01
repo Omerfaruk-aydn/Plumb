@@ -1,12 +1,12 @@
-# Gemini CLI Project Context
+# PLUMB Project Context
 
-Gemini CLI is an open-source AI agent that brings the power of Gemini directly
-into the terminal. It is designed to be a terminal-first, extensible, and
-powerful tool for developers.
+PLUMB is a provider-first multi-provider terminal agent built on the Gemini CLI
+foundation. It supports multiple AI providers (Google Gemini, OpenAI, Anthropic,
+local models, custom endpoints) through a unified terminal interface.
 
 ## Project Overview
 
-- **Purpose:** Provide a seamless terminal interface for Gemini models,
+- **Purpose:** Provide a seamless terminal interface for multiple AI providers,
   supporting code understanding, generation, automation, and integration via MCP
   (Model Context Protocol).
 - **Main Technologies:**
@@ -20,10 +20,10 @@ powerful tool for developers.
 - **Architecture:** Monorepo structure using npm workspaces.
   - `packages/cli`: User-facing terminal UI, input processing, and display
     rendering.
-  - `packages/core`: Backend logic, Gemini API orchestration, prompt
-    construction, and tool execution.
+  - `packages/core`: Backend logic, provider orchestration, prompt construction,
+    and tool execution.
   - `packages/a2a-server`: Experimental Agent-to-Agent server.
-  - `packages/sdk`: Programmatic SDK for embedding Gemini CLI capabilities.
+  - `packages/sdk`: Programmatic SDK for embedding PLUMB capabilities.
   - `packages/devtools`: Integrated developer tools (Network/Console inspector).
   - `packages/test-utils`: Shared test utilities and test rig.
   - `packages/vscode-ide-companion`: VS Code extension pairing with the CLI.
@@ -38,6 +38,7 @@ powerful tool for developers.
 - **Run in Debug Mode:** `npm run debug` (Enables Node.js inspector)
 - **Bundle Project:** `npm run bundle`
 - **Clean Artifacts:** `npm run clean`
+- **Link for Development:** `npm run link:plumb`
 
 ## Testing and Quality
 
@@ -47,50 +48,26 @@ powerful tool for developers.
   - > **NOTE**: Please run the memory and perf tests locally **only if** you are
     > implementing changes related to those test areas. Otherwise skip these
     > tests locally and rely on CI to run them on nightly builds.
-  - **Memory (Nightly):** `npm run test:memory` (Runs memory regression tests
-    against baselines. Excluded from `preflight`, run nightly.)
-  - **Performance (Nightly):** `npm run test:perf` (Runs CPU performance
-    regression tests against baselines. Excluded from `preflight`, run nightly.)
-  - **Workspace-Specific:** `npm test -w <pkg> -- <path>` (Note: `<path>` must
-    be relative to the workspace root, e.g.,
-    `-w @google/gemini-cli-core -- src/routing/modelRouterService.test.ts`)
-- **Full Validation:** `npm run preflight` (Heaviest check; runs clean, install,
-  build, lint, type check, and tests. Recommended before submitting PRs. Due to
-  its long runtime, only run this at the very end of a code implementation task.
-  If it fails, use faster, targeted commands (e.g., `npm run test`,
-  `npm run lint`, or workspace-specific tests) to iterate on fixes before
-  re-running `preflight`. For simple, non-code changes like documentation or
-  prompting updates, skip `preflight` at the end of the task and wait for PR
-  validation.)
+  - **Memory (Nightly):** `npm run test:memory`
+  - **Performance (Nightly):** `npm run test:perf`
+  - **Workspace-Specific:** `npm test -w <pkg> -- <path>`
+- **Full Validation:** `npm run preflight`
 - **Individual Checks:** `npm run lint` / `npm run format` / `npm run typecheck`
 
 ## Development Conventions
 
-- **Contributions:** Follow the process outlined in `CONTRIBUTING.md`. Requires
-  signing the Google CLA.
-- **Pull Requests:** Keep PRs small, focused, and linked to an existing issue.
-  Always activate the `pr-creator` skill for PR generation, even when using the
-  `gh` CLI.
 - **Commit Messages:** Follow the
   [Conventional Commits](https://www.conventionalcommits.org/) standard.
 - **Imports:** Use specific imports and avoid restricted relative imports
   between packages (enforced by ESLint).
-- **License Headers:** For all new source code files (`.ts`, `.tsx`, `.js`),
-  include the Apache-2.0 license header with the current year. (e.g.,
-  `Copyright 2026 Google LLC`). This is enforced by ESLint.
+- **License Headers:** See `docs/legal/plumb-source-origin-policy.md` for header
+  requirements by file origin.
 
-## Testing Conventions
+## Source Provenance
 
-- **Environment Variables:** When testing code that depends on environment
-  variables, use `vi.stubEnv('NAME', 'value')` in `beforeEach` and
-  `vi.unstubAllEnvs()` in `afterEach`. Avoid modifying `process.env` directly as
-  it can lead to test leakage and is less reliable. To "unset" a variable, use
-  an empty string `vi.stubEnv('NAME', '')`.
+PLUMB is derived from Google Gemini CLI (Apache-2.0) and includes adaptations
+from OMP/Oh My Pi (MIT). See:
 
-## Documentation
-
-- Always use the `docs-writer` skill when you are asked to write, edit, or
-  review any documentation.
-- Documentation is located in the `docs/` directory.
-- Suggest documentation updates when code changes render existing documentation
-  obsolete or incomplete.
+- `THIRD_PARTY_NOTICES.md` for full attribution
+- `docs/legal/plumb-source-origin-policy.md` for header policy
+- `NOTICE` for copyright holders

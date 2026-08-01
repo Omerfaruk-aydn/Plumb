@@ -226,9 +226,9 @@ export const PLUMB_PROVIDERS: readonly PlumbProvider[] = [
 
   {
     id: 'google-gemini-cli',
-    name: 'Gemini CLI (Cloud Code Assist)',
+    name: 'PLUMB (Cloud Code Assist)',
     category: PlumbProviderCategory.CODING_PLAN,
-    description: 'Google Cloud Code Assist via Gemini CLI',
+    description: 'Google Cloud Code Assist via PLUMB',
     authMethods: [{ type: 'oauth', port: 8085, pasteCode: true }],
     defaultModel: 'gemini-3.1-pro-preview',
     available: true,

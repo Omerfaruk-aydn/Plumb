@@ -1,5 +1,5 @@
 {
-  "name": "@google/gemini-cli",
+  "name": "plumb-cli",
   "version": "0.55.0-nightly.20260729.g3499c84f7",
   "engines": {
     "node": ">=20.0.0"
