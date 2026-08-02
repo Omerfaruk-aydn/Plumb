@@ -41,18 +41,26 @@ global/local shim
 | 12  | Stream adapter           | `packages/core/src/core/plumbContentGenerator.ts`                                                                                                                   | `PlumbContentGenerator`                                   | `new PlumbContentGenerator(providerId, modelId, apiKey)` (from `contentGenerator.ts:428-440`)                                                          | PLUMB core                                    | `createContentGenerator` (`config.ts:1608`)                                            | —                                                                                                         |
 | 13  | Transcript               | `packages/cli/src/ui/hooks/useGeminiStream.ts` (`geminiClient.sendMessageStream`, line 1669)                                                                        | `useGeminiStream`                                         | `GeminiClient.sendMessageStream` → `createContentGenerator` → `PlumbContentGenerator` → `plumbModelStream`                                             | PLUMB UI + core                               | `App` history manager                                                                  | `useGeminiStream.test.tsx`                                                                                |
 
-## Imported OMP Modules (not active at HEAD `e19b7dd`)
+## Imported OMP Modules — activation status
 
-| Subsystem               | Imported module (inactive)                                                                                                                                  | Note                                                                    |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Provider registry       | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                                                                                           | Exported from provider index, no production consumer                    |
-| OAuth registry          | `omp-ai/registry/oauth/index.ts` (`refreshOAuthToken`, `getOAuthApiKey`, `getOAuthProviders`, `registerOAuthProvider`), `OAuthCallbackFlow`, `generatePKCE` | No production consumer                                                  |
-| Auth semantics          | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                                                                                       | Not loadable under Node (`bun:sqlite`)                                  |
-| Model registry/resolver | `omp-catalog/model-manager.ts` (`createModelManager`, `ModelManager`), `model-thinking.ts`                                                                  | No production consumer                                                  |
-| Model cache             | `omp-catalog/model-cache.ts` (`readModelCache`, `writeModelCache`)                                                                                          | JSON backend; parity unproven                                           |
-| Discovery               | `omp-catalog/discovery/*`, `provider-models/*`                                                                                                              | No production consumer                                                  |
-| Transports              | `omp-ai/stream.ts` (`stream`, `streamSimple`), `omp-ai/providers/*`                                                                                         | Lazy-loaded; `openrouter-headers.js` and others not loadable under Node |
-| Stream normalization    | `omp-ai/utils/event-stream.ts` (`EventStream`, `AssistantMessageEventStream`)                                                                               | No production consumer                                                  |
+### ✅ Activated (model layer)
+
+| Subsystem      | Imported module (active owner)                                                       | PLUMB facade (THIN_PLUMB_UI_FACADE)                    |
+| -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Model resolver | `omp-catalog/models.ts` (`getBundledModels` etc.)                                    | `catalog/model-catalog.ts` (delegates, maps OMP→Plumb) |
+| Model cache    | `omp-catalog/model-cache.ts` (+ `removeModelCacheEntry`/`clearModelCache`, ledgered) | `registry/model-cache.ts` (delegates)                  |
+| Model registry | `omp-catalog/model-manager.ts` (`createModelManager`)                                | `registry/model-registry.ts` (delegates)               |
+| Discovery      | `omp-catalog/discovery/openai-compatible.ts` (`fetchOpenAICompatibleModels`)         | `registry/model-discovery.ts` (delegates)              |
+
+### ⏳ Not yet activated
+
+| Subsystem            | Imported module (inactive)                                                                                                                                  | Note                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Provider registry    | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                                                                                           | Exported from provider index, no production consumer                    |
+| OAuth registry       | `omp-ai/registry/oauth/index.ts` (`refreshOAuthToken`, `getOAuthApiKey`, `getOAuthProviders`, `registerOAuthProvider`), `OAuthCallbackFlow`, `generatePKCE` | No production consumer                                                  |
+| Auth semantics       | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                                                                                       | No production consumer                                                  |
+| Transports           | `omp-ai/stream.ts` (`stream`, `streamSimple`), `omp-ai/providers/*`                                                                                         | Lazy-loaded; `openrouter-headers.js` and others not loadable under Node |
+| Stream normalization | `omp-ai/utils/event-stream.ts` (`EventStream`, `AssistantMessageEventStream`)                                                                               | No production consumer                                                  |
 
 ## Runtime Diagnostic
 

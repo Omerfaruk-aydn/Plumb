@@ -2,11 +2,21 @@
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * Provider-specific model discovery adapters.
- * Each adapter knows how to discover models from a specific provider's API.
+ * Provider-specific model discovery adapters (THIN PLUMB UI FACADE).
+ *
+ * The OpenAI-compatible `/models` HTTP boundary is the responsibility of the
+ * imported OMP runtime (`omp-catalog/discovery/openai-compatible.ts`); this
+ * module only keeps the PLUMB `DiscoveredModel` result shape and the
+ * local-only fallbacks (ollama/lm-studio/llama.cpp/vLLM) that are PLUMB
+ * product configuration rather than OMP catalog descriptors.
+ *
+ * OMP source: packages/catalog/src/discovery/openai-compatible.ts
+ * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { PlumbModel, PlumbProviderId } from '../types.js';
+import type { PlumbProviderId } from '../types.js';
+import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
+import type { Api } from '../omp-catalog/types.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -28,7 +38,7 @@ export interface ProviderModelDiscovery {
   discover(context: DiscoveryContext): Promise<DiscoveredModel[]>;
 }
 
-// ─── OpenAI-compatible /v1/models discovery ────────────────────────────
+// ─── OpenAI-compatible /v1/models discovery (delegated to OMP) ─────────
 
 class OpenAICompatDiscovery implements ProviderModelDiscovery {
   constructor(
@@ -38,32 +48,25 @@ class OpenAICompatDiscovery implements ProviderModelDiscovery {
 
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
     const baseUrl = context.baseUrl ?? this.defaultBaseUrl;
-    const token = context.oauthToken ?? context.apiKey;
-    if (!token) return [];
+    const apiKey = context.oauthToken ?? context.apiKey;
+    if (!apiKey) return [];
 
-    try {
-      const response = await fetch(`${baseUrl}/v1/models`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
-      });
-
-      if (!response.ok) return [];
-
-      const data = (await response.json()) as {
-        data?: Array<{ id: string; name?: string }>;
-      };
-
-      return (data.data ?? []).map((m) => ({
-        id: m.id,
-        name: m.name ?? m.id,
-      }));
-    } catch {
-      return [];
-    }
+    const models = await ompFetchModels<Api>({
+      api: 'openai-completions',
+      provider: this.providerId as Api,
+      baseUrl,
+      apiKey,
+      timeoutMs: 10_000,
+    });
+    if (!models) return [];
+    return models.map((m) => ({
+      id: m.id,
+      name: m.name,
+    }));
   }
 }
 
-// ─── Ollama discovery ──────────────────────────────────────────────────
+// ─── Ollama discovery (OMP descriptor has no local-tags boundary) ──────
 
 class OllamaDiscovery implements ProviderModelDiscovery {
   readonly providerId = 'ollama';
@@ -94,7 +97,7 @@ class OllamaDiscovery implements ProviderModelDiscovery {
   }
 }
 
-// ─── LM Studio / llama.cpp / vLLM discovery ───────────────────────────
+// ─── LM Studio / llama.cpp / vLLM discovery (PLUMB-local config) ───────
 
 class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
   constructor(
@@ -105,26 +108,19 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
     const baseUrl = context.baseUrl ?? this.defaultBaseUrl;
 
-    try {
-      const response = await fetch(`${baseUrl}/v1/models`, {
-        signal: AbortSignal.timeout(5_000),
-      });
-
-      if (!response.ok) return [];
-
-      const data = (await response.json()) as {
-        data?: Array<{ id: string }>;
-      };
-
-      return (data.data ?? []).map((m) => ({
-        id: m.id,
-        name: m.id,
-        contextWindow: 131072,
-        maxTokens: 32768,
-      }));
-    } catch {
-      return [];
-    }
+    const models = await ompFetchModels<Api>({
+      api: 'openai-completions',
+      provider: this.providerId as Api,
+      baseUrl,
+      timeoutMs: 5_000,
+    });
+    if (!models) return [];
+    return models.map((m) => ({
+      id: m.id,
+      name: m.id,
+      contextWindow: 131072,
+      maxTokens: 32768,
+    }));
   }
 }
 

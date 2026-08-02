@@ -2,76 +2,50 @@
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * Provider-scoped model cache using JSON file storage.
- * Adapted from OMP packages/catalog/src/model-cache.ts
- * Upstream SHA: 4df68d60438423b384b2b47fb3d6835641624757
+ * Provider-scoped model cache (THIN PLUMB UI FACADE over the OMP authority).
+ *
+ * The storage format, freshness/TTL semantics, and cross-process access are
+ * the responsibility of the imported OMP runtime (`omp-catalog/model-cache.ts`).
+ * This module only adapts the PLUMB `PlumbModel` shape and keeps the legacy
+ * `readModelCache`/`writeModelCache`/`invalidateModelCache`/`invalidateAllModelCache`
+ * function signatures the model registry and barrel export.
+ *
+ * OMP source: packages/catalog/src/model-cache.ts
+ * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
 import type { PlumbModel, PlumbProviderId } from '../types.js';
+import {
+  readModelCache as readOmpModelCache,
+  writeModelCache as writeOmpModelCache,
+  removeModelCacheEntry,
+  clearModelCache,
+} from '../omp-catalog/model-cache.js';
+import type { Api, Model } from '../omp-catalog/types.js';
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
-interface CacheEntry {
+export interface PlumbCacheEntry {
   models: PlumbModel[];
   fresh: boolean;
   authoritative: boolean;
   updatedAt: number;
 }
 
-interface CacheFile {
-  version: number;
-  entries: Record<
-    string,
-    { models: PlumbModel[]; updatedAt: number; authoritative: boolean }
-  >;
-}
-
-const CACHE_VERSION = 1;
-
-function getCachePath(): string {
-  const home = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '/tmp';
-  const dir = join(home, '.plumb');
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return join(dir, 'model-cache.json');
-}
-
-function loadCacheFile(): CacheFile {
-  const path = getCachePath();
-  try {
-    if (existsSync(path)) {
-      const data = JSON.parse(readFileSync(path, 'utf-8')) as CacheFile;
-      if (data.version === CACHE_VERSION) return data;
-    }
-  } catch {
-    // Corrupted cache — start fresh
-  }
-  return { version: CACHE_VERSION, entries: {} };
-}
-
-function saveCacheFile(cache: CacheFile): void {
-  try {
-    writeFileSync(getCachePath(), JSON.stringify(cache));
-  } catch {
-    // Cache write failure is non-fatal
-  }
-}
-
+/**
+ * Store `PlumbModel` records through the OMP cache. The OMP cache is
+ * shape-agnostic (it stores opaque `ModelSpec[]` with TTL/freshness metadata),
+ * so PLUMB models round-trip without field translation.
+ */
 export function readModelCache(
   providerId: PlumbProviderId,
   ttlMs: number = DEFAULT_TTL_MS,
-): CacheEntry | null {
-  const cache = loadCacheFile();
-  const entry = cache.entries[providerId];
+): PlumbCacheEntry | null {
+  const entry = readOmpModelCache<Api>(providerId, ttlMs);
   if (!entry) return null;
-
-  const ageMs = Date.now() - entry.updatedAt;
-  const fresh = ageMs >= 0 && ageMs <= ttlMs;
-
   return {
-    models: entry.models,
-    fresh,
+    models: entry.models as unknown as PlumbModel[],
+    fresh: entry.fresh,
     authoritative: entry.authoritative,
     updatedAt: entry.updatedAt,
   };
@@ -82,23 +56,21 @@ export function writeModelCache(
   models: PlumbModel[],
   authoritative: boolean,
 ): void {
-  const cache = loadCacheFile();
-  cache.entries[providerId] = {
-    models,
-    updatedAt: Date.now(),
+  writeOmpModelCache<Api>(
+    providerId,
+    Date.now(),
+    models as unknown as Model<Api>[],
     authoritative,
-  };
-  saveCacheFile(cache);
+    '',
+  );
 }
 
 export function invalidateModelCache(providerId: PlumbProviderId): void {
-  const cache = loadCacheFile();
-  delete cache.entries[providerId];
-  saveCacheFile(cache);
+  removeModelCacheEntry(providerId);
 }
 
 export function invalidateAllModelCache(): void {
-  saveCacheFile({ version: CACHE_VERSION, entries: {} });
+  clearModelCache();
 }
 
 export function closeModelCache(): void {

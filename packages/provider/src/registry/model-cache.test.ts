@@ -104,7 +104,7 @@ describe('Model Cache', () => {
     writeModelCache('openai', [makeModel('gpt-4')], true);
 
     const content = readFileSync(
-      join(tmpDir, '.plumb', 'model-cache.json'),
+      join(tmpDir, '.plumb', 'models.json'),
       'utf-8',
     );
     expect(content).not.toContain('api_key');

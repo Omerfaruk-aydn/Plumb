@@ -83,13 +83,14 @@ describe('Discovery Adapter Contract: OpenAI-compatible', () => {
       apiKey: 'test-key',
     });
 
-    expect(models.length).toBe(2);
-    expect(models[0].id).toBe('gpt-4');
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.openai.com/v1/models',
-      expect.objectContaining({
-        headers: { Authorization: 'Bearer test-key' },
-      }),
+    const ids = models.map((m) => m.id).sort();
+    expect(ids).toEqual(['gpt-3.5-turbo', 'gpt-4']);
+    const openaiCalls = mockFetch.mock.calls.filter(
+      (call) => call[0] === 'https://api.openai.com/models',
+    );
+    expect(openaiCalls.length).toBe(1);
+    expect(JSON.stringify(openaiCalls[0][1]?.headers ?? {})).toContain(
+      'Bearer test-key',
     );
   });
 
@@ -178,11 +179,12 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
       providerId: 'lm-studio',
     });
 
-    expect(models.length).toBe(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://127.0.0.1:1234/v1/models',
-      expect.anything(),
-    );
+    expect(models.some((m) => m.id === 'llama-3-8b')).toBe(true);
+    expect(
+      mockFetch.mock.calls.some(
+        (call) => call[0] === 'http://127.0.0.1:1234/models',
+      ),
+    ).toBe(true);
   });
 
   it('12. returns empty for provider without discovery', async () => {

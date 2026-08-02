@@ -39,33 +39,33 @@
     },
     "model-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/registry/model-registry.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-catalog/model-manager.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "model-resolver": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/catalog/model-catalog.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-catalog/models.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "model-cache": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/registry/model-cache.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-catalog/model-cache.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "cache-backend": {
       "requiredOwner": "NODE_ADAPTATION",
-      "activeOwner": "packages/provider/src/registry/model-cache.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-catalog/model-cache.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "discovery": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/registry/model-discovery.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-catalog/discovery/index.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "provider-transport-registry": {
       "requiredOwner": "OMP",
@@ -108,10 +108,10 @@
     {
       "path": "packages/provider/src/catalog/model-catalog.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": ["model-resolver"],
+      "active": false,
+      "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-catalog/model-manager.ts"
+      "replacementOwner": "packages/provider/src/omp-catalog/models.ts"
     },
     {
       "path": "packages/provider/src/catalog/models.ts",
@@ -150,24 +150,24 @@
     {
       "path": "packages/provider/src/registry/model-registry.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": ["model-registry"],
+      "active": false,
+      "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-registry.test.ts"],
       "replacementOwner": "packages/provider/src/omp-catalog/model-manager.ts"
     },
     {
       "path": "packages/provider/src/registry/model-cache.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": ["model-cache", "cache-backend"],
+      "active": false,
+      "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-cache.test.ts"],
       "replacementOwner": "packages/provider/src/omp-catalog/model-cache.ts"
     },
     {
       "path": "packages/provider/src/registry/model-discovery.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": ["discovery"],
+      "active": false,
+      "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-discovery.test.ts"],
       "replacementOwner": "packages/provider/src/omp-catalog/discovery/"
     },
@@ -206,6 +206,42 @@
       "responsibilities": [],
       "tests": [],
       "replacementOwner": "packages/provider/src/omp-ai/registry/"
+    },
+    {
+      "path": "packages/provider/src/omp-catalog/models.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["model-resolver"],
+      "tests": ["packages/provider/src/registry/model-registry.test.ts"],
+      "replacementOwner": null,
+      "note": "activated: bundled model catalog authority (model-resolver)"
+    },
+    {
+      "path": "packages/provider/src/omp-catalog/model-manager.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["model-registry"],
+      "tests": ["packages/provider/src/registry/model-registry.test.ts"],
+      "replacementOwner": null,
+      "note": "activated: model resolution/registry authority (model-registry)"
+    },
+    {
+      "path": "packages/provider/src/omp-catalog/model-cache.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["model-cache", "cache-backend"],
+      "tests": ["packages/provider/src/registry/model-cache.test.ts"],
+      "replacementOwner": null,
+      "note": "activated: model cache authority incl. JSON backend (model-cache, cache-backend)"
+    },
+    {
+      "path": "packages/provider/src/omp-catalog/discovery/index.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["discovery"],
+      "tests": ["packages/provider/src/registry/model-discovery.test.ts"],
+      "replacementOwner": null,
+      "note": "activated: OpenAI-compatible discovery authority (discovery)"
     },
     {
       "path": "packages/provider/src/omp-ai/**",

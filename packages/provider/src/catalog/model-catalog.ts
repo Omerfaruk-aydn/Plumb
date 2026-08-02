@@ -2,44 +2,82 @@
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * Complete model catalog loader.
- * Loads the deterministic generated catalog from OMP upstream.
- * Source: packages/catalog/src/models.json (OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757)
+ * Complete model catalog loader (THIN PLUMB UI FACADE over the OMP authority).
+ *
+ * The bundled model data, provider set, and per-provider lookups are the
+ * responsibility of the imported OMP runtime (`omp-catalog/models.ts`); this
+ * module only projects the OMP `Model` records onto the PLUMB `PlumbModel`
+ * shape the UI consumes.
+ *
+ * OMP source: packages/catalog/src/models.ts
+ * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { PlumbModel, PlumbProviderId } from '../types.js';
+import type { Model, Api, KnownProvider } from '../omp-catalog/types.js';
+import type { GeneratedProvider } from '../omp-catalog/models.js';
+import {
+  getBundledModels,
+  getBundledModel,
+  getBundledProviders,
+} from '../omp-catalog/models.js';
+import type {
+  PlumbModel,
+  PlumbProviderId,
+  PlumbKnownApi,
+  PlumbModelPricing,
+} from '../types.js';
 
-// ─── Generated catalog ────────────────────────────────────────────────
+// ─── OMP → PLUMB projection ────────────────────────────────────────────
 
-let CATALOG: Record<string, Record<string, PlumbModel>> | null = null;
+const GENERATED_PROVIDERS = new Set<string>(getBundledProviders());
 
-function loadCatalog(): Record<string, Record<string, PlumbModel>> {
-  if (CATALOG) return CATALOG;
-  try {
-    // Dynamic import of the generated JSON
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    CATALOG = require('./generated-models.json') as Record<
-      string,
-      Record<string, PlumbModel>
-    >;
-    return CATALOG;
-  } catch {
-    CATALOG = {};
-    return CATALOG;
-  }
+/** True when an OMP provider id is a key of the bundled models.json. */
+function isGeneratedProvider(id: string): id is GeneratedProvider {
+  return GENERATED_PROVIDERS.has(id);
 }
 
-/** Get all providers in the catalog. */
+/** Map an OMP `Model` onto the PLUMB `PlumbModel` shape. */
+export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
+  const pricing: PlumbModelPricing | undefined = model.cost
+    ? {
+        input: model.cost.input,
+        output: model.cost.output,
+        cacheRead: model.cost.cacheRead,
+        cacheWrite: model.cost.cacheWrite,
+      }
+    : undefined;
+
+  const input: PlumbModel['input'] = model.input.includes('image')
+    ? 'text+image'
+    : 'text';
+
+  return {
+    id: model.id,
+    provider: model.provider as PlumbProviderId,
+    name: model.name,
+    api: model.api as PlumbKnownApi,
+    requestModelId: model.requestModelId,
+    contextWindow: model.contextWindow ?? 0,
+    maxTokens: model.maxTokens ?? 0,
+    reasoning: model.reasoning,
+    input,
+    pricing,
+    baseUrl: model.baseUrl,
+    isOAuth: model.isOAuth,
+  };
+}
+
+// ─── Generated catalog accessors (delegated to OMP) ────────────────────
+
+/** Get all providers present in the bundled model catalog. */
 export function getCatalogProviders(): string[] {
-  return Object.keys(loadCatalog());
+  return getBundledProviders() as string[];
 }
 
-/** Get all models for a provider from the bundled catalog. */
+/** Get all models for a provider from the bundled OMP catalog. */
 export function getCatalogModels(providerId: PlumbProviderId): PlumbModel[] {
-  const catalog = loadCatalog();
-  const providerModels = catalog[providerId];
-  if (!providerModels) return [];
-  return Object.values(providerModels);
+  if (!isGeneratedProvider(providerId)) return [];
+  return getBundledModels(providerId).map(ompModelToPlumbModel);
 }
 
 /** Get a specific model from the catalog. */
@@ -47,26 +85,31 @@ export function getCatalogModel(
   providerId: PlumbProviderId,
   modelId: string,
 ): PlumbModel | undefined {
-  const catalog = loadCatalog();
-  return catalog[providerId]?.[modelId];
+  if (!isGeneratedProvider(providerId)) return undefined;
+  const model = getBundledModel<Api>(providerId, modelId);
+  if (!model) return undefined;
+  return ompModelToPlumbModel(model);
 }
 
 /** Get the total model count in the catalog. */
 export function getCatalogModelCount(): number {
-  const catalog = loadCatalog();
   let count = 0;
-  for (const provider of Object.values(catalog)) {
-    count += Object.keys(provider).length;
+  for (const providerId of getBundledProviders()) {
+    if (isGeneratedProvider(providerId)) {
+      count += getBundledModels(providerId).length;
+    }
   }
   return count;
 }
 
 /** Get all models across all providers. */
 export function getAllCatalogModels(): PlumbModel[] {
-  const catalog = loadCatalog();
   const models: PlumbModel[] = [];
-  for (const providerModels of Object.values(catalog)) {
-    models.push(...Object.values(providerModels));
+  for (const providerId of getBundledProviders()) {
+    if (!isGeneratedProvider(providerId)) continue;
+    for (const model of getBundledModels(providerId)) {
+      models.push(ompModelToPlumbModel(model));
+    }
   }
   return models;
 }
