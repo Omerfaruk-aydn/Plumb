@@ -6,8 +6,8 @@
  * @license
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 
 import type { SlashCommand, CommandContext } from './types.js';
@@ -44,7 +44,7 @@ export const providerCommand: SlashCommand = {
         if (settings) {
           // Update settings to use PLUMB_PROVIDER mode
           const { loadSettings, SettingScope } = await import(
-            '../config/settings.js'
+            '../../config/settings.js'
           );
           const loadedSettings = loadSettings();
           loadedSettings.setValue(
