@@ -1,0 +1,75 @@
+# PLUMB Active Runtime Route
+
+- **Branch**: `rebuild/plumb-gemini-production`
+- **Purpose**: record, for every hop of the production entry route, the file,
+  exported symbol, instantiated class/function, runtime owner, production
+  consumer, and test. The diagnostic command `plumb --diagnose-provider-runtime`
+  reports the same ownership facts at runtime.
+
+## Route
+
+```text
+global/local shim
+-> CLI entry
+-> App/AppContainer
+-> first-run provider setup
+-> provider runtime adapter
+-> provider registry
+-> auth runtime
+-> account state
+-> model registry
+-> provider transport
+-> stream adapter
+-> transcript
+```
+
+## Hop-by-Hop Record
+
+| #   | Hop                      | File                                                                                                                                                                | Exported symbol                                           | Instantiated class/function                                                                                                                            | Runtime owner                                 | Production consumer                                                                    | Test                                                                                                      |
+| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1   | Shim                     | `packages/cli/package.json` `bin` (`plumb`, `gemini` → `dist/index.js`); `scripts/link-plumb.mjs`                                                                   | —                                                         | `dist/index.js` launcher                                                                                                                               | PLUMB packaging                               | npm global link                                                                        | `docs/verification/plumb-cli-link-route-verified-2026-07-31.md`                                           |
+| 2   | CLI entry                | `packages/cli/src/gemini.tsx` (`main()`)                                                                                                                            | `main`                                                    | `main()`; `initializePlumbProviders()` (dynamic import at `gemini.tsx:528`)                                                                            | PLUMB CLI                                     | —                                                                                      | `packages/cli/src/gemini.test.tsx`                                                                        |
+| 3   | UI host                  | `packages/cli/src/interactiveCli.tsx` (`doStartUI`), `packages/cli/src/ui/AppContainer.tsx`                                                                         | `AppContainer`                                            | `AppWrapper` → `AppContainer`                                                                                                                          | PLUMB UI                                      | —                                                                                      | `packages/cli/src/ui/AppContainer.test.tsx`, `App.test.tsx`                                               |
+| 4   | First-run provider setup | `packages/cli/src/ui/auth/useAuth.ts` (no auth method → `openProviderSetupDialog`, `useAuth.ts:97-100`); `packages/cli/src/ui/components/DialogManager.tsx:292-327` | `useAuth`, `PlumbProviderSetupDialog`                     | `PlumbProviderSetupDialog`                                                                                                                             | PLUMB UI                                      | —                                                                                      | `packages/cli/src/ui/auth/useAuth.test.tsx`, `PlumbProviderSetupDialog.test.tsx`                          |
+| 5   | Setup data               | `packages/cli/src/ui/hooks/useProviderSetupData.ts`                                                                                                                 | `useProviderSetupData`                                    | dynamic import of `@google/gemini-cli-provider`; `getPlumbModelRegistry().getAllAvailableModels()`; `SELECTABLE_PROVIDERS`; `getProviderSetupGroups()` | PLUMB UI (data sourced from provider package) | `DialogManager`                                                                        | —                                                                                                         |
+| 6   | Provider runtime adapter | `packages/core/src/config/plumbInit.ts`                                                                                                                             | `initializePlumbProviders`                                | `registerPlumbCredentialStoreFactory(() => getCoreCredentialStore())`, `initBundledModels()`, `getPlumbProviderRegistry().initialize()`                | PLUMB core                                    | `gemini.tsx:528-531`                                                                   | —                                                                                                         |
+| 7   | Provider registry        | `packages/provider/src/registry/provider-registry.ts`                                                                                                               | `PlumbProviderRegistry`, `getPlumbProviderRegistry`       | `PlumbProviderRegistry` (singleton)                                                                                                                    | PLUMB provider package (legacy)               | `plumbInit.ts`, `AppContainer.handleProviderSetupComplete`, `plumbProviderCommands.ts` | `packages/provider/src/registry/provider-registry` (covered via `model-registry.test.ts` route)           |
+| 8   | Auth runtime             | `packages/core/src/auth/plumbProviderAuthService.ts`                                                                                                                | `PlumbProviderAuthService`, `getPlumbProviderAuthService` | `PlumbProviderAuthService` (singleton)                                                                                                                 | PLUMB core (legacy)                           | `AppContainer.handleProviderOAuthLogin` (`AppContainer.tsx:955-985`)                   | —                                                                                                         |
+| 9   | Account state            | `packages/core/src/auth/plumbSecureCredentialStore.ts`                                                                                                              | `PlumbSecureCredentialStore`, `getPlumbCredentialStore`   | `PlumbSecureCredentialStore` (keytar-backed)                                                                                                           | PLUMB OS secret backend                       | `plumbInit.ts` factory, auth service, `plumbProviderCommands.ts`                       | `PlumbProviderSetupDialog.test.tsx` (via factory)                                                         |
+| 10  | Model registry           | `packages/provider/src/registry/model-registry.ts`                                                                                                                  | `PlumbModelRegistry`, `getPlumbModelRegistry`             | `PlumbModelRegistry` (singleton)                                                                                                                       | PLUMB provider package (legacy)               | `useProviderSetupData`, `DialogManager`, `SearchableModelPicker`                       | `packages/provider/src/registry/model-registry.test.ts`, `model-discovery.test.ts`, `model-cache.test.ts` |
+| 11  | Provider transport       | `packages/provider/src/transports/streaming.ts`                                                                                                                     | `plumbModelStream`, `registerPlumbTransport`              | `plumbModelStream` dispatch → `openAICompatibleStream` (built-in)                                                                                      | PLUMB provider package (legacy)               | `packages/core/src/core/plumbContentGenerator.ts:102-117`                              | —                                                                                                         |
+| 12  | Stream adapter           | `packages/core/src/core/plumbContentGenerator.ts`                                                                                                                   | `PlumbContentGenerator`                                   | `new PlumbContentGenerator(providerId, modelId, apiKey)` (from `contentGenerator.ts:428-440`)                                                          | PLUMB core                                    | `createContentGenerator` (`config.ts:1608`)                                            | —                                                                                                         |
+| 13  | Transcript               | `packages/cli/src/ui/hooks/useGeminiStream.ts` (`geminiClient.sendMessageStream`, line 1669)                                                                        | `useGeminiStream`                                         | `GeminiClient.sendMessageStream` → `createContentGenerator` → `PlumbContentGenerator` → `plumbModelStream`                                             | PLUMB UI + core                               | `App` history manager                                                                  | `useGeminiStream.test.tsx`                                                                                |
+
+## Imported OMP Modules (not active at HEAD `e19b7dd`)
+
+| Subsystem               | Imported module (inactive)                                                                                                                                  | Note                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Provider registry       | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                                                                                           | Exported from provider index, no production consumer                    |
+| OAuth registry          | `omp-ai/registry/oauth/index.ts` (`refreshOAuthToken`, `getOAuthApiKey`, `getOAuthProviders`, `registerOAuthProvider`), `OAuthCallbackFlow`, `generatePKCE` | No production consumer                                                  |
+| Auth semantics          | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                                                                                       | Not loadable under Node (`bun:sqlite`)                                  |
+| Model registry/resolver | `omp-catalog/model-manager.ts` (`createModelManager`, `ModelManager`), `model-thinking.ts`                                                                  | No production consumer                                                  |
+| Model cache             | `omp-catalog/model-cache.ts` (`readModelCache`, `writeModelCache`)                                                                                          | JSON backend; parity unproven                                           |
+| Discovery               | `omp-catalog/discovery/*`, `provider-models/*`                                                                                                              | No production consumer                                                  |
+| Transports              | `omp-ai/stream.ts` (`stream`, `streamSimple`), `omp-ai/providers/*`                                                                                         | Lazy-loaded; `openrouter-headers.js` and others not loadable under Node |
+| Stream normalization    | `omp-ai/utils/event-stream.ts` (`EventStream`, `AssistantMessageEventStream`)                                                                               | No production consumer                                                  |
+
+## Runtime Diagnostic
+
+`plumb --diagnose-provider-runtime` (implemented in
+`packages/cli/src/runtimeDiagnostics.ts`) prints, without secrets:
+
+- `git.head.embedded` — embedded build HEAD
+- `provider.registry.module` / `auth.registry.module` / `auth.storage.module` /
+  `model.registry.module` / `model.cache.module` / `transport.registry.module` /
+  `stream.normalizer.module` / `plumb.adapter.module` — resolved dist path,
+  existence, and in-process loadability
+- `legacy.plumb.registry.instantiated` — whether the legacy
+  `PlumbProviderRegistry` singleton has been constructed
+- `legacy.plumb.auth.instantiated` — whether the legacy
+  `PlumbProviderAuthService` singleton has been constructed
+- `codex.privateFileBridge.active` — whether the Codex private-file bridge is
+  wired into the production barrel
+- `provider.registry.entry` / `catalog.descriptors.entry` — live export counts
+
+Exit code is 1 when any probed dist module is missing.
