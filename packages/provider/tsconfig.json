@@ -15,13 +15,18 @@
     "declaration": true,
     "allowSyntheticDefaultImports": true,
     "verbatimModuleSyntax": false,
-    "lib": ["ES2023"],
+    "lib": ["ES2024", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "target": "es2022",
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@oh-my-pi/pi-utils": ["./src/omp-shims/pi-utils.ts"],
+      "@oh-my-pi/pi-utils/*": ["./src/omp-shims/pi-utils-*.ts"]
+    }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["src/omp-catalog/discovery/devin-gen/**", "src/omp-catalog/discovery/cursor-gen/**"]
 }

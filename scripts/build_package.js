@@ -18,7 +18,7 @@
 // limitations under the License.
 
 import { execSync } from 'node:child_process';
-import { writeFileSync, existsSync, cpSync } from 'node:fs';
+import { writeFileSync, existsSync, cpSync, rmSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 if (!process.cwd().includes('packages')) {
@@ -28,8 +28,21 @@ if (!process.cwd().includes('packages')) {
 
 const packageName = basename(process.cwd());
 
+// Clean dist for provider package (uses bundler moduleResolution, no --build)
+if (packageName === 'provider') {
+  const distDir = join(process.cwd(), 'dist');
+  if (existsSync(distDir)) {
+    rmSync(distDir, { recursive: true, force: true });
+  }
+}
+
 // build typescript files
-execSync('tsc --build', { stdio: 'inherit' });
+// Use tsc without --build for provider package (uses bundler moduleResolution)
+if (packageName === 'provider') {
+  execSync('tsc', { stdio: 'inherit' });
+} else {
+  execSync('tsc --build', { stdio: 'inherit' });
+}
 
 // Run package-specific bundling if the script exists
 const bundleScript = join(process.cwd(), 'scripts', 'bundle-browser-mcp.mjs');

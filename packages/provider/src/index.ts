@@ -111,6 +111,45 @@ export {
 // Bundled model catalog initialization
 export { initBundledModels } from './catalog/models.js';
 
+// OMP catalog (directly adapted from upstream)
+export {
+  getBundledModel,
+  getBundledProviders,
+  getBundledModels,
+  calculateCost,
+  modelsAreEqual,
+} from './omp-catalog/models.js';
+export { buildModel, buildCompat } from './omp-catalog/build.js';
+export {
+  createModelManager,
+  type ModelManager,
+  type ModelManagerOptions,
+  type ModelResolutionResult,
+  type ModelRefreshStrategy,
+} from './omp-catalog/model-manager.js';
+export {
+  readModelCache as readOmpModelCache,
+  writeModelCache as writeOmpModelCache,
+} from './omp-catalog/model-cache.js';
+export {
+  CATALOG_PROVIDERS,
+  PROVIDER_DESCRIPTORS,
+  DEFAULT_MODEL_PER_PROVIDER,
+  getCatalogProviderEntry,
+} from './omp-catalog/provider-models/descriptors.js';
+export {
+  resolveModelThinking,
+} from './omp-catalog/model-thinking.js';
+export { Effort, THINKING_EFFORTS } from './omp-catalog/effort.js';
+export type {
+  Model as OmpModel,
+  ModelSpec as OmpModelSpec,
+  Api as OmpApi,
+  KnownApi as OmpKnownApi,
+  KnownProvider as OmpKnownProvider,
+  Usage as OmpUsage,
+} from './omp-catalog/types.js';
+
 // Streaming transport
 export {
   plumbModelStream,
