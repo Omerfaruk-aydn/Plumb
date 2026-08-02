@@ -225,6 +225,15 @@ export function getPlumbProviderRegistry(): PlumbProviderRegistry {
   return defaultRegistry;
 }
 
+/**
+ * Report whether the process-level registry singleton has been constructed.
+ * Used by `plumb --diagnose-provider-runtime` to distinguish a live legacy
+ * registry instance from a module that is merely present in the dist tree.
+ */
+export function isPlumbProviderRegistryInstantiated(): boolean {
+  return defaultRegistry !== undefined;
+}
+
 export function resetPlumbProviderRegistry(): void {
   defaultRegistry = undefined;
 }

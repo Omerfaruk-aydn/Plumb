@@ -71,6 +71,7 @@ export {
 export {
   PlumbProviderRegistry,
   getPlumbProviderRegistry,
+  isPlumbProviderRegistryInstantiated,
   resetPlumbProviderRegistry,
   type PlumbProviderState,
   type PlumbProviderAuthState,
@@ -137,9 +138,7 @@ export {
   DEFAULT_MODEL_PER_PROVIDER,
   getCatalogProviderEntry,
 } from './omp-catalog/provider-models/descriptors.js';
-export {
-  resolveModelThinking,
-} from './omp-catalog/model-thinking.js';
+export { resolveModelThinking } from './omp-catalog/model-thinking.js';
 export { Effort, THINKING_EFFORTS } from './omp-catalog/effort.js';
 export type {
   Model as OmpModel,
@@ -159,6 +158,9 @@ export type {
   ProviderDefinition,
   KeyResolver,
 } from './omp-ai/registry/types.js';
+
+// OMP runtime adaptations (Node/bun-compat shims)
+export { installBunGlobal } from './omp-shims/bun-runtime.js';
 
 // OMP OAuth (directly adapted from upstream)
 export {

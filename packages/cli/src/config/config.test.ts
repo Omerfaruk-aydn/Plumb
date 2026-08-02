@@ -270,6 +270,18 @@ describe('parseArguments', () => {
     expect(parsedArgs.runtimeIdentity).toBeUndefined();
   });
 
+  it('should recognize --diagnose-provider-runtime as a production flag', async () => {
+    process.argv = ['node', 'script.js', '--diagnose-provider-runtime'];
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    const parsedArgs = await parseArguments(createTestMergedSettings());
+    expect(parsedArgs.diagnoseProviderRuntime).toBe(true);
+    expect(parsedArgs.diagnoseLogo).toBeUndefined();
+    expect(parsedArgs.runtimeIdentity).toBeUndefined();
+  });
+
   describe('worktree', () => {
     it('should parse --worktree flag when provided with a name', async () => {
       process.argv = ['node', 'script.js', '--worktree', 'my-feature'];

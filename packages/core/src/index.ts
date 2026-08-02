@@ -71,6 +71,7 @@ export type {
 export {
   PlumbProviderAuthService,
   getPlumbProviderAuthService,
+  isPlumbProviderAuthServiceInstantiated,
 } from './auth/plumbProviderAuthService.js';
 export {
   getCodexStatus,

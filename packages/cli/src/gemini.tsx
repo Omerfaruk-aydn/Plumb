@@ -426,13 +426,24 @@ export async function main() {
   // PLUMB production diagnostics: print and exit before any UI, console
   // patching, or auth flow starts. --runtime-identity exits non-zero when
   // the embedded build HEAD does not match the repository HEAD.
-  if (argv.runtimeIdentity || argv.diagnoseLogo) {
-    const { printRuntimeIdentity, printLogoDiagnostics } = await import(
-      './runtimeDiagnostics.js'
-    );
-    const exitCode = argv.runtimeIdentity
-      ? printRuntimeIdentity()
-      : printLogoDiagnostics(settings.merged);
+  if (
+    argv.runtimeIdentity ||
+    argv.diagnoseLogo ||
+    argv.diagnoseProviderRuntime
+  ) {
+    const {
+      printRuntimeIdentity,
+      printLogoDiagnostics,
+      printProviderRuntimeDiagnostics,
+    } = await import('./runtimeDiagnostics.js');
+    let exitCode: number;
+    if (argv.runtimeIdentity) {
+      exitCode = printRuntimeIdentity();
+    } else if (argv.diagnoseLogo) {
+      exitCode = printLogoDiagnostics(settings.merged);
+    } else {
+      exitCode = await printProviderRuntimeDiagnostics();
+    }
     await runExitCleanup();
     process.exit(exitCode);
   }

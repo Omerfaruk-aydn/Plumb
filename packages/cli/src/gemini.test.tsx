@@ -569,6 +569,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       skipTrust: undefined,
       runtimeIdentity: undefined,
       diagnoseLogo: undefined,
+      diagnoseProviderRuntime: undefined,
     });
 
     await act(async () => {
@@ -631,6 +632,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       skipTrust: undefined,
       runtimeIdentity: undefined,
       diagnoseLogo: undefined,
+      diagnoseProviderRuntime: undefined,
     });
 
     await act(async () => {

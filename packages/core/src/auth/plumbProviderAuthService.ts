@@ -662,3 +662,12 @@ export function getPlumbProviderAuthService(): PlumbProviderAuthService {
   }
   return defaultService;
 }
+
+/**
+ * Report whether the process-level auth service singleton has been
+ * constructed. Used by `plumb --diagnose-provider-runtime` to distinguish a
+ * live legacy auth implementation from a module that is merely present.
+ */
+export function isPlumbProviderAuthServiceInstantiated(): boolean {
+  return defaultService !== undefined;
+}

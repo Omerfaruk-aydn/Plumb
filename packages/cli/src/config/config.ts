@@ -112,6 +112,7 @@ export interface CliArgs {
   isCommand: boolean | undefined;
   runtimeIdentity: boolean | undefined;
   diagnoseLogo: boolean | undefined;
+  diagnoseProviderRuntime: boolean | undefined;
 }
 
 /**
@@ -506,6 +507,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Print PLUMB logo diagnostics (TTY, color environment, settings, selected rendering mode, mounted wordmark module) and exit.',
+        })
+        .option('diagnose-provider-runtime', {
+          type: 'boolean',
+          description:
+            'Print PLUMB provider runtime diagnostics (active registry/auth/model/transport modules, loadability, legacy singleton state, Codex bridge wiring, embedded build HEAD) and exit.',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json
