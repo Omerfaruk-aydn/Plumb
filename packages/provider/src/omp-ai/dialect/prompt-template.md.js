@@ -1,0 +1,1 @@
+export default "# Tools\n\nYou may call one or more functions to assist with the user query.\nTool calls are emitted as text using the exact syntax below, not as native provider tool messages.\n\nAvailable functions are listed inside `<tools></tools>` as one JSON object per line:\n\n<tools>\n{{TOOLS}}\n</tools>\n\n{{DIALECT}}\n";

@@ -39,7 +39,28 @@ if (packageName === 'provider') {
 // build typescript files
 // Use tsc without --build for provider package (uses bundler moduleResolution)
 if (packageName === 'provider') {
-  execSync('tsc', { stdio: 'inherit' });
+    execSync('tsc', { stdio: 'inherit' });
+    // Fix barrel imports in compiled omp-ai JS files
+    const ompAiDist = join(process.cwd(), 'dist', 'omp-ai');
+    const piUtilsDist = join(process.cwd(), 'dist', 'omp-shims', 'pi-utils-real');
+    const fixScript = join(process.cwd(), '..', '..', 'scripts', 'fix-omp-barrel-imports.mjs');
+    if (existsSync(ompAiDist)) {
+      execSync(`node "${fixScript}" "${ompAiDist}"`, { stdio: 'inherit' });
+    }
+    if (existsSync(piUtilsDist)) {
+      execSync(`node "${fixScript}" "${piUtilsDist}"`, { stdio: 'inherit' });
+    }
+    // Copy .md, .html, and .md.js files that TypeScript doesn't emit
+    const ompAiSrc = join(process.cwd(), 'src', 'omp-ai');
+    if (existsSync(ompAiSrc) && existsSync(ompAiDist)) {
+      cpSync(ompAiSrc, ompAiDist, {
+        recursive: true,
+        filter: (src) => {
+          const base = basename(src);
+          return base.endsWith('.md') || base.endsWith('.md.js') || base.endsWith('.html') || !base.includes('.');
+        },
+      });
+    }
 } else {
   execSync('tsc --build', { stdio: 'inherit' });
 }

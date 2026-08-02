@@ -150,6 +150,31 @@ export type {
   Usage as OmpUsage,
 } from './omp-catalog/types.js';
 
+// OMP provider registry (directly adapted from upstream)
+export {
+  PROVIDER_REGISTRY,
+  getProviderDefinition,
+} from './omp-ai/registry/registry.js';
+export type {
+  ProviderDefinition,
+  KeyResolver,
+} from './omp-ai/registry/types.js';
+
+// OMP OAuth (directly adapted from upstream)
+export {
+  refreshOAuthToken,
+  getOAuthApiKey,
+  getOAuthProviders,
+  registerOAuthProvider,
+} from './omp-ai/registry/oauth/index.js';
+export { OAuthCallbackFlow } from './omp-ai/registry/oauth/callback-server.js';
+export { generatePKCE } from './omp-ai/registry/oauth/pkce.js';
+export type {
+  OAuthProvider,
+  OAuthCredentials,
+  OAuthLoginCallbacks,
+} from './omp-ai/registry/oauth/types.js';
+
 // Streaming transport
 export {
   plumbModelStream,
