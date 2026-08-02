@@ -30,33 +30,12 @@ function fixFile(filePath) {
   if (inError) {
     content = content.replace(/from\s+["']\.\/oauth\/index\.js["'];?/g, 'from "./oauth.js";');
   }
-  
-  // Fix import ... with { type: "json" } -> readFileSync
-  content = content.replace(
-    /import\s+(\w+)\s+from\s+["']([^"']+\.json)["']\s+with\s*\{\s*type:\s*["']json["']\s*\};?/g,
-    (match, varName, jsonPath) => {
-      const fileName = jsonPath.replace(/^.*\//, '');
-      return `const ${varName} = JSON.parse(require("node:fs").readFileSync(require("node:path").join(import.meta.dirname ?? __dirname, "${fileName}"), "utf-8"));`;
-    }
-  );
-  
-  // Fix "bun" module imports
-  content = content.replace(
-    /import\s+\{\s*\$\s*\}\s+from\s+["']bun["'];?/g,
-    'const $ = () => ({ stdout: Buffer.alloc(0), stderr: Buffer.alloc(0), exitCode: 1, quiet() { return this; }, nothrow() { return this; } });'
-  );
-  content = content.replace(
-    /import\s+\*\s+as\s+(\w+)\s+from\s+["']bun["'];?/g,
-    'const $1 = {};'
-  );
-  
-  // Fix ../package.json imports
-  content = content.replace(
-    /from\s+["']\.\.\/package\.json["'];?/g,
-    'from "../../package.json";'
-  );
-  
-  // Fix ../omp-catalog/ paths
+
+  // NOTE: JSON imports (`with { type: "json" }`) and `bun` imports are NOT
+  // rewritten here anymore. JSON imports are native on Node 24 and the
+  // previous rewrite was semantically broken (basename-only paths). Bun
+  // imports are handled at the source level (see omp-shims/bun-runtime.ts
+  // and the auth-broker removal).
   content = content.replace(
     /from\s+["']\.\.\/omp-catalog\/([^"']+)["'];?/g,
     (match, sub) => {
