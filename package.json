@@ -30,6 +30,8 @@
     "generate": "node scripts/generate-git-commit-info.js",
     "generate:models": "node scripts/generate-plumb-model-catalog.mjs",
     "validate:models": "node scripts/validate-plumb-model-catalog.mjs",
+    "validate:ownership": "node scripts/validate-omp-ownership.mjs",
+    "validate:ownership:target": "node scripts/validate-omp-ownership.mjs --target",
     "predocs:settings": "npm run build --workspace @google/gemini-cli-core",
     "schema:settings": "tsx ./scripts/generate-settings-schema.ts",
     "docs:settings": "tsx ./scripts/generate-settings-doc.ts",
