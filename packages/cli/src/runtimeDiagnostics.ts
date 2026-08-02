@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
  * PLUMB production CLI diagnostics.
@@ -18,6 +18,7 @@ import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { BRAND_CONSTANTS } from '@google/gemini-cli-core';
+import { installBunGlobal } from '@google/gemini-cli-provider';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import type { MergedSettings } from './config/settings.js';
 
@@ -33,7 +34,9 @@ export interface CommandResolution {
 
 /** Resolve how this process was launched: shim (when any), JS entry, package root. */
 export function resolveCommandResolution(): CommandResolution {
-  const rawEntry = process.argv[1] ? path.resolve(process.argv[1]) : MODULE_PATH;
+  const rawEntry = process.argv[1]
+    ? path.resolve(process.argv[1])
+    : MODULE_PATH;
   let jsEntryPath = rawEntry;
   try {
     jsEntryPath = fs.realpathSync(rawEntry);
@@ -124,10 +127,13 @@ function mtimeIso(absolutePath: string): string | null {
 
 function readPackageName(packageRoot: string): string {
   try {
-    const pkg = JSON.parse(
+    const raw: unknown = JSON.parse(
       fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'),
-    ) as { name?: unknown };
-    return typeof pkg.name === 'string' ? pkg.name : 'unknown';
+    );
+    if (typeof raw !== 'object' || raw === null || !('name' in raw)) {
+      return 'unknown';
+    }
+    return typeof raw.name === 'string' ? raw.name : 'unknown';
   } catch {
     return 'unknown';
   }
@@ -181,11 +187,7 @@ export function buildRuntimeIdentityReport(): RuntimeIdentityReport {
   const repoHead = resolveCurrentRepoHead(resolution.packageRoot);
 
   const distEntry = path.join(resolution.packageRoot, 'dist', 'index.js');
-  const sourceEntry = path.join(
-    resolution.packageRoot,
-    'src',
-    'gemini.tsx',
-  );
+  const sourceEntry = path.join(resolution.packageRoot, 'src', 'gemini.tsx');
 
   const coreEntry = resolvePackageModule(
     '@google/gemini-cli-core',
@@ -197,12 +199,7 @@ export function buildRuntimeIdentityReport(): RuntimeIdentityReport {
   );
   const providerStartupDist = fileState(
     coreEntry
-      ? path.join(
-          path.dirname(coreEntry),
-          'src',
-          'config',
-          'plumbInit.js',
-        )
+      ? path.join(path.dirname(coreEntry), 'src', 'config', 'plumbInit.js')
       : null,
   );
   const providerRegistryDist = fileState(
@@ -308,7 +305,9 @@ export interface LogoDiagnostics {
  * AppHeader -> PlumbAnimatedWordmark so the reported mode matches what the
  * mounted component actually renders.
  */
-export function buildLogoDiagnostics(settings: MergedSettings): LogoDiagnostics {
+export function buildLogoDiagnostics(
+  settings: MergedSettings,
+): LogoDiagnostics {
   const stdoutIsTty = Boolean(process.stdout.isTTY);
   const noColorPresent = 'NO_COLOR' in process.env;
   const screenReader = settings.ui.accessibility?.screenReader ?? false;
@@ -366,6 +365,221 @@ export function buildLogoDiagnostics(settings: MergedSettings): LogoDiagnostics 
     wordmarkDistExists: fs.existsSync(wordmarkDistPath),
     wordmarkDistPath,
   };
+}
+
+export interface ProviderModuleProbe {
+  label: string;
+  distPath: string | null;
+  exists: boolean;
+  loadable: boolean | null;
+  loadError: string | null;
+}
+
+export interface ProviderRuntimeDiagnostics {
+  lines: string[];
+  failures: string[];
+}
+
+/** Resolve a dist module path inside a package root, or null when unresolved. */
+function distModule(packageRoot: string | null, rel: string): string | null {
+  return packageRoot ? path.join(packageRoot, rel) : null;
+}
+
+/**
+ * Build the provider runtime diagnostics report.
+ *
+ * Reports the module that owns each subsystem of the active provider route
+ * (registry, auth, model registry, model cache, transports, stream
+ * normalization, PLUMB adapter), whether the legacy PLUMB singletons have
+ * been instantiated in this process, whether the Codex private-file bridge is
+ * wired, and the embedded build HEAD. No secrets are printed.
+ */
+export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntimeDiagnostics> {
+  // Install the Bun-compat prelude before any imported OMP module executes
+  // (the probes below load the OMP registry/auth/transport closure).
+  installBunGlobal();
+  const resolution = resolveCommandResolution();
+  const coreEntry = resolvePackageModule(
+    '@google/gemini-cli-core',
+    resolution.jsEntryPath,
+  );
+  const providerEntry = resolvePackageModule(
+    '@google/gemini-cli-provider',
+    resolution.jsEntryPath,
+  );
+  const providerRoot = providerEntry ? path.dirname(providerEntry) : null;
+  const coreRoot = coreEntry ? path.dirname(coreEntry) : null;
+
+  const probes: ProviderModuleProbe[] = [
+    {
+      label: 'provider.registry.module',
+      distPath: distModule(providerRoot, 'omp-ai/registry/registry.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'auth.registry.module',
+      distPath: distModule(providerRoot, 'omp-ai/registry/oauth/index.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'auth.storage.module',
+      distPath: distModule(providerRoot, 'omp-ai/auth-storage.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'model.registry.module',
+      distPath: distModule(providerRoot, 'omp-catalog/model-manager.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'model.cache.module',
+      distPath: distModule(providerRoot, 'omp-catalog/model-cache.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'transport.registry.module',
+      distPath: distModule(providerRoot, 'omp-ai/stream.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'stream.normalizer.module',
+      distPath: distModule(providerRoot, 'omp-ai/utils/event-stream.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'plumb.adapter.module',
+      distPath: distModule(providerRoot, 'transports/streaming.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'legacy.plumb.auth.module',
+      distPath: distModule(coreRoot, 'src/auth/plumbProviderAuthService.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+    {
+      label: 'codex.bridge.module',
+      distPath: distModule(coreRoot, 'src/auth/codex-bridge.js'),
+      exists: false,
+      loadable: null,
+      loadError: null,
+    },
+  ];
+
+  for (const probe of probes) {
+    if (probe.distPath) {
+      probe.exists = fs.existsSync(probe.distPath);
+    }
+    if (probe.exists && probe.distPath) {
+      try {
+        await import(pathToFileURL(probe.distPath).href);
+        probe.loadable = true;
+      } catch (err) {
+        probe.loadable = false;
+        probe.loadError = err instanceof Error ? err.message : String(err);
+      }
+    }
+  }
+
+  let providerRegistryCount = 'unavailable';
+  let catalogProvidersCount = 'unavailable';
+  let legacyRegistryInstantiated = 'unknown';
+  let legacyAuthInstantiated = 'unknown';
+  let plumbAdapterExport = 'unavailable';
+  let codexBridgeWired = 'unknown';
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+    if (
+      Array.isArray(providerModule.PROVIDER_REGISTRY) &&
+      providerModule.PROVIDER_REGISTRY.length > 0
+    ) {
+      providerRegistryCount = String(providerModule.PROVIDER_REGISTRY.length);
+    }
+    if (
+      Array.isArray(providerModule.CATALOG_PROVIDERS) &&
+      providerModule.CATALOG_PROVIDERS.length > 0
+    ) {
+      catalogProvidersCount = String(providerModule.CATALOG_PROVIDERS.length);
+    }
+    legacyRegistryInstantiated =
+      providerModule.isPlumbProviderRegistryInstantiated
+        ? String(providerModule.isPlumbProviderRegistryInstantiated())
+        : 'unavailable';
+    if (typeof providerModule.plumbModelStream === 'function') {
+      plumbAdapterExport = 'yes';
+    }
+  } catch {
+    legacyRegistryInstantiated = 'unavailable';
+  }
+
+  try {
+    const coreModule = await import('@google/gemini-cli-core');
+    legacyAuthInstantiated = coreModule.isPlumbProviderAuthServiceInstantiated
+      ? String(coreModule.isPlumbProviderAuthServiceInstantiated())
+      : 'unavailable';
+    codexBridgeWired =
+      typeof coreModule.readCodexAuthTokens === 'function' ? 'yes' : 'no';
+  } catch {
+    legacyAuthInstantiated = 'unavailable';
+    codexBridgeWired = 'unavailable';
+  }
+
+  const failures: string[] = [];
+  const lines: string[] = [
+    'PLUMB provider runtime diagnostics',
+    `git.head.embedded: ${BUILD_IDENTITY.gitHead}`,
+    `provider.registry.entry: PROVIDER_REGISTRY (${providerRegistryCount} providers)`,
+    `catalog.descriptors.entry: CATALOG_PROVIDERS (${catalogProvidersCount} providers)`,
+    `plumb.adapter.export: plumbModelStream (${plumbAdapterExport})`,
+  ];
+  for (const probe of probes) {
+    const loadPart =
+      probe.loadable === null
+        ? 'loadable=unprobed'
+        : `loadable=${probe.loadable ? 'yes' : `NO: ${probe.loadError}`}`;
+    lines.push(
+      `${probe.label}: ${probe.distPath ?? 'unresolved'} (exists=${probe.exists}, ${loadPart})`,
+    );
+    if (!probe.exists) {
+      failures.push(`${probe.label} missing from dist tree`);
+    }
+  }
+  lines.push(
+    `legacy.plumb.registry.instantiated: ${legacyRegistryInstantiated}`,
+    `legacy.plumb.auth.instantiated: ${legacyAuthInstantiated}`,
+    `codex.privateFileBridge.active: ${codexBridgeWired} (core barrel re-exports readCodexAuthTokens; production callers: core/auth/plumbProviderAuthService.ts #codexLogin, provider/src/registry/model-registry.ts discoverCodexModels)`,
+  );
+
+  return { lines, failures };
+}
+
+/** Print the provider runtime diagnostics report. Returns the process exit code. */
+export async function printProviderRuntimeDiagnostics(): Promise<number> {
+  const { lines, failures } = await buildProviderRuntimeDiagnostics();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-provider-runtime: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
 }
 
 /** Print the logo diagnostics report. Always exits successfully. */
