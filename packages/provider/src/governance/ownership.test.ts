@@ -188,4 +188,24 @@ describe('ownership manifest', () => {
     );
     expect(inventoryErrors).toEqual([]);
   });
+
+  it('enforces zero post-build JS patching and reproducible outputs', () => {
+    // The fixer script must not exist.
+    const repoRoot = resolveRepoRoot();
+    expect(
+      fs.existsSync(
+        path.join(repoRoot, 'scripts', 'fix-omp-barrel-imports.mjs'),
+      ),
+    ).toBe(false);
+
+    // The build script must not invoke any post-TSC JS-patching fixer.
+    const buildScript = fs.readFileSync(
+      path.join(repoRoot, 'scripts', 'build_package.js'),
+      'utf8',
+    );
+    expect(buildScript).not.toContain('fix-omp-barrel');
+    // Build must produce correct JS without post-emit mutation of .js files.
+    // The only filesystem writes are tsc output, asset copies, and the
+    // .last_build marker — no source rewriting after compilation.
+  });
 });
