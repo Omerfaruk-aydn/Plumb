@@ -26,14 +26,28 @@ import type {
   PlumbKnownApi,
   PlumbModelPricing,
 } from '../types.js';
+import { resolveProviderAlias } from './providers.js';
 
 // ─── OMP → PLUMB projection ────────────────────────────────────────────
 
 const GENERATED_PROVIDERS = new Set<string>(getBundledProviders());
 
+/**
+ * Provider ids that share a catalog entry under a different id.
+ * e.g. zai-coding-plan's models are under "zai" in the bundled catalog.
+ */
+const CATALOG_PROVIDER_FALLBACK: Readonly<Record<string, string>> = {
+  'zai-coding-plan': 'zai',
+};
+
 /** True when an OMP provider id is a key of the bundled models.json. */
 function isGeneratedProvider(id: string): id is GeneratedProvider {
   return GENERATED_PROVIDERS.has(id);
+}
+
+/** Resolve the catalog provider id for a PLUMB provider id. */
+function resolveCatalogProviderId(providerId: string): string {
+  return CATALOG_PROVIDER_FALLBACK[providerId] ?? resolveProviderAlias(providerId) ?? providerId;
 }
 
 /** Map an OMP `Model` onto the PLUMB `PlumbModel` shape. */
@@ -76,8 +90,9 @@ export function getCatalogProviders(): string[] {
 
 /** Get all models for a provider from the bundled OMP catalog. */
 export function getCatalogModels(providerId: PlumbProviderId): PlumbModel[] {
-  if (!isGeneratedProvider(providerId)) return [];
-  return getBundledModels(providerId).map(ompModelToPlumbModel);
+  const resolvedId = resolveCatalogProviderId(providerId);
+  if (!isGeneratedProvider(resolvedId)) return [];
+  return getBundledModels(resolvedId).map(ompModelToPlumbModel);
 }
 
 /** Get a specific model from the catalog. */
@@ -85,8 +100,9 @@ export function getCatalogModel(
   providerId: PlumbProviderId,
   modelId: string,
 ): PlumbModel | undefined {
-  if (!isGeneratedProvider(providerId)) return undefined;
-  const model = getBundledModel<Api>(providerId, modelId);
+  const resolvedId = resolveCatalogProviderId(providerId);
+  if (!isGeneratedProvider(resolvedId)) return undefined;
+  const model = getBundledModel<Api>(resolvedId, modelId);
   if (!model) return undefined;
   return ompModelToPlumbModel(model);
 }
