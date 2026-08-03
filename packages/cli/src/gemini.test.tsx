@@ -14,6 +14,7 @@ import {
   type MockInstance,
   type Mock,
 } from 'vitest';
+import { execSync } from 'node:child_process';
 import {
   main,
   setupUnhandledRejectionHandler,
@@ -1849,5 +1850,21 @@ describe('startInteractiveUI', () => {
       expect(writeSpy).not.toHaveBeenCalledWith('\x1b[?7l');
     }
     writeSpy.mockRestore();
+  });
+});
+
+describe('PLUMB product identity in help output', () => {
+  it('does not expose Gemini CLI product text in --help', async () => {
+    const out = execSync('node dist/index.js --help', {
+      encoding: 'utf-8',
+      timeout: 30000,
+    });
+    // No Gemini CLI product references
+    expect(out).not.toContain('Start Gemini');
+    expect(out).not.toContain('geminicli.com');
+    // PLUMB identity is present (worktree option description)
+    expect(out).toContain('--worktree');
+    expect(out).toContain('--diagnose-auth');
+    expect(out).toContain('--diagnose-models');
   });
 });
