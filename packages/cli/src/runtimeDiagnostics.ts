@@ -630,14 +630,16 @@ export async function buildAuthDiagnostics(
       ? providerModule.getPlumbProviderRegistry()
       : null;
 
-    // Canonical provider ID
-    const canonicalId = providerId;
+    // Canonical provider ID (resolve PLUMB aliases to OMP ids)
+    const canonicalId = providerModule.resolveProviderAlias
+      ? providerModule.resolveProviderAlias(providerId)
+      : providerId;
     lines.push(`requested.provider: ${providerId}`);
     lines.push(`canonical.provider: ${canonicalId}`);
 
     // Provider definition from OMP registry
-    const providerDef = providerModule.getProviderDefinition?.(providerId);
-    const catalogEntry = providerModule.getCatalogProviderEntry?.(providerId);
+    const providerDef = providerModule.getProviderDefinition?.(canonicalId);
+    const catalogEntry = providerModule.getCatalogProviderEntry?.(canonicalId);
 
     lines.push(`descriptor.source: ${providerDef ? 'OMP_REGISTRY' : catalogEntry ? 'OMP_CATALOG' : 'NONE'}`);
     lines.push(`auth.methods: ${providerDef?.login ? 'oauth' : providerDef?.envKeys ? 'api_key' : 'none'}`);

@@ -51,6 +51,7 @@ export {
   getPlumbProvider,
   getProvidersByCategory,
   getProviderSetupGroups,
+  resolveProviderAlias,
   CODING_PLAN_PROVIDERS,
   OAUTH_PROVIDERS,
   API_KEY_PROVIDERS,

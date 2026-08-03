@@ -52,6 +52,14 @@ const PLUMB_TO_OMP_ID: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Resolve a PLUMB provider id to its canonical OMP registry id.
+ * Returns the OMP id for aliased providers, or the input id when no alias exists.
+ */
+export function resolveProviderAlias(plumbId: string): string {
+  return PLUMB_TO_OMP_ID[plumbId] ?? plumbId;
+}
+
+/**
  * PLUMB-only synthetic providers with no OMP registry/catalog backing.
  * These are legitimate PLUMB product surfaces (a generic OpenAI-compatible
  * custom endpoint, and the legacy Google account login) that the OMP runtime
