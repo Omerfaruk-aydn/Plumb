@@ -327,6 +327,70 @@ function findHardCodedProviderInventories(repoRoot: string): string[] {
   return violations;
 }
 
+// ─── Codex private-file access validator ────────────────────────────────
+
+const CODEX_PRIVATE_PATHS = [
+  'codex/auth.json',
+  'codex/models_cache.json',
+  '.codex/auth.json',
+  '.codex/models_cache.json',
+  'readCodexAuthTokens(',
+  'discoverCodexModels(',
+];
+
+function findCodexPrivateFileReaders(repoRoot: string): string[] {
+  const violations: string[] = [];
+  const scanDirs = [
+    path.join(repoRoot, 'packages/core/src'),
+    path.join(repoRoot, 'packages/cli/src'),
+  ];
+  const walk = (dir: string): void => {
+    let names: string[] = [];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      const full = path.join(dir, name);
+      let stat: fs.Stats | undefined;
+      try {
+        stat = fs.statSync(full);
+      } catch {
+        continue;
+      }
+      if (stat.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.(ts|tsx)$/.test(name)) continue;
+      const rel = path.relative(repoRoot, full).split(path.sep).join('/');
+      if (rel.endsWith('.test.ts') || rel.endsWith('.test.tsx')) continue;
+      // Exclude the governance validator itself.
+      if (rel.includes('governance/ownership')) continue;
+      // The codex-bridge.ts file itself may define these functions;
+      // it's allowed to exist but must be DEAD_REMOVED.
+      if (rel.includes('codex-bridge')) continue;
+      const text = fs.readFileSync(full, 'utf8');
+      const lines = text.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        for (const pattern of CODEX_PRIVATE_PATHS) {
+          if (lines[i].includes(pattern)) {
+            violations.push(`${rel}:${i + 1}: ${lines[i].trim().slice(0, 90)}`);
+          }
+        }
+      }
+    }
+  };
+  for (const dir of scanDirs) {
+    if (fs.existsSync(dir)) walk(dir);
+  }
+  return violations;
+}
+
+/**
+
+
 /**
  * Verify there is exactly one provider-authority module active per provider
  * id: the sanctioned catalog facade owns the inventory and every selectable
@@ -541,6 +605,12 @@ export function validateOwnership(
   const hardCodedInventories = findHardCodedProviderInventories(repoRoot);
   for (const violation of hardCodedInventories) {
     errors.push(`hard-coded provider inventory: ${violation}`);
+  }
+
+  // Codex private-file reading: no production source may read Codex auth files.
+  const codexFileReaders = findCodexPrivateFileReaders(repoRoot);
+  for (const violation of codexFileReaders) {
+    errors.push(`codex private-file read: ${violation}`);
   }
 
   // Source fidelity: every ACTIVE_OMP_SOURCE file must be identical to its

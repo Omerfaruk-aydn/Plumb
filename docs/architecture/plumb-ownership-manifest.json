@@ -356,8 +356,8 @@
     },
     {
       "path": "packages/core/src/auth/codex-bridge.ts",
-      "classification": "MIGRATION_ONLY_PENDING_REMOVAL",
-      "active": true,
+      "classification": "DEAD_REMOVED",
+      "active": false,
       "responsibilities": [],
       "tests": [],
       "replacementOwner": null,

@@ -73,16 +73,8 @@ export {
   getPlumbProviderAuthService,
   isPlumbProviderAuthServiceInstantiated,
 } from './auth/plumbProviderAuthService.js';
-export {
-  getCodexStatus,
-  readCodexAuthTokens,
-  isCodexTokenValid,
-  discoverCodexModels,
-  getCodexAccountLabel,
-  clearCodexStatusCache,
-  codexLogout,
-  isCodexInstalled,
-} from './auth/codex-bridge.js';
+// Codex private-file bridge: removed from the production graph.
+// See docs/verification/plumb-runtime-activation-invalidation.md.
 
 // Export Routing
 export * from './routing/routingStrategy.js';

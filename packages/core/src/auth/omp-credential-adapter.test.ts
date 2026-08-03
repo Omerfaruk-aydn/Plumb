@@ -2,10 +2,7 @@
  * @license
  * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
-
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { OmpAuthSchemaKeychainAdapter } from './omp-credential-adapter.js';
 import type {
@@ -19,7 +16,6 @@ describe('OmpAuthSchemaKeychainAdapter', () => {
   beforeEach(() => {
     adapter = new OmpAuthSchemaKeychainAdapter();
   });
-
   afterEach(async () => {
     await adapter.clearAll();
   });
@@ -33,10 +29,8 @@ describe('OmpAuthSchemaKeychainAdapter', () => {
       expires: Date.now() + 3600_000,
       email: 'user@example.com',
     };
-
     await adapter.storeOAuthCredential('anthropic', cred);
     const entries = await adapter.getCredentials('anthropic');
-
     expect(entries.length).toBe(1);
     const oauth = entries[0].credential as PlumbOAuthCredential;
     expect(oauth.type).toBe('oauth');
@@ -50,12 +44,11 @@ describe('OmpAuthSchemaKeychainAdapter', () => {
   it('preserves OMP auth schema: API key credential fields', async () => {
     const cred: PlumbApiKeyCredential = {
       type: 'api_key',
+      provider: 'openai',
       key: 'sk-openai-api-key',
     };
-
     await adapter.storeApiKeyCredential('openai', cred);
     const key = await adapter.getApiKey('openai');
-
     expect(key).toBe('sk-openai-api-key');
   });
 
@@ -78,9 +71,7 @@ describe('OmpAuthSchemaKeychainAdapter', () => {
       refresh: 'ref-b',
       expires: Date.now() + 3600_000,
     });
-
     await adapter.removeCredentials('anthropic');
-
     expect(await adapter.getCredentials('anthropic')).toEqual([]);
     expect((await adapter.getCredentials('openai-codex')).length).toBe(1);
   });
@@ -94,7 +85,6 @@ describe('OmpAuthSchemaKeychainAdapter', () => {
       refresh: 'gh-ref',
       expires,
     });
-
     const entries = await adapter.getCredentials('github-copilot');
     expect((entries[0].credential as PlumbOAuthCredential).expires).toBe(
       expires,

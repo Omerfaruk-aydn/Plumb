@@ -174,33 +174,6 @@ export class PlumbModelRegistry {
     oauthToken?: string,
   ): Promise<PlumbModel[]> {
     try {
-      // For openai-codex, use the Codex bridge discovery
-      if (providerId === 'openai-codex') {
-        // Import dynamically to avoid circular dependency
-        const coreModule = await import('@google/gemini-cli-core');
-        const rawModels = await coreModule.discoverCodexModels();
-        const models: PlumbModel[] = rawModels.map((m) => ({
-          id: m.id,
-          name: m.name,
-          provider: 'openai-codex' as PlumbProviderId,
-          api: 'openai-codex-responses' as PlumbKnownApi,
-          contextWindow: m.contextWindow,
-          maxTokens: m.maxTokens,
-          reasoning: m.reasoning,
-          input: 'text' as const,
-          isOAuth: true,
-        }));
-        if (models.length > 0) {
-          for (const model of models) {
-            const key = `${model.provider}:${model.id}`;
-            this.#discoveredModels.set(key, model);
-          }
-          writeModelCache(providerId, models, true);
-          this.#notifyListeners();
-        }
-        return models;
-      }
-
       const discovered = await discoverProviderModels(providerId, {
         providerId,
         apiKey,

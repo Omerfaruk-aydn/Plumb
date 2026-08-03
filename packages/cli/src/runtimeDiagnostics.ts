@@ -474,13 +474,6 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
       loadable: null,
       loadError: null,
     },
-    {
-      label: 'codex.bridge.module',
-      distPath: distModule(coreRoot, 'src/auth/codex-bridge.js'),
-      exists: false,
-      loadable: null,
-      loadError: null,
-    },
   ];
 
   for (const probe of probes) {
@@ -503,7 +496,6 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   let legacyRegistryInstantiated = 'unknown';
   let legacyAuthInstantiated = 'unknown';
   let plumbAdapterExport = 'unavailable';
-  let codexBridgeWired = 'unknown';
   try {
     const providerModule = await import('@google/gemini-cli-provider');
     if (
@@ -534,11 +526,8 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
     legacyAuthInstantiated = coreModule.isPlumbProviderAuthServiceInstantiated
       ? String(coreModule.isPlumbProviderAuthServiceInstantiated())
       : 'unavailable';
-    codexBridgeWired =
-      typeof coreModule.readCodexAuthTokens === 'function' ? 'yes' : 'no';
   } catch {
     legacyAuthInstantiated = 'unavailable';
-    codexBridgeWired = 'unavailable';
   }
 
   const failures: string[] = [];
@@ -564,7 +553,7 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   lines.push(
     `legacy.plumb.registry.instantiated: ${legacyRegistryInstantiated}`,
     `legacy.plumb.auth.instantiated: ${legacyAuthInstantiated}`,
-    `codex.privateFileBridge.active: ${codexBridgeWired} (core barrel re-exports readCodexAuthTokens; production callers: core/auth/plumbProviderAuthService.ts #codexLogin, provider/src/registry/model-registry.ts discoverCodexModels)`,
+    `codex.privateFileBridge.active: no (codex-bridge removed from production; see docs/verification/plumb-runtime-activation-invalidation.md)`,
   );
 
   return { lines, failures };

@@ -8,14 +8,6 @@
 
 import { generatePkce, generateState } from './oauth-pkce.js';
 import { startOAuthCallbackServer } from './oauth-callback-server.js';
-import {
-  getCodexStatus,
-  readCodexAuthTokens,
-  isCodexTokenValid,
-  startCodexLoginAsync,
-  getCodexAccountLabel,
-  clearCodexStatusCache,
-} from './codex-bridge.js';
 import type {
   PlumbProviderId,
   PlumbOAuthCredential,
@@ -228,11 +220,6 @@ export class PlumbProviderAuthService {
     providerId: PlumbProviderId,
     apiKeyValue?: string,
   ): Promise<LoginResult> {
-    // Handle ChatGPT/Codex via official CLI bridge
-    if (providerId === 'openai-codex') {
-      return this.#codexLogin();
-    }
-
     const config = OAUTH_CONFIGS[providerId];
     if (!config) {
       // Try API key validation for providers without OAuth configs
@@ -524,78 +511,6 @@ export class PlumbProviderAuthService {
     await registry.setAuthenticated(providerId, credential);
 
     return { success: true, credential };
-  }
-
-  async #codexLogin(): Promise<LoginResult> {
-    // Check if codex CLI is installed
-    const status = await getCodexStatus();
-    if (!status.installed) {
-      return {
-        success: false,
-        error:
-          'Codex CLI not found. Install with: npm install -g @openai/codex',
-      };
-    }
-
-    // Check if already logged in
-    if (status.loggedIn && isCodexTokenValid()) {
-      const tokens = readCodexAuthTokens();
-      if (tokens) {
-        const credential: PlumbOAuthCredential = {
-          type: 'oauth',
-          provider: 'openai-codex',
-          access: tokens.accessToken,
-          refresh: tokens.refreshToken ?? '',
-          expires: tokens.expiresAt ?? Date.now() + 3600_000,
-          email: tokens.email,
-          accountId: tokens.accountId,
-        };
-
-        const store = await this.#getStore();
-        await store.storeOAuthCredential('openai-codex', credential);
-        const registry = getPlumbProviderRegistry();
-        await registry.setAuthenticated('openai-codex', credential);
-
-        return {
-          success: true,
-          credential,
-          accountLabel: getCodexAccountLabel() ?? tokens.email,
-        };
-      }
-    }
-
-    // Start login flow
-    const { promise } = startCodexLoginAsync();
-    const result = await promise;
-
-    if (result.success) {
-      clearCodexStatusCache();
-      const tokens = readCodexAuthTokens();
-      if (tokens) {
-        const credential: PlumbOAuthCredential = {
-          type: 'oauth',
-          provider: 'openai-codex',
-          access: tokens.accessToken,
-          refresh: tokens.refreshToken ?? '',
-          expires: tokens.expiresAt ?? Date.now() + 3600_000,
-          email: tokens.email,
-          accountId: tokens.accountId,
-        };
-
-        const store = await this.#getStore();
-        await store.storeOAuthCredential('openai-codex', credential);
-        const registry = getPlumbProviderRegistry();
-        await registry.setAuthenticated('openai-codex', credential);
-
-        return {
-          success: true,
-          credential,
-          accountLabel: getCodexAccountLabel() ?? tokens.email,
-        };
-      }
-    }
-
-    return { success: false, error: result.error ?? 'Codex login failed' };
   }
 
   async #exchangeCode(
