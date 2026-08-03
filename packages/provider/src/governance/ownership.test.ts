@@ -30,6 +30,16 @@ import {
 
 const PINNED_OMP_SHA = '4df68d60438423b384b2b47fb3d6835641624757';
 
+function walkFiles(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) results.push(...walkFiles(full));
+    else results.push(full);
+  }
+  return results;
+}
+
 const OMP_REQUIRED = [
   'provider-registry',
   'oauth-registry',
@@ -207,6 +217,31 @@ describe('ownership manifest', () => {
     // Build must produce correct JS without post-emit mutation of .js files.
     // The only filesystem writes are tsc output, asset copies, and the
     // .last_build marker — no source rewriting after compilation.
+
+    // Negative test: dist JS barrel imports must resolve to real files.
+    // If stale/incorrect barrel imports are emitted, this test fails before
+    // the linking step.
+    const distDir = path.join(repoRoot, 'packages', 'provider', 'dist');
+    if (fs.existsSync(distDir)) {
+      const jsFiles = walkFiles(distDir).filter((f) => f.endsWith('.js'));
+      for (const jsFile of jsFiles) {
+        const content = fs.readFileSync(jsFile, 'utf-8');
+        const importRe = /from\s+['"](\.\.[^'"]+)['"]/g;
+        let m;
+        while ((m = importRe.exec(content)) !== null) {
+          const spec = m[1];
+          const resolved = path.resolve(path.dirname(jsFile), spec);
+          const indexJs = resolved.endsWith('.js')
+            ? resolved
+            : path.join(resolved, 'index.js');
+          const exists = fs.existsSync(resolved) || fs.existsSync(indexJs);
+          expect(
+            exists,
+            `${path.relative(repoRoot, jsFile)} imports ${spec} which does not resolve`,
+          ).toBe(true);
+        }
+      }
+    }
   });
 
   it('has zero invalid legacy-active entries and zero duplicate subsystem owners', () => {
