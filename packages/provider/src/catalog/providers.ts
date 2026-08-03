@@ -81,6 +81,16 @@ const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
   'openai-codex',
 ]);
 
+/**
+ * Providers with no OMP catalog descriptor and therefore no model source.
+ * These providers have no bundled models and no live-discovery factory.
+ * They must NOT be selectable until a catalog descriptor is added.
+ */
+const BLOCKED_NO_MODEL_SOURCE: ReadonlySet<string> = new Set([
+  'perplexity',
+  'llama-cpp',
+]);
+
 /** The set of OMP registry provider ids, built once from PROVIDER_REGISTRY. */
 const OMP_REGISTRY_IDS: ReadonlySet<string> = new Set(
   PROVIDER_REGISTRY.map((p) => p.id),
@@ -638,6 +648,8 @@ function isOmpAvailable(ompId: string, plumbId?: string): boolean {
   // Providers whose OAuth client registration is upstream-owned and invalid
   // for PLUMB must not be available as OAuth login flows.
   if (plumbId && BLOCKED_CLIENT_REGISTRATIONS.has(plumbId)) return false;
+  // Providers with no OMP catalog descriptor and therefore no model source.
+  if (plumbId && BLOCKED_NO_MODEL_SOURCE.has(plumbId)) return false;
   const def = getProviderDefinition(ompId);
   if (def) {
     if (def.available === false) return false;
