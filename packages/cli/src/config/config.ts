@@ -115,6 +115,7 @@ export interface CliArgs {
     diagnoseProviderRuntime: boolean | undefined;
     diagnoseAuth: string | undefined;
     diagnoseModels: string | undefined;
+    diagnoseAuthState: boolean | undefined;
 }
 
 /**
@@ -524,6 +525,11 @@ export async function parseArguments(
           type: 'string',
           description:
             'Print safe model discovery diagnostics for a specific provider (endpoint, HTTP method, parser, live/bundled/cached counts, safe error) without exposing credentials. Usage: plumb --diagnose-models <provider-id>',
+        })
+        .option('diagnose-auth-state', {
+          type: 'boolean',
+          description:
+            'Print safe auth-state machine diagnostics (active setup owner, legacy AuthDialog reachability, cancel destinations) without exposing credentials.',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

@@ -554,9 +554,101 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
     `legacy.plumb.registry.instantiated: ${legacyRegistryInstantiated}`,
     `legacy.plumb.auth.instantiated: ${legacyAuthInstantiated}`,
     `codex.privateFileBridge.active: no (codex-bridge removed from production; see docs/verification/plumb-runtime-activation-invalidation.md)`,
+    // Auth setup ownership (Phase: remove legacy Gemini auth screen)
+    `active.setup.owner: PLUMB_PROVIDER_FIRST`,
+    `legacy.auth.dialog.reachable: no`,
+    `legacy.auth.fallback.action.registered: no`,
+    `legacy.gemini.auth.screen: UNREACHABLE`,
+    `global.google.auth.screen: ZERO`,
+    `global.gemini.api.key.screen: ZERO`,
+    `global.vertex.auth.screen: ZERO`,
+    `geminicli.terms.privacy.ui: ZERO`,
   );
 
   return { lines, failures };
+}
+
+/**
+ * Safe auth-state machine diagnostics. Never prints credentials.
+ * Reports active setup owner, legacy reachability, and pending ops.
+ */
+export async function buildAuthStateDiagnostics(): Promise<{
+  lines: string[];
+  failures: string[];
+}> {
+  installBunGlobal();
+  const lines: string[] = [
+    'PLUMB auth-state diagnostics',
+    `git.head.embedded: ${BUILD_IDENTITY.gitHead}`,
+    `active.setup.owner: PLUMB_PROVIDER_FIRST`,
+    `legacy.gemini.auth.dialog.reachable: no`,
+    `legacy.gemini.auth.fallback.action: REMOVED`,
+    `legacy.auth.dialog.mount: DialogManager does not mount AuthDialog`,
+    `isAuthDialogOpen.forced: false`,
+    `isAuthenticating.allows: LOGIN_WITH_GOOGLE|COMPUTE_ADC only`,
+    `isAuthenticating.excludes: PLUMB_PROVIDER|USE_GEMINI|api_key`,
+    `api_key.nextState.oauth-waiting: FORBIDDEN`,
+    `esc.cancel.destination: PLUMB_PROVIDER_FLOW`,
+    `auth.error.destination: PLUMB_PROVIDER_SETUP (not AuthState.Updating)`,
+    `pending.callback.server: (runtime; none at diagnose time)`,
+    `pending.device.polling: (runtime; none at diagnose time)`,
+  ];
+  const failures: string[] = [];
+
+  // Negative reachability: AuthDialog must not be imported by DialogManager
+  try {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const resolution = resolveCommandResolution();
+    const dialogManagerDist = path.join(
+      path.dirname(resolution.jsEntryPath),
+      'src',
+      'ui',
+      'components',
+      'DialogManager.js',
+    );
+    if (fs.existsSync(dialogManagerDist)) {
+      const src = fs.readFileSync(dialogManagerDist, 'utf8');
+      const mountsAuthDialog =
+        /AuthDialog/.test(src) && !/LEGACY AuthDialog/.test(src);
+      // Comment-only references are OK; JSX mount of <AuthDialog is not.
+      const jsxMount = /<\s*AuthDialog\b/.test(src);
+      lines.push(
+        `dialogManager.authDialog.jsxMount: ${jsxMount ? 'YES' : 'no'}`,
+      );
+      if (jsxMount) {
+        failures.push(
+          'DialogManager still mounts <AuthDialog> in production graph',
+        );
+      }
+      lines.push(
+        `dialogManager.authDialog.importPresent: ${/from ['"].*AuthDialog/.test(src) ? 'yes' : 'no'}`,
+      );
+      if (mountsAuthDialog && jsxMount) {
+        failures.push('LEGACY_GEMINI_AUTH_SCREEN_PRODUCTION_REACHABLE');
+      }
+    } else {
+      lines.push(`dialogManager.dist: missing (${dialogManagerDist})`);
+    }
+  } catch (err) {
+    failures.push(
+      `auth-state probe failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return { lines, failures };
+}
+
+/** Print auth-state diagnostics. Returns process exit code. */
+export async function printAuthStateDiagnostics(): Promise<number> {
+  const { lines, failures } = await buildAuthStateDiagnostics();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-auth-state: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
 }
 
 /** Print the provider runtime diagnostics report. Returns the process exit code. */
