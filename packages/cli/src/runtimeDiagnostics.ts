@@ -609,23 +609,21 @@ export async function buildAuthStateDiagnostics(): Promise<{
     );
     if (fs.existsSync(dialogManagerDist)) {
       const src = fs.readFileSync(dialogManagerDist, 'utf8');
-      const mountsAuthDialog =
-        /AuthDialog/.test(src) && !/LEGACY AuthDialog/.test(src);
-      // Comment-only references are OK; JSX mount of <AuthDialog is not.
+      // Match AuthDialog only — not ApiAuthDialog.
       const jsxMount = /<\s*AuthDialog\b/.test(src);
+      const importPresent =
+        /import\s*\{[^}]*\bAuthDialog\b[^}]*\}\s*from/.test(src) ||
+        /from\s+['"][^'"]*\/AuthDialog\.js['"]/.test(src);
       lines.push(
         `dialogManager.authDialog.jsxMount: ${jsxMount ? 'YES' : 'no'}`,
       );
-      if (jsxMount) {
-        failures.push(
-          'DialogManager still mounts <AuthDialog> in production graph',
-        );
-      }
       lines.push(
-        `dialogManager.authDialog.importPresent: ${/from ['"].*AuthDialog/.test(src) ? 'yes' : 'no'}`,
+        `dialogManager.authDialog.importPresent: ${importPresent ? 'yes' : 'no'}`,
       );
-      if (mountsAuthDialog && jsxMount) {
-        failures.push('LEGACY_GEMINI_AUTH_SCREEN_PRODUCTION_REACHABLE');
+      if (jsxMount || importPresent) {
+        failures.push(
+          'LEGACY_GEMINI_AUTH_SCREEN_PRODUCTION_REACHABLE',
+        );
       }
     } else {
       lines.push(`dialogManager.dist: missing (${dialogManagerDist})`);
