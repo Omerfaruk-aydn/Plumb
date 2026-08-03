@@ -82,14 +82,17 @@ const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Providers with no OMP catalog descriptor and therefore no model source.
- * These providers have no bundled models and no live-discovery factory.
- * They must NOT be selectable until a catalog descriptor is added.
+ * Providers with no OMP catalog descriptor and no OMP registry definition.
+ * These providers have no bundled models, no live-discovery factory, and
+ * no login flow. They must NOT be selectable until a catalog descriptor
+ * or registry definition is added.
+ *
+ * NOTE: llama-cpp and perplexity are NOT here — both have OMP registry
+ * definitions with `login` functions and are available through that path.
+ * llama-cpp is a local provider (server may be offline → LOCAL_RUNTIME_NOT_AVAILABLE).
+ * perplexity has bundled OMP catalog models via kilo/nanogpt gateways.
  */
-const BLOCKED_NO_MODEL_SOURCE: ReadonlySet<string> = new Set([
-  'perplexity',
-  'llama-cpp',
-]);
+const BLOCKED_NO_MODEL_SOURCE: ReadonlySet<string> = new Set([]);
 
 /** The set of OMP registry provider ids, built once from PROVIDER_REGISTRY. */
 const OMP_REGISTRY_IDS: ReadonlySet<string> = new Set(

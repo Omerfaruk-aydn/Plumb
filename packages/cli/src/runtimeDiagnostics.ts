@@ -780,6 +780,14 @@ export async function buildModelsDiagnostics(
       );
     }
 
+    // Credential presence check (env var set or OAuth token stored)
+    const envVars: readonly string[] = entry?.envVars ?? [];
+    const hasEnvKey = envVars.some((v) => {
+      const val = process.env[v];
+      return typeof val === 'string' && val.trim().length > 0;
+    });
+    lines.push(`credential.present: ${hasEnvKey ? 'yes (env key set)' : 'no (env key not set)'}`);
+
     // Discovery adapter (from catalog fallback map if present)
     const fallbackMap = (
       providerModule as Record<string, unknown>
@@ -806,6 +814,52 @@ export async function buildModelsDiagnostics(
           : 'NO_MODEL_SOURCE';
     lines.push(`model.source: ${modelSource}`);
 
+    // Dynamic model count (from OMP cache if available)
+    let dynamicModelCount = 0;
+    let cachedModelCount = 0;
+    let cacheFresh = false;
+    try {
+      const cacheFn = (providerModule as Record<string, unknown>)['readModelCache'] as
+        | ((id: string) => { models: unknown[]; fresh: boolean } | null)
+        | undefined;
+      if (cacheFn) {
+        const cached = cacheFn(canonicalId);
+        if (cached) {
+          cachedModelCount = cached.models.length;
+          cacheFresh = cached.fresh;
+        }
+      }
+    } catch { /* cache module not available */ }
+    lines.push(`cached.model.count: ${cachedModelCount}`);
+    lines.push(`cache.fresh: ${cacheFresh ? 'yes' : 'no'}`);
+
+    // Dynamic count: try to discover (safe probe with short timeout)
+    let httpStatus = 'NOT_PROBED';
+    let lastSafeError = 'none';
+    if (typeof entry?.createModelManagerOptions === 'function' && hasEnvKey) {
+      try {
+        const discoverFn = (providerModule as Record<string, unknown>)['discoverProviderModels'] as
+          | ((id: string, apiKey?: string) => Promise<unknown[]>)
+          | undefined;
+        if (discoverFn) {
+          const models = await discoverFn(canonicalId);
+          if (Array.isArray(models)) {
+            dynamicModelCount = models.length;
+            httpStatus = '200';
+          } else {
+            httpStatus = 'NO_RESPONSE';
+          }
+        }
+      } catch (err) {
+        lastSafeError = err instanceof Error ? err.message : String(err);
+        httpStatus = 'ERROR';
+      }
+    } else if (!hasEnvKey) {
+      httpStatus = 'NO_CREDENTIAL';
+    }
+    lines.push(`dynamic.model.count: ${dynamicModelCount}`);
+    lines.push(`http.status: ${httpStatus}`);
+
     // Base URL from catalog entry
     lines.push(
       `base.url: ${entry?.createModelManagerOptions ? '(from OMP model manager factory)' : 'none'}`,
@@ -816,15 +870,29 @@ export async function buildModelsDiagnostics(
     lines.push(`parser: openai-compatible`);
 
     // Cache state (from catalog-level model cache if available)
-    lines.push(`cache.state: (managed by OMP model-cache)`);
+    lines.push(`cache.state: ${cachedModelCount > 0 ? (cacheFresh ? 'HIT_FRESH' : 'HIT_STALE') : 'MISS'}`);
 
-    // Picker count = bundled + live (when API key provided)
-    lines.push(`final.picker.count: ${bundledModels.length}`);
+    // Fallback reason: why this provider has no live models
+    let fallbackReason = 'none';
+    if (!hasEnvKey && typeof entry?.createModelManagerOptions === 'function') {
+      fallbackReason = 'NO_CREDENTIAL';
+    } else if (typeof entry?.createModelManagerOptions !== 'function' && typeof entry?.defaultModel === 'string') {
+      fallbackReason = 'BUNDLED_ONLY_NO_DISCOVERY';
+    } else if (typeof entry?.createModelManagerOptions !== 'function' && typeof entry?.defaultModel !== 'string') {
+      fallbackReason = 'NO_MODEL_SOURCE';
+    } else if (dynamicModelCount === 0 && hasEnvKey) {
+      fallbackReason = 'LIVE_DISCOVERY_EMPTY';
+    }
+    lines.push(`fallback.reason: ${fallbackReason}`);
+
+    // Picker count = bundled + dynamic + cached (deduplicated)
+    const mergedCount = bundledModels.length + Math.max(dynamicModelCount, cachedModelCount);
+    lines.push(`final.picker.count: ${mergedCount}`);
     lines.push(`selectable: ${
       (providerModule.SELECTABLE_PROVIDERS as unknown as Array<{ id: string }>)
         ?.some((p) => p.id === providerId) ?? false
     }`);
-    lines.push(`last.safe.error: none`);
+    lines.push(`last.safe.error: ${lastSafeError}`);
   } catch (err) {
     failures.push(
       `Failed to build model diagnostics: ${err instanceof Error ? err.message : String(err)}`,

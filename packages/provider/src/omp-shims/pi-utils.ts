@@ -15,7 +15,6 @@ export type FetchImpl = typeof fetch;
 
 // ─── Constants ─────────────────────────────────────────────────────────
 export const APP_NAME = 'plumb';
-export const MAIN_CONFIG_FILENAMES = ['plumb.json', 'plumb.jsonc', 'plumb.yaml', 'plumb.yml'];
 
 // ─── Environment ───────────────────────────────────────────────────────
 function getHome(): string {
@@ -68,12 +67,6 @@ export function getLogsDir(): string {
   const dir = join(getHome(), '.plumb', 'logs');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
-}
-
-export function getAuthBrokerSnapshotCachePath(): string {
-  const dir = join(getHome(), '.plumb');
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return join(dir, 'auth-broker-snapshot.json');
 }
 
 export function getInstallId(): string {
@@ -244,15 +237,6 @@ export async function* readSseEvents(response: Response): AsyncGenerator<{ event
   } finally { reader.releaseLock(); }
 }
 
-export async function readStream(response: Response): Promise<string> {
-  const reader = response.body?.getReader();
-  if (!reader) return '';
-  const decoder = new TextDecoder();
-  let result = '';
-  try { while (true) { const { done, value } = await reader.read(); if (done) break; result += decoder.decode(value, { stream: true }); } } finally { reader.releaseLock(); }
-  return result;
-}
-
 // ─── Text helpers ──────────────────────────────────────────────────────
 export function sanitizeText(text: string): string {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
@@ -266,8 +250,8 @@ export async function readJsonl<T>(filePath: string): Promise<T[]> {
 }
 
 // ─── Logger ────────────────────────────────────────────────────────────
-export function log(...args: unknown[]): void { console.log('[PLUMB]', ...args); }
-export function warn(...args: unknown[]): void { console.warn('[PLUMB]', ...args); }
-export function error(...args: unknown[]): void { console.error('[PLUMB]', ...args); }
-export function debug(...args: unknown[]): void { if (process.env['DEBUG']) console.debug('[PLUMB]', ...args); }
+function log(...args: unknown[]): void { console.log('[PLUMB]', ...args); }
+function warn(...args: unknown[]): void { console.warn('[PLUMB]', ...args); }
+function error(...args: unknown[]): void { console.error('[PLUMB]', ...args); }
+function debug(...args: unknown[]): void { if (process.env['DEBUG']) console.debug('[PLUMB]', ...args); }
 export const logger = { log, warn, error, debug };
