@@ -112,7 +112,8 @@ export interface CliArgs {
   isCommand: boolean | undefined;
   runtimeIdentity: boolean | undefined;
   diagnoseLogo: boolean | undefined;
-  diagnoseProviderRuntime: boolean | undefined;
+    diagnoseProviderRuntime: boolean | undefined;
+    diagnoseAuth: string | undefined;
 }
 
 /**
@@ -512,6 +513,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Print PLUMB provider runtime diagnostics (active registry/auth/model/transport modules, loadability, legacy singleton state, Codex bridge wiring, embedded build HEAD) and exit.',
+        })
+        .option('diagnose-auth', {
+          type: 'string',
+          description:
+            'Print safe auth diagnostics for a specific provider (OAuth endpoints, client registration classification, redirect URI, scopes, keychain status) without exposing secrets. Usage: plumb --diagnose-auth <provider-id>',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

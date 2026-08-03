@@ -429,18 +429,22 @@ export async function main() {
   if (
     argv.runtimeIdentity ||
     argv.diagnoseLogo ||
-    argv.diagnoseProviderRuntime
+    argv.diagnoseProviderRuntime ||
+    argv.diagnoseAuth
   ) {
     const {
       printRuntimeIdentity,
       printLogoDiagnostics,
       printProviderRuntimeDiagnostics,
+      printAuthDiagnostics,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
       exitCode = printRuntimeIdentity();
     } else if (argv.diagnoseLogo) {
       exitCode = printLogoDiagnostics(settings.merged);
+    } else if (argv.diagnoseAuth) {
+      exitCode = await printAuthDiagnostics(argv.diagnoseAuth);
     } else {
       exitCode = await printProviderRuntimeDiagnostics();
     }

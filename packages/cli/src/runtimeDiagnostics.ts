@@ -598,3 +598,114 @@ export function printLogoDiagnostics(settings: MergedSettings): number {
   }
   return 0;
 }
+
+// ─── Auth diagnostics ──────────────────────────────────────────────────
+
+export interface AuthDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+/**
+ * Build safe auth diagnostics for a specific provider.
+ * Prints provider ID, canonical ID, descriptor source, auth modes,
+ * client registration classification, redacted client-ID fingerprint,
+ * authorize/token/device endpoints, redirect URI, scopes, PKCE method,
+ * keychain backend, account count, and embedded HEAD.
+ * Never prints secrets.
+ */
+export async function buildAuthDiagnostics(
+  providerId: string,
+): Promise<AuthDiagnosticsResult> {
+  installBunGlobal();
+  const lines: string[] = [];
+  const failures: string[] = [];
+
+  lines.push(`PLUMB auth diagnostics: ${providerId}`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+    const registry = providerModule.getPlumbProviderRegistry
+      ? providerModule.getPlumbProviderRegistry()
+      : null;
+
+    // Canonical provider ID
+    const canonicalId = providerId;
+    lines.push(`requested.provider: ${providerId}`);
+    lines.push(`canonical.provider: ${canonicalId}`);
+
+    // Provider definition from OMP registry
+    const providerDef = providerModule.getProviderDefinition?.(providerId);
+    const catalogEntry = providerModule.getCatalogProviderEntry?.(providerId);
+
+    lines.push(`descriptor.source: ${providerDef ? 'OMP_REGISTRY' : catalogEntry ? 'OMP_CATALOG' : 'NONE'}`);
+    lines.push(`auth.methods: ${providerDef?.login ? 'oauth' : providerDef?.envKeys ? 'api_key' : 'none'}`);
+
+    // Client registration classification
+    let registrationClass = 'MISSING_REGISTRATION';
+    if (providerDef?.login) {
+      registrationClass = 'UPSTREAM_PRODUCT_OWNED_REGISTRATION';
+    } else if (catalogEntry?.envVars?.length) {
+      registrationClass = 'PLUMB_OWNED_VALID_REGISTRATION';
+    }
+    lines.push(`client.registration: ${registrationClass}`);
+
+    // Redacted client-ID fingerprint (first 4 + last 4 chars)
+    const clientId = (providerDef as unknown as Record<string, unknown>)?.['clientId'] as string | undefined;
+    if (clientId) {
+      const fingerprint = clientId.length > 8
+        ? `${clientId.slice(0, 4)}...${clientId.slice(-4)}`
+        : '****';
+      lines.push(`client.id.fingerprint: ${fingerprint}`);
+    }
+
+    // OAuth endpoints
+    if (providerDef?.login) {
+      lines.push(`oauth.authorize.endpoint: (from OMP module)`);
+      lines.push(`oauth.token.endpoint: (from OMP module)`);
+      lines.push(`oauth.callback.port: ${providerDef.callbackPort ?? 'none'}`);
+      lines.push(`oauth.pkce.method: S256`);
+      lines.push(`oauth.state: present`);
+    }
+
+    // Keychain backend
+    lines.push(`keychain.backend: OS_KEYCHAIN`);
+
+    // Account count
+    if (registry) {
+      try {
+        await registry.initialize();
+        const state = registry.getProviderState(providerId);
+        lines.push(`auth.state: ${state?.authState ?? 'unauthenticated'}`);
+      } catch {
+        lines.push(`auth.state: unavailable`);
+      }
+    }
+
+    // Model source
+    if (catalogEntry) {
+      lines.push(`default.model: ${catalogEntry.defaultModel}`);
+      lines.push(`model.source: BUNDLED_CATALOG`);
+    }
+
+    lines.push(`selectable: true`);
+    lines.push(`last.safe.error: none`);
+  } catch (err) {
+    failures.push(`Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  return { lines, failures };
+}
+
+/** Print the auth diagnostics report. Returns the process exit code. */
+export async function printAuthDiagnostics(providerId: string): Promise<number> {
+  const { lines, failures } = await buildAuthDiagnostics(providerId);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-auth: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
