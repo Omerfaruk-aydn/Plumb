@@ -167,7 +167,7 @@ describe('DialogManager', () => {
     [{ isModelDialogOpen: true }, 'ModelDialog'],
     [{ isAuthenticating: true }, 'AuthInProgress'],
     [{ isAwaitingApiKeyInput: true }, 'ApiAuthDialog'],
-    [{ isAuthDialogOpen: true }, 'AuthDialog'],
+    // Legacy AuthDialog is intentionally unreachable in production.
     [{ isProviderSetupDialogOpen: true }, 'PlumbProviderSetupDialog'],
     [{ isEditorDialogOpen: true }, 'EditorSettingsDialog'],
     [{ showPrivacyNotice: true }, 'PrivacyNotice'],
@@ -229,6 +229,44 @@ describe('DialogManager', () => {
     expect(frame).toContain('PlumbProviderSetupDialog');
     expect(frame).not.toContain('AuthDialog');
     expect(frame).not.toContain('AuthInProgress');
+    unmount();
+  });
+
+  it('never mounts legacy AuthDialog even when isAuthDialogOpen is true', async () => {
+    const { lastFrame, unmount } = await renderWithProviders(
+      <DialogManager {...defaultProps} />,
+      {
+        uiState: {
+          ...baseUiState,
+          isAuthDialogOpen: true,
+        } as Partial<UIState> as UIState,
+      },
+    );
+    const frame = lastFrame({ allowEmpty: true }) ?? '';
+    expect(frame).not.toContain('AuthDialog');
+    expect(frame).not.toContain('Get started');
+    expect(frame).not.toContain('Sign in with Google');
+    expect(frame).not.toContain('Use Gemini API Key');
+    expect(frame).not.toContain('Vertex AI');
+    expect(frame).not.toContain('geminicli.com');
+    unmount();
+  });
+
+  it('isAuthenticating shows AuthInProgress without AuthDialog', async () => {
+    const { lastFrame, unmount } = await renderWithProviders(
+      <DialogManager {...defaultProps} />,
+      {
+        uiState: {
+          ...baseUiState,
+          isAuthenticating: true,
+          isAuthDialogOpen: true,
+        } as Partial<UIState> as UIState,
+      },
+    );
+    const frame = lastFrame();
+    expect(frame).toContain('AuthInProgress');
+    expect(frame).not.toContain('AuthDialog');
+    expect(frame).not.toContain('Get started');
     unmount();
   });
 });

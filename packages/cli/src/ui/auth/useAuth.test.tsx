@@ -171,6 +171,7 @@ describe('useAuth', () => {
       expect(result.current.authError).toBe(
         'No authentication method selected.',
       );
+      // Without provider-setup callback, legacy fallback state remains for tests.
       expect(result.current.authState).toBe(AuthState.Updating);
     });
 
@@ -337,24 +338,41 @@ describe('useAuth', () => {
 
     it('should set error if validation fails', async () => {
       mockValidateAuthMethod.mockResolvedValue('Validation Failed');
+      const onProviderSetupRequest = vi.fn();
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(
+          createSettings(AuthType.LOGIN_WITH_GOOGLE),
+          mockConfig,
+          null,
+          null,
+          onProviderSetupRequest,
+        ),
       );
 
       expect(result.current.authError).toBe('Validation Failed');
-      expect(result.current.authState).toBe(AuthState.Updating);
+      // With provider setup available, never open legacy AuthDialog.
+      expect(result.current.authState).toBe(AuthState.Unauthenticated);
+      expect(onProviderSetupRequest).toHaveBeenCalled();
     });
 
     it('should set error if GEMINI_DEFAULT_AUTH_TYPE is invalid', async () => {
       process.env['GEMINI_DEFAULT_AUTH_TYPE'] = 'INVALID_TYPE';
+      const onProviderSetupRequest = vi.fn();
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(
+          createSettings(AuthType.LOGIN_WITH_GOOGLE),
+          mockConfig,
+          null,
+          null,
+          onProviderSetupRequest,
+        ),
       );
 
       expect(result.current.authError).toContain(
         'Invalid value for GEMINI_DEFAULT_AUTH_TYPE',
       );
-      expect(result.current.authState).toBe(AuthState.Updating);
+      expect(result.current.authState).toBe(AuthState.Unauthenticated);
+      expect(onProviderSetupRequest).toHaveBeenCalled();
     });
 
     it('should authenticate successfully for valid auth type', async () => {
@@ -374,8 +392,15 @@ describe('useAuth', () => {
     });
 
     it('should handle refreshAuth failure', async () => {
+      const onProviderSetupRequest = vi.fn();
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(
+          createSettings(AuthType.LOGIN_WITH_GOOGLE),
+          mockConfig,
+          null,
+          null,
+          onProviderSetupRequest,
+        ),
       );
 
       await act(async () => {
@@ -383,13 +408,21 @@ describe('useAuth', () => {
       });
 
       expect(result.current.authError).toContain('Failed to sign in');
-      expect(result.current.authState).toBe(AuthState.Updating);
+      expect(result.current.authState).toBe(AuthState.Unauthenticated);
+      expect(onProviderSetupRequest).toHaveBeenCalled();
     });
 
     it('should handle ProjectIdRequiredError without "Failed to login" prefix', async () => {
       const projectIdError = new ProjectIdRequiredError();
+      const onProviderSetupRequest = vi.fn();
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(
+          createSettings(AuthType.LOGIN_WITH_GOOGLE),
+          mockConfig,
+          null,
+          null,
+          onProviderSetupRequest,
+        ),
       );
 
       await act(async () => {
@@ -400,7 +433,8 @@ describe('useAuth', () => {
         'This account requires setting the GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_PROJECT_ID env var. See https://goo.gle/gemini-cli-auth-docs#workspace-gca',
       );
       expect(result.current.authError).not.toContain('Failed to login');
-      expect(result.current.authState).toBe(AuthState.Updating);
+      expect(result.current.authState).toBe(AuthState.Unauthenticated);
+      expect(onProviderSetupRequest).toHaveBeenCalled();
     });
   });
 });

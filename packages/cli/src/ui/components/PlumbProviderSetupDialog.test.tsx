@@ -335,4 +335,91 @@ describe('PlumbProviderSetupDialog', () => {
     expect(frame).toContain('ESC to cancel');
     expect(frame).toContain('Enter to select');
   });
+
+  it('11. NVIDIA API-key path never enters oauth-waiting', async () => {
+    const nvidia: PlumbProvider = {
+      id: 'nvidia',
+      name: 'NVIDIA',
+      category: PlumbProviderCategory.API_KEY,
+      description: 'NVIDIA NIM',
+      authMethods: [{ type: 'api_key', envVar: 'NVIDIA_API_KEY' }],
+      allowUnauthenticated: false,
+      available: true,
+      envVars: ['NVIDIA_API_KEY'],
+    };
+    const providers = [...mockProviders, nvidia];
+    const groups = new Map(mockCategoryGroups);
+    groups.set(
+      'api-key',
+      providers.filter((p) => p.category === PlumbProviderCategory.API_KEY),
+    );
+    const models = [
+      ...mockModels,
+      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+    ];
+    const onComplete = vi.fn();
+    const onOAuthLogin = vi.fn().mockResolvedValue({ success: true });
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={onComplete}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+        onOAuthLogin={onOAuthLogin}
+      />,
+    );
+
+    await waitUntilReady();
+    // API Key Provider category (index 2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select NVIDIA (second api-key after openai)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Authenticate');
+    expect(lastFrame()).not.toContain('Waiting for authorization');
+
+    // Type API key and submit
+    for (const ch of 'nvapi-test-key') {
+      await pressKey(stdin, ch);
+    }
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).not.toContain('Waiting for authorization');
+    expect(lastFrame()).not.toContain('oauth-waiting');
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+    // Model picker should be visible
+    expect(lastFrame()).toMatch(/Nemotron|Choose model|Step 4/);
+  });
+
+  it('12. Esc at connection-type root cancels without legacy auth text', async () => {
+    const onCancel = vi.fn();
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={onCancel}
+        providers={mockProviders}
+        categoryGroups={mockCategoryGroups}
+        models={mockModels}
+      />,
+    );
+
+    await waitUntilReady();
+    expect(lastFrame()).toContain('PLUMB Provider Setup');
+    expect(lastFrame()).not.toContain('Get started');
+    expect(lastFrame()).not.toContain('Sign in with Google');
+    expect(lastFrame()).not.toContain('geminicli.com');
+
+    await pressKey(stdin, TerminalKeys.ESCAPE);
+    await waitUntilReady();
+    expect(onCancel).toHaveBeenCalled();
+  });
 });
