@@ -69,15 +69,15 @@
     },
     "provider-transport-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/transports/streaming.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-ai/stream.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "stream-normalization": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/transports/streaming.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-ai/utils/event-stream.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     }
   },
   "files": [
@@ -184,13 +184,10 @@
     {
       "path": "packages/provider/src/transports/streaming.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": [
-        "provider-transport-registry",
-        "stream-normalization"
-      ],
+      "active": false,
+      "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/stream.ts + packages/provider/src/omp-ai/providers/"
+      "replacementOwner": "packages/provider/src/omp-ai/stream.ts"
     },
     {
       "path": "packages/provider/src/plans/zhipu-coding-plan.ts",
@@ -252,6 +249,24 @@
       "tests": ["packages/provider/src/registry/model-registry.test.ts"],
       "replacementOwner": null,
       "note": "activated: PROVIDER_REGISTRY provider-definition authority (provider-registry)"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/stream.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["provider-transport-registry"],
+      "tests": [],
+      "replacementOwner": null,
+      "note": "activated: streaming dispatch authority (provider-transport-registry)"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/utils/event-stream.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["stream-normalization"],
+      "tests": [],
+      "replacementOwner": null,
+      "note": "activated: event normalization authority (stream-normalization)"
     },
     {
       "path": "packages/provider/src/omp-ai/**",

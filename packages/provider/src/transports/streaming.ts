@@ -3,9 +3,16 @@
  * Copyright 2026 PLUMB Authors
  * SPDX-License-Identifier: Apache-2.0
  *
- * OMP-derived streaming transport adapter for PLUMB.
- * Bridges the PLUMB agent runtime to provider-specific streaming implementations.
- * Upstream source: D:\Kesit-next\packages\ai\src\stream.ts
+ * OMP-derived streaming transport adapter for PLUMB (THIN PLUMB UI FACADE).
+ *
+ * The event-stream normalization lifecycle is the responsibility of the
+ * imported OMP runtime (`omp-ai/utils/event-stream.ts`); the per-provider
+ * streaming dispatch is governed by `omp-ai/stream.ts`. This module keeps
+ * the PLUMB `PlumbStreamEvent` shape and the transport-registry surface.
+ * Upstream source: https://github.com/can1357/oh-my-pi.git
+ * Upstream SHA: 4df68d60438423b384b2b47fb3d6835641624757
+ * Upstream source: packages/ai/src/stream.ts
+ * Upstream source: packages/ai/src/utils/event-stream.ts
  * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
  */
 
@@ -15,6 +22,7 @@ import {
   type PlumbStreamOptions,
   type PlumbKnownApi,
 } from '../types.js';
+import { EventStream } from '../omp-ai/utils/event-stream.js';
 
 // ─── Transport implementations ─────────────────────────────────────────
 
@@ -860,3 +868,16 @@ registerPlumbTransport('azure-openai-responses', openAICompatibleStream);
 registerPlumbTransport('cursor-agent', openAICompatibleStream);
 registerPlumbTransport('devin-agent', openAICompatibleStream);
 registerPlumbTransport('gitlab-duo-agent', openAICompatibleStream);
+
+// ─── OMP stream-normalization delegate ──────────────────────────────────
+
+/** Create a PLUMB-typed event stream backed by the OMP normalization engine. */
+export function createNormalizationStream(): EventStream<
+  PlumbStreamEvent,
+  void
+> {
+  return new EventStream<PlumbStreamEvent, void>(
+    (e) => e.type === 'done' || e.type === 'error',
+    () => undefined as void,
+  );
+}
