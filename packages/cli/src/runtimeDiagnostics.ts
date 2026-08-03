@@ -691,7 +691,11 @@ export async function buildAuthDiagnostics(
       lines.push(`model.source: BUNDLED_CATALOG`);
     }
 
-    lines.push(`selectable: true`);
+    // Selectability: check if provider is in the selectable set
+    const isSelectable = providerModule.SELECTABLE_PROVIDERS?.some(
+      (p: { id: string }) => p.id === providerId,
+    ) ?? false;
+    lines.push(`selectable: ${isSelectable}`);
     lines.push(`last.safe.error: none`);
   } catch (err) {
     failures.push(`Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`);
