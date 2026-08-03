@@ -11,6 +11,7 @@ import {
   PlumbProviderCategory,
   type PlumbProvider,
   type PlumbModel,
+  getCatalogModels,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
@@ -146,14 +147,22 @@ export const PlumbProviderSetupDialog: React.FC<
 
   const providerModels = useMemo(() => {
     if (!state.selectedProvider) return [];
-    return allModels.filter((m) => m.provider === state.selectedProvider!.id);
+    // Include both authenticated models and OMP bundled catalog models
+    const bundled = getCatalogModels(state.selectedProvider!.id);
+    const byAuth = allModels.filter((m) => m.provider === state.selectedProvider!.id);
+    const ids = new Set(byAuth.map((m) => m.id));
+    return [...byAuth, ...bundled.filter((m) => !ids.has(m.id))];
   }, [state.selectedProvider, allModels]);
 
   const providerFullModels = useMemo(() => {
     if (!state.selectedProvider) return [];
-    return allFullModels.filter(
+    // Include both authenticated models and OMP bundled catalog models
+    const bundled = getCatalogModels(state.selectedProvider!.id);
+    const byAuth = allFullModels.filter(
       (m) => m.provider === state.selectedProvider!.id,
     );
+    const ids = new Set(byAuth.map((m) => m.id));
+    return [...byAuth, ...bundled.filter((m) => !ids.has(m.id))];
   }, [state.selectedProvider, allFullModels]);
 
   const connectionTypeItems = useMemo(
@@ -262,14 +271,31 @@ export const PlumbProviderSetupDialog: React.FC<
     }
   }, [state.selectedProvider, onOAuthLogin, onRefreshModels]);
 
-  const handleApiKeySubmit = useCallback((key: string) => {
+  const handleApiKeySubmit = useCallback(async (key: string) => {
     setState((s) => ({
       ...s,
       step: 'model-select',
       apiKey: key.trim(),
       error: null,
     }));
-  }, []);
+    // Refresh models after API key submission (like OAuth does)
+    if (onRefreshModels) {
+      try {
+        const refreshed = await onRefreshModels();
+        setDynamicModels(refreshed);
+      } catch {
+        // Model refresh failure is non-fatal
+      }
+    }
+    if (onRefreshFullModels) {
+      try {
+        const refreshed = await onRefreshFullModels();
+        setDynamicFullModels(refreshed);
+      } catch {
+        // Model refresh failure is non-fatal
+      }
+    }
+  }, [onRefreshModels, onRefreshFullModels]);
 
   const handleModelSelect = useCallback((modelId: string) => {
     setState((s) => ({ ...s, step: 'confirm', selectedModel: modelId }));

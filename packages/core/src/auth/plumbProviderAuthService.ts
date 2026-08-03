@@ -103,6 +103,12 @@ const OAUTH_CONFIGS: Record<string, OAuthFlowConfig> = {
       'api.connectors.invoke',
     ],
     redirectPort: 1455,
+    redirectPath: '/auth/callback',
+    extraParams: {
+      id_token_add_organizations: 'true',
+      codex_cli_simplified_flow: 'true',
+      originator: 'pi',
+    },
   },
 
   'github-copilot': {
@@ -380,7 +386,7 @@ export class PlumbProviderAuthService {
     const pkce = generatePkce();
     const state = generateState();
 
-    const redirectUri = `http://127.0.0.1:${config.redirectPort}${config.redirectPath ?? '/oauth2callback'}`;
+    const redirectUri = `http://localhost:${config.redirectPort}${config.redirectPath ?? '/oauth2callback'}`;
 
     const authUrl = new URL(config.authorizeUrl!);
     authUrl.searchParams.set('client_id', config.clientId ?? '');
@@ -393,6 +399,11 @@ export class PlumbProviderAuthService {
     if (config.flowType === 'authorization_code_pkce') {
       authUrl.searchParams.set('code_challenge', pkce.codeChallenge);
       authUrl.searchParams.set('code_challenge_method', 'S256');
+    }
+    if (config.extraParams) {
+      for (const [key, value] of Object.entries(config.extraParams)) {
+        authUrl.searchParams.set(key, value);
+      }
     }
 
     // Open browser
