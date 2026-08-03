@@ -7,7 +7,7 @@
  */
 
 import type { PlumbModel, PlumbProviderId, PlumbKnownApi } from '../types.js';
-import { getPlumbProvider } from '../catalog/providers.js';
+import { getPlumbProvider, LOCAL_PROVIDERS } from '../catalog/providers.js';
 import { getPlumbProviderRegistry } from './provider-registry.js';
 import {
   getCatalogModels,
@@ -135,7 +135,9 @@ export class PlumbModelRegistry {
 
   /** Discover local models (Ollama, LM Studio, llama.cpp, vLLM). */
   async discoverLocalModels(): Promise<PlumbModel[]> {
-    const localProviders = ['ollama', 'lm-studio', 'llama-cpp', 'vllm'];
+    // Local provider set comes from the OMP-derived catalog facade
+    // (LOCAL_PROVIDERS), not a hard-coded list.
+    const localProviders = LOCAL_PROVIDERS.map((p) => p.id);
     const discovered: PlumbModel[] = [];
 
     for (const providerId of localProviders) {

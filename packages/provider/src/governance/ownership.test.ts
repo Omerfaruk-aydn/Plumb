@@ -161,4 +161,31 @@ describe('ownership manifest', () => {
       ).toBe(true);
     }
   });
+
+  it('enforces negative provider-authority invariants (no duplicate authority, no hard-coded UI inventory)', () => {
+    const repoRoot = resolveRepoRoot();
+    const manifest = loadManifest(repoRoot);
+    const result = validateOwnership(manifest, repoRoot);
+
+    // The provider-registry authority is the imported OMP registry, not a
+    // PLUMB-maintained inventory.
+    expect(manifest.subsystems['provider-registry'].activeOwner).toBe(
+      'packages/provider/src/omp-ai/registry/registry.ts',
+    );
+    expect(manifest.subsystems['provider-registry'].ownerClassification).toBe(
+      'ACTIVE_OMP_SOURCE',
+    );
+
+    // Exactly one provider-authority module is active (no duplicates).
+    const authorityErrors = result.errors.filter((e) =>
+      e.includes('provider authority'),
+    );
+    expect(authorityErrors).toEqual([]);
+
+    // No hard-coded provider-id inventory arrays remain in UI/config.
+    const inventoryErrors = result.errors.filter((e) =>
+      e.includes('hard-coded provider inventory'),
+    );
+    expect(inventoryErrors).toEqual([]);
+  });
 });

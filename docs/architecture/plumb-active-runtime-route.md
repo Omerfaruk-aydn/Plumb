@@ -43,20 +43,28 @@ global/local shim
 
 ## Imported OMP Modules — activation status
 
-### ✅ Activated (model layer)
+### ✅ Activated (model + provider layer)
 
-| Subsystem      | Imported module (active owner)                                                       | PLUMB facade (THIN_PLUMB_UI_FACADE)                    |
-| -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Model resolver | `omp-catalog/models.ts` (`getBundledModels` etc.)                                    | `catalog/model-catalog.ts` (delegates, maps OMP→Plumb) |
-| Model cache    | `omp-catalog/model-cache.ts` (+ `removeModelCacheEntry`/`clearModelCache`, ledgered) | `registry/model-cache.ts` (delegates)                  |
-| Model registry | `omp-catalog/model-manager.ts` (`createModelManager`)                                | `registry/model-registry.ts` (delegates)               |
-| Discovery      | `omp-catalog/discovery/openai-compatible.ts` (`fetchOpenAICompatibleModels`)         | `registry/model-discovery.ts` (delegates)              |
+| Subsystem         | Imported module (active owner)                                                       | PLUMB facade (THIN_PLUMB_UI_FACADE)                                                          |
+| ----------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| Provider registry | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                    | `catalog/providers.ts` (OMP→PLUMB projection) + `registry/provider-registry.ts` (state only) |
+| Model resolver    | `omp-catalog/models.ts` (`getBundledModels` etc.)                                    | `catalog/model-catalog.ts` (delegates, maps OMP→Plumb)                                       |
+| Model cache       | `omp-catalog/model-cache.ts` (+ `removeModelCacheEntry`/`clearModelCache`, ledgered) | `registry/model-cache.ts` (delegates)                                                        |
+| Model registry    | `omp-catalog/model-manager.ts` (`createModelManager`)                                | `registry/model-registry.ts` (delegates)                                                     |
+| Discovery         | `omp-catalog/discovery/openai-compatible.ts` (`fetchOpenAICompatibleModels`)         | `registry/model-discovery.ts` (delegates)                                                    |
+
+The provider inventory, availability, and auth capability come from the OMP
+registry + catalog descriptors. `catalog/providers.ts` is a thin projection
+(Presentation overlay: category/group/order/description/auth-method UX only).
+`PlumbProviderRegistry` tracks per-provider auth _state_ only; its provider list
+is OMP-derived. Negative governance validators reject duplicate provider
+authorities and hard-coded provider-id arrays in `cli/src/ui` +
+`cli/src/config`.
 
 ### ⏳ Not yet activated
 
 | Subsystem            | Imported module (inactive)                                                                                                                                  | Note                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Provider registry    | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                                                                                           | Exported from provider index, no production consumer                    |
 | OAuth registry       | `omp-ai/registry/oauth/index.ts` (`refreshOAuthToken`, `getOAuthApiKey`, `getOAuthProviders`, `registerOAuthProvider`), `OAuthCallbackFlow`, `generatePKCE` | No production consumer                                                  |
 | Auth semantics       | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                                                                                       | No production consumer                                                  |
 | Transports           | `omp-ai/stream.ts` (`stream`, `streamSimple`), `omp-ai/providers/*`                                                                                         | Lazy-loaded; `openrouter-headers.js` and others not loadable under Node |

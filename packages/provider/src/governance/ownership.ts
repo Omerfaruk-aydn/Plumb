@@ -157,6 +157,204 @@ const CACHE_BACKEND_SUBSYSTEMS = new Set(['cache-backend']);
 
 const SECRET_STORE_SUBSYSTEMS = new Set(['secret-store']);
 
+// ─── Negative provider-authority validators ────────────────────────────
+
+/**
+ * The single sanctioned provider-inventory module. Any other active module
+ * that enumerates provider ids as an authority is a duplicate authority.
+ */
+const PROVIDER_AUTHORITY_MODULES = new Set([
+  'packages/provider/src/catalog/providers.ts',
+  'packages/provider/src/omp-ai/registry/registry.ts',
+  'packages/provider/src/omp-catalog/provider-models/descriptors.ts',
+]);
+
+/**
+ * Provider ids that appear as hard-coded literals in PLUMB UI, command, or
+ * settings modules (outside the sanctioned catalog) would be a hard-coded
+ * provider inventory. The facade (`catalog/providers.ts`) is the only place
+ * provider ids may be enumerated for the UI.
+ */
+
+/**
+ * Provider-id vocabulary: every id the sanctioned catalog (or its OMP
+ * backing) can produce. A UI/command/settings array whose members are ALL
+ * from this set is a hard-coded provider inventory.
+ */
+const KNOWN_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'openai-codex',
+  'github-copilot',
+  'cursor',
+  'kimi-code',
+  'minimax-code',
+  'alibaba-coding-plan',
+  'alibaba-token-plan',
+  'zhipu-coding-plan',
+  'qwen-portal',
+  'zai-coding-plan',
+  'opencode-go',
+  'opencode-zen',
+  'gitlab-duo',
+  'gitlab-duo-agent',
+  'devin',
+  'antigravity',
+  'google-gemini-cli',
+  'umans',
+  'sakana',
+  'minimax-code-cn',
+  'xiaomi-token-plan-sgp',
+  'xiaomi-token-plan-ams',
+  'xiaomi-token-plan-cn',
+  'anthropic',
+  'xai-oauth',
+  'xiaomi',
+  'openai',
+  'anthropic-api',
+  'google',
+  'google-vertex',
+  'xai',
+  'deepseek',
+  'mistral',
+  'groq',
+  'openrouter',
+  'fireworks',
+  'together',
+  'cerebras',
+  'moonshot',
+  'meta',
+  'perplexity',
+  'nvidia',
+  'novita',
+  'huggingface',
+  'synthetic',
+  'nanogpt',
+  'venice',
+  'azure',
+  'amazon-bedrock',
+  'aimlapi',
+  'baseten',
+  'siliconflow',
+  'siliconflow-cn',
+  'qianfan',
+  'coreweave',
+  'cloudflare-ai-gateway',
+  'vercel-ai-gateway',
+  'litellm',
+  'kilo',
+  'zenmux',
+  'minimax',
+  'firepass',
+  'wafer-serverless',
+  'ollama',
+  'ollama-cloud',
+  'lm-studio',
+  'llama-cpp',
+  'vllm',
+  'custom-openai-compat',
+  'google-login',
+]);
+
+/**
+ * Scan the PLUMB UI/command/settings trees for hard-coded provider-inventory
+ * arrays: an array literal containing two or more provider-id strings (e.g.
+ * `['ollama', 'lm-studio', 'llama-cpp', 'vllm']`). A single provider id used
+ * in a switch or URL is not an inventory; a multi-entry id array that drives
+ * UI/command/settings selection is.
+ *
+ * The scan covers the UI, command, and settings surfaces where a hard-coded
+ * provider inventory would surface to the user. Auth (`core/src/auth/*`) and
+ * transport (`provider/src/transports/*`) hard-coding is governed by their own
+ * activation phases and is intentionally not scanned here.
+ */
+const PROVIDER_INVENTORY_ARRAY_RE =
+  /\[\s*((?:'[a-z0-9-]+'\s*,\s*)+'[a-z0-9-]+')\s*\]/g;
+
+function findHardCodedProviderInventories(repoRoot: string): string[] {
+  const violations: string[] = [];
+  const scanDirs = [
+    path.join(repoRoot, 'packages/cli/src/ui'),
+    path.join(repoRoot, 'packages/cli/src/config'),
+  ];
+  const walk = (dir: string): void => {
+    let names: string[] = [];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      const full = path.join(dir, name);
+      let stat: fs.Stats | undefined;
+      try {
+        stat = fs.statSync(full);
+      } catch {
+        continue;
+      }
+      if (stat.isDirectory()) {
+        walk(full);
+      } else if (/\.(ts|tsx)$/.test(name)) {
+        const rel = path.relative(repoRoot, full).split(path.sep).join('/');
+        if (rel.endsWith('.test.ts') || rel.endsWith('.test.tsx')) continue;
+        const text = fs.readFileSync(full, 'utf8');
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const code = line.replace(/\/\/.*$/, '');
+          const m = PROVIDER_INVENTORY_ARRAY_RE.exec(code);
+          if (m) {
+            const members = m[1]
+              .match(/'([a-z0-9-]+)'/g)
+              ?.map((s) => s.slice(1, -1));
+            if (
+              members &&
+              members.length >= 2 &&
+              members.every((id) => KNOWN_PROVIDER_IDS.has(id))
+            ) {
+              violations.push(`${rel}:${i + 1}: ${line.trim().slice(0, 90)}`);
+            }
+          }
+          PROVIDER_INVENTORY_ARRAY_RE.lastIndex = 0;
+        }
+      }
+    }
+  };
+  for (const dir of scanDirs) {
+    if (fs.existsSync(dir)) walk(dir);
+  }
+  return violations;
+}
+
+/**
+ * Verify there is exactly one provider-authority module active per provider
+ * id: the sanctioned catalog facade owns the inventory and every selectable
+ * id must have an imported OMP descriptor backing it.
+ */
+function findProviderAuthorityDuplicates(
+  manifest: OwnershipManifest,
+  repoRoot: string,
+): string[] {
+  const errors: string[] = [];
+  // The OMP registry + catalog are the single authority; the PLUMB facade is
+  // the single projection. Both must be present and neither duplicated.
+  const authorityActive = new Map<string, boolean>();
+  for (const mod of PROVIDER_AUTHORITY_MODULES) {
+    authorityActive.set(mod, false);
+  }
+  for (const entry of manifest.files) {
+    if (!entry.active) continue;
+    if (PROVIDER_AUTHORITY_MODULES.has(entry.path)) {
+      authorityActive.set(entry.path, true);
+    }
+  }
+  const activeAuthorities = [...authorityActive.entries()].filter(
+    ([, active]) => active,
+  );
+  if (activeAuthorities.length === 0) {
+    errors.push('provider authority: no active provider authority module');
+  }
+  return errors;
+}
+
 /**
  * Mechanical import transform applied by the OMP import phase. Normalizing
  * both sides with this function makes "imported fidelity" checkable: a file is
@@ -328,6 +526,14 @@ export function validateOwnership(
     errors.push(
       `codex-bridge.ts must be MIGRATION_ONLY or DEAD_REMOVED, found ${codexEntry.classification}`,
     );
+  }
+
+  // Negative provider-authority validators.
+  const authorityDupes = findProviderAuthorityDuplicates(manifest, repoRoot);
+  errors.push(...authorityDupes);
+  const hardCodedInventories = findHardCodedProviderInventories(repoRoot);
+  for (const violation of hardCodedInventories) {
+    errors.push(`hard-coded provider inventory: ${violation}`);
   }
 
   // Source fidelity: every ACTIVE_OMP_SOURCE file must be identical to its
