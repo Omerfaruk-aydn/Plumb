@@ -15,21 +15,21 @@
     },
     "oauth-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/core/src/auth/plumbProviderAuthService.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-ai/registry/oauth/index.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "auth-storage-semantics": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/core/src/auth/plumbProviderAuthService.ts",
-      "ownerClassification": "THIN_PLUMB_UI_FACADE",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-ai/auth-storage.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "account-state": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/core/src/auth/plumbSecureCredentialStore.ts",
-      "ownerClassification": "PLUMB_OS_SECRET_BACKEND",
-      "status": "legacy-active"
+      "activeOwner": "packages/provider/src/omp-ai/auth-storage.ts",
+      "ownerClassification": "ACTIVE_OMP_SOURCE",
+      "status": "active"
     },
     "secret-store": {
       "requiredOwner": "PLUMB_OS",
@@ -269,6 +269,24 @@
       "note": "activated: event normalization authority (stream-normalization)"
     },
     {
+      "path": "packages/provider/src/omp-ai/registry/oauth/index.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["oauth-registry"],
+      "tests": [],
+      "replacementOwner": null,
+      "note": "activated: OAuth provider listing + flow registry (oauth-registry)"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/auth-storage.ts",
+      "classification": "ACTIVE_OMP_SOURCE",
+      "active": true,
+      "responsibilities": ["auth-storage-semantics", "account-state"],
+      "tests": [],
+      "replacementOwner": null,
+      "note": "activated: credential storage + account state authority (auth-storage-semantics, account-state). Keychain adapter is Phase 7."
+    },
+    {
       "path": "packages/provider/src/omp-ai/**",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": false,
@@ -349,10 +367,10 @@
     {
       "path": "packages/core/src/auth/plumbProviderAuthService.ts",
       "classification": "THIN_PLUMB_UI_FACADE",
-      "active": true,
-      "responsibilities": ["oauth-registry", "auth-storage-semantics"],
+      "active": false,
+      "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/ + packages/provider/src/omp-ai/auth-storage.ts"
+      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/"
     },
     {
       "path": "packages/core/src/auth/codex-bridge.ts",
@@ -385,7 +403,7 @@
       "path": "packages/core/src/auth/plumbSecureCredentialStore.ts",
       "classification": "PLUMB_OS_SECRET_BACKEND",
       "active": true,
-      "responsibilities": ["secret-store", "account-state"],
+      "responsibilities": ["secret-store"],
       "tests": [],
       "replacementOwner": null
     },

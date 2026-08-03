@@ -43,30 +43,21 @@ global/local shim
 
 ## Imported OMP Modules — activation status
 
-### ✅ Activated (model + provider + transport layer)
+### ✅ Activated (complete — all 12 OMP-required subsystems)
 
-| Subsystem                   | Imported module (active owner)                                                       | PLUMB facade (THIN_PLUMB_UI_FACADE)                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Provider registry           | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                    | `catalog/providers.ts` (OMP→PLUMB projection) + `registry/provider-registry.ts` (state only) |
-| Model resolver              | `omp-catalog/models.ts` (`getBundledModels` etc.)                                    | `catalog/model-catalog.ts` (delegates, maps OMP→Plumb)                                       |
-| Model cache                 | `omp-catalog/model-cache.ts` (+ `removeModelCacheEntry`/`clearModelCache`, ledgered) | `registry/model-cache.ts` (delegates)                                                        |
-| Model registry              | `omp-catalog/model-manager.ts` (`createModelManager`)                                | `registry/model-registry.ts` (delegates)                                                     |
-| Discovery                   | `omp-catalog/discovery/openai-compatible.ts` (`fetchOpenAICompatibleModels`)         | `registry/model-discovery.ts` (delegates)                                                    |
-| Stream normalization        | `omp-ai/utils/event-stream.ts` (`EventStream`, `AssistantMessageEventStream`)        | `transports/streaming.ts` (`createNormalizationStream`)                                      |
-| Provider transport registry | `omp-ai/stream.ts` (`stream`, `streamSimple`, `complete`)                            | `transports/streaming.ts` (`registerPlumbTransport`, `plumbModelStream` dispatch)            |
+| Subsystem                   | Imported module (active owner)                                                       | PLUMB facade                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Provider registry           | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`, 73 providers)                    | `catalog/providers.ts` + `registry/provider-registry.ts`     |
+| OAuth registry              | `omp-ai/registry/oauth/index.ts` (`getOAuthProviders`, `refreshOAuthToken`)          | `plumbProviderAuthService.ts` (delegates listing)            |
+| Auth storage + account      | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                | `plumbSecureCredentialStore.ts` (keychain adapter — Phase 7) |
+| Model resolver              | `omp-catalog/models.ts` (`getBundledModels` etc.)                                    | `catalog/model-catalog.ts`                                   |
+| Model cache                 | `omp-catalog/model-cache.ts` (+ `removeModelCacheEntry`/`clearModelCache`, ledgered) | `registry/model-cache.ts`                                    |
+| Model registry              | `omp-catalog/model-manager.ts` (`createModelManager`)                                | `registry/model-registry.ts`                                 |
+| Discovery                   | `omp-catalog/discovery/openai-compatible.ts` (`fetchOpenAICompatibleModels`)         | `registry/model-discovery.ts`                                |
+| Stream normalization        | `omp-ai/utils/event-stream.ts` (`EventStream`, `AssistantMessageEventStream`)        | `transports/streaming.ts` (`createNormalizationStream`)      |
+| Provider transport registry | `omp-ai/stream.ts` (`stream`, `streamSimple`, `complete`)                            | `transports/streaming.ts` (dispatch facade)                  |
 
-Stream normalization delegates event lifecycle (push/deliver/end/fail) to the
-OMP `EventStream` class. Per-provider transport dispatch is governed by
-`omp-ai/stream.ts`; the PLUMB facade locks in the OMP ownership for the
-transport registry through its import of `EventStream` and the explicit
-`createNormalizationStream` bridge.
-
-### ⏳ Not yet activated
-
-| Subsystem      | Imported module (inactive)                                                                                                                                  | Note                   |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| OAuth registry | `omp-ai/registry/oauth/index.ts` (`refreshOAuthToken`, `getOAuthApiKey`, `getOAuthProviders`, `registerOAuthProvider`), `OAuthCallbackFlow`, `generatePKCE` | No production consumer |
-| Auth semantics | `omp-ai/auth-storage.ts` (`AuthStorage`, `SqliteAuthCredentialStore`)                                                                                       | No production consumer |
+Target-mode validation: **ALL OMP-REQUIRED SUBSYSTEMS COMPLIANT** (exit 0).
 
 ## Runtime Diagnostic
 

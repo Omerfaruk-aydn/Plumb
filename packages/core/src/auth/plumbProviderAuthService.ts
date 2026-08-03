@@ -25,6 +25,7 @@ import type {
 import {
   ensurePlumbCredentialStore,
   getPlumbProviderRegistry,
+  getOAuthProviders,
 } from '@google/gemini-cli-provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
@@ -191,7 +192,16 @@ export class PlumbProviderAuthService {
     const store = await this.#getStore();
     const providers: AuthProviderInfo[] = [];
 
-    for (const [providerId, config] of Object.entries(OAUTH_CONFIGS)) {
+    // Source the OAuth provider list from the imported OMP runtime
+    // (PROVIDER_REGISTRY → getOAuthProviders). The PLUMB OAUTH_CONFIGS map
+    // remains for per-provider auth flow wiring until the keychain adapter is
+    // complete (Phase 7).
+    const ompProviders = getOAuthProviders();
+    for (const ompProv of ompProviders) {
+      const providerId = ompProv.id;
+      const config = OAUTH_CONFIGS[providerId];
+      if (!config) continue; // not yet wired for PLUMB production flows
+
       const state = registry.getProviderState(providerId);
       const metadata = await store.getProviderMetadata(providerId);
       const creds = await store.getCredentials(providerId);
