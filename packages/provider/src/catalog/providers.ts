@@ -71,6 +71,16 @@ const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
   'google-login',
 ]);
 
+/**
+ * Providers whose OAuth client registration belongs to the upstream product
+ * and is NOT valid for PLUMB (PLUMB's redirect URI is not registered with
+ * the upstream client). These providers must NOT be selectable as working
+ * OAuth login flows. API-key access remains available separately.
+ */
+const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
+  'openai-codex',
+]);
+
 /** The set of OMP registry provider ids, built once from PROVIDER_REGISTRY. */
 const OMP_REGISTRY_IDS: ReadonlySet<string> = new Set(
   PROVIDER_REGISTRY.map((p) => p.id),
@@ -624,7 +634,10 @@ function resolveOmpId(plumbId: string): string | null {
 }
 
 /** Derive availability from the OMP runtime: registry + catalog signals. */
-function isOmpAvailable(ompId: string): boolean {
+function isOmpAvailable(ompId: string, plumbId?: string): boolean {
+  // Providers whose OAuth client registration is upstream-owned and invalid
+  // for PLUMB must not be available as OAuth login flows.
+  if (plumbId && BLOCKED_CLIENT_REGISTRATIONS.has(plumbId)) return false;
   const def = getProviderDefinition(ompId);
   if (def) {
     if (def.available === false) return false;
@@ -665,7 +678,7 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
       ? false
       : ompId === null
         ? false
-        : isOmpAvailable(ompId);
+        : isOmpAvailable(ompId, plumbId);
 
   const envVars: string[] = catalogEntry?.envVars
     ? [...catalogEntry.envVars]

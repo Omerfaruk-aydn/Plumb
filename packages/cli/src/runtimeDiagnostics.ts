@@ -676,14 +676,18 @@ export async function buildAuthDiagnostics(
     lines.push(`keychain.backend: OS_KEYCHAIN`);
 
     // Account count
+    let authStateAvailable = false;
     if (registry) {
       try {
         await registry.initialize();
         const state = registry.getProviderState(providerId);
         lines.push(`auth.state: ${state?.authState ?? 'unauthenticated'}`);
+        authStateAvailable = true;
       } catch {
         lines.push(`auth.state: unavailable`);
       }
+    } else {
+      lines.push(`auth.state: unavailable`);
     }
 
     // Model source
@@ -698,6 +702,25 @@ export async function buildAuthDiagnostics(
     ) ?? false;
     lines.push(`selectable: ${isSelectable}`);
     lines.push(`last.safe.error: none`);
+
+    // Validator: a provider with unavailable auth state must not be selectable
+    // as a working OAuth provider. An OAuth-capable provider with no live auth
+    // state is a broken OAuth flow — it must be marked non-selectable.
+    if (!authStateAvailable && isSelectable && providerDef?.login) {
+      failures.push(
+        `${providerId}: auth.state=unavailable AND selectable=true is invalid for an OAuth provider`,
+      );
+    }
+
+    // Validator: a provider with unavailable auth state must not be selectable.
+    const authState = (() => {
+      try { return registry?.getProviderState(providerId)?.authState; } catch { return undefined; }
+    })();
+    if (authState === undefined && isSelectable && providerDef?.login) {
+      failures.push(
+        `${providerId}: auth.state=unavailable AND selectable=true is invalid for an OAuth provider`,
+      );
+    }
   } catch (err) {
     failures.push(`Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`);
   }

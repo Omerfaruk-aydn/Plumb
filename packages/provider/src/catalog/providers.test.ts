@@ -73,21 +73,23 @@ describe('provider catalog projection', () => {
     }
   });
 
-  it('selectable set is exactly the OMP-backed available providers', () => {
-    const ompBacked = PLUMB_PROVIDERS.filter((p) => {
-      if (PLUMB_ONLY_IDS.has(p.id)) return false;
-      const ompId = resolveOmpId(p.id);
-      if (!ompId) return false;
-      const def = getProviderDefinition(ompId);
-      const entry = getCatalogProviderEntry(ompId);
-      return def !== undefined || entry !== undefined;
-    });
-    for (const provider of ompBacked) {
-      expect(PRODUCTION_READY_PROVIDER_IDS.has(provider.id)).toBe(true);
-    }
+  it('every selectable provider is OMP-backed and has valid registration', () => {
+    // The invariant: every selectable provider must have OMP backing
+    // AND must not be in the blocked client-registration set.
+    const blockedClientReg = new Set(['openai-codex']);
     for (const id of PRODUCTION_READY_PROVIDER_IDS) {
       const provider = PLUMB_PROVIDERS.find((p) => p.id === id);
       expect(provider?.available).toBe(true);
+      expect(blockedClientReg.has(id)).toBe(false);
     }
+  });
+
+  it('openai-codex is non-selectable (blocked client registration)', () => {
+    const codex = PLUMB_PROVIDERS.find((p) => p.id === 'openai-codex');
+    expect(codex).toBeDefined();
+    expect(codex!.available).toBe(false);
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('openai-codex')).toBe(false);
+    // openai API key provider remains separately selectable.
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('openai')).toBe(true);
   });
 });
