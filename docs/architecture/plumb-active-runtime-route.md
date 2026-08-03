@@ -59,6 +59,26 @@ global/local shim
 
 Target-mode validation: **ALL OMP-REQUIRED SUBSYSTEMS COMPLIANT** (exit 0).
 
+## Legacy-Active Ownership Closure
+
+All 10 legacy-active (THIN_PLUMB_UI_FACADE) entries reclassified to final
+non-authority roles. Zero invalid legacy-active entries remain.
+
+| Path                                             | Final classification        | Why still active                              |
+| ------------------------------------------------ | --------------------------- | --------------------------------------------- |
+| `catalog/providers.ts`                           | PLUMB_PRODUCT_CONFIGURATION | Thin OMP→PLUMB projection; no authority claim |
+| `auth/credential-store.ts`                       | PLUMB_OS_PLATFORM_ADAPTER   | Keychain factory bridge (Phase 7)             |
+| `core/config/plumbInit.ts`                       | PLUMB_UI_OWNER              | Startup initialization                        |
+| `core/core/plumbContentGenerator.ts`             | PLUMB_UI_OWNER              | Gemini→PLUMB content adapter                  |
+| `core/core/contentGenerator.ts`                  | PLUMB_UI_OWNER              | Content generator w/PLUMB branch              |
+| `cli/ui/components/PlumbProviderSetupDialog.tsx` | PLUMB_UI_OWNER              | UI dialog                                     |
+| `cli/ui/components/SearchableModelPicker.tsx`    | PLUMB_UI_OWNER              | UI component                                  |
+| `cli/ui/hooks/useProviderSetupData.ts`           | PLUMB_UI_OWNER              | UI data hook                                  |
+| `cli/ui/AppContainer.tsx`                        | PLUMB_UI_OWNER              | UI container                                  |
+| `cli/ui/commands/plumbProviderCommands.ts`       | PLUMB_UI_OWNER              | UI commands                                   |
+
+INVALID_LEGACY_ACTIVE: **0** DUPLICATE_SUBSYSTEM_OWNERS: **0**
+
 ## Runtime Diagnostic
 
 `plumb --diagnose-provider-runtime` (implemented in

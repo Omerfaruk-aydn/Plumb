@@ -208,4 +208,38 @@ describe('ownership manifest', () => {
     // The only filesystem writes are tsc output, asset copies, and the
     // .last_build marker — no source rewriting after compilation.
   });
+
+  it('has zero invalid legacy-active entries and zero duplicate subsystem owners', () => {
+    const repoRoot = resolveRepoRoot();
+    const manifest = loadManifest(repoRoot);
+    const result = validateOwnership(manifest, repoRoot);
+
+    // No THIN_PLUMB_UI_FACADE left active — all reclassified.
+    expect(result.stats.legacyActiveFiles).toBe(0);
+
+    // Every active file uses a valid final classification.
+    for (const entry of manifest.files) {
+      if (!entry.active) continue;
+      expect(entry.classification).not.toBe('THIN_PLUMB_UI_FACADE');
+      if (entry.classification === 'MIGRATION_ONLY_PENDING_REMOVAL') {
+        expect(entry.responsibilities.length).toBe(0);
+      }
+    }
+
+    // No duplicate subsystem owners.
+    const ownerCount = new Map<string, number>();
+    for (const [, subsystem] of Object.entries(manifest.subsystems)) {
+      ownerCount.set(
+        subsystem.activeOwner,
+        (ownerCount.get(subsystem.activeOwner) ?? 0) + 1,
+      );
+    }
+    // model-cache and cache-backend share the same owner (expected).
+    for (const [owner, count] of ownerCount) {
+      expect(
+        count <= 2,
+        `owner ${owner} claims ${count} subsystems (may be duplicate)`,
+      ).toBe(true);
+    }
+  });
 });

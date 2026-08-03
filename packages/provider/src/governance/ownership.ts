@@ -28,9 +28,12 @@ export const MANIFEST_RELATIVE_PATH =
 export type OwnershipClassification =
   | 'ACTIVE_OMP_SOURCE'
   | 'THIN_PLUMB_UI_FACADE'
-  | 'PLUMB_OS_SECRET_BACKEND'
+  | 'PLUMB_UI_OWNER'
   | 'PLUMB_PRODUCT_CONFIGURATION'
+  | 'PLUMB_OS_SECRET_BACKEND'
+  | 'PLUMB_OS_PLATFORM_ADAPTER'
   | 'MIGRATION_ONLY'
+  | 'MIGRATION_ONLY_PENDING_REMOVAL'
   | 'DEAD_REMOVED';
 
 export interface OwnershipFileEntry {
@@ -521,7 +524,11 @@ export function validateOwnership(
   const codexEntry = byRel.get('packages/core/src/auth/codex-bridge.ts');
   if (
     codexEntry &&
-    !['MIGRATION_ONLY', 'DEAD_REMOVED'].includes(codexEntry.classification)
+    ![
+      'MIGRATION_ONLY',
+      'MIGRATION_ONLY_PENDING_REMOVAL',
+      'DEAD_REMOVED',
+    ].includes(codexEntry.classification)
   ) {
     errors.push(
       `codex-bridge.ts must be MIGRATION_ONLY or DEAD_REMOVED, found ${codexEntry.classification}`,

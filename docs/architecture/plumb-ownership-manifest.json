@@ -99,7 +99,7 @@
     },
     {
       "path": "packages/provider/src/catalog/providers.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_PRODUCT_CONFIGURATION",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -174,7 +174,7 @@
     },
     {
       "path": "packages/provider/src/auth/credential-store.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_OS_PLATFORM_ADAPTER",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -374,7 +374,7 @@
     },
     {
       "path": "packages/core/src/auth/codex-bridge.ts",
-      "classification": "MIGRATION_ONLY",
+      "classification": "MIGRATION_ONLY_PENDING_REMOVAL",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -383,7 +383,7 @@
     },
     {
       "path": "packages/core/src/auth/oauth-pkce.ts",
-      "classification": "MIGRATION_ONLY",
+      "classification": "MIGRATION_ONLY_PENDING_REMOVAL",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -392,7 +392,7 @@
     },
     {
       "path": "packages/core/src/auth/oauth-callback-server.ts",
-      "classification": "MIGRATION_ONLY",
+      "classification": "MIGRATION_ONLY_PENDING_REMOVAL",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -409,7 +409,7 @@
     },
     {
       "path": "packages/core/src/config/plumbInit.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -417,7 +417,7 @@
     },
     {
       "path": "packages/core/src/core/plumbContentGenerator.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -426,7 +426,7 @@
     },
     {
       "path": "packages/core/src/core/contentGenerator.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -435,7 +435,7 @@
     },
     {
       "path": "packages/cli/src/ui/components/PlumbProviderSetupDialog.tsx",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [
@@ -445,7 +445,7 @@
     },
     {
       "path": "packages/cli/src/ui/components/SearchableModelPicker.tsx",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [
@@ -455,7 +455,7 @@
     },
     {
       "path": "packages/cli/src/ui/hooks/useProviderSetupData.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [],
@@ -463,7 +463,7 @@
     },
     {
       "path": "packages/cli/src/ui/AppContainer.tsx",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": ["packages/cli/src/ui/AppContainer.test.tsx"],
@@ -471,7 +471,7 @@
     },
     {
       "path": "packages/cli/src/ui/commands/plumbProviderCommands.ts",
-      "classification": "THIN_PLUMB_UI_FACADE",
+      "classification": "PLUMB_UI_OWNER",
       "active": true,
       "responsibilities": [],
       "tests": [],
