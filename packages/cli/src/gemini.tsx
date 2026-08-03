@@ -430,13 +430,15 @@ export async function main() {
     argv.runtimeIdentity ||
     argv.diagnoseLogo ||
     argv.diagnoseProviderRuntime ||
-    argv.diagnoseAuth
+    argv.diagnoseAuth ||
+    argv.diagnoseModels
   ) {
     const {
       printRuntimeIdentity,
       printLogoDiagnostics,
       printProviderRuntimeDiagnostics,
       printAuthDiagnostics,
+      printModelsDiagnostics,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
@@ -445,6 +447,8 @@ export async function main() {
       exitCode = printLogoDiagnostics(settings.merged);
     } else if (argv.diagnoseAuth) {
       exitCode = await printAuthDiagnostics(argv.diagnoseAuth);
+    } else if (argv.diagnoseModels) {
+      exitCode = await printModelsDiagnostics(argv.diagnoseModels);
     } else {
       exitCode = await printProviderRuntimeDiagnostics();
     }

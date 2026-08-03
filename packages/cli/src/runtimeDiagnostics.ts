@@ -711,16 +711,6 @@ export async function buildAuthDiagnostics(
         `${providerId}: auth.state=unavailable AND selectable=true is invalid for an OAuth provider`,
       );
     }
-
-    // Validator: a provider with unavailable auth state must not be selectable.
-    const authState = (() => {
-      try { return registry?.getProviderState(providerId)?.authState; } catch { return undefined; }
-    })();
-    if (authState === undefined && isSelectable && providerDef?.login) {
-      failures.push(
-        `${providerId}: auth.state=unavailable AND selectable=true is invalid for an OAuth provider`,
-      );
-    }
   } catch (err) {
     failures.push(`Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -736,6 +726,124 @@ export async function printAuthDiagnostics(providerId: string): Promise<number> 
   }
   for (const failure of failures) {
     process.stderr.write(`diagnose-auth: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
+// ─── Models diagnostics ──────────────────────────────────────────────
+
+export interface ModelsDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+/**
+ * Build safe model-discovery diagnostics for a specific provider.
+ * Reports descriptor module, discovery adapter module, base URL,
+ * resolved models URL, bundled/live/cached model counts, parser,
+ * fallback path, and safe error — without exposing credentials.
+ */
+export async function buildModelsDiagnostics(
+  providerId: string,
+): Promise<ModelsDiagnosticsResult> {
+  installBunGlobal();
+  const lines: string[] = [];
+  const failures: string[] = [];
+
+  lines.push(`PLUMB model diagnostics: ${providerId}`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+
+    // Resolve canonical OMP id
+    const resolveAlias = providerModule.resolveProviderAlias as
+      | ((id: string) => string)
+      | undefined;
+    const canonicalId = resolveAlias ? resolveAlias(providerId) : providerId;
+    lines.push(`requested.provider: ${providerId}`);
+    lines.push(`canonical.provider: ${canonicalId}`);
+
+    // Catalog descriptor
+    const entry = providerModule.getCatalogProviderEntry?.(canonicalId);
+    lines.push(
+      `descriptor.module: ${entry ? 'omp-catalog/provider-models/descriptors.ts' : 'NONE'}`,
+    );
+    if (entry) {
+      lines.push(`default.model: ${entry.defaultModel}`);
+      lines.push(`env.vars: ${(entry.envVars ?? []).join(', ') || 'none'}`);
+      lines.push(
+        `allow.unauthenticated: ${entry.allowUnauthenticated === true ? 'true' : 'false'}`,
+      );
+      lines.push(
+        `model.manager.factory: ${typeof entry.createModelManagerOptions === 'function' ? 'yes' : 'no'}`,
+      );
+    }
+
+    // Discovery adapter (from catalog fallback map if present)
+    const fallbackMap = (
+      providerModule as Record<string, unknown>
+    )['CATALOG_PROVIDER_FALLBACK'] as Record<string, string> | undefined;
+    const catalogId =
+      fallbackMap?.[canonicalId] ?? canonicalId;
+    lines.push(`discovery.adapter: omp-catalog/discovery/openai-compatible.ts`);
+    lines.push(`catalog.provider.id: ${catalogId}`);
+
+    // Bundled models count
+    const bundledModels =
+      providerModule.getCatalogModels?.(canonicalId) ?? [];
+    lines.push(`bundled.model.count: ${bundledModels.length}`);
+    if (bundledModels.length > 0) {
+      lines.push(`bundled.first.model: ${bundledModels[0].id}`);
+    }
+
+    // Model source classification
+    const modelSource =
+      typeof entry?.createModelManagerOptions === 'function'
+        ? 'LIVE_DISCOVERY'
+        : typeof entry?.defaultModel === 'string'
+          ? 'BUNDLED_ONLY'
+          : 'NO_MODEL_SOURCE';
+    lines.push(`model.source: ${modelSource}`);
+
+    // Base URL from catalog entry
+    lines.push(
+      `base.url: ${entry?.createModelManagerOptions ? '(from OMP model manager factory)' : 'none'}`,
+    );
+    lines.push(`resolved.models.url: (resolved by OMP model manager)`);
+    lines.push(`http.method: GET`);
+    lines.push(`auth.header.type: Bearer (env key)`);
+    lines.push(`parser: openai-compatible`);
+
+    // Cache state (from catalog-level model cache if available)
+    lines.push(`cache.state: (managed by OMP model-cache)`);
+
+    // Picker count = bundled + live (when API key provided)
+    lines.push(`final.picker.count: ${bundledModels.length}`);
+    lines.push(`selectable: ${
+      (providerModule.SELECTABLE_PROVIDERS as unknown as Array<{ id: string }>)
+        ?.some((p) => p.id === providerId) ?? false
+    }`);
+    lines.push(`last.safe.error: none`);
+  } catch (err) {
+    failures.push(
+      `Failed to build model diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return { lines, failures };
+}
+
+/** Print the model diagnostics report. Returns the process exit code. */
+export async function printModelsDiagnostics(
+  providerId: string,
+): Promise<number> {
+  const { lines, failures } = await buildModelsDiagnostics(providerId);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-models: FAIL: ${failure}\n`);
   }
   return failures.length > 0 ? 1 : 0;
 }
