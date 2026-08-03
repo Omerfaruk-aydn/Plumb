@@ -642,7 +642,8 @@ export async function buildAuthDiagnostics(
     const catalogEntry = providerModule.getCatalogProviderEntry?.(canonicalId);
 
     lines.push(`descriptor.source: ${providerDef ? 'OMP_REGISTRY' : catalogEntry ? 'OMP_CATALOG' : 'NONE'}`);
-    lines.push(`auth.methods: ${providerDef?.login ? 'oauth' : providerDef?.envKeys ? 'api_key' : 'none'}`);
+    const authMethods = providerDef?.login ? 'oauth' : providerDef?.envKeys || catalogEntry?.envVars?.length ? 'api_key' : 'none';
+    lines.push(`auth.methods: ${authMethods}`);
 
     // Client registration classification
     let registrationClass = 'MISSING_REGISTRATION';
