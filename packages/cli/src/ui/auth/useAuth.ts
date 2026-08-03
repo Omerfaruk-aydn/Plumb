@@ -46,7 +46,9 @@ export const useAuthCommand = (
   onProviderSetupRequest?: () => void,
 ) => {
   const [authState, setAuthState] = useState<AuthState>(
-    initialAuthError ? AuthState.Updating : AuthState.Unauthenticated,
+    // Never start in AuthState.Updating (legacy AuthDialog). Initial errors
+    // stay Unauthenticated so PLUMB provider setup can own the route.
+    AuthState.Unauthenticated,
   );
 
   const [authError, setAuthError] = useState<string | null>(initialAuthError);
@@ -60,10 +62,18 @@ export const useAuthCommand = (
     (error: string | null) => {
       setAuthError(error);
       if (error) {
-        setAuthState(AuthState.Updating);
+        // Never open legacy AuthDialog (AuthState.Updating). Route to PLUMB
+        // provider-first setup when a setup request callback is available.
+        if (onProviderSetupRequest) {
+          setAuthState(AuthState.Unauthenticated);
+          onProviderSetupRequest();
+        } else {
+          // Fallback only when provider setup is unavailable (tests).
+          setAuthState(AuthState.Updating);
+        }
       }
     },
-    [setAuthError, setAuthState],
+    [setAuthError, setAuthState, onProviderSetupRequest],
   );
 
   const reloadApiKey = useCallback(async () => {

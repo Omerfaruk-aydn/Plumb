@@ -12,9 +12,9 @@ import { ConsentPrompt } from './ConsentPrompt.js';
 import { ThemeDialog } from './ThemeDialog.js';
 import { SettingsDialog } from './SettingsDialog.js';
 import { AuthInProgress } from '../auth/AuthInProgress.js';
-import { AuthDialog } from '../auth/AuthDialog.js';
 import { BannedAccountDialog } from '../auth/BannedAccountDialog.js';
 import { ApiAuthDialog } from '../auth/ApiAuthDialog.js';
+import { AuthState } from '../types.js';
 import { EditorSettingsDialog } from './EditorSettingsDialog.js';
 import { PrivacyNotice } from '../privacy/PrivacyNotice.js';
 import { ProQuotaDialog } from './ProQuotaDialog.js';
@@ -326,11 +326,16 @@ export const DialogManager = ({
       </Box>
     );
   }
+  // AuthInProgress (OAuth wait) is only for real Google OAuth. API-key and
+  // PLUMB_PROVIDER never set isAuthenticating. Cancel returns to PLUMB setup.
   if (uiState.isAuthenticating) {
     return (
       <AuthInProgress
         onTimeout={() => {
-          uiActions.onAuthError('Authentication cancelled.');
+          // Never open legacy AuthDialog. Cancel → PLUMB provider setup.
+          uiActions.onAuthError(null);
+          uiActions.setAuthState(AuthState.Unauthenticated);
+          uiActions.openProviderSetupDialog();
         }}
       />
     );
@@ -360,20 +365,9 @@ export const DialogManager = ({
       </Box>
     );
   }
-  if (uiState.isAuthDialogOpen) {
-    return (
-      <Box flexDirection="column">
-        <AuthDialog
-          config={config}
-          settings={settings}
-          setAuthState={uiActions.setAuthState}
-          authError={uiState.authError}
-          onAuthError={uiActions.onAuthError}
-          setAuthContext={uiActions.setAuthContext}
-        />
-      </Box>
-    );
-  }
+  // LEGACY AuthDialog (Get started / Google / Gemini / Vertex) is intentionally
+  // NOT mounted in production. All auth routes go through PlumbProviderSetupDialog.
+  // isAuthDialogOpen is forced false in AppContainer.
   if (uiState.isEditorDialogOpen) {
     return (
       <Box flexDirection="column">

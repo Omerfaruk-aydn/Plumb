@@ -35,6 +35,7 @@ export interface UIActions {
   setAuthState: (state: AuthState) => void;
   onAuthError: (error: string | null) => void;
   closeProviderSetupDialog: () => void;
+  openProviderSetupDialog: () => void;
   handleProviderSetupComplete: (
     result: PlumbProviderSetupResult,
   ) => Promise<void>;

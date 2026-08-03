@@ -319,32 +319,86 @@ export const PlumbProviderSetupDialog: React.FC<
   useKeypress(
     (key) => {
       if (key.name === 'escape') {
+        // Explicit cancellation destinations — never leave the PLUMB setup
+        // graph for the legacy Gemini AuthDialog.
         if (step === 'oauth-waiting') {
           setState((s) => ({
             ...s,
             step: 'authenticate',
             loading: false,
             oauthStatus: null,
+            error: null,
           }));
           return true;
         }
+        if (step === 'authenticate') {
+          setState((s) => ({
+            ...s,
+            step: 'provider-select',
+            selectedProvider: null,
+            apiKey: '',
+            error: null,
+          }));
+          setApiKeyInput('');
+          return true;
+        }
+        if (step === 'confirm') {
+          setState((s) => ({
+            ...s,
+            step: 'model-select',
+            selectedModel: null,
+          }));
+          return true;
+        }
+        if (step === 'model-select') {
+          setState((s) => ({
+            ...s,
+            step: provider?.allowUnauthenticated
+              ? 'provider-select'
+              : 'authenticate',
+            selectedModel: null,
+            ...(provider?.allowUnauthenticated
+              ? { selectedProvider: null }
+              : {}),
+          }));
+          return true;
+        }
+        if (step === 'provider-select') {
+          setState((s) => ({
+            ...s,
+            step: 'connection-type',
+            category: null,
+            selectedProvider: null,
+          }));
+          return true;
+        }
+        // connection-type root: close PLUMB setup (chat/welcome shell).
         onCancel();
         return true;
       }
 
       if (step === 'authenticate') {
-        // OAuth option: Enter triggers browser login
+        // API-key takes priority when the user has typed a key — never start
+        // OAuth waiting for an api_key completion path.
+        if (key.name === 'enter' && apiKeyInput.length > 0) {
+          const isApiKeyProvider = provider?.authMethods.some(
+            (m) => m.type === 'api_key',
+          );
+          if (isApiKeyProvider || !provider?.authMethods.some((m) => m.type === 'oauth')) {
+            handleApiKeySubmit(apiKeyInput);
+            return true;
+          }
+        }
+        // OAuth / device-code only when no API key was typed
         if (
           key.name === 'enter' &&
-          provider?.authMethods.some((m) => m.type === 'oauth') &&
+          apiKeyInput.length === 0 &&
+          provider?.authMethods.some(
+            (m) => m.type === 'oauth' || m.type === 'device_code',
+          ) &&
           onOAuthLogin
         ) {
           void handleOAuthStart();
-          return true;
-        }
-        // API key input
-        if (key.name === 'enter' && apiKeyInput.length > 0) {
-          handleApiKeySubmit(apiKeyInput);
           return true;
         }
         if (key.name === 'backspace') {

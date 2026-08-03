@@ -777,20 +777,28 @@ export const AppContainer = (props: AppContainerProps) => {
     paidTier,
     settings,
     setModelSwitchedFromQuotaError,
-    onShowAuthSelection: () => setAuthState(AuthState.Updating),
+    onShowAuthSelection: () => {
+      // Never open legacy AuthDialog — route to PLUMB provider setup.
+      setAuthState(AuthState.Unauthenticated);
+      openProviderSetupDialog();
+    },
     errorVerbosity: settings.merged.ui.errorVerbosity,
   });
 
-  // Derive auth state variables for backward compatibility with UIStateContext
-  const isAuthDialogOpen = authState === AuthState.Updating;
-  // PLUMB: with no auth method selected the app renders without credentials
-  // (provider-first setup opens as a dialog instead). Only block on the
-  // authenticating screen when an auth method is actually being validated.
-  // TODO: Consider handling other auth types that should also skip the blocking screen
+  // Derive auth state variables for backward compatibility with UIStateContext.
+  // Legacy AuthDialog (Get started / Google / Gemini / Vertex) is never opened
+  // in production. AuthState.Updating is remapped to PLUMB provider setup.
+  const isAuthDialogOpen = false;
+  // Only block the UI on the OAuth-style waiting screen for real Google login
+  // flows. API-key / PLUMB_PROVIDER / USE_GEMINI never enter AuthInProgress.
+  const selectedAuthType = settings.merged.security.auth.selectedType;
   const isAuthenticating =
     authState === AuthState.Unauthenticated &&
-    settings.merged.security.auth.selectedType !== undefined &&
-    settings.merged.security.auth.selectedType !== AuthType.USE_GEMINI;
+    selectedAuthType !== undefined &&
+    selectedAuthType !== AuthType.USE_GEMINI &&
+    selectedAuthType !== AuthType.PLUMB_PROVIDER &&
+    (selectedAuthType === AuthType.LOGIN_WITH_GOOGLE ||
+      selectedAuthType === AuthType.COMPUTE_ADC);
 
   // Session browser and resume functionality
   const isGeminiClientInitialized = config.getGeminiClient()?.isInitialized();
@@ -898,8 +906,8 @@ Logging in with Google... Restarting PLUMB to continue.
 
   const handleProviderSetupComplete = useCallback(
     async (result: PlumbProviderSetupResult) => {
-      // Persist the PLUMB multi-provider selection. The legacy Google auth
-      // types remain available via /auth but are never forced first.
+      // Persist the PLUMB multi-provider selection. Close setup and enter chat
+      // immediately — never show AuthInProgress / oauth-waiting for API keys.
       settings.setValue(
         SettingScope.User,
         'security.auth.selectedType',
@@ -934,19 +942,22 @@ Logging in with Google... Restarting PLUMB to continue.
         saveModelChange(settings, result.modelId);
       }
 
+      // Mark authenticated and close setup before refreshAuth so the UI never
+      // mounts AuthInProgress while generator init is in flight.
       setIsProviderSetupDialogOpen(false);
+      setAuthState(AuthState.Authenticated);
 
       try {
         config.setRemoteAdminSettings(undefined);
         await config.refreshAuth(AuthType.PLUMB_PROVIDER);
         setAuthState(AuthState.Authenticated);
       } catch (e) {
-        // The app remains usable without a completed auth flow; the user can
-        // finish authenticating via /login.
         debugLogger.warn(
           `Provider auth refresh after setup failed: ${getErrorMessage(e)}`,
         );
+        // Stay out of AuthInProgress and legacy AuthDialog. Re-open PLUMB setup.
         setAuthState(AuthState.Unauthenticated);
+        setIsProviderSetupDialogOpen(true);
       }
     },
     [settings, config, setAuthState],
@@ -985,9 +996,10 @@ Logging in with Google... Restarting PLUMB to continue.
   );
 
   const handleApiKeyCancel = useCallback(() => {
-    // Go back to auth method selection
-    setAuthState(AuthState.Updating);
-  }, [setAuthState]);
+    // Never open legacy AuthDialog — return to PLUMB provider setup.
+    setAuthState(AuthState.Unauthenticated);
+    openProviderSetupDialog();
+  }, [setAuthState, openProviderSetupDialog]);
 
   // Sync user tier from config when authentication changes
   useEffect(() => {
@@ -1069,7 +1081,11 @@ Logging in with Google... Restarting PLUMB to continue.
 
   const slashCommandActions = useMemo(
     () => ({
-      openAuthDialog: () => setAuthState(AuthState.Updating),
+      openAuthDialog: () => {
+        // Legacy /auth path: open PLUMB provider setup, never AuthDialog.
+        setAuthState(AuthState.Unauthenticated);
+        openProviderSetupDialog();
+      },
       openProviderSetupDialog,
       openThemeDialog,
       openEditorDialog,
@@ -2791,6 +2807,7 @@ Logging in with Google... Restarting PLUMB to continue.
       setAuthState,
       onAuthError,
       closeProviderSetupDialog,
+      openProviderSetupDialog,
       handleProviderSetupComplete,
       handleProviderOAuthLogin,
       handleEditorSelect,
@@ -2841,7 +2858,8 @@ Logging in with Google... Restarting PLUMB to continue.
       setAuthContext,
       dismissLoginRestart: () => {
         setAuthContext({});
-        setAuthState(AuthState.Updating);
+        setAuthState(AuthState.Unauthenticated);
+        openProviderSetupDialog();
       },
       onHintInput: () => {},
       onHintBackspace: () => {},
@@ -2882,7 +2900,8 @@ Logging in with Google... Restarting PLUMB to continue.
       getPreferredEditor,
       clearAccountSuspension: () => {
         setAccountSuspensionInfo(null);
-        setAuthState(AuthState.Updating);
+        setAuthState(AuthState.Unauthenticated);
+        openProviderSetupDialog();
       },
       setVoiceModeEnabled: (value: boolean) => {
         setVoiceModeEnabled(value);
@@ -2896,6 +2915,7 @@ Logging in with Google... Restarting PLUMB to continue.
       setAuthState,
       onAuthError,
       closeProviderSetupDialog,
+      openProviderSetupDialog,
       handleProviderSetupComplete,
       handleProviderOAuthLogin,
       handleEditorSelect,
