@@ -12,6 +12,8 @@ import {
   type PlumbProvider,
   type PlumbModel,
   getCatalogModels,
+  getCodingPlan,
+  validateCodingPlanApiKey,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
@@ -303,11 +305,32 @@ export const PlumbProviderSetupDialog: React.FC<
 
   const handleApiKeySubmit = useCallback(
     async (key: string) => {
+      const trimmed = key.trim();
+      // Validate the API key against the OMP coding-plan endpoint BEFORE
+      // accepting it. Plan id is the OMP id (or PLUMB presentation id) for
+      // selected provider. The OMP validation normalizes errors to safe
+      // PLUMB messages — no upstream body / URL / request ID is exposed.
+      if (state.selectedProvider) {
+        const plan = getCodingPlan(state.selectedProvider.id);
+        if (plan) {
+          setState((s) => ({ ...s, loading: true, error: null }));
+          const result = await validateCodingPlanApiKey(plan, trimmed);
+          if (!result.valid) {
+            setState((s) => ({
+              ...s,
+              loading: false,
+              error: result.error ?? 'API key validation failed.',
+            }));
+            return;
+          }
+        }
+      }
       setState((s) => ({
         ...s,
         step: 'model-select',
-        apiKey: key.trim(),
+        apiKey: trimmed,
         error: null,
+        loading: false,
       }));
       // Refresh models after API key submission (like OAuth does)
       if (onRefreshModels) {
@@ -327,7 +350,7 @@ export const PlumbProviderSetupDialog: React.FC<
         }
       }
     },
-    [onRefreshModels, onRefreshFullModels],
+    [onRefreshModels, onRefreshFullModels, state.selectedProvider],
   );
 
   const handleModelSelect = useCallback((modelId: string) => {

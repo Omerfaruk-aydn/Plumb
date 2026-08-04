@@ -377,10 +377,9 @@ async function validateWithChatCompletions(
       };
     }
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
       return {
         valid: false,
-        error: `API returned ${response.status}: ${body.slice(0, 200)}`,
+        error: `Provider rejected the API key (HTTP ${response.status}).`,
       };
     }
     return { valid: true };
@@ -447,10 +446,9 @@ async function validateWithAnthropicMessages(
       return { valid: false, error: 'Invalid API key.' };
     }
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
       return {
         valid: false,
-        error: `API returned ${response.status}: ${body.slice(0, 200)}`,
+        error: `Provider rejected the API key (HTTP ${response.status}).`,
       };
     }
     return { valid: true };
