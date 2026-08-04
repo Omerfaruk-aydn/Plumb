@@ -189,7 +189,7 @@ export const MainContent = () => {
             <AgentProgressLine
               agentName="Tool"
               agentType="execution"
-              currentStep={String(confirmingTool.tool.toolName ?? 'unknown')}
+              currentStep={String(confirmingTool.tool.name ?? 'unknown')}
               isComplete={false}
               compact={true}
             />

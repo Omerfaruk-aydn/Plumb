@@ -180,7 +180,7 @@ export const StatusRow: React.FC<StatusRowProps> = ({
 
   const isStreaming =
     uiState.streamingState === 'responding' ||
-    uiState.streamingState === 'waiting';
+    uiState.streamingState === 'waiting_for_confirmation';
 
   const [statusWidth, setStatusWidth] = useState(0);
   const [tipWidth, setTipWidth] = useState(0);
