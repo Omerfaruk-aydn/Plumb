@@ -1000,7 +1000,10 @@ Logging in with Google... Restarting PLUMB to continue.
 
         // 10-second timeout around refreshAuth to prevent indefinite hang
         const REFRESH_TIMEOUT_MS = 10_000;
-        const refreshPromise = config.refreshAuth(AuthType.PLUMB_PROVIDER);
+        const refreshPromise = config.refreshAuth(
+          AuthType.PLUMB_PROVIDER,
+          apiKey,
+        );
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(
             () =>
