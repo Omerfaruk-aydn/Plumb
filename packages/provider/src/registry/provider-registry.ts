@@ -22,6 +22,7 @@ import {
   type IPlumbCredentialStore,
   ensurePlumbCredentialStore,
 } from '../auth/credential-store.js';
+import { invalidateModelCache } from './model-cache.js';
 
 // ─── Auth state ────────────────────────────────────────────────────────
 
@@ -163,6 +164,10 @@ export class PlumbProviderRegistry {
 
     await this.#ensureStore().storeCredential(providerId, credential);
 
+    // Invalidate model cache when credentials change so discovery re-fetches
+    // with the new credential.
+    invalidateModelCache(providerId);
+
     this.#activeProviders.set(providerId, {
       provider,
       authState: 'authenticated',
@@ -186,6 +191,7 @@ export class PlumbProviderRegistry {
 
   async logout(providerId: PlumbProviderId): Promise<void> {
     await this.#ensureStore().removeCredentials(providerId);
+    invalidateModelCache(providerId);
     this.#activeProviders.delete(providerId);
     if (this.#selectedProvider === providerId) {
       this.#selectedProvider = null;
