@@ -916,6 +916,16 @@ Logging in with Google... Restarting PLUMB to continue.
         }
       };
 
+      const { providerId, modelId, apiKey } = result;
+      if (!providerId || !modelId) {
+        traceStage('failed: missing provider or model in selection');
+        setSetupCompletionStage(
+          'failed: missing provider or model in selection',
+        );
+        setIsProviderSetupDialogOpen(true);
+        return;
+      }
+
       // --- Stage: saving-provider ---
       traceStage('saving-provider');
       settings.setValue(
@@ -923,24 +933,20 @@ Logging in with Google... Restarting PLUMB to continue.
         'security.auth.selectedType',
         AuthType.PLUMB_PROVIDER,
       );
-      settings.setValue(
-        SettingScope.User,
-        'plumb.provider.id',
-        result.providerId,
-      );
+      settings.setValue(SettingScope.User, 'plumb.provider.id', providerId);
 
       // --- Stage: saving-credential ---
-      if (result.apiKey) {
+      if (apiKey) {
         try {
           traceStage('saving-credential');
           const { ensurePlumbCredentialStore } = await import(
             '@google/gemini-cli-provider'
           );
           const store = await ensurePlumbCredentialStore();
-          await store.storeApiKeyCredential(result.providerId, {
+          await store.storeApiKeyCredential(providerId, {
             type: 'api_key',
-            provider: result.providerId,
-            key: result.apiKey,
+            provider: providerId,
+            key: apiKey,
           });
           traceStage('saving-credential-complete');
         } catch (e) {
@@ -952,9 +958,37 @@ Logging in with Google... Restarting PLUMB to continue.
 
       // --- Stage: saving-model ---
       traceStage('saving-model');
-      if (result.modelId) {
-        config.setModel(result.modelId, true);
-        saveModelChange(settings, result.modelId);
+      config.setModel(modelId, true);
+      saveModelChange(settings, modelId);
+
+      // --- Stage: committing-provider-to-config ---
+      // CRITICAL: set the in-memory plumbProviderId so getPlumbProvider()
+      // returns the correct value when createContentGenerator reads it.
+      traceStage('committing-provider-to-config');
+      config.setPlumbProvider(providerId);
+
+      // --- Stage: verifying-config-readback ---
+      traceStage('verifying-config-readback');
+      const configProviderId = config.getPlumbProvider();
+      const configModelId = config.getModel();
+      if (trace) {
+        setSetupCompletionStage(
+          `verifying-config-readback: provider=${configProviderId ?? 'null'} model=${configModelId}`,
+        );
+      }
+      if (configProviderId !== providerId) {
+        const msg = `config provider readback mismatch: expected=${providerId} got=${configProviderId ?? 'null'}`;
+        debugLogger.warn(msg);
+        traceStage(`failed: ${msg}`);
+        setIsProviderSetupDialogOpen(true);
+        return;
+      }
+      if (configModelId !== modelId) {
+        const msg = `config model readback mismatch: expected=${modelId} got=${configModelId}`;
+        debugLogger.warn(msg);
+        traceStage(`failed: ${msg}`);
+        setIsProviderSetupDialogOpen(true);
+        return;
       }
 
       // --- Stage: initializing-content-generator ---
@@ -982,15 +1016,12 @@ Logging in with Google... Restarting PLUMB to continue.
         const msg = getErrorMessage(e);
         debugLogger.warn(`Provider auth refresh after setup failed: ${msg}`);
         traceStage(`failed: ${msg}`);
-        // Stay out of AuthInProgress and legacy AuthDialog.
         setAuthState(AuthState.Unauthenticated);
-        // Re-open the dialog so the user can retry from the failed stage.
         setIsProviderSetupDialogOpen(true);
         return;
       }
 
-      // --- Stage: closing-dialog ---
-      // Only close the dialog AFTER all async initialization succeeds.
+      // --- Stage: completed ---
       traceStage('completed');
       setIsProviderSetupDialogOpen(false);
     },
