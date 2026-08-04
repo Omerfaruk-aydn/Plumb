@@ -1,6 +1,6 @@
 # PLUMB — Complete Integration Repair Matrix
 
-Generated from the OMP-derived provider inventory at HEAD `5bb549b`.
+Generated from the OMP-derived provider inventory at HEAD `48640bf`.
 
 ## Verified reference routes (MUST NOT REGRESS)
 
@@ -107,8 +107,21 @@ Generated from the OMP-derived provider inventory at HEAD `5bb549b`.
 - IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED: ~53
 - BLOCKED_CLIENT_REGISTRATION: 1 (openai-codex)
 - IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE: 1 (amazon-bedrock — no dedicated
-  transport)
+  transport; NOT a provider-policy block)
 - BROKEN_SELECTABLE: 0
+
+## Commit ledger (8 commits in this repair series)
+
+| #   | SHA     | Parent  | Tree    | Subject                                                                         |
+| --- | ------- | ------- | ------- | ------------------------------------------------------------------------------- |
+| 1   | f30cb5c | af3dc6e | ed81a58 | docs(verification): record coding-plan/OAuth/API failure baseline               |
+| 2   | 1990d93 | f30cb5c | 5f2dacf | test(registry): verify complete integration inventory                           |
+| 3   | 9bdfafb | 1990d93 | 8432b9d | fix(coding-plans): wire OMP login validation into API-key path                  |
+| 4   | ce3bbf7 | 9bdfafb | cb48fab | fix(oauth): support Anthropic OAuth Bearer tokens in anthropicMessagesStream    |
+| 5   | eb7673b | ce3bbf7 | 8288ac8 | fix(api): use api-key header for Azure OpenAI instead of Authorization Bearer   |
+| 6   | 2cd3fa4 | eb7673b | e99acd3 | fix(cache): invalidate model cache when credentials change or provider logs out |
+| 7   | 5bb549b | 2cd3fa4 | 413b997 | fix(ui): add availabilityReason to blocked providers for truthful display       |
+| 8   | 48640bf | 5bb549b | 1f6d73f | docs(verification): publish final production matrix                             |
 
 ## Changes made
 
@@ -127,7 +140,8 @@ Generated from the OMP-derived provider inventory at HEAD `5bb549b`.
 ## Known limitations
 
 - Amazon Bedrock has no dedicated PLUMB transport (falls through to
-  openai-completions).
+  openai-completions). Classified as IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE,
+  not BLOCKED_PROVIDER_POLICY — no AWS policy restriction is proven.
 - OAuth coding plans use upstream-owned client registrations (not PLUMB-owned).
 - No live stream test was possible for providers without user credentials.
 - The pre-existing `act is not a function` issue in
