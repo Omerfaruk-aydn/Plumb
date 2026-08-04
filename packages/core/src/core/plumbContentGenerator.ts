@@ -9,7 +9,7 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
+ 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type ContentGenerator } from './contentGenerator.js';
@@ -48,7 +48,11 @@ export class PlumbContentGenerator implements ContentGenerator {
     const parts: any[] = [];
     let usageMetadata: any;
 
-    const stream = await this.generateContentStream(request, userPromptId, role);
+    const stream = await this.generateContentStream(
+      request,
+      userPromptId,
+      role,
+    );
     for await (const chunk of stream) {
       const candidate = (chunk as any).candidates?.[0];
       if (candidate?.content?.parts) {
@@ -98,17 +102,37 @@ export class PlumbContentGenerator implements ContentGenerator {
     const tools = this.#convertTools((request as any).config?.tools ?? []);
     const systemPrompt = this.#extractSystemPrompt(request);
 
+    // Look up the full model from the registry to get baseUrl and other metadata.
+    // The registry's OMP catalog carries the provider-specific base URL
+    // (e.g. https://integrate.api.nvidia.com/v1 for NVIDIA).
+    // Without this lookup, the transport falls back to https://api.openai.com/v1.
+    let registryModel: Record<string, any> | undefined;
+    try {
+      const registry = plumbModule.getPlumbModelRegistry?.();
+      if (registry) {
+        registryModel = registry.findModel(this.#providerId, this.#modelId);
+      }
+    } catch {
+      // Non-fatal: fall through with bare model object
+    }
+
+    const model: Record<string, any> = {
+      // Start with registry model if available (carries baseUrl, api, contextWindow, etc.)
+      ...(registryModel ?? {}),
+      // Always override with the explicit selection to prevent model ID prefix
+      // inference from replacing the routing provider.
+      id: this.#modelId,
+      provider: this.#providerId,
+      api: (registryModel as any)?.api ?? 'openai-completions',
+      contextWindow: (registryModel as any)?.contextWindow ?? 200000,
+      maxTokens: (registryModel as any)?.maxTokens ?? 65536,
+      reasoning: (registryModel as any)?.reasoning ?? true,
+      input: (registryModel as any)?.input ?? 'text',
+    };
+
     try {
       const stream = plumbModule.plumbModelStream({
-        model: {
-          id: this.#modelId,
-          provider: this.#providerId,
-          api: 'openai-completions',
-          contextWindow: 200000,
-          maxTokens: 65536,
-          reasoning: true,
-          input: 'text',
-        },
+        model,
         messages,
         tools,
         apiKey: this.#apiKey,
@@ -137,7 +161,13 @@ export class PlumbContentGenerator implements ContentGenerator {
           case 'usage':
             if (event.usage) {
               yield {
-                candidates: [{ content: { parts: [], role: 'model' }, finishReason: undefined as any, index: 0 }],
+                candidates: [
+                  {
+                    content: { parts: [], role: 'model' },
+                    finishReason: undefined as any,
+                    index: 0,
+                  },
+                ],
                 usageMetadata: {
                   promptTokenCount: event.usage.inputTokens,
                   candidatesTokenCount: event.usage.outputTokens,
@@ -152,11 +182,13 @@ export class PlumbContentGenerator implements ContentGenerator {
             return;
           case 'done':
             yield {
-              candidates: [{
-                content: { parts: [], role: 'model' },
-                finishReason: (event.finishReason ?? 'STOP') as any,
-                index: 0,
-              }],
+              candidates: [
+                {
+                  content: { parts: [], role: 'model' },
+                  finishReason: (event.finishReason ?? 'STOP'),
+                  index: 0,
+                },
+              ],
             } as unknown as GenerateContentResponse;
             break;
           default:
@@ -168,35 +200,48 @@ export class PlumbContentGenerator implements ContentGenerator {
         return;
       }
       debugLogger.error('PlumbContentGenerator stream error:', err);
-      yield this.#errorChunk(err instanceof Error ? err.message : 'Unknown stream error');
+      yield this.#errorChunk(
+        err instanceof Error ? err.message : 'Unknown stream error',
+      );
     }
   }
 
-  async countTokens(_request: CountTokensParameters): Promise<CountTokensResponse> {
-    return { totalTokens: 0, totalBillableCharacters: 0 } as CountTokensResponse;
+  async countTokens(
+    _request: CountTokensParameters,
+  ): Promise<CountTokensResponse> {
+    return {
+      totalTokens: 0,
+      totalBillableCharacters: 0,
+    } as CountTokensResponse;
   }
 
-  async embedContent(_request: EmbedContentParameters): Promise<EmbedContentResponse> {
+  async embedContent(
+    _request: EmbedContentParameters,
+  ): Promise<EmbedContentResponse> {
     throw new Error('Embedding not supported via PLUMB provider transport.');
   }
 
   #chunk(part: Record<string, unknown>): GenerateContentResponse {
     return {
-      candidates: [{
-        content: { parts: [part], role: 'model' },
-        finishReason: undefined as any,
-        index: 0,
-      }],
+      candidates: [
+        {
+          content: { parts: [part], role: 'model' },
+          finishReason: undefined as any,
+          index: 0,
+        },
+      ],
     } as unknown as GenerateContentResponse;
   }
 
   #errorChunk(message: string): GenerateContentResponse {
     return {
-      candidates: [{
-        content: { parts: [{ text: `Error: ${message}` }], role: 'model' },
-        finishReason: 'OTHER',
-        index: 0,
-      }],
+      candidates: [
+        {
+          content: { parts: [{ text: `Error: ${message}` }], role: 'model' },
+          finishReason: 'OTHER',
+          index: 0,
+        },
+      ],
     } as unknown as GenerateContentResponse;
   }
 
@@ -206,20 +251,32 @@ export class PlumbContentGenerator implements ContentGenerator {
     for (const content of contents) {
       if (!content.parts) continue;
       for (const part of content.parts) {
-        const role = content.role === 'model' ? 'assistant' : content.role ?? 'user';
+        const role =
+          content.role === 'model' ? 'assistant' : (content.role ?? 'user');
         if (part.text) {
           result.push({ role, content: part.text });
         } else if (part.functionCall) {
-          result.push({ role: 'assistant', content: `[Tool: ${part.functionCall.name ?? 'unknown'}]` });
+          result.push({
+            role: 'assistant',
+            content: `[Tool: ${part.functionCall.name ?? 'unknown'}]`,
+          });
         } else if (part.functionResponse) {
-          result.push({ role: 'tool', content: JSON.stringify(part.functionResponse.response ?? {}) });
+          result.push({
+            role: 'tool',
+            content: JSON.stringify(part.functionResponse.response ?? {}),
+          });
         }
       }
     }
     return result;
   }
 
-  #convertTools(tools: any[]): Array<{ type: string; function: { name: string; description: string; parameters: unknown } }> {
+  #convertTools(
+    tools: any[],
+  ): Array<{
+    type: string;
+    function: { name: string; description: string; parameters: unknown };
+  }> {
     if (!Array.isArray(tools) || tools.length === 0) return [];
     return tools.flatMap((t: any) => {
       const decls = t.functionDeclarations;
@@ -236,7 +293,9 @@ export class PlumbContentGenerator implements ContentGenerator {
   }
 
   #extractSystemPrompt(request: GenerateContentParameters): string | undefined {
-    const instruction = (request as any).config?.systemInstruction as { parts?: Array<{ text?: string }> } | undefined;
+    const instruction = (request as any).config?.systemInstruction as
+      | { parts?: Array<{ text?: string }> }
+      | undefined;
     if (!instruction?.parts) return undefined;
     return instruction.parts.map((p) => p.text ?? '').join('\n') || undefined;
   }
@@ -245,7 +304,9 @@ export class PlumbContentGenerator implements ContentGenerator {
 function safeParseJson(str: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(str);
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : {};
   } catch {
     return {};
   }
