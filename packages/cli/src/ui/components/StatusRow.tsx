@@ -28,6 +28,7 @@ import { ShellModeIndicator } from './ShellModeIndicator.js';
 import { RawMarkdownIndicator } from './RawMarkdownIndicator.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
+import { MultiAgentStatus } from './MultiAgentStatus.js';
 
 /**
  * Layout constants to prevent magic numbers.
@@ -284,6 +285,21 @@ export const StatusRow: React.FC<StatusRowProps> = ({
             isStreaming={isStreaming}
             style="dots"
             showCursor={true}
+          />
+        </Box>
+      )}
+      {showUiDetails && uiState.activeHooks.length > 0 && (
+        <Box marginLeft={1}>
+          <MultiAgentStatus
+            agents={uiState.activeHooks.map((h, i) => ({
+              id: `hook-${i}`,
+              name: h.name || 'Hook',
+              type: h.source || 'general',
+              status: 'running' as const,
+              currentTask: h.source,
+            }))}
+            terminalWidth={terminalWidth}
+            compact={true}
           />
         </Box>
       )}

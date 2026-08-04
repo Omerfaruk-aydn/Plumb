@@ -21,6 +21,7 @@ import { useMemo, memo, useCallback, useEffect, useRef } from 'react';
 import { MAX_GEMINI_MESSAGE_LINES } from '../constants.js';
 import { useConfirmingTool } from '../hooks/useConfirmingTool.js';
 import { ToolConfirmationQueue } from './ToolConfirmationQueue.js';
+import { AgentProgressLine } from './AgentProgressLine.js';
 import { appEvents, AppEvent } from '../../utils/events.js';
 
 const MemoizedHistoryItemDisplay = memo(HistoryItemDisplay);
@@ -184,10 +185,19 @@ export const MainContent = () => {
           );
         })}
         {showConfirmationQueue && confirmingTool && (
-          <ToolConfirmationQueue
-            key="confirmation-queue"
-            confirmingTool={confirmingTool}
-          />
+          <Box key="progress-line" marginBottom={1}>
+            <AgentProgressLine
+              agentName="Tool"
+              agentType="execution"
+              currentStep={String(confirmingTool.tool.toolName ?? 'unknown')}
+              isComplete={false}
+              compact={true}
+            />
+            <ToolConfirmationQueue
+              key="confirmation-queue"
+              confirmingTool={confirmingTool}
+            />
+          </Box>
         )}
       </Box>
     ),

@@ -19,6 +19,7 @@ import {
 } from '@google/gemini-cli-core';
 import { CliSpinner } from './CliSpinner.js';
 import { WarningMessage } from './messages/WarningMessage.js';
+import { VoiceModeIndicator } from './VoiceModeIndicator.js';
 
 interface VoiceModelDialogProps {
   onClose: () => void;
@@ -246,6 +247,9 @@ export function VoiceModelDialog({
             ? '(Press Esc to go back)'
             : '(Press Esc to close)'}
         </Text>
+        <Box marginTop={1}>
+          <VoiceModeIndicator state="idle" compact={true} />
+        </Box>
       </Box>
     </Box>
   );
