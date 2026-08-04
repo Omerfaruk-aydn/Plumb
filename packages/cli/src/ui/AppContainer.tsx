@@ -1625,6 +1625,7 @@ Logging in with Google... Restarting PLUMB to continue.
    * - Initialization errors
    * - Slash command processing
    * - Tool confirmations (WaitingForConfirmation state)
+   * - Modal dialogs (provider setup, settings, model picker, auth, theme)
    * - Any future streaming states not explicitly allowed
    */
   const isInputActive =
@@ -1634,7 +1635,12 @@ Logging in with Google... Restarting PLUMB to continue.
     (streamingState === StreamingState.Idle ||
       streamingState === StreamingState.Responding ||
       streamingState === StreamingState.WaitingForConfirmation) &&
-    !proQuotaRequest;
+    !proQuotaRequest &&
+    !isProviderSetupDialogOpen &&
+    !isAuthDialogOpen &&
+    !isSettingsDialogOpen &&
+    !isModelDialogOpen &&
+    !isThemeDialogOpen;
 
   const observerRef = useRef<ResizeObserver | null>(null);
 

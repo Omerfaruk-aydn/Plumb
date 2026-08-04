@@ -48,6 +48,7 @@ import {
   CompletionMode,
 } from '../hooks/useCommandCompletion.js';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
+import { useInputOwnership } from '../contexts/InputOwnershipContext.js';
 import { Command } from '../key/keyMatchers.js';
 import { formatCommand } from '../key/keybindingUtils.js';
 import type { CommandContext, SlashCommand } from '../commands/types.js';
@@ -227,6 +228,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   suggestionsPosition = 'below',
   setBannerVisible,
 }) => {
+  const { isComposerActive } = useInputOwnership();
   const inputState = useInputState();
   const {
     buffer,
@@ -1420,7 +1422,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     ],
   );
   useKeypress(handleInput, {
-    isActive: !isEmbeddedShellFocused && !copyModeEnabled,
+    isActive: isComposerActive && !isEmbeddedShellFocused && !copyModeEnabled,
     priority: true,
   });
 
