@@ -20,6 +20,7 @@ import { CompressionMessage } from './messages/CompressionMessage.js';
 import { ExportSessionMessage } from './messages/ExportSessionMessage.js';
 import { WarningMessage } from './messages/WarningMessage.js';
 import { SubagentHistoryMessage } from './messages/SubagentHistoryMessage.js';
+import { MessageTimestamp } from './MessageTimestamp.js';
 import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
 import { StatsDisplay } from './StatsDisplay.js';
@@ -93,6 +94,15 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
       )}
       {itemForDisplay.type === 'hint' && (
         <HintMessage text={itemForDisplay.text} />
+      )}
+      {itemForDisplay.type === 'user' && (
+        <Box flexDirection="row" justifyContent="flex-end">
+          <MessageTimestamp
+            timestamp={new Date()}
+            format="time"
+            showIcon={false}
+          />
+        </Box>
       )}
       {itemForDisplay.type === 'user' && (
         <UserMessage text={itemForDisplay.text} width={terminalWidth} />

@@ -21,11 +21,13 @@ import { INTERACTIVE_SHELL_WAITING_PHRASE } from '../hooks/usePhraseCycler.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { StatusDisplay } from './StatusDisplay.js';
 import { ContextUsageDisplay } from './ContextUsageDisplay.js';
+import { ContextVisualization } from './ContextVisualization.js';
 import { HorizontalLine } from './shared/HorizontalLine.js';
 import { ApprovalModeIndicator } from './ApprovalModeIndicator.js';
 import { ShellModeIndicator } from './ShellModeIndicator.js';
 import { RawMarkdownIndicator } from './RawMarkdownIndicator.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
+import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 
 /**
  * Layout constants to prevent magic numbers.
@@ -175,6 +177,10 @@ export const StatusRow: React.FC<StatusRowProps> = ({
     showMinimalContext,
   } = useComposerStatus();
 
+  const isStreaming =
+    uiState.streamingState === 'responding' ||
+    uiState.streamingState === 'waiting';
+
   const [statusWidth, setStatusWidth] = useState(0);
   const [tipWidth, setTipWidth] = useState(0);
   const tipObserverRef = useRef<ResizeObserver | null>(null);
@@ -258,19 +264,30 @@ export const StatusRow: React.FC<StatusRowProps> = ({
   }, []);
 
   const statusNode = (
-    <StatusNode
-      showTips={showTips}
-      showWit={showWit}
-      thought={uiState.thought}
-      elapsedTime={uiState.elapsedTime}
-      currentWittyPhrase={uiState.currentWittyPhrase}
-      activeHooks={uiState.activeHooks}
-      showLoadingIndicator={showLoadingIndicator}
-      errorVerbosity={
-        settings.merged.ui.errorVerbosity as 'low' | 'full' | undefined
-      }
-      onResize={onStatusResize}
-    />
+    <>
+      <StatusNode
+        showTips={showTips}
+        showWit={showWit}
+        thought={uiState.thought}
+        elapsedTime={uiState.elapsedTime}
+        currentWittyPhrase={uiState.currentWittyPhrase}
+        activeHooks={uiState.activeHooks}
+        showLoadingIndicator={showLoadingIndicator}
+        errorVerbosity={
+          settings.merged.ui.errorVerbosity as 'low' | 'full' | undefined
+        }
+        onResize={onStatusResize}
+      />
+      {isStreaming && showUiDetails && (
+        <Box marginLeft={1}>
+          <StreamingTextAnimation
+            isStreaming={isStreaming}
+            style="dots"
+            showCursor={true}
+          />
+        </Box>
+      )}
+    </>
   );
 
   const renderTipNode = () => {
@@ -444,6 +461,21 @@ export const StatusRow: React.FC<StatusRowProps> = ({
                       : undefined
                   }
                   terminalWidth={terminalWidth}
+                />
+              </Box>
+            )}
+            {showUiDetails && (
+              <Box marginLeft={LAYOUT.INDICATOR_LEFT_MARGIN}>
+                <ContextVisualization
+                  usedTokens={uiState.sessionStats.lastPromptTokenCount ?? 0}
+                  maxTokens={128000}
+                  modelName={
+                    typeof uiState.currentModel === 'string'
+                      ? uiState.currentModel
+                      : undefined
+                  }
+                  terminalWidth={terminalWidth}
+                  showDetails={showUiDetails}
                 />
               </Box>
             )}
