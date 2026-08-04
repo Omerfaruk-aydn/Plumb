@@ -14,6 +14,8 @@ import {
   getCatalogModels,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
+import { Command } from '../key/keyMatchers.js';
+import { useKeyMatchers } from '../hooks/useKeyMatchers.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
@@ -105,6 +107,7 @@ export const PlumbProviderSetupDialog: React.FC<
   onRefreshModels,
   onRefreshFullModels,
 }) => {
+  const keyMatchers = useKeyMatchers();
   const [state, setState] = useState<SetupState>({
     step: 'connection-type',
     category: null,
@@ -117,6 +120,7 @@ export const PlumbProviderSetupDialog: React.FC<
     loading: false,
     oauthStatus: null,
   });
+  const [confirmPending, setConfirmPending] = useState(false);
 
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [dynamicModels, setDynamicModels] = useState<
@@ -148,7 +152,7 @@ export const PlumbProviderSetupDialog: React.FC<
   const providerModels = useMemo(() => {
     if (!state.selectedProvider) return [];
     // Include both authenticated models and OMP bundled catalog models
-    const bundled = getCatalogModels(state.selectedProvider!.id);
+    const bundled = getCatalogModels(state.selectedProvider.id);
     const byAuth = allModels.filter((m) => m.provider === state.selectedProvider!.id);
     const ids = new Set(byAuth.map((m) => m.id));
     return [...byAuth, ...bundled.filter((m) => !ids.has(m.id))];
@@ -157,7 +161,7 @@ export const PlumbProviderSetupDialog: React.FC<
   const providerFullModels = useMemo(() => {
     if (!state.selectedProvider) return [];
     // Include both authenticated models and OMP bundled catalog models
-    const bundled = getCatalogModels(state.selectedProvider!.id);
+    const bundled = getCatalogModels(state.selectedProvider.id);
     const byAuth = allFullModels.filter(
       (m) => m.provider === state.selectedProvider!.id,
     );
@@ -196,6 +200,17 @@ export const PlumbProviderSetupDialog: React.FC<
         sublabel: m.provider,
       })),
     [providerModels],
+  );
+
+  const confirmItems = useMemo(
+    () => [
+      {
+        key: 'confirm',
+        value: 'confirm' as const,
+        label: 'Confirm and start PLUMB',
+      },
+    ],
+    [],
   );
 
   const handleConnectionTypeSelect = useCallback(
@@ -302,15 +317,26 @@ export const PlumbProviderSetupDialog: React.FC<
   }, []);
 
   const handleConfirm = useCallback(() => {
+    if (confirmPending) return;
     if (!state.selectedProvider || !state.selectedModel) return;
-    onComplete({
-      providerId: state.selectedProvider.id,
-      modelId: state.selectedModel,
-      apiKey: state.apiKey || undefined,
-      smolModel: state.smolModel ?? undefined,
-      planningModel: state.planningModel ?? undefined,
-    });
-  }, [state, onComplete]);
+    setConfirmPending(true);
+    setState((s) => ({ ...s, error: null }));
+    try {
+      onComplete({
+        providerId: state.selectedProvider.id,
+        modelId: state.selectedModel,
+        apiKey: state.apiKey || undefined,
+        smolModel: state.smolModel ?? undefined,
+        planningModel: state.planningModel ?? undefined,
+      });
+    } catch (err) {
+      setState((s) => ({
+        ...s,
+        error: err instanceof Error ? err.message : 'Setup failed',
+      }));
+      setConfirmPending(false);
+    }
+  }, [state, onComplete, confirmPending]);
 
   // Keyboard handling for authenticate/confirm steps and global navigation
   const step = state.step;
@@ -385,7 +411,7 @@ export const PlumbProviderSetupDialog: React.FC<
             (m) => m.type === 'api_key',
           );
           if (isApiKeyProvider || !provider?.authMethods.some((m) => m.type === 'oauth')) {
-            handleApiKeySubmit(apiKeyInput);
+            void handleApiKeySubmit(apiKeyInput);
             return true;
           }
         }
@@ -431,8 +457,12 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'confirm') {
-        if (key.name === 'enter') {
-          handleConfirm();
+        if (keyMatchers[Command.ESCAPE](key)) {
+          setState((s) => ({
+            ...s,
+            step: 'model-select',
+            selectedModel: null,
+          }));
           return true;
         }
         if (key.name === 'backspace') {
@@ -443,7 +473,7 @@ export const PlumbProviderSetupDialog: React.FC<
           }));
           return true;
         }
-        return true;
+        return false;
       }
 
       // Backspace navigation for list steps (not model-select, handled by picker)
@@ -595,18 +625,26 @@ export const PlumbProviderSetupDialog: React.FC<
       )}
 
       {step === 'confirm' && provider && state.selectedModel && (
-        <ConfirmStep
-          provider={provider}
-          modelId={state.selectedModel}
-          onConfirm={handleConfirm}
-          onBack={() =>
-            setState((s) => ({
-              ...s,
-              step: 'model-select',
-              selectedModel: null,
-            }))
-          }
-        />
+        <Box flexDirection="column">
+          <Text bold>Confirm setup:</Text>
+          <Box flexDirection="column" marginY={1}>
+            <Text>
+              Provider: <Text color="green">{provider.name}</Text>
+            </Text>
+            <Text>
+              Model: <Text color="green">{state.selectedModel}</Text>
+            </Text>
+          </Box>
+          <RadioButtonSelect
+            items={confirmItems}
+            onSelect={() => handleConfirm()}
+            isFocused={!confirmPending}
+            showNumbers={false}
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Backspace: back to model selection</Text>
+          </Box>
+        </Box>
       )}
 
       <Box marginTop={1}>
@@ -701,35 +739,6 @@ function AuthStep({
             ? 'Enter to sign in • Type API key to use directly • Backspace to go back'
             : 'Type API key and press Enter • Backspace to go back'}
         </Text>
-      </Box>
-    </Box>
-  );
-}
-
-function ConfirmStep({
-  provider,
-  modelId,
-  onConfirm: _onConfirm,
-}: {
-  provider: PlumbProvider;
-  modelId: string;
-  onConfirm: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <Box flexDirection="column">
-      <Text bold>Confirm setup:</Text>
-      <Box flexDirection="column" marginY={1}>
-        <Text>
-          Provider: <Text color="green">{provider.name}</Text>
-        </Text>
-        <Text>
-          Model: <Text color="green">{modelId}</Text>
-        </Text>
-      </Box>
-      <Box flexDirection="column" marginBottom={1}>
-        <Text dimColor>Press Enter to confirm and start PLUMB.</Text>
-        <Text dimColor>Press Backspace to choose a different model.</Text>
       </Box>
     </Box>
   );

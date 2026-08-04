@@ -422,4 +422,320 @@ describe('PlumbProviderSetupDialog', () => {
     await waitUntilReady();
     expect(onCancel).toHaveBeenCalled();
   });
+
+  it('13. confirm step Enter fires onComplete exactly once', async () => {
+    const nvidia: PlumbProvider = {
+      id: 'nvidia',
+      name: 'NVIDIA',
+      category: PlumbProviderCategory.API_KEY,
+      description: 'NVIDIA NIM',
+      authMethods: [{ type: 'api_key', envVar: 'NVIDIA_API_KEY' }],
+      allowUnauthenticated: false,
+      available: true,
+      envVars: ['NVIDIA_API_KEY'],
+    };
+    const providers = [...mockProviders, nvidia];
+    const groups = new Map(mockCategoryGroups);
+    groups.set(
+      'api-key',
+      providers.filter((p) => p.category === PlumbProviderCategory.API_KEY),
+    );
+    const models = [
+      ...mockModels,
+      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+    ];
+    const onComplete = vi.fn();
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={onComplete}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+      />,
+    );
+
+    await waitUntilReady();
+    // API Key Provider category (index 2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select NVIDIA
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Type API key and submit
+    for (const ch of 'nvapi-test-key') {
+      await pressKey(stdin, ch);
+    }
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select first model
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Confirm step should be visible
+    expect(lastFrame()).toContain('Confirm setup');
+    expect(lastFrame()).toContain('NVIDIA');
+    expect(lastFrame()).toContain('Step 5');
+
+    // Press Enter to confirm
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith({
+      providerId: 'nvidia',
+      modelId: expect.any(String),
+      apiKey: 'nvapi-test-key',
+    });
+  });
+
+  it('14. confirm step repeated Enter does not double-submit', async () => {
+    const ollama: PlumbProvider = {
+      id: 'ollama',
+      name: 'Ollama',
+      category: PlumbProviderCategory.LOCAL,
+      description: 'Local models',
+      authMethods: [],
+      allowUnauthenticated: true,
+      available: true,
+    };
+    const providers = [ollama];
+    const groups = new Map(mockCategoryGroups);
+    groups.set('local', [ollama]);
+    const models = [{ id: 'llama3', name: 'Llama 3', provider: 'ollama' }];
+    const onComplete = vi.fn();
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={onComplete}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+      />,
+    );
+
+    await waitUntilReady();
+    // Local category (index 3)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select Ollama
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select model
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Confirm setup');
+
+    // Press Enter multiple times rapidly
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('15. Escape at confirm step returns to model selection', async () => {
+    const nvidia: PlumbProvider = {
+      id: 'nvidia',
+      name: 'NVIDIA',
+      category: PlumbProviderCategory.API_KEY,
+      description: 'NVIDIA NIM',
+      authMethods: [{ type: 'api_key', envVar: 'NVIDIA_API_KEY' }],
+      allowUnauthenticated: false,
+      available: true,
+      envVars: ['NVIDIA_API_KEY'],
+    };
+    const providers = [nvidia];
+    const groups = new Map<string, PlumbProvider[]>();
+    groups.set('api-key', [nvidia]);
+    const models = [
+      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+    ];
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+      />,
+    );
+
+    await waitUntilReady();
+    // API Key Provider category (index 2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select NVIDIA
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Type API key and submit
+    for (const ch of 'test') {
+      await pressKey(stdin, ch);
+    }
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select first model -> confirm step
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Confirm setup');
+
+    // Backspace returns to model selection
+    await pressKey(stdin, TerminalKeys.BACKSPACE);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Step 4');
+    expect(lastFrame()).not.toContain('Confirm setup');
+  });
+
+  it('16. NVIDIA API-key full flow reaches confirm and completes', async () => {
+    const nvidia: PlumbProvider = {
+      id: 'nvidia',
+      name: 'NVIDIA',
+      category: PlumbProviderCategory.API_KEY,
+      description: 'NVIDIA NIM',
+      authMethods: [{ type: 'api_key', envVar: 'NVIDIA_API_KEY' }],
+      allowUnauthenticated: false,
+      available: true,
+      envVars: ['NVIDIA_API_KEY'],
+    };
+    const providers = [nvidia];
+    const groups = new Map<string, PlumbProvider[]>();
+    groups.set('api-key', [nvidia]);
+    const models = [
+      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+    ];
+    const onComplete = vi.fn();
+    const onOAuthLogin = vi.fn();
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={onComplete}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+        onOAuthLogin={onOAuthLogin}
+      />,
+    );
+
+    await waitUntilReady();
+    // API Key Provider category (index 2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select NVIDIA
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Authenticate');
+    expect(lastFrame()).not.toContain('Waiting for authorization');
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+
+    // Type API key and submit
+    for (const ch of 'nvapi-test') {
+      await pressKey(stdin, ch);
+    }
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Model picker
+    expect(lastFrame()).toContain('Step 4');
+
+    // Select model
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Confirm step
+    expect(lastFrame()).toContain('Confirm setup');
+    expect(lastFrame()).toContain('NVIDIA');
+    expect(lastFrame()).toContain('Step 5');
+
+    // Confirm
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledWith({
+      providerId: 'nvidia',
+      modelId: expect.any(String),
+      apiKey: 'nvapi-test',
+    });
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+  });
+
+  it('17. confirm step shows error from onComplete', async () => {
+    const ollama: PlumbProvider = {
+      id: 'ollama',
+      name: 'Ollama',
+      category: PlumbProviderCategory.LOCAL,
+      description: 'Local models',
+      authMethods: [],
+      allowUnauthenticated: true,
+      available: true,
+    };
+    const providers = [ollama];
+    const groups = new Map(mockCategoryGroups);
+    groups.set('local', [ollama]);
+    const models = [{ id: 'llama3', name: 'Llama 3', provider: 'ollama' }];
+    const onComplete = vi.fn().mockImplementation(() => {
+      throw new Error('Provider initialization failed');
+    });
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={onComplete}
+        onCancel={vi.fn()}
+        providers={providers}
+        categoryGroups={groups}
+        models={models}
+      />,
+    );
+
+    await waitUntilReady();
+    // Local category (index 3)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select Ollama
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Select model
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Confirm - should trigger error
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Provider initialization failed');
+    expect(lastFrame()).toContain('Confirm setup');
+  });
 });

@@ -592,6 +592,13 @@ export async function buildAuthStateDiagnostics(): Promise<{
     `auth.error.destination: PLUMB_PROVIDER_SETUP (not AuthState.Updating)`,
     `pending.callback.server: (runtime; none at diagnose time)`,
     `pending.device.polling: (runtime; none at diagnose time)`,
+    `confirm.step.active: (runtime; true when step === 'confirm')`,
+    `confirm.focus.owner: RadioButtonSelect (uses useSelectionList)`,
+    `confirm.return.binding: active (Command.RETURN via keyMatchers)`,
+    `confirm.submission.pending: (runtime; guarded by confirmPending state)`,
+    `selected.provider: (runtime; persisted to plumb.provider.id)`,
+    `selected.model: (runtime; persisted via config.setModel)`,
+    `setup.complete: (runtime; setIsProviderSetupDialogOpen(false))`,
   ];
   const failures: string[] = [];
 
