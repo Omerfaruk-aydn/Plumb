@@ -202,17 +202,6 @@ export const PlumbProviderSetupDialog: React.FC<
     [providerModels],
   );
 
-  const confirmItems = useMemo(
-    () => [
-      {
-        key: 'confirm',
-        value: 'confirm' as const,
-        label: 'Confirm and start PLUMB',
-      },
-    ],
-    [],
-  );
-
   const handleConnectionTypeSelect = useCallback(
     (category: PlumbProviderCategory) => {
       setState((s) => ({
@@ -406,7 +395,7 @@ export const PlumbProviderSetupDialog: React.FC<
       if (step === 'authenticate') {
         // API-key takes priority when the user has typed a key — never start
         // OAuth waiting for an api_key completion path.
-        if (key.name === 'enter' && apiKeyInput.length > 0) {
+        if (keyMatchers[Command.RETURN](key) && apiKeyInput.length > 0) {
           const isApiKeyProvider = provider?.authMethods.some(
             (m) => m.type === 'api_key',
           );
@@ -417,7 +406,7 @@ export const PlumbProviderSetupDialog: React.FC<
         }
         // OAuth / device-code only when no API key was typed
         if (
-          key.name === 'enter' &&
+          keyMatchers[Command.RETURN](key) &&
           apiKeyInput.length === 0 &&
           provider?.authMethods.some(
             (m) => m.type === 'oauth' || m.type === 'device_code',
@@ -457,6 +446,16 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'confirm') {
+        if (process.env.PLUMB_KEY_TRACE) {
+          const returnMatch = keyMatchers[Command.RETURN](key);
+          process.stderr.write(
+            `[KEY_TRACE] confirm step | key.name=${key.name} key.sequence=${JSON.stringify(key.sequence)} Command.RETURN=${returnMatch} confirmPending=${confirmPending}\n`,
+          );
+        }
+        if (keyMatchers[Command.RETURN](key)) {
+          void handleConfirm();
+          return true;
+        }
         if (keyMatchers[Command.ESCAPE](key)) {
           setState((s) => ({
             ...s,
@@ -473,7 +472,7 @@ export const PlumbProviderSetupDialog: React.FC<
           }));
           return true;
         }
-        return false;
+        return true;
       }
 
       // Backspace navigation for list steps (not model-select, handled by picker)
@@ -486,7 +485,7 @@ export const PlumbProviderSetupDialog: React.FC<
 
       return false;
     },
-    { isActive: true },
+    { isActive: true, priority: true },
   );
 
   return (
@@ -635,14 +634,9 @@ export const PlumbProviderSetupDialog: React.FC<
               Model: <Text color="green">{state.selectedModel}</Text>
             </Text>
           </Box>
-          <RadioButtonSelect
-            items={confirmItems}
-            onSelect={() => handleConfirm()}
-            isFocused={!confirmPending}
-            showNumbers={false}
-          />
-          <Box marginTop={1}>
-            <Text dimColor>Backspace: back to model selection</Text>
+          <Box marginBottom={1}>
+            <Text color="cyan">Press Enter to confirm and start PLUMB.</Text>
+            <Text dimColor>Press Backspace to choose a different model.</Text>
           </Box>
         </Box>
       )}

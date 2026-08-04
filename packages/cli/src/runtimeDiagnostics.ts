@@ -593,12 +593,18 @@ export async function buildAuthStateDiagnostics(): Promise<{
     `pending.callback.server: (runtime; none at diagnose time)`,
     `pending.device.polling: (runtime; none at diagnose time)`,
     `confirm.step.active: (runtime; true when step === 'confirm')`,
-    `confirm.focus.owner: RadioButtonSelect (uses useSelectionList)`,
-    `confirm.return.binding: active (Command.RETURN via keyMatchers)`,
+    `confirm.focus.owner: PlumbProviderSetupDialog (dialog-level handler)`,
+    `confirm.return.binding: active (Command.RETURN via keyMatchers, priority: true)`,
     `confirm.submission.pending: (runtime; guarded by confirmPending state)`,
     `selected.provider: (runtime; persisted to plumb.provider.id)`,
     `selected.model: (runtime; persisted via config.setModel)`,
     `setup.complete: (runtime; setIsProviderSetupDialogOpen(false))`,
+    `confirm.handler.owner: PlumbProviderSetupDialog`,
+    `confirm.handler.active: (runtime; isActive when dialog open)`,
+    `confirm.handler.priority: dialog (priority: true, same as InputPrompt)`,
+    `confirm.return.matcher: Command.RETURN`,
+    `nested.confirm.handler.count: 0 (RadioButtonSelect removed from confirm)`,
+    `global.input.suppressed: (runtime; dialog handler at same priority as InputPrompt)`,
   ];
   const failures: string[] = [];
 
