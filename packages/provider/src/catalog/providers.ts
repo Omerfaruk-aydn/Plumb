@@ -695,6 +695,22 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
         ? false
         : isOmpAvailable(ompId, plumbId);
 
+  // Derive a truthful availability reason for blocked providers.
+  let availabilityReason: string | undefined;
+  if (!available) {
+    if (plumbId && BLOCKED_CLIENT_REGISTRATIONS.has(plumbId)) {
+      availabilityReason = 'BLOCKED_CLIENT_REGISTRATION';
+    } else if (plumbId && BLOCKED_NO_MODEL_SOURCE.has(plumbId)) {
+      availabilityReason = 'PROVIDER_HAS_NO_MODEL_ENUMERATION';
+    } else if (ompId === null) {
+      availabilityReason = 'PLUMB_ONLY_SYNTHETIC';
+    } else if (ompDef?.available === false) {
+      availabilityReason = 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE';
+    } else {
+      availabilityReason = 'NOT_PRESENT_AT_PINNED_SHA';
+    }
+  }
+
   const envVars: string[] = catalogEntry?.envVars
     ? [...catalogEntry.envVars]
     : plumbEnvVars(plumbId);
@@ -715,6 +731,7 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
     allowUnauthenticated,
     group: presentation?.group,
     order: presentation?.order,
+    availabilityReason,
   };
   if (provider.defaultModel === undefined) {
     delete (provider as { defaultModel?: string }).defaultModel;
@@ -725,6 +742,9 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
   }
   if (provider.envVars === undefined) {
     delete (provider as { envVars?: string[] }).envVars;
+  }
+  if (provider.availabilityReason === undefined) {
+    delete (provider as { availabilityReason?: string }).availabilityReason;
   }
   return provider;
 }
