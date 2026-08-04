@@ -232,7 +232,8 @@ async function* anthropicMessagesStream(
     systemPrompt,
   } = options;
 
-  const url = 'https://api.anthropic.com/v1/messages';
+  const baseUrl = model.baseUrl ?? 'https://api.anthropic.com';
+  const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`;
 
   const systemMessages: unknown[] = [];
   const chatMessages: unknown[] = [];
@@ -282,14 +283,29 @@ async function* anthropicMessagesStream(
 
   if (temperature !== undefined) body.temperature = temperature;
 
+  // Determine auth header: OAuth tokens use Authorization: Bearer;
+  // API keys use x-api-key. Both are supported by Anthropic's API.
+  // The model.headers field can carry provider-specific headers
+  // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
+  const authHeaders: Record<string, string> = {};
+  if (apiKey) {
+    authHeaders['x-api-key'] = apiKey;
+  }
+
+  // Merge any provider-specific headers from the model (set by OMP catalog
+  // or by PlumbContentGenerator when it resolves the full model from registry).
+  if (model.headers) {
+    Object.assign(authHeaders, model.headers);
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        ...authHeaders,
       },
       body: JSON.stringify(body),
       signal,
