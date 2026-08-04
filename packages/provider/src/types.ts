@@ -47,6 +47,20 @@ export interface PlumbProvider {
   readonly allowUnauthenticated?: boolean;
   /** Display order in provider lists (lower = first). */
   readonly order?: number;
+  /**
+   * User-facing reason a provider is unavailable, classifier
+   * (BLOCKED_CLIENT_REGISTRATION, IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE,
+   * PROVIDER_HAS_NO_MODEL_ENUMERATION, etc.).
+   */
+  readonly availabilityReason?: string;
+  /** OAuth client registration ownership / posture (PLUMB-only). */
+  readonly oauthPosture?:
+    | 'PLUMB_OWNED_VALID_REGISTRATION'
+    | 'OFFICIAL_PUBLIC_DEVICE_FLOW'
+    | 'OFFICIAL_CLI_DELEGATION'
+    | 'UPSTREAM_PRODUCT_OWNED_REGISTRATION'
+    | 'MISSING_REGISTRATION'
+    | 'PROVIDER_POLICY_BLOCKED';
 }
 
 // ─── API transport types ─────────────────────────────────────────────
@@ -160,6 +174,13 @@ export interface PlumbModel {
   readonly anthropicCompat?: PlumbAnthropicCompat;
   readonly bedrockCompat?: PlumbBedrockCompat;
   readonly baseUrl?: string;
+  /**
+   * Optional default request headers that the transport must apply in
+   * addition to the standard Authorization/Content-Type/Accept headers.
+   * Merged in `buildProviderRequestHeaders` — caller-supplied headers
+   * override but never delete Authorization.
+   */
+  readonly headers?: Record<string, string>;
   readonly isOAuth?: boolean;
   readonly isPreview?: boolean;
   readonly isDeprecated?: boolean;

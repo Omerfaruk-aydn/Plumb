@@ -69,5 +69,8 @@ temp_agents/
 # conductor extension and planning directories
 conductor/
 
+# Command Code working directory (scratchpad + state)
+.commandcode/
+
 # Windows sandbox helper binary (build artifact)
 packages/core/src/sandbox/windows/GeminiSandbox.exe
