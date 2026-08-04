@@ -322,6 +322,7 @@ export const DialogManager = ({
           onOAuthLogin={uiActions.handleProviderOAuthLogin}
           onRefreshModels={refreshModels}
           onRefreshFullModels={refreshFullModels}
+          completionStage={uiState.setupCompletionStage}
         />
       </Box>
     );

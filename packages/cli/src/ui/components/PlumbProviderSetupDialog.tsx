@@ -60,6 +60,7 @@ export interface PlumbProviderSetupDialogProps {
     Array<{ id: string; name?: string; provider: string }>
   >;
   onRefreshFullModels?: () => Promise<PlumbModel[]>;
+  completionStage?: string;
 }
 
 export interface PlumbProviderSetupResult {
@@ -110,6 +111,7 @@ export const PlumbProviderSetupDialog: React.FC<
   onOAuthLogin,
   onRefreshModels,
   onRefreshFullModels,
+  completionStage,
 }) => {
   const keyMatchers = useKeyMatchers();
   const { claim } = useInputOwnership();
@@ -700,6 +702,18 @@ export const PlumbProviderSetupDialog: React.FC<
             </>
           ) : (
             <Text dimColor>(no key received yet)</Text>
+          )}
+          <Text color="yellow">confirm.stage: {completionStage ?? 'idle'}</Text>
+          <Text color="yellow">
+            onComplete.resolved:{' '}
+            {completionStage === 'completed'
+              ? 'true'
+              : completionStage?.startsWith('failed')
+                ? 'error'
+                : 'pending'}
+          </Text>
+          {completionStage?.startsWith('failed:') && (
+            <Text color="red">last.safe.error: {completionStage.slice(7)}</Text>
           )}
         </Box>
       )}

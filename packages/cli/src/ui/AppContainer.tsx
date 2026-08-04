@@ -904,10 +904,20 @@ Logging in with Google... Restarting PLUMB to continue.
     [setAuthState, onAuthError, reloadApiKey, config],
   );
 
+  const [setupCompletionStage, setSetupCompletionStage] =
+    useState<string>('idle');
+
   const handleProviderSetupComplete = useCallback(
     async (result: PlumbProviderSetupResult) => {
-      // Persist the PLUMB multi-provider selection. Close setup and enter chat
-      // immediately — never show AuthInProgress / oauth-waiting for API keys.
+      const trace = !!process.env['PLUMB_KEY_TRACE'];
+      const traceStage = (stage: string) => {
+        if (trace) {
+          setSetupCompletionStage(stage);
+        }
+      };
+
+      // --- Stage: saving-provider ---
+      traceStage('saving-provider');
       settings.setValue(
         SettingScope.User,
         'security.auth.selectedType',
@@ -919,8 +929,10 @@ Logging in with Google... Restarting PLUMB to continue.
         result.providerId,
       );
 
+      // --- Stage: saving-credential ---
       if (result.apiKey) {
         try {
+          traceStage('saving-credential');
           const { ensurePlumbCredentialStore } = await import(
             '@google/gemini-cli-provider'
           );
@@ -930,6 +942,7 @@ Logging in with Google... Restarting PLUMB to continue.
             provider: result.providerId,
             key: result.apiKey,
           });
+          traceStage('saving-credential-complete');
         } catch (e) {
           debugLogger.warn(
             `Failed to store provider credential: ${getErrorMessage(e)}`,
@@ -937,28 +950,49 @@ Logging in with Google... Restarting PLUMB to continue.
         }
       }
 
+      // --- Stage: saving-model ---
+      traceStage('saving-model');
       if (result.modelId) {
         config.setModel(result.modelId, true);
         saveModelChange(settings, result.modelId);
       }
 
-      // Mark authenticated and close setup before refreshAuth so the UI never
-      // mounts AuthInProgress while generator init is in flight.
-      setIsProviderSetupDialogOpen(false);
+      // --- Stage: initializing-content-generator ---
+      traceStage('initializing-content-generator');
       setAuthState(AuthState.Authenticated);
 
       try {
         config.setRemoteAdminSettings(undefined);
-        await config.refreshAuth(AuthType.PLUMB_PROVIDER);
+
+        // 10-second timeout around refreshAuth to prevent indefinite hang
+        const REFRESH_TIMEOUT_MS = 10_000;
+        const refreshPromise = config.refreshAuth(AuthType.PLUMB_PROVIDER);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(new Error('Provider initialization timed out after 10s')),
+            REFRESH_TIMEOUT_MS,
+          ),
+        );
+
+        await Promise.race([refreshPromise, timeoutPromise]);
+        traceStage('initializing-content-generator-complete');
         setAuthState(AuthState.Authenticated);
       } catch (e) {
-        debugLogger.warn(
-          `Provider auth refresh after setup failed: ${getErrorMessage(e)}`,
-        );
-        // Stay out of AuthInProgress and legacy AuthDialog. Re-open PLUMB setup.
+        const msg = getErrorMessage(e);
+        debugLogger.warn(`Provider auth refresh after setup failed: ${msg}`);
+        traceStage(`failed: ${msg}`);
+        // Stay out of AuthInProgress and legacy AuthDialog.
         setAuthState(AuthState.Unauthenticated);
+        // Re-open the dialog so the user can retry from the failed stage.
         setIsProviderSetupDialogOpen(true);
+        return;
       }
+
+      // --- Stage: closing-dialog ---
+      // Only close the dialog AFTER all async initialization succeeds.
+      traceStage('completed');
+      setIsProviderSetupDialogOpen(false);
     },
     [settings, config, setAuthState],
   );
@@ -2573,6 +2607,7 @@ Logging in with Google... Restarting PLUMB to continue.
       accountSuspensionInfo,
       isAuthDialogOpen,
       isProviderSetupDialogOpen,
+      setupCompletionStage,
       isAwaitingApiKeyInput: authState === AuthState.AwaitingApiKeyInput,
       isAwaitingLoginRestart,
       loginRestartMessage,
@@ -2691,6 +2726,7 @@ Logging in with Google... Restarting PLUMB to continue.
       accountSuspensionInfo,
       isAuthDialogOpen,
       isProviderSetupDialogOpen,
+      setupCompletionStage,
       editorError,
       isEditorDialogOpen,
       showPrivacyNotice,
