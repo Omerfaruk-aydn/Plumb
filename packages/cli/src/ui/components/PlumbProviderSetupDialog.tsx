@@ -5,7 +5,7 @@
  */
 
 import type React from 'react';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import {
   PlumbProviderCategory,
@@ -16,6 +16,10 @@ import {
 import { useKeypress } from '../hooks/useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
 import { useKeyMatchers } from '../hooks/useKeyMatchers.js';
+import {
+  InputOwner,
+  useInputOwnership,
+} from '../contexts/InputOwnershipContext.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
@@ -108,6 +112,16 @@ export const PlumbProviderSetupDialog: React.FC<
   onRefreshFullModels,
 }) => {
   const keyMatchers = useKeyMatchers();
+  const { claim } = useInputOwnership();
+
+  // Claim exclusive input ownership while this dialog is mounted.
+  // This prevents InputPrompt/Composer from registering or processing
+  // any keypresses (Enter, Tab, Escape, etc.) while the dialog is open.
+  useEffect(() => {
+    const release = claim(InputOwner.PROVIDER_SETUP);
+    return release;
+  }, [claim]);
+
   const [state, setState] = useState<SetupState>({
     step: 'connection-type',
     category: null,
@@ -121,6 +135,14 @@ export const PlumbProviderSetupDialog: React.FC<
     oauthStatus: null,
   });
   const [confirmPending, setConfirmPending] = useState(false);
+
+  // PLUMB_KEY_TRACE diagnostic state
+  const keyTraceEnabled = !!process.env['PLUMB_KEY_TRACE'];
+  const [lastKeyTrace, setLastKeyTrace] = useState<{
+    keyName: string;
+    returnMatched: boolean;
+    consumedBy: string;
+  } | null>(null);
 
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [dynamicModels, setDynamicModels] = useState<
@@ -153,7 +175,9 @@ export const PlumbProviderSetupDialog: React.FC<
     if (!state.selectedProvider) return [];
     // Include both authenticated models and OMP bundled catalog models
     const bundled = getCatalogModels(state.selectedProvider.id);
-    const byAuth = allModels.filter((m) => m.provider === state.selectedProvider!.id);
+    const byAuth = allModels.filter(
+      (m) => m.provider === state.selectedProvider!.id,
+    );
     const ids = new Set(byAuth.map((m) => m.id));
     return [...byAuth, ...bundled.filter((m) => !ids.has(m.id))];
   }, [state.selectedProvider, allModels]);
@@ -275,31 +299,34 @@ export const PlumbProviderSetupDialog: React.FC<
     }
   }, [state.selectedProvider, onOAuthLogin, onRefreshModels]);
 
-  const handleApiKeySubmit = useCallback(async (key: string) => {
-    setState((s) => ({
-      ...s,
-      step: 'model-select',
-      apiKey: key.trim(),
-      error: null,
-    }));
-    // Refresh models after API key submission (like OAuth does)
-    if (onRefreshModels) {
-      try {
-        const refreshed = await onRefreshModels();
-        setDynamicModels(refreshed);
-      } catch {
-        // Model refresh failure is non-fatal
+  const handleApiKeySubmit = useCallback(
+    async (key: string) => {
+      setState((s) => ({
+        ...s,
+        step: 'model-select',
+        apiKey: key.trim(),
+        error: null,
+      }));
+      // Refresh models after API key submission (like OAuth does)
+      if (onRefreshModels) {
+        try {
+          const refreshed = await onRefreshModels();
+          setDynamicModels(refreshed);
+        } catch {
+          // Model refresh failure is non-fatal
+        }
       }
-    }
-    if (onRefreshFullModels) {
-      try {
-        const refreshed = await onRefreshFullModels();
-        setDynamicFullModels(refreshed);
-      } catch {
-        // Model refresh failure is non-fatal
+      if (onRefreshFullModels) {
+        try {
+          const refreshed = await onRefreshFullModels();
+          setDynamicFullModels(refreshed);
+        } catch {
+          // Model refresh failure is non-fatal
+        }
       }
-    }
-  }, [onRefreshModels, onRefreshFullModels]);
+    },
+    [onRefreshModels, onRefreshFullModels],
+  );
 
   const handleModelSelect = useCallback((modelId: string) => {
     setState((s) => ({ ...s, step: 'confirm', selectedModel: modelId }));
@@ -399,7 +426,10 @@ export const PlumbProviderSetupDialog: React.FC<
           const isApiKeyProvider = provider?.authMethods.some(
             (m) => m.type === 'api_key',
           );
-          if (isApiKeyProvider || !provider?.authMethods.some((m) => m.type === 'oauth')) {
+          if (
+            isApiKeyProvider ||
+            !provider?.authMethods.some((m) => m.type === 'oauth')
+          ) {
             void handleApiKeySubmit(apiKeyInput);
             return true;
           }
@@ -446,13 +476,18 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'confirm') {
-        if (process.env.PLUMB_KEY_TRACE) {
-          const returnMatch = keyMatchers[Command.RETURN](key);
+        const returnMatched = keyMatchers[Command.RETURN](key);
+        if (keyTraceEnabled) {
+          setLastKeyTrace({
+            keyName: key.name,
+            returnMatched,
+            consumedBy: 'PlumbProviderSetupDialog',
+          });
           process.stderr.write(
-            `[KEY_TRACE] confirm step | key.name=${key.name} key.sequence=${JSON.stringify(key.sequence)} Command.RETURN=${returnMatch} confirmPending=${confirmPending}\n`,
+            `[KEY_TRACE] confirm step | key.name=${key.name} key.sequence=${JSON.stringify(key.sequence)} Command.RETURN=${returnMatched} confirmPending=${confirmPending}\n`,
           );
         }
-        if (keyMatchers[Command.RETURN](key)) {
+        if (returnMatched) {
           void handleConfirm();
           return true;
         }
@@ -638,6 +673,34 @@ export const PlumbProviderSetupDialog: React.FC<
             <Text color="cyan">Press Enter to confirm and start PLUMB.</Text>
             <Text dimColor>Press Backspace to choose a different model.</Text>
           </Box>
+        </Box>
+      )}
+
+      {keyTraceEnabled && step === 'confirm' && (
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="single"
+          borderColor="yellow"
+          padding={0}
+        >
+          <Text color="yellow" bold>
+            [PLUMB_KEY_TRACE]
+          </Text>
+          <Text color="yellow">Input owner: {InputOwner.PROVIDER_SETUP}</Text>
+          <Text color="yellow">Composer active: false</Text>
+          <Text color="yellow">Confirm handler active: true</Text>
+          {lastKeyTrace ? (
+            <>
+              <Text color="yellow">Last key: {lastKeyTrace.keyName}</Text>
+              <Text color="yellow">
+                RETURN matched: {String(lastKeyTrace.returnMatched)}
+              </Text>
+              <Text color="yellow">Consumed by: {lastKeyTrace.consumedBy}</Text>
+            </>
+          ) : (
+            <Text dimColor>(no key received yet)</Text>
+          )}
         </Box>
       )}
 
