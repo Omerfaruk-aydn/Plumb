@@ -87,13 +87,30 @@ async function* openAICompatibleStream(
   if (temperature !== undefined && temperature >= 0)
     body.temperature = temperature;
 
+  // Azure OpenAI uses api-key header; all others use Authorization: Bearer.
+  // The model.headers field can carry provider-specific headers.
+  const authHeaders: Record<string, string> = {};
+  const isAzure =
+    model.provider === 'azure' ||
+    (model.baseUrl ?? '').includes('.openai.azure.com');
+  if (isAzure) {
+    authHeaders['api-key'] = apiKey;
+  } else {
+    authHeaders['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  // Merge any provider-specific headers from the model.
+  if (model.headers) {
+    Object.assign(authHeaders, model.headers);
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        ...authHeaders,
       },
       body: JSON.stringify(body),
       signal,
