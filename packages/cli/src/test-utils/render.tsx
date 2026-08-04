@@ -41,6 +41,7 @@ import {
   type OverflowActions,
   type OverflowState,
 } from '../ui/contexts/OverflowContext.js';
+import { InputOwnershipProvider } from '../ui/contexts/InputOwnershipContext.js';
 
 import { makeFakeConfig } from '@google/gemini-cli-core';
 import { type Config } from '@google/gemini-cli-core';
@@ -781,24 +782,26 @@ export const renderWithProviders = async (
                                 onCancel={vi.fn()}
                               >
                                 <KeypressProvider>
-                                  <MouseProvider
-                                    mouseEventsEnabled={mouseEventsEnabled}
-                                  >
-                                    <TerminalProvider>
-                                      <ScrollProvider>
-                                        <ContextCapture>
-                                          <Box
-                                            width={terminalWidth}
-                                            flexShrink={0}
-                                            flexGrow={0}
-                                            flexDirection="column"
-                                          >
-                                            {comp}
-                                          </Box>
-                                        </ContextCapture>
-                                      </ScrollProvider>
-                                    </TerminalProvider>
-                                  </MouseProvider>
+                                  <InputOwnershipProvider>
+                                    <MouseProvider
+                                      mouseEventsEnabled={mouseEventsEnabled}
+                                    >
+                                      <TerminalProvider>
+                                        <ScrollProvider>
+                                          <ContextCapture>
+                                            <Box
+                                              width={terminalWidth}
+                                              flexShrink={0}
+                                              flexGrow={0}
+                                              flexDirection="column"
+                                            >
+                                              {comp}
+                                            </Box>
+                                          </ContextCapture>
+                                        </ScrollProvider>
+                                      </TerminalProvider>
+                                    </MouseProvider>
+                                  </InputOwnershipProvider>
                                 </KeypressProvider>
                               </AskUserActionsProvider>
                             </ToolActionsProvider>

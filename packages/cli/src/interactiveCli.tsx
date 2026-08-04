@@ -48,6 +48,7 @@ import { useKittyKeyboardProtocol } from './ui/hooks/useKittyKeyboardProtocol.js
 import { ScrollProvider } from './ui/contexts/ScrollProvider.js';
 import { TerminalProvider } from './ui/contexts/TerminalContext.js';
 import { OverflowProvider } from './ui/contexts/OverflowContext.js';
+import { InputOwnershipProvider } from './ui/contexts/InputOwnershipContext.js';
 import { profiler } from './ui/components/DebugProfiler.js';
 import { initializeConsoleStore } from './ui/hooks/useConsoleMessages.js';
 
@@ -112,13 +113,15 @@ export async function startInteractiveUI(
                   <OverflowProvider>
                     <SessionStatsProvider sessionId={config.getSessionId()}>
                       <VimModeProvider>
-                        <AppContainer
-                          config={config}
-                          startupWarnings={startupWarnings}
-                          version={version}
-                          resumedSessionData={resumedSessionData}
-                          initializationResult={initializationResult}
-                        />
+                        <InputOwnershipProvider>
+                          <AppContainer
+                            config={config}
+                            startupWarnings={startupWarnings}
+                            version={version}
+                            resumedSessionData={resumedSessionData}
+                            initializationResult={initializationResult}
+                          />
+                        </InputOwnershipProvider>
                       </VimModeProvider>
                     </SessionStatsProvider>
                   </OverflowProvider>
