@@ -112,10 +112,13 @@ export interface CliArgs {
   isCommand: boolean | undefined;
   runtimeIdentity: boolean | undefined;
   diagnoseLogo: boolean | undefined;
-    diagnoseProviderRuntime: boolean | undefined;
-    diagnoseAuth: string | undefined;
-    diagnoseModels: string | undefined;
-    diagnoseAuthState: boolean | undefined;
+  diagnoseProviderRuntime: boolean | undefined;
+  diagnoseAuth: string | undefined;
+  diagnoseModels: string | undefined;
+  diagnoseAuthState: boolean | undefined;
+  testProvider: string | undefined;
+  testProviderList: boolean | undefined;
+  testProviderNext: boolean | undefined;
 }
 
 /**
@@ -530,6 +533,21 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Print safe auth-state machine diagnostics (active setup owner, legacy AuthDialog reachability, cancel destinations) without exposing credentials.',
+        })
+        .option('test-provider', {
+          type: 'string',
+          description:
+            'Run a live acceptance test for a specific provider using the real PLUMB runtime. Validates credential, models, transport, and stream. Never exposes secrets. Usage: plumb --test-provider <provider-id>',
+        })
+        .option('test-provider-list', {
+          type: 'boolean',
+          description:
+            'List all selectable providers grouped by category, showing verification status and recommended next test.',
+        })
+        .option('test-provider-next', {
+          type: 'boolean',
+          description:
+            'Choose the next unverified provider for live acceptance testing.',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

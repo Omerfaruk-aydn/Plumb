@@ -574,6 +574,9 @@ describe('gemini.tsx main function kitty protocol', () => {
       diagnoseAuth: undefined,
       diagnoseModels: undefined,
       diagnoseAuthState: undefined,
+      testProvider: undefined,
+      testProviderList: undefined,
+      testProviderNext: undefined,
     });
 
     await act(async () => {
@@ -640,6 +643,9 @@ describe('gemini.tsx main function kitty protocol', () => {
       diagnoseAuth: undefined,
       diagnoseModels: undefined,
       diagnoseAuthState: undefined,
+      testProvider: undefined,
+      testProviderList: undefined,
+      testProviderNext: undefined,
     });
 
     await act(async () => {

@@ -432,7 +432,10 @@ export async function main() {
     argv.diagnoseProviderRuntime ||
     argv.diagnoseAuth ||
     argv.diagnoseModels ||
-    argv.diagnoseAuthState
+    argv.diagnoseAuthState ||
+    argv.testProvider ||
+    argv.testProviderList ||
+    argv.testProviderNext
   ) {
     const {
       printRuntimeIdentity,
@@ -453,6 +456,21 @@ export async function main() {
       exitCode = await printModelsDiagnostics(argv.diagnoseModels);
     } else if (argv.diagnoseAuthState) {
       exitCode = await printAuthStateDiagnostics();
+    } else if (argv.testProvider) {
+      const { runProviderAcceptanceTest } = await import(
+        './providerAcceptanceHarness.js'
+      );
+      exitCode = await runProviderAcceptanceTest(argv.testProvider);
+    } else if (argv.testProviderList) {
+      const { printProviderTestList } = await import(
+        './providerAcceptanceHarness.js'
+      );
+      exitCode = await printProviderTestList();
+    } else if (argv.testProviderNext) {
+      const { printProviderTestNext } = await import(
+        './providerAcceptanceHarness.js'
+      );
+      exitCode = await printProviderTestNext();
     } else {
       exitCode = await printProviderRuntimeDiagnostics();
     }
