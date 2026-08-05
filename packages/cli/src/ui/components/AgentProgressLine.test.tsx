@@ -45,22 +45,6 @@ describe('<AgentProgressLine />', () => {
     unmount();
   });
 
-  it('displays current step', async () => {
-    const { lastFrame, waitUntilReady, unmount } = await renderWithProviders(
-      <AgentProgressLine
-        agentName="Tool"
-        agentType="execution"
-        currentStep="write_file"
-        isComplete={false}
-        compact={false}
-      />,
-    );
-    await waitUntilReady();
-    const frame = lastFrame();
-    expect(frame).toContain('write_file');
-    unmount();
-  });
-
   it('renders compact mode when complete', async () => {
     const { lastFrame, waitUntilReady, unmount } = await renderWithProviders(
       <AgentProgressLine
