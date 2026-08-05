@@ -76,7 +76,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
         <Text color={color} bold>
           {' '}
         </Text>
-        <Text color={theme.text.secondary}> Context </Text>
+        <Text color={theme.text.secondary}> Prompt tokens </Text>
         <Text color={color}>{renderProgressBar(percentage, barWidth)}</Text>
         <Text color={color}> {percentageDisplay}%</Text>
         {modelName && <Text color={theme.text.secondary}> ({modelName})</Text>}

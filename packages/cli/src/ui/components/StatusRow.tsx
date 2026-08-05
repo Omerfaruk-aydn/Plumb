@@ -294,12 +294,13 @@ export const StatusRow: React.FC<StatusRowProps> = ({
             agents={uiState.activeHooks.map((h, i) => ({
               id: `hook-${i}`,
               name: h.name || 'Hook',
-              type: h.source || 'general',
+              type: h.source || 'system',
               status: 'running' as const,
-              currentTask: h.source,
+              currentTask: h.eventName,
             }))}
             terminalWidth={terminalWidth}
             compact={true}
+            label="Hook Activity"
           />
         </Box>
       )}

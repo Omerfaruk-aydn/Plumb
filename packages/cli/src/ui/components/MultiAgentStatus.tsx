@@ -35,6 +35,7 @@ interface MultiAgentStatusProps {
   agents: AgentInfo[];
   terminalWidth: number;
   compact?: boolean;
+  label?: string;
 }
 
 const STATUS_ICONS: Record<AgentStatus, { icon: string; color: string }> = {
@@ -80,6 +81,7 @@ export const MultiAgentStatus: React.FC<MultiAgentStatusProps> = ({
   agents,
   terminalWidth,
   compact = false,
+  label = 'Multi-Agent Status',
 }) => {
   if (agents.length === 0) {
     return null;
@@ -132,7 +134,7 @@ export const MultiAgentStatus: React.FC<MultiAgentStatusProps> = ({
             {' '}
           </Text>
           <Text color={theme.text.accent} bold>
-            Multi-Agent Status
+            {label}
           </Text>
         </Box>
         <Text color={theme.text.secondary}>
