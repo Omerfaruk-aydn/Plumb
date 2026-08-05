@@ -10,7 +10,6 @@ import { theme } from '../semantic-colors.js';
 import { useUIState, type UIState } from '../contexts/UIStateContext.js';
 import { useInputState, type InputState } from '../contexts/InputContext.js';
 import { TransientMessageType } from '../../utils/events.js';
-import { CompactSummary } from './CompactSummary.js';
 
 export function shouldShowToast(
   uiState: UIState,
@@ -86,22 +85,6 @@ export const ToastDisplay: React.FC = () => {
       <Text color={theme.text.secondary}>
         Press Ctrl+O to {action} lines of the last response
       </Text>
-    );
-  }
-
-  // Show compaction summary when compaction occurs
-  if (
-    uiState.transientMessage?.type === TransientMessageType.Hint &&
-    uiState.transientMessage.text?.includes('compacted')
-  ) {
-    return (
-      <CompactSummary
-        originalMessageCount={uiState.history.length}
-        compactedMessageCount={Math.max(1, uiState.history.length - 5)}
-        tokensSaved={5000}
-        summary={uiState.transientMessage.text}
-        terminalWidth={80}
-      />
     );
   }
 
