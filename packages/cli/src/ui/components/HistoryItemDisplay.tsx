@@ -72,6 +72,9 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   const inlineThinkingMode = getInlineThinkingMode(settings);
   const itemForDisplay = useMemo(() => escapeAnsiCtrlCodes(item), [item]);
 
+  // Use real persisted timestamp from the history item, falling back to now
+  const messageTimestamp = itemForDisplay.createdAt ?? new Date();
+
   const needTopMargin = !!(
     (isFirstAfterThinking && inlineThinkingMode !== 'off') ||
     isToolGroupBoundary
@@ -98,7 +101,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
       {itemForDisplay.type === 'user' && (
         <Box flexDirection="row" justifyContent="flex-end">
           <MessageTimestamp
-            timestamp={new Date()}
+            timestamp={messageTimestamp}
             format="time"
             showIcon={false}
           />

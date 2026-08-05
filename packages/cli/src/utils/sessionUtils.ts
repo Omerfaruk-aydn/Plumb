@@ -635,6 +635,7 @@ export function convertSessionToHistoryFormats(
       uiHistory.push({
         type: messageType,
         text: uiText,
+        createdAt: msg.timestamp ? new Date(msg.timestamp) : undefined,
       });
     }
 

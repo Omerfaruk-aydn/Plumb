@@ -160,6 +160,7 @@ export const emptyIcon = '  ';
 
 export interface HistoryItemBase {
   text?: string; // Text content for user/gemini/info/error messages
+  createdAt?: Date; // Real message creation timestamp, persisted through session save/restore
 }
 
 export type HistoryItemUser = HistoryItemBase & {
