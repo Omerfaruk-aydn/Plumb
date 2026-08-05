@@ -13,11 +13,18 @@ import type {
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
   IPlumbCredentialStore,
+  OAuthCredentials,
+  OAuthLoginCallbacks,
 } from '@google/gemini-cli-provider';
 import {
   ensurePlumbCredentialStore,
   getPlumbProviderRegistry,
   getOAuthProviders,
+  getPlumbProvider,
+  getProviderDefinition,
+  resolveProviderAlias,
+  installBunGlobal,
+  PlumbProviderCategory,
 } from '@google/gemini-cli-provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
@@ -42,6 +49,23 @@ export interface OAuthFlowConfig {
   redirectPath?: string;
   deviceCodeUrl?: string;
   extraParams?: Record<string, string>;
+}
+
+export interface BeginLoginOptions {
+  /**
+   * Progress/instruction callback for interactive OAuth flows. Receives
+   * device codes, browser instructions, and provisioning messages so the UI
+   * can surface them while `beginLogin` runs to completion.
+   */
+  onStatus?: (message: string) => void;
+  /**
+   * Text-input callback for flows that require a typed answer (e.g. GitHub
+   * enterprise domain, Alibaba endpoint choice). When omitted, flows that
+   * allow an empty answer default to blank; flows that require input fail
+   * with an actionable error.
+   */
+  onPrompt?: (message: string, placeholder?: string) => Promise<string>;
+  signal?: AbortSignal;
 }
 
 export interface LoginResult {
@@ -198,7 +222,9 @@ export class PlumbProviderAuthService {
     for (const ompProv of ompProviders) {
       const providerId = ompProv.id;
       const config = OAUTH_CONFIGS[providerId];
-      if (!config) continue; // not yet wired for PLUMB production flows
+      const ompDef = getProviderDefinition(providerId);
+      const hasOmpLogin = typeof ompDef?.login === 'function';
+      if (!config && !hasOmpLogin) continue; // not yet wired for PLUMB flows
 
       const state = registry.getProviderState(providerId);
       const metadata = await store.getProviderMetadata(providerId);
@@ -208,7 +234,7 @@ export class PlumbProviderAuthService {
       providers.push({
         providerId,
         displayName: this.#getDisplayName(providerId),
-        flowType: config.flowType,
+        flowType: config?.flowType ?? 'device_code',
         authState: state?.authState ?? 'unauthenticated',
         accountLabel:
           oauthCred?.credential.type === 'oauth'
@@ -225,7 +251,18 @@ export class PlumbProviderAuthService {
   async beginLogin(
     providerId: PlumbProviderId,
     apiKeyValue?: string,
+    options?: BeginLoginOptions,
   ): Promise<LoginResult> {
+    const provider = getPlumbProvider(providerId);
+
+    // Coding plans authenticate through the imported OMP registry `login`
+    // function — the single authority for real device-code, paste-code, and
+    // API-key-paste flows. No guessed per-provider OAuth endpoint map is
+    // consulted. Non-coding-plan OAuth accounts keep the legacy PLUMB flow.
+    if (provider?.category === PlumbProviderCategory.CODING_PLAN) {
+      return this.#ompLoginFlow(providerId, apiKeyValue, options);
+    }
+
     const config = OAUTH_CONFIGS[providerId];
     if (!config) {
       // Try API key validation for providers without OAuth configs
@@ -269,6 +306,133 @@ export class PlumbProviderAuthService {
       registry.setAuthError(providerId, message);
       return { success: false, error: message };
     }
+  }
+
+  /**
+   * Route a coding-plan login through the OMP registry `login` function.
+   * The result is either an API key string (e.g. OpenCode Zen's paste flow)
+   * or full {@link OAuthCredentials} (device-code / callback flows). Both are
+   * stored under the PLUMB presentation id.
+   */
+  async #ompLoginFlow(
+    providerId: PlumbProviderId,
+    apiKeyValue: string | undefined,
+    options: BeginLoginOptions | undefined,
+  ): Promise<LoginResult> {
+    // OMP login modules (callback servers, provisioning loops, hashing) rely
+    // on the Bun runtime surface; install the Node shim before any module runs.
+    installBunGlobal();
+
+    const ompId = resolveProviderAlias(providerId);
+    const def = getProviderDefinition(ompId);
+    if (!def || typeof def.login !== 'function') {
+      if (apiKeyValue) {
+        return this.#validateApiKey(providerId, apiKeyValue);
+      }
+      return {
+        success: false,
+        error: `No interactive auth flow available for provider: ${providerId} (OMP ${ompId} has no login).`,
+      };
+    }
+
+    const registry = getPlumbProviderRegistry();
+    await registry.initialize();
+    registry.setAuthenticating(providerId);
+
+    try {
+      const controller: OAuthLoginCallbacks = {
+        onAuth: (info) => {
+          if (info.instructions) {
+            options?.onStatus?.(info.instructions);
+          }
+          options?.onStatus?.(
+            `Open the sign-in page in your browser (${info.launchUrl ?? info.url}) and complete authentication.`,
+          );
+          void this.#openBrowser(info.launchUrl ?? info.url);
+        },
+        onProgress: (message) => {
+          options?.onStatus?.(message);
+        },
+        onPrompt: async (prompt) => {
+          if (options?.onPrompt) {
+            const answer = await options.onPrompt(
+              prompt.message,
+              prompt.placeholder,
+            );
+            if (typeof answer === 'string') return answer;
+          }
+          if (prompt.allowEmpty) return '';
+          throw new Error(
+            `Login for ${providerId} requires input: ${prompt.message}`,
+          );
+        },
+        signal: options?.signal,
+      };
+
+      const result = await def.login(controller);
+      const store = await this.#getStore();
+
+      if (typeof result === 'string') {
+        const credential: PlumbApiKeyCredential = {
+          type: 'api_key',
+          provider: providerId,
+          key: result,
+        };
+        await store.storeApiKeyCredential(providerId, credential);
+        await registry.setAuthenticated(providerId, credential);
+        return { success: true, credential };
+      }
+
+      const credential = this.#toPlumbCredential(providerId, result);
+      await store.storeOAuthCredential(providerId, credential);
+      await registry.setAuthenticated(providerId, credential);
+      return {
+        success: true,
+        credential,
+        accountLabel: credential.email ?? credential.accountId,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      registry.setAuthError(providerId, message);
+      debugLogger.warn(
+        `Coding-plan login failed for ${providerId}: ${message}`,
+      );
+      return { success: false, error: message };
+    }
+  }
+
+  /** Open the authorization URL in the default browser (best-effort). */
+  async #openBrowser(url: string): Promise<void> {
+    try {
+      const { default: open } = await import('open');
+      await open(url);
+    } catch (err) {
+      debugLogger.warn(
+        `Could not open browser: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /** Map OMP OAuth credentials onto the PLUMB credential shape. */
+  #toPlumbCredential(
+    providerId: PlumbProviderId,
+    omp: OAuthCredentials,
+  ): PlumbOAuthCredential {
+    return {
+      type: 'oauth',
+      provider: providerId,
+      access: omp.access,
+      refresh: omp.refresh,
+      expires: omp.expires,
+      email: omp.email,
+      accountId: omp.accountId,
+      orgId: omp.orgId,
+      orgName: omp.orgName,
+      authorizedAt: omp.authorizedAt,
+      projectId: omp.projectId,
+      enterpriseUrl: omp.enterpriseUrl,
+      apiEndpoint: omp.apiEndpoint,
+    };
   }
 
   /** Complete an OAuth redirect (for manual code paste flows). */
@@ -325,6 +489,12 @@ export class PlumbProviderAuthService {
       return { success: false, error: 'No refresh token available' };
     }
 
+    const ompId = resolveProviderAlias(providerId);
+    const def = getProviderDefinition(ompId);
+    if (def && typeof def.refreshToken === 'function') {
+      return this.#ompRefreshCredential(providerId, oauthCred.credential, def);
+    }
+
     const config = OAUTH_CONFIGS[providerId];
     if (!config?.tokenUrl) {
       return { success: false, error: 'No token URL configured' };
@@ -363,6 +533,31 @@ export class PlumbProviderAuthService {
       await registry.setAuthenticated(providerId, refreshed);
 
       return { success: true, credential: refreshed };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
+    }
+  }
+
+  /** Refresh via the OMP registry `refreshToken` function. */
+  async #ompRefreshCredential(
+    providerId: PlumbProviderId,
+    current: PlumbOAuthCredential,
+    def: {
+      refreshToken?: (
+        credentials: OAuthCredentials,
+      ) => Promise<OAuthCredentials>;
+    },
+  ): Promise<LoginResult> {
+    try {
+      installBunGlobal();
+      const refreshed = await def.refreshToken!(current as OAuthCredentials);
+      const credential = this.#toPlumbCredential(providerId, refreshed);
+      const store = await this.#getStore();
+      await store.storeOAuthCredential(providerId, credential);
+      const registry = getPlumbProviderRegistry();
+      await registry.setAuthenticated(providerId, credential);
+      return { success: true, credential };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return { success: false, error: message };

@@ -13,10 +13,11 @@
  * - `Bun.sleep(ms)`, `Bun.write(path, data)`, `Bun.file(path)`
  * - `Bun.CryptoHasher(algorithm)`, `Bun.sha(data, encoding)`
  * - `Bun.spawn(argv, opts)` (web-stream + `exited` promise surface)
+ * - `Bun.serve(opts)` (loopback OAuth callback server for Node)
  * - `Bun.zstdCompressSync` — throws a clear error (no zstd in Node)
  *
  * Not implemented (load-safe; hit only at runtime in platform-specific paths):
- * `Bun.Image` (image resize, anthropic) and `Bun.serve` (auth-broker, removed).
+ * `Bun.Image` (image resize, anthropic).
  * `installBunGlobal()` must run before any OMP module executes Bun-flavored
  * code; it is a no-op when a real Bun global already exists.
  */
@@ -25,6 +26,10 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import { writeFile as fsWriteFile, readFile } from 'node:fs/promises';
 import { setTimeout as sleepTimer } from 'node:timers/promises';
 import { Readable } from 'node:stream';
+import {
+  createServer as createHttpServer,
+  type Server as HttpServer,
+} from 'node:http';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hash primitives (pure JS, standard algorithms)
@@ -287,12 +292,106 @@ function installBunGlobal(): void {
       xxHash64: xxhash64, // imported anthropic.ts calls the capital-H spelling
     },
   );
+
+  /**
+   * Minimal `Bun.serve` for the OMP OAuth callback flows
+   * (OAuthCallbackFlow: antigravity, cursor, gitlab-duo, openai-codex, ...).
+   * The upstream flows host a loopback callback server via `Bun.serve`; Node
+   * has no such API, so this wraps `node:http` while keeping the Bun contract
+   * the flows touch: `port`, `.stop()`, and a `fetch(req) => Response` handler.
+   */
+  const serve = (options: {
+    hostname?: string;
+    port?: number;
+    reusePort?: boolean;
+    fetch: (request: Request) => Response | Promise<Response>;
+  }): {
+    port: number;
+    stop: () => void;
+  } => {
+    const server: HttpServer = createHttpServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      req.on('end', () => {
+        try {
+          const rawBody = Buffer.concat(chunks as unknown as Uint8Array[]);
+          const url = new URL(
+            req.url ?? '/',
+            `http://${req.headers.host ?? 'localhost'}`,
+          );
+          const headers = new Headers();
+          for (let i = 0; i < req.rawHeaders.length; i += 2) {
+            headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
+          }
+          const request = new Request(url, {
+            method: req.method ?? 'GET',
+            headers,
+            body:
+              req.method === 'GET' ||
+              req.method === 'HEAD' ||
+              rawBody.length === 0
+                ? undefined
+                : new Uint8Array(
+                    rawBody.buffer as ArrayBuffer,
+                    rawBody.byteOffset,
+                    rawBody.byteLength,
+                  ),
+          });
+          Promise.resolve(options.fetch(request))
+            .then((response) => {
+              const flat: Record<string, string> = {};
+              response.headers.forEach((value, key) => {
+                flat[key] = value;
+              });
+              res.writeHead(response.status, flat);
+              return response.arrayBuffer();
+            })
+            .then((buffer) => {
+              res.end(Buffer.from(buffer));
+            })
+            .catch((err: unknown) => {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end(
+                `internal error: ${
+                  err instanceof Error ? err.message : String(err)
+                }`,
+              );
+            });
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(err instanceof Error ? err.message : String(err));
+        }
+      });
+    });
+
+    const hostname =
+      options.hostname === 'localhost'
+        ? '127.0.0.1'
+        : (options.hostname ?? '127.0.0.1');
+    server.listen(options.port ?? 0, hostname);
+
+    return {
+      get port(): number {
+        const address = server.address();
+        return typeof address === 'object' && address !== null
+          ? address.port
+          : (options.port ?? 0);
+      },
+      stop: (): void => {
+        server.close();
+      },
+    };
+  };
+
   globalThis.Bun = {
     hash,
     deepEquals,
     env: process.env as Record<string, string | undefined>,
     sleep: (ms: number | Promise<number>): Promise<void> =>
       sleepTimer(typeof ms === 'number' ? ms : 0),
+    serve,
     write: (path: string, data: string | Uint8Array): Promise<void> =>
       fsWriteFile(path, data),
     file: (

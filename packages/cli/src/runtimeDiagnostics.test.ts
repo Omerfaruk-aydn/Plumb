@@ -1,7 +1,9 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * @license
  */
 
 import { describe, it, expect } from 'vitest';
@@ -9,6 +11,7 @@ import {
   evaluateFreshness,
   buildRuntimeIdentityReport,
   buildLogoDiagnostics,
+  buildPlanDiagnostics,
 } from './runtimeDiagnostics.js';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { createTestMergedSettings } from './config/settings.js';
@@ -136,5 +139,41 @@ describe('buildLogoDiagnostics', () => {
         process.env['GEMINI_API_KEY'] = original;
       }
     }
+  });
+});
+
+describe('buildPlanDiagnostics', () => {
+  it('classifies the four previously-broken coding plans as selectable device/api-key flows', async () => {
+    for (const id of [
+      'github-copilot',
+      'kimi-code',
+      'opencode-go',
+      'antigravity',
+    ]) {
+      const { lines, failures } = await buildPlanDiagnostics(id);
+      const report = lines.join('\n');
+      expect(failures, `${id} should build without failures`).toEqual([]);
+      expect(report).toContain(`PLUMB coding-plan diagnostics: ${id}`);
+      expect(report).toContain('selectable: true');
+      expect(report).toMatch(/final\.classification: PRODUCTION_READY/);
+    }
+  });
+
+  it('reports the device-code mechanism for github-copilot', async () => {
+    const { lines } = await buildPlanDiagnostics('github-copilot');
+    const report = lines.join('\n');
+    expect(report).toContain('mechanism: DEVICE_CODE');
+    expect(report).toContain(
+      'registration: UPSTREAM_PRODUCT_OWNED_REGISTRATION',
+    );
+  });
+
+  it('reports the api_key mechanism and owned registration for opencode-go', async () => {
+    const { lines } = await buildPlanDiagnostics('opencode-go');
+    const report = lines.join('\n');
+    expect(report).toContain('mechanism: API_KEY');
+    expect(report).toContain(
+      'registration: UPSTREAM_PRODUCT_OWNED_REGISTRATION',
+    );
   });
 });

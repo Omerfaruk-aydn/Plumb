@@ -12,6 +12,8 @@
  * credential-bearing.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -634,9 +636,7 @@ export async function buildAuthStateDiagnostics(): Promise<{
         `dialogManager.authDialog.importPresent: ${importPresent ? 'yes' : 'no'}`,
       );
       if (jsxMount || importPresent) {
-        failures.push(
-          'LEGACY_GEMINI_AUTH_SCREEN_PRODUCTION_REACHABLE',
-        );
+        failures.push('LEGACY_GEMINI_AUTH_SCREEN_PRODUCTION_REACHABLE');
       }
     } else {
       lines.push(`dialogManager.dist: missing (${dialogManagerDist})`);
@@ -744,8 +744,14 @@ export async function buildAuthDiagnostics(
     const providerDef = providerModule.getProviderDefinition?.(canonicalId);
     const catalogEntry = providerModule.getCatalogProviderEntry?.(canonicalId);
 
-    lines.push(`descriptor.source: ${providerDef ? 'OMP_REGISTRY' : catalogEntry ? 'OMP_CATALOG' : 'NONE'}`);
-    const authMethods = providerDef?.login ? 'oauth' : providerDef?.envKeys || catalogEntry?.envVars?.length ? 'api_key' : 'none';
+    lines.push(
+      `descriptor.source: ${providerDef ? 'OMP_REGISTRY' : catalogEntry ? 'OMP_CATALOG' : 'NONE'}`,
+    );
+    const authMethods = providerDef?.login
+      ? 'oauth'
+      : providerDef?.envKeys || catalogEntry?.envVars?.length
+        ? 'api_key'
+        : 'none';
     lines.push(`auth.methods: ${authMethods}`);
 
     // Client registration classification
@@ -758,11 +764,14 @@ export async function buildAuthDiagnostics(
     lines.push(`client.registration: ${registrationClass}`);
 
     // Redacted client-ID fingerprint (first 4 + last 4 chars)
-    const clientId = (providerDef as unknown as Record<string, unknown>)?.['clientId'] as string | undefined;
+    const clientId = (providerDef as unknown as Record<string, unknown>)?.[
+      'clientId'
+    ] as string | undefined;
     if (clientId) {
-      const fingerprint = clientId.length > 8
-        ? `${clientId.slice(0, 4)}...${clientId.slice(-4)}`
-        : '****';
+      const fingerprint =
+        clientId.length > 8
+          ? `${clientId.slice(0, 4)}...${clientId.slice(-4)}`
+          : '****';
       lines.push(`client.id.fingerprint: ${fingerprint}`);
     }
 
@@ -800,9 +809,10 @@ export async function buildAuthDiagnostics(
     }
 
     // Selectability: check if provider is in the selectable set
-    const isSelectable = providerModule.SELECTABLE_PROVIDERS?.some(
-      (p: { id: string }) => p.id === providerId,
-    ) ?? false;
+    const isSelectable =
+      providerModule.SELECTABLE_PROVIDERS?.some(
+        (p: { id: string }) => p.id === providerId,
+      ) ?? false;
     lines.push(`selectable: ${isSelectable}`);
     lines.push(`last.safe.error: none`);
 
@@ -815,14 +825,18 @@ export async function buildAuthDiagnostics(
       );
     }
   } catch (err) {
-    failures.push(`Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`);
+    failures.push(
+      `Failed to build auth diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   return { lines, failures };
 }
 
 /** Print the auth diagnostics report. Returns the process exit code. */
-export async function printAuthDiagnostics(providerId: string): Promise<number> {
+export async function printAuthDiagnostics(
+  providerId: string,
+): Promise<number> {
   const { lines, failures } = await buildAuthDiagnostics(providerId);
   for (const line of lines) {
     process.stdout.write(`${line}\n`);
@@ -889,20 +903,20 @@ export async function buildModelsDiagnostics(
       const val = process.env[v];
       return typeof val === 'string' && val.trim().length > 0;
     });
-    lines.push(`credential.present: ${hasEnvKey ? 'yes (env key set)' : 'no (env key not set)'}`);
+    lines.push(
+      `credential.present: ${hasEnvKey ? 'yes (env key set)' : 'no (env key not set)'}`,
+    );
 
     // Discovery adapter (from catalog fallback map if present)
-    const fallbackMap = (
-      providerModule as Record<string, unknown>
-    )['CATALOG_PROVIDER_FALLBACK'] as Record<string, string> | undefined;
-    const catalogId =
-      fallbackMap?.[canonicalId] ?? canonicalId;
+    const fallbackMap = (providerModule as Record<string, unknown>)[
+      'CATALOG_PROVIDER_FALLBACK'
+    ] as Record<string, string> | undefined;
+    const catalogId = fallbackMap?.[canonicalId] ?? canonicalId;
     lines.push(`discovery.adapter: omp-catalog/discovery/openai-compatible.ts`);
     lines.push(`catalog.provider.id: ${catalogId}`);
 
     // Bundled models count
-    const bundledModels =
-      providerModule.getCatalogModels?.(canonicalId) ?? [];
+    const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
     lines.push(`bundled.model.count: ${bundledModels.length}`);
     if (bundledModels.length > 0) {
       lines.push(`bundled.first.model: ${bundledModels[0].id}`);
@@ -922,7 +936,9 @@ export async function buildModelsDiagnostics(
     let cachedModelCount = 0;
     let cacheFresh = false;
     try {
-      const cacheFn = (providerModule as Record<string, unknown>)['readModelCache'] as
+      const cacheFn = (providerModule as Record<string, unknown>)[
+        'readModelCache'
+      ] as
         | ((id: string) => { models: unknown[]; fresh: boolean } | null)
         | undefined;
       if (cacheFn) {
@@ -932,7 +948,9 @@ export async function buildModelsDiagnostics(
           cacheFresh = cached.fresh;
         }
       }
-    } catch { /* cache module not available */ }
+    } catch {
+      /* cache module not available */
+    }
     lines.push(`cached.model.count: ${cachedModelCount}`);
     lines.push(`cache.fresh: ${cacheFresh ? 'yes' : 'no'}`);
 
@@ -941,9 +959,9 @@ export async function buildModelsDiagnostics(
     let lastSafeError = 'none';
     if (typeof entry?.createModelManagerOptions === 'function' && hasEnvKey) {
       try {
-        const discoverFn = (providerModule as Record<string, unknown>)['discoverProviderModels'] as
-          | ((id: string, apiKey?: string) => Promise<unknown[]>)
-          | undefined;
+        const discoverFn = (providerModule as Record<string, unknown>)[
+          'discoverProviderModels'
+        ] as ((id: string, apiKey?: string) => Promise<unknown[]>) | undefined;
         if (discoverFn) {
           const models = await discoverFn(canonicalId);
           if (Array.isArray(models)) {
@@ -973,15 +991,23 @@ export async function buildModelsDiagnostics(
     lines.push(`parser: openai-compatible`);
 
     // Cache state (from catalog-level model cache if available)
-    lines.push(`cache.state: ${cachedModelCount > 0 ? (cacheFresh ? 'HIT_FRESH' : 'HIT_STALE') : 'MISS'}`);
+    lines.push(
+      `cache.state: ${cachedModelCount > 0 ? (cacheFresh ? 'HIT_FRESH' : 'HIT_STALE') : 'MISS'}`,
+    );
 
     // Fallback reason: why this provider has no live models
     let fallbackReason = 'none';
     if (!hasEnvKey && typeof entry?.createModelManagerOptions === 'function') {
       fallbackReason = 'NO_CREDENTIAL';
-    } else if (typeof entry?.createModelManagerOptions !== 'function' && typeof entry?.defaultModel === 'string') {
+    } else if (
+      typeof entry?.createModelManagerOptions !== 'function' &&
+      typeof entry?.defaultModel === 'string'
+    ) {
       fallbackReason = 'BUNDLED_ONLY_NO_DISCOVERY';
-    } else if (typeof entry?.createModelManagerOptions !== 'function' && typeof entry?.defaultModel !== 'string') {
+    } else if (
+      typeof entry?.createModelManagerOptions !== 'function' &&
+      typeof entry?.defaultModel !== 'string'
+    ) {
       fallbackReason = 'NO_MODEL_SOURCE';
     } else if (dynamicModelCount === 0 && hasEnvKey) {
       fallbackReason = 'LIVE_DISCOVERY_EMPTY';
@@ -989,12 +1015,18 @@ export async function buildModelsDiagnostics(
     lines.push(`fallback.reason: ${fallbackReason}`);
 
     // Picker count = bundled + dynamic + cached (deduplicated)
-    const mergedCount = bundledModels.length + Math.max(dynamicModelCount, cachedModelCount);
+    const mergedCount =
+      bundledModels.length + Math.max(dynamicModelCount, cachedModelCount);
     lines.push(`final.picker.count: ${mergedCount}`);
-    lines.push(`selectable: ${
-      (providerModule.SELECTABLE_PROVIDERS as unknown as Array<{ id: string }>)
-        ?.some((p) => p.id === providerId) ?? false
-    }`);
+    lines.push(
+      `selectable: ${
+        (
+          providerModule.SELECTABLE_PROVIDERS as unknown as Array<{
+            id: string;
+          }>
+        )?.some((p) => p.id === providerId) ?? false
+      }`,
+    );
     lines.push(`last.safe.error: ${lastSafeError}`);
   } catch (err) {
     failures.push(
@@ -1015,6 +1047,146 @@ export async function printModelsDiagnostics(
   }
   for (const failure of failures) {
     process.stderr.write(`diagnose-models: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
+// ─── Coding-plan auth diagnostics ────────────────────────────────────
+
+export interface PlanDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+/**
+ * Build safe coding-plan auth diagnostics for a specific provider.
+ * Reports the derived auth mechanism, registration classification, the OMP
+ * login backing, callback port, selectability, bundled model count, and the
+ * final coding-plan matrix classification. Never prints credentials.
+ */
+export async function buildPlanDiagnostics(
+  providerId: string,
+): Promise<PlanDiagnosticsResult> {
+  installBunGlobal();
+  const lines: string[] = [];
+  const failures: string[] = [];
+
+  lines.push(`PLUMB coding-plan diagnostics: ${providerId}`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+
+    const canonicalId = providerModule.resolveProviderAlias
+      ? providerModule.resolveProviderAlias(providerId)
+      : providerId;
+    lines.push(`requested.provider: ${providerId}`);
+    lines.push(`canonical.provider: ${canonicalId}`);
+
+    const providerDef = providerModule.getProviderDefinition?.(canonicalId);
+    const plumbProvider = providerModule.getPlumbProvider
+      ? providerModule.getPlumbProvider(providerId)
+      : undefined;
+
+    // Auth mechanism: derived from the OMP login surface + catalog auth
+    // methods, never from a guessed per-provider endpoint map.
+    const hasLogin = typeof providerDef?.login === 'function';
+    const hasRefresh = typeof providerDef?.refreshToken === 'function';
+    const authMethods =
+      plumbProvider?.authMethods
+        ?.map((m: { type: string }) => m.type)
+        .join('|') ?? 'none';
+    lines.push(`auth.methods: ${authMethods}`);
+    lines.push(`omp.login: ${hasLogin ? 'present' : 'absent'}`);
+    lines.push(`omp.refreshToken: ${hasRefresh ? 'present' : 'absent'}`);
+    lines.push(`omp.callbackPort: ${providerDef?.callbackPort ?? 'none'}`);
+    lines.push(
+      `omp.pasteCodeFlow: ${providerDef?.pasteCodeFlow ? 'true' : 'false'}`,
+    );
+
+    // Mechanism classification used by the coding-plan matrix.
+    let mechanism: string;
+    if (
+      plumbProvider?.authMethods?.some(
+        (m: { type: string }) => m.type === 'device_code',
+      )
+    ) {
+      mechanism = 'DEVICE_CODE';
+    } else if (
+      plumbProvider?.authMethods?.some(
+        (m: { type: string }) => m.type === 'oauth',
+      )
+    ) {
+      mechanism = hasLogin ? 'OAUTH_ACCOUNT_FLOW' : 'OAUTH_NO_LOGIN';
+    } else if (
+      plumbProvider?.authMethods?.some(
+        (m: { type: string }) => m.type === 'api_key',
+      )
+    ) {
+      mechanism = 'API_KEY';
+    } else {
+      mechanism = 'NONE';
+    }
+    lines.push(`mechanism: ${mechanism}`);
+
+    // Registration classification: the OMP login thunks embed the upstream
+    // product's public client; api-key plans use PLUMB-owned key handling.
+    const registrationClass = hasLogin
+      ? 'UPSTREAM_PRODUCT_OWNED_REGISTRATION'
+      : mechanism === 'API_KEY'
+        ? 'PLUMB_OWNED_VALID_REGISTRATION'
+        : 'MISSING_REGISTRATION';
+    lines.push(`registration: ${registrationClass}`);
+
+    const isSelectable =
+      providerModule.SELECTABLE_PROVIDERS?.some(
+        (p: { id: string }) => p.id === providerId,
+      ) ?? false;
+    lines.push(`selectable: ${isSelectable}`);
+    lines.push(
+      `availability.reason: ${plumbProvider?.availabilityReason ?? 'none'}`,
+    );
+
+    // Bundled model count for the picker.
+    const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
+    lines.push(`bundled.model.count: ${bundledModels.length}`);
+
+    // Final matrix classification: a selectable coding plan with an OMP
+    // login (or an API-key path) is PRODUCTION_READY; a plan whose OMP
+    // login is missing or non-selectable is DOWNSTREAM_BLOCKED.
+    const finalClassification =
+      isSelectable && (hasLogin || mechanism === 'API_KEY')
+        ? 'PRODUCTION_READY'
+        : hasLogin
+          ? 'BLOCKED_NOT_SELECTABLE'
+          : 'DOWNSTREAM_BLOCKED_NO_LOGIN';
+    lines.push(`final.classification: ${finalClassification}`);
+    lines.push(`last.safe.error: none`);
+
+    if (isSelectable && !hasLogin && mechanism !== 'API_KEY') {
+      failures.push(
+        `${providerId}: selectable=true but has no OMP login and no API-key path`,
+      );
+    }
+  } catch (err) {
+    failures.push(
+      `Failed to build coding-plan diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return { lines, failures };
+}
+
+/** Print the coding-plan diagnostics report. Returns the process exit code. */
+export async function printPlanDiagnostics(
+  providerId: string,
+): Promise<number> {
+  const { lines, failures } = await buildPlanDiagnostics(providerId);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-plan: FAIL: ${failure}\n`);
   }
   return failures.length > 0 ? 1 : 0;
 }

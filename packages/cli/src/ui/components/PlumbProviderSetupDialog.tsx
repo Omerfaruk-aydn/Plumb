@@ -767,6 +767,12 @@ function AuthStep({
   );
   const hasEnv = provider.authMethods.some((m) => m.type === 'env');
 
+  // Where the user obtains their key for API-key coding plans (OpenCode Go,
+  // Alibaba, Zhipu, ...). Sourced from the coding-plan definition, never a
+  // guessed URL.
+  const apiKeyAuthUrl =
+    getCodingPlan(provider.id)?.authUrl ?? provider.description;
+
   return (
     <Box flexDirection="column">
       <Text bold>Authenticate: {provider.name}</Text>
@@ -791,7 +797,9 @@ function AuthStep({
           <Box marginBottom={1}>
             <Text color="cyan">Press Enter to get a device code</Text>
             <Text dimColor>
-              You will be given a code to enter on the provider website.
+              You will be given a short code and URL. Visit the URL, enter the
+              code, and approve sign-in in your browser — no password is ever
+              shared with {provider.name}.
             </Text>
           </Box>
         )}
@@ -802,6 +810,12 @@ function AuthStep({
                 ? 'Or enter your API key directly:'
                 : 'Enter your API key for ' + provider.name + ':'}
             </Text>
+            {apiKeyAuthUrl && !hasOAuth && (
+              <Text dimColor>
+                Get your key from:{' '}
+                {getCodingPlan(provider.id)?.authUrl ?? provider.description}
+              </Text>
+            )}
             <Text>
               Key: {'•'.repeat(apiKeyInput.length)}
               <Text dimColor>▌</Text>

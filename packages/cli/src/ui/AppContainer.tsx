@@ -1040,7 +1040,11 @@ Logging in with Google... Restarting PLUMB to continue.
         const authService =
           authServiceModule.getPlumbProviderAuthService?.() ??
           new authServiceModule.PlumbProviderAuthService();
-        const result = await authService.beginLogin(providerId);
+        const result = await authService.beginLogin(providerId, undefined, {
+          onStatus: (message) => {
+            coreEvents.emitFeedback('info', message);
+          },
+        });
 
         if (result.success) {
           try {

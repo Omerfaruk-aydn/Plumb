@@ -433,6 +433,7 @@ export async function main() {
     argv.diagnoseAuth ||
     argv.diagnoseModels ||
     argv.diagnoseAuthState ||
+    argv.diagnosePlan ||
     argv.testProvider ||
     argv.testProviderList ||
     argv.testProviderNext
@@ -444,6 +445,7 @@ export async function main() {
       printAuthDiagnostics,
       printModelsDiagnostics,
       printAuthStateDiagnostics,
+      printPlanDiagnostics,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
@@ -456,6 +458,8 @@ export async function main() {
       exitCode = await printModelsDiagnostics(argv.diagnoseModels);
     } else if (argv.diagnoseAuthState) {
       exitCode = await printAuthStateDiagnostics();
+    } else if (argv.diagnosePlan) {
+      exitCode = await printPlanDiagnostics(argv.diagnosePlan);
     } else if (argv.testProvider) {
       const { runProviderAcceptanceTest } = await import(
         './providerAcceptanceHarness.js'

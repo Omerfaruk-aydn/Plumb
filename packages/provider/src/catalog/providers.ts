@@ -127,7 +127,9 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Coding Plans',
     order: 2,
     description: 'GitHub Copilot subscription',
-    authMethods: [{ type: 'oauth', pasteCode: true }],
+    // Real mechanism (OMP registry github-copilot.ts) is the RFC 8628 device
+    // code flow on github.com — not a paste-code browser OAuth exchange.
+    authMethods: [{ type: 'device_code' }],
   },
   cursor: {
     category: PlumbProviderCategory.CODING_PLAN,
@@ -141,7 +143,9 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Coding Plans',
     order: 4,
     description: 'Moonshot Kimi coding plan',
-    authMethods: [{ type: 'oauth', pasteCode: true }],
+    // Real mechanism (OMP registry kimi-code.ts) is the device authorization
+    // grant against auth.kimi.com — not a paste-code browser OAuth exchange.
+    authMethods: [{ type: 'device_code' }],
   },
   'minimax-code': {
     category: PlumbProviderCategory.CODING_PLAN,
@@ -200,14 +204,16 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Coding Plans',
     order: 11,
     description: 'OpenCode Go subscription plan',
-    authMethods: [{ type: 'oauth' }],
+    // Real mechanism (OpenCode zen API-key paste flow) is not OAuth: the user
+    // logs in at opencode.ai/auth and pastes their API key back into the CLI.
+    authMethods: [{ type: 'api_key', promptLabel: 'OpenCode Go API Key' }],
   },
   'opencode-zen': {
     category: PlumbProviderCategory.CODING_PLAN,
     group: 'Coding Plans',
     order: 12,
     description: 'OpenCode Zen subscription plan',
-    authMethods: [{ type: 'oauth' }],
+    authMethods: [{ type: 'api_key', promptLabel: 'OpenCode Zen API Key' }],
   },
   'gitlab-duo': {
     category: PlumbProviderCategory.CODING_PLAN,
@@ -235,7 +241,9 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Coding Plans',
     order: 16,
     description: 'Google Antigravity (Code Assist for partners)',
-    authMethods: [{ type: 'oauth', port: 8085, pasteCode: true }],
+    // Canonical OMP backing is `google-antigravity` whose OAuth callback runs
+    // on loopback port 51121 (paste-code browser flow).
+    authMethods: [{ type: 'oauth', port: 51121, pasteCode: true }],
   },
   'google-gemini-cli': {
     category: PlumbProviderCategory.CODING_PLAN,

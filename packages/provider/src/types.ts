@@ -233,6 +233,10 @@ export interface PlumbOAuthCredential {
   orgName?: string;
   authorizedAt?: number;
   projectId?: string;
+  /** GitHub Copilot enterprise domain, when signed in against a GHE host. */
+  enterpriseUrl?: string;
+  /** GitHub Copilot API endpoint discovered after device login. */
+  apiEndpoint?: string;
 }
 
 export interface PlumbApiKeyCredential {

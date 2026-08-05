@@ -176,6 +176,7 @@ export type {
   OAuthProvider,
   OAuthCredentials,
   OAuthLoginCallbacks,
+  OAuthController,
 } from './omp-ai/registry/oauth/types.js';
 
 // Streaming transport

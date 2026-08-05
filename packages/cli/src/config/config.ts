@@ -116,6 +116,7 @@ export interface CliArgs {
   diagnoseAuth: string | undefined;
   diagnoseModels: string | undefined;
   diagnoseAuthState: boolean | undefined;
+  diagnosePlan: string | undefined;
   testProvider: string | undefined;
   testProviderList: boolean | undefined;
   testProviderNext: boolean | undefined;
@@ -533,6 +534,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Print safe auth-state machine diagnostics (active setup owner, legacy AuthDialog reachability, cancel destinations) without exposing credentials.',
+        })
+        .option('diagnose-plan', {
+          type: 'string',
+          description:
+            'Print safe coding-plan auth diagnostics for a specific provider (derived mechanism, OMP login backing, registration classification, selectability, bundled model count, final matrix classification) without exposing credentials. Usage: plumb --diagnose-plan <provider-id>',
         })
         .option('test-provider', {
           type: 'string',
