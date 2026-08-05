@@ -339,7 +339,7 @@ describe('getToolGroupBorderAppearance', () => {
 describe('MainContent', () => {
   const defaultMockUiState = {
     history: [
-      { id: 1, type: 'user', text: 'Hello' },
+      { id: 1, type: 'user', text: 'Hello', createdAt: new Date(0) },
       { id: 2, type: 'gemini', text: 'Hi there' },
     ],
     pendingHistoryItems: [],
@@ -511,7 +511,7 @@ describe('MainContent', () => {
     const uiState = {
       ...defaultMockUiState,
       history: [
-        { id: 1, type: 'user', text: 'User message' },
+        { id: 1, type: 'user', text: 'User message', createdAt: new Date(0) },
         { id: 2, type: 'gemini', text: 'Gemini response\n'.repeat(10) },
       ],
       constrainHeight: true,
@@ -554,7 +554,9 @@ describe('MainContent', () => {
 
     const uiState = {
       ...defaultMockUiState,
-      history: [{ id: 1, type: 'user', text: 'Investigate' }],
+      history: [
+        { id: 1, type: 'user', text: 'Investigate', createdAt: new Date(0) },
+      ],
       pendingHistoryItems: [
         {
           type: 'tool_group' as const,
@@ -664,7 +666,9 @@ describe('MainContent', () => {
 
     const uiState = {
       ...defaultMockUiState,
-      history: [{ id: 1, type: 'user', text: 'Apply plan' }],
+      history: [
+        { id: 1, type: 'user', text: 'Apply plan', createdAt: new Date(0) },
+      ],
       pendingHistoryItems: [
         {
           type: 'tool_group' as const,
@@ -718,7 +722,9 @@ describe('MainContent', () => {
     );
     const uiState = {
       ...defaultMockUiState,
-      history: [{ id: 1, type: 'user', text: 'Apply plan' }],
+      history: [
+        { id: 1, type: 'user', text: 'Apply plan', createdAt: new Date(0) },
+      ],
       pendingHistoryItems: [
         {
           type: 'tool_group' as const,
@@ -763,7 +769,12 @@ describe('MainContent', () => {
     const uiState = {
       ...defaultMockUiState,
       history: [
-        { id: 0, type: 'user' as const, text: 'Plan a solution' },
+        {
+          id: 0,
+          type: 'user' as const,
+          text: 'Plan a solution',
+          createdAt: new Date(0),
+        },
         {
           id: 1,
           type: 'thinking' as const,
