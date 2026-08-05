@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Ensure NODE_ENV is non-production BEFORE any React imports,
+// so React's CJS development build exports `act`.
+if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
+  process.env.NODE_ENV = 'test';
+}
+
 import { vi, beforeEach, afterEach } from 'vitest';
 import { format } from 'node:util';
 import { coreEvents, debugLogger } from '@google/gemini-cli-core';
