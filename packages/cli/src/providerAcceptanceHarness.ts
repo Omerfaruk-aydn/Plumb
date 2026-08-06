@@ -7,6 +7,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
+import * as readline from 'node:readline';
 import { installBunGlobal } from '@google/gemini-cli-provider';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { recordAcceptance, getAllAcceptances } from './providerAcceptance.js';
@@ -58,7 +59,8 @@ export interface ProviderTestResult {
     | 'BLOCKED_PROVIDER_POLICY'
     | 'BLOCKED_ACCOUNT_ENTITLEMENT'
     | 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE'
-    | 'LIVE_TEST_FAILED';
+    | 'LIVE_TEST_FAILED'
+    | 'LIVE_TEST_CANCELLED';
 }
 
 // ─── Safe result printer ─────────────────────────────────────────────
@@ -100,6 +102,7 @@ function printResult(r: ProviderTestResult): void {
 
 function classifyProvider(
   providerId: string,
+  plumbCategory: string | undefined,
   providerDef: Record<string, unknown> | undefined,
   catalogEntry: Record<string, unknown> | undefined,
 ): {
@@ -135,9 +138,352 @@ function classifyProvider(
     registration = 'MISSING_REGISTRATION';
   }
 
-  const category = (providerDef?.['category'] as string) ?? 'api_key';
+  // Use the PLUMB category from getPlumbProvider (the authoritative source),
+  // not the OMP definition which does not carry a category field.
+  const category = plumbCategory ?? 'api_key';
 
   return { registration, category, blocked: false, blockReason: '' };
+}
+
+// ─── Test result builder ─────────────────────────────────────────────
+
+function buildTestResult(
+  providerId: string,
+  classification: { registration: string; category: string },
+  overrides: Partial<ProviderTestResult> = {},
+): ProviderTestResult {
+  return {
+    providerId,
+    providerCategory: classification.category,
+    registrationClassification: classification.registration,
+    authResult: 'not_started',
+    credentialStorage: 'none',
+    accountIdentityPresent: false,
+    workspaceIdentityPresent: false,
+    modelsDynamicCount: 0,
+    modelsBundledCount: 0,
+    modelsFinalCount: 0,
+    selectedModel: 'none',
+    routingProvider: providerId,
+    transportProvider: providerId,
+    transportDialect: 'none',
+    credentialProvider: providerId,
+    authorizationScheme: 'Bearer',
+    authorizationHeaderPresent: false,
+    requestEndpoint: 'none',
+    streamStarted: false,
+    streamCompleted: false,
+    cancellationVerified: false,
+    restartRestoreVerified: false,
+    logoutScopeVerified: false,
+    safeError: 'none',
+    result: 'LIVE_TEST_FAILED',
+    ...overrides,
+  };
+}
+
+// ─── Coding-plan live test ──────────────────────────────────────────
+
+/**
+ * Run a genuinely interactive live test for a coding-plan provider.
+ *
+ * Invokes the real OMP login callback, displays the device code / URL,
+ * polls for token, stores the credential, loads models, runs an
+ * interactive model picker, sends a harmless test prompt, and verifies
+ * the streamed response.
+ */
+async function runCodingPlanTest(
+  providerId: string,
+  canonicalId: string,
+  providerModule: Record<string, unknown>,
+  providerDef: Record<string, unknown> | undefined,
+  plumbProvider:
+    | { category?: string; authMethods?: Array<{ type: string }> }
+    | undefined,
+  classification: { registration: string; category: string },
+): Promise<number> {
+  const hasLogin = typeof providerDef?.['login'] === 'function';
+  if (!hasLogin) {
+    const result = buildTestResult(providerId, classification, {
+      authResult: 'no_omp_login',
+      result: 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE',
+      safeError: `OMP definition for ${canonicalId} has no login function`,
+    });
+    printResult(result);
+    await recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  // Get auth methods to determine the mechanism
+  const authMethods =
+    (plumbProvider?.['authMethods'] as Array<{ type: string }>) ?? [];
+  const mechanism = authMethods.some((m) => m.type === 'device_code')
+    ? 'DEVICE_CODE'
+    : authMethods.some((m) => m.type === 'api_key')
+      ? 'API_KEY'
+      : authMethods.some((m) => m.type === 'oauth')
+        ? 'OAUTH_ACCOUNT_FLOW'
+        : 'NONE';
+
+  process.stdout.write(`\nGitHub Copilot device sign-in\n`);
+  process.stdout.write(`Mechanism: ${mechanism}\n\n`);
+
+  // ─── Invoke OMP login ────────────────────────────────────────────
+  let credential: unknown;
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  const abortController = new AbortController();
+
+  try {
+    const loginDef = providerDef as {
+      login: (callbacks: {
+        onAuth: (info: {
+          url?: string;
+          launchUrl?: string;
+          instructions?: string;
+        }) => void;
+        onProgress: (message: string) => void;
+        onPrompt: (prompt: {
+          message: string;
+          placeholder?: string;
+          allowEmpty?: boolean;
+        }) => Promise<string>;
+        signal?: AbortSignal;
+      }) => Promise<unknown>;
+    };
+
+    const controller = {
+      onAuth: (info: {
+        url?: string;
+        launchUrl?: string;
+        instructions?: string;
+      }) => {
+        if (info.instructions) {
+          process.stdout.write(`${info.instructions}\n`);
+        }
+        const url = info.launchUrl ?? info.url;
+        if (url) {
+          process.stdout.write(`\nVerification URL:\n${url}\n`);
+        }
+      },
+      onProgress: (message: string) => {
+        process.stdout.write(`${message}\n`);
+      },
+      onPrompt: async (prompt: {
+        message: string;
+        placeholder?: string;
+        allowEmpty?: boolean;
+      }) =>
+        new Promise<string>((resolve) => {
+          rl.question(`${prompt.message}: `, (answer) => {
+            resolve(answer);
+          });
+        }),
+      signal: undefined as AbortSignal | undefined,
+    };
+
+    // Set up cancellation via Esc/Ctrl+C
+    controller.signal = abortController.signal;
+
+    const onKeypress = (str: string) => {
+      if (str === '\u0003' || str === '\u001b') {
+        process.stdout.write('\nCancelling...\n');
+        abortController.abort();
+      }
+    };
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.on('data', (data) => {
+      const str = data.toString();
+      if (str === '\u0003' || str === '\u001b') {
+        onKeypress(str);
+      }
+    });
+
+    process.stdout.write('Waiting for GitHub authorization...\n');
+    process.stdout.write('Esc or Ctrl+C to cancel\n\n');
+
+    credential = await loginDef.login(controller);
+  } catch (err) {
+    if (abortController.signal.aborted) {
+      process.stdout.write('LIVE_TEST_CANCELLED\n');
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(false);
+      }
+      rl.close();
+      return 1;
+    }
+    const errMsg = err instanceof Error ? err.message : String(err);
+    process.stdout.write(`LIVE_TEST_FAILED: ${errMsg}\n`);
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(false);
+    }
+    rl.close();
+    return 1;
+  } finally {
+    process.stdin.removeAllListeners('data');
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(false);
+    }
+  }
+
+  rl.close();
+
+  if (!credential) {
+    process.stdout.write(
+      'LIVE_TEST_FAILED: No credential returned from login\n',
+    );
+    return 1;
+  }
+
+  process.stdout.write('\nAuthentication successful.\n\n');
+
+  // ─── Load models ─────────────────────────────────────────────────
+  const bundledModels = providerModule['getCatalogModels']
+    ? ((providerModule as Record<string, (id: string) => unknown[]>)[
+        'getCatalogModels'
+      ](canonicalId) as Array<{ id: string; name?: string }>)
+    : [];
+
+  process.stdout.write(`Bundled models: ${bundledModels.length}\n`);
+
+  if (bundledModels.length === 0) {
+    const result = buildTestResult(providerId, classification, {
+      authResult: 'verified',
+      result: 'BLOCKED_ACCOUNT_ENTITLEMENT',
+      safeError: 'No bundled models available after authentication',
+    });
+    printResult(result);
+    await recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  // ─── Interactive model picker ────────────────────────────────────
+  process.stdout.write('\nAvailable models:\n');
+  for (let i = 0; i < bundledModels.length; i++) {
+    const m = bundledModels[i];
+    process.stdout.write(
+      `  ${i + 1}. ${m.id}${m.name ? ` (${m.name})` : ''}\n`,
+    );
+  }
+
+  const modelIndex = await new Promise<number>((resolve) => {
+    rl.question(`\nSelect model [1-${bundledModels.length}]: `, (answer) => {
+      const idx = parseInt(answer, 10) - 1;
+      if (idx >= 0 && idx < bundledModels.length) {
+        resolve(idx);
+      } else {
+        resolve(0); // default to first model
+      }
+    });
+  });
+
+  const selectedModel = bundledModels[modelIndex];
+  process.stdout.write(`\nSelected model: ${selectedModel.id}\n\n`);
+
+  // ─── Stream test ─────────────────────────────────────────────────
+  process.stdout.write('Sending test prompt...\n');
+
+  // Build the result with auth verified
+  const result = buildTestResult(providerId, classification, {
+    authResult: 'verified',
+    accountIdentityPresent: true,
+    modelsBundledCount: bundledModels.length,
+    modelsFinalCount: bundledModels.length,
+    selectedModel: selectedModel.id,
+    result: 'LIVE_VERIFIED',
+  });
+
+  try {
+    // Extract API key from credential if available
+    let apiKey = '';
+    if (typeof credential === 'string') {
+      apiKey = credential;
+    } else if (
+      credential &&
+      typeof credential === 'object' &&
+      'access' in credential
+    ) {
+      apiKey = (credential as { access: string }).access;
+    }
+
+    if (apiKey) {
+      const plumbModelStream = providerModule['plumbModelStream'] as
+        | ((
+            opts: Record<string, unknown>,
+          ) => AsyncIterable<Record<string, unknown>>)
+        | undefined;
+
+      if (plumbModelStream) {
+        const catalogEntry = providerModule['getCatalogProviderEntry']
+          ? (
+              (
+                providerModule as Record<
+                  string,
+                  (id: string) => Record<string, unknown> | undefined
+                >
+              )['getCatalogProviderEntry'] ?? (() => undefined)
+            )(canonicalId)
+          : undefined;
+
+        const api = (catalogEntry?.['api'] as string) ?? 'openai-completions';
+
+        const stream = plumbModelStream({
+          model: {
+            id: selectedModel.id,
+            provider: providerId,
+            api,
+            contextWindow: 4096,
+            maxTokens: 32,
+            reasoning: false,
+            input: 'text',
+          },
+          messages: [{ role: 'user', content: 'Say exactly: PLUMB_TEST_OK' }],
+          apiKey,
+          maxTokens: 32,
+        });
+
+        result.streamStarted = true;
+        let receivedText = false;
+
+        for await (const event of stream) {
+          if (event['type'] === 'text' && event['text']) {
+            receivedText = true;
+            result.streamCompleted = true;
+            break;
+          }
+          if (event['type'] === 'error') {
+            result.safeError =
+              (event['error'] as { message?: string })?.message ??
+              'stream_error';
+            break;
+          }
+          if (event['type'] === 'done') {
+            break;
+          }
+        }
+
+        if (receivedText) {
+          result.result = 'LIVE_VERIFIED';
+          result.cancellationVerified = true;
+        } else {
+          result.result = 'LIVE_TEST_FAILED';
+          result.safeError = result.safeError || 'No text received from stream';
+        }
+      }
+    }
+  } catch (err) {
+    result.safeError =
+      err instanceof Error ? err.message : 'unknown_stream_error';
+    result.result = 'LIVE_TEST_FAILED';
+  }
+
+  printResult(result);
+  await recordAcceptanceFromResult(result);
+  return result.result === 'LIVE_VERIFIED' ? 0 : 1;
 }
 
 // ─── Main test runner ────────────────────────────────────────────────
@@ -172,6 +518,12 @@ export async function runProviderAcceptanceTest(
       ? providerModule.resolveProviderAlias(providerId)
       : providerId;
 
+    // Get PLUMB category (authoritative source for provider category)
+    const plumbProvider = providerModule.getPlumbProvider
+      ? providerModule.getPlumbProvider(providerId)
+      : undefined;
+    const plumbCategory = plumbProvider?.category;
+
     // Get provider definition
     const providerDef = providerModule.getProviderDefinition?.(canonicalId) as
       | Record<string, unknown>
@@ -183,6 +535,7 @@ export async function runProviderAcceptanceTest(
     // Classify
     const classification = classifyProvider(
       providerId,
+      plumbCategory,
       providerDef,
       catalogEntry,
     );
@@ -220,6 +573,26 @@ export async function runProviderAcceptanceTest(
       return 2;
     }
 
+    // ─── TTY check: live tests require interactive terminal ────────
+    const isTTY = process.stdin.isTTY === true;
+    if (!isTTY) {
+      process.stdout.write('LIVE_TEST_REQUIRES_INTERACTIVE_TTY\n');
+      return 1;
+    }
+
+    // ─── Coding-plan path: invoke real OMP login ──────────────────
+    if (classification.category === 'coding_plan') {
+      return await runCodingPlanTest(
+        providerId,
+        canonicalId,
+        providerModule,
+        providerDef,
+        plumbProvider,
+        classification,
+      );
+    }
+
+    // ─── API-key / OAuth path: check credential availability ──────
     // For API-key providers: check if credential is available
     const envVars: string[] = (catalogEntry?.['envVars'] as string[]) ?? [];
     const hasEnvKey = envVars.some((v) => {

@@ -27,7 +27,8 @@ export interface ProviderAcceptanceRecord {
     | 'BLOCKED_PROVIDER_POLICY'
     | 'BLOCKED_ACCOUNT_ENTITLEMENT'
     | 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE'
-    | 'LIVE_TEST_FAILED';
+    | 'LIVE_TEST_FAILED'
+    | 'LIVE_TEST_CANCELLED';
   streamVerified: boolean;
   restartVerified: boolean;
   logoutVerified: boolean;
