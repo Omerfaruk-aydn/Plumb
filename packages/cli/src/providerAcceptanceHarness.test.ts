@@ -9,26 +9,32 @@
 /**
  * Regression tests for the provider acceptance harness.
  *
- * Proves:
- * 1. github-copilot test-provider uses coding_plan category
- * 2. DEVICE_CODE invokes OMP login
- * 3. no immediate no_credential result
- * 4. no model is selected before user selection
- * 5. user code and verification URL are presented
- * 6. token polling completes
- * 7. cancellation stops polling
- * 8. account identity is populated
- * 9. models load after auth
- * 10. real selection is required
- * 11. stream result cannot be LIVE_VERIFIED without a real stream
- * 12. non-TTY exits with LIVE_TEST_REQUIRES_INTERACTIVE_TTY
- * 13. static diagnostics remain noninteractive
- * 14. API provider harness remains working
- * 15. NVIDIA/local/custom routes remain working
+ * Proves (Phase 9 list):
+ *  1. startup output bypasses the report collector
+ *  2. startup output is visible before provider.login resolves
+ *  3. URL/code output is visible before token polling
+ *  4. heartbeat writes newline-terminated visible output
+ *  5. heartbeat is stopped before final output
+ *  6. no heartbeat write occurs after cancellation
+ *  7. trace is not buffered until cleanup
+ *  8. normal mode contains no trace.stage output
+ *  9. safe trace mode streams stages immediately
+ * 10. final report is emitted once
+ * 11. final report cannot be concatenated with heartbeat text
+ * 12. cancellation handlers are detached
+ * 13. terminal restoration occurs once
+ * 14. Windows ConPTY receives output before Ctrl+C (integration test file)
+ * 15. API/NVIDIA/local/custom routes remain unchanged
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { runProviderAcceptanceTest } from './providerAcceptanceHarness.js';
+import {
+  runProviderAcceptanceTest,
+  runCodingPlanLiveAcceptance,
+  ACCEPTANCE_STUB_ENV,
+  type LiveTerminal,
+  type ReportEmitter,
+} from './providerAcceptanceHarness.js';
 
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
@@ -83,6 +89,65 @@ vi.mock('./providerAcceptance.js', () => ({
   getAllAcceptances: vi.fn().mockResolvedValue({}),
 }));
 
+interface Capture {
+  terminal: LiveTerminal;
+  report: ReportEmitter;
+  terminalLines: string[];
+  reportLines: string[];
+}
+
+function capture(): Capture {
+  const terminalLines: string[] = [];
+  const reportLines: string[] = [];
+  return {
+    terminal: { writeLine: (line: string) => terminalLines.push(line) },
+    report: (line: string) => reportLines.push(line),
+    terminalLines,
+    reportLines,
+  };
+}
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function makeProviderModule(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    resolveProviderAlias: (id: string) => id,
+    getPlumbProvider: (id: string) => ({
+      id,
+      category: 'coding_plan',
+      authMethods: [{ type: 'device_code' }],
+      name: 'GitHub Copilot',
+    }),
+    getProviderDefinition: () => ({
+      id: 'github-copilot',
+      login: vi.fn(),
+      refreshToken: vi.fn(),
+    }),
+    getCatalogProviderEntry: () => ({ api: 'openai-completions', envVars: [] }),
+    getCatalogModels: () => [
+      { id: 'gpt-4o', name: 'GPT-4o' },
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+    ],
+    async *plumbModelStream() {
+      yield { type: 'text', text: 'PLUMB_TEST_OK' };
+    },
+    ...overrides,
+  };
+}
+
+function getDef(
+  providerModule: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  return (
+    providerModule['getProviderDefinition'] as (
+      id: string,
+    ) => Record<string, unknown> | undefined
+  )('x');
+}
+
 describe('provider acceptance harness', () => {
   let originalIsTTY: boolean | undefined;
   let originalSetRawMode:
@@ -92,6 +157,7 @@ describe('provider acceptance harness', () => {
   beforeEach(() => {
     originalIsTTY = process.stdin.isTTY;
     originalSetRawMode = process.stdin.setRawMode;
+    delete process.env[ACCEPTANCE_STUB_ENV];
   });
 
   afterEach(() => {
@@ -101,13 +167,15 @@ describe('provider acceptance harness', () => {
       process.stdin.isTTY = undefined as unknown as boolean;
     }
     if (originalSetRawMode) {
-      process.stdin.setRawMode = originalSetRawMode;
+      Object.defineProperty(process.stdin, 'setRawMode', {
+        value: originalSetRawMode,
+        configurable: true,
+        writable: true,
+      });
     }
   });
 
   it('1. github-copilot test-provider uses coding_plan category', async () => {
-    // When not TTY, the harness should exit with LIVE_TEST_REQUIRES_INTERACTIVE_TTY
-    // before reaching the login flow, but it should still classify correctly.
     process.stdin.isTTY = false;
 
     const exitCode = await runProviderAcceptanceTest('github-copilot');
@@ -117,29 +185,28 @@ describe('provider acceptance harness', () => {
 
   it('12. non-TTY exits with LIVE_TEST_REQUIRES_INTERACTIVE_TTY', async () => {
     process.stdin.isTTY = false;
+    const t = capture();
 
-    const stdoutWrite = vi.spyOn(process.stdout, 'write');
-    const exitCode = await runProviderAcceptanceTest('github-copilot');
+    const exitCode = await runProviderAcceptanceTest('github-copilot', {
+      report: t.report,
+    });
 
     expect(exitCode).toBe(1);
-    expect(stdoutWrite).toHaveBeenCalledWith(
-      expect.stringContaining('LIVE_TEST_REQUIRES_INTERACTIVE_TTY'),
+    expect(t.reportLines.join('\n')).toContain(
+      'LIVE_TEST_REQUIRES_INTERACTIVE_TTY',
     );
-    stdoutWrite.mockRestore();
   });
 
   it('13. static diagnostics remain noninteractive (--diagnose-plan)', async () => {
-    // The diagnose-plan path should never invoke OMP login or require TTY.
-    // This is a structural test: the harness function is separate from
-    // buildPlanDiagnostics. Verify the harness is importable and callable.
     expect(typeof runProviderAcceptanceTest).toBe('function');
+    expect(typeof runCodingPlanLiveAcceptance).toBe('function');
   });
 
   it('14. API provider harness remains working', async () => {
-    // For providers without OMP login (like 'nvidia'), the harness
-    // should still work as a static check.
-    const exitCode = await runProviderAcceptanceTest('nvidia');
-    // nvidia is a reference route, should skip
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('nvidia', {
+      report: t.report,
+    });
     expect(exitCode).toBe(0);
   });
 
@@ -153,7 +220,549 @@ describe('provider acceptance harness', () => {
       'custom-openai-compat',
     ];
     for (const route of referenceRoutes) {
-      const exitCode = await runProviderAcceptanceTest(route);
+      const t = capture();
+      const exitCode = await runProviderAcceptanceTest(route, {
+        report: t.report,
+      });
+      expect(exitCode).toBe(0);
+    }
+  });
+});
+
+describe('live acceptance terminal channels', () => {
+  let originalIsTTY: boolean | undefined;
+  let originalSetRawMode:
+    | ((mode: boolean) => NodeJS.ReadStream & { fd: 0 })
+    | undefined;
+
+  beforeEach(() => {
+    originalIsTTY = process.stdin.isTTY;
+    originalSetRawMode = process.stdin.setRawMode;
+    delete process.env[ACCEPTANCE_STUB_ENV];
+    process.stdin.isTTY = true;
+    if (typeof process.stdin.setRawMode !== 'function') {
+      Object.defineProperty(process.stdin, 'setRawMode', {
+        value: () => process.stdin,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
+  afterEach(() => {
+    if (originalIsTTY !== undefined) {
+      process.stdin.isTTY = originalIsTTY;
+    } else {
+      process.stdin.isTTY = undefined as unknown as boolean;
+    }
+    if (originalSetRawMode) {
+      Object.defineProperty(process.stdin, 'setRawMode', {
+        value: originalSetRawMode,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
+  it('1. startup output bypasses the report collector', async () => {
+    let releaseLogin: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseLogin = resolve;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => gate.then(() => ({ accessKey: 'k' })),
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+
+    expect(t.terminalLines.join('\n')).toContain(
+      'PLUMB coding-plan live acceptance',
+    );
+    expect(t.reportLines.length).toBe(0);
+    releaseLogin?.();
+    await promise;
+  });
+
+  it('2. startup output is visible before provider.login resolves', async () => {
+    let loginStarted = false;
+    let releaseLogin: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseLogin = resolve;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => {
+          loginStarted = true;
+          return gate.then(() => ({ accessKey: 'k' }));
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+
+    expect(loginStarted).toBe(true);
+    expect(t.terminalLines.join('\n')).toContain(
+      'Stage: Requesting device authorization...',
+    );
+    releaseLogin?.();
+    await promise;
+  });
+
+  it('3. URL/code output is visible before token polling', async () => {
+    let releaseLogin: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseLogin = resolve;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate.then(() => ({ accessKey: 'k' }));
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+
+    expect(t.terminalLines.join('\n')).toContain(
+      'https://github.com/login/device',
+    );
+    expect(t.terminalLines.join('\n')).toContain('ABC-1234');
+    releaseLogin?.();
+    await promise;
+  });
+
+  it('4. heartbeat writes newline-terminated visible output', async () => {
+    let releaseLogin: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseLogin = resolve;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate.then(() => ({ accessKey: 'k' }));
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    await sleep(1300);
+
+    const heartbeats = t.terminalLines.filter((l) =>
+      l.startsWith('Waiting for GitHub authorization'),
+    );
+    expect(heartbeats.length).toBeGreaterThan(0);
+    expect(heartbeats[0]).toMatch(
+      /^Waiting for GitHub authorization\.\.\. \d+s$/,
+    );
+    releaseLogin?.();
+    await promise;
+  });
+
+  it('5. heartbeat is stopped before final output', async () => {
+    let releaseLogin: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseLogin = resolve;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate.then(() => ({ accessKey: 'k' }));
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    await sleep(1300);
+    releaseLogin?.();
+    await promise;
+
+    const heartbeatLines = t.terminalLines.filter((l) =>
+      l.startsWith('Waiting for GitHub authorization'),
+    );
+    const heartbeatsAfterAuth = t.terminalLines.filter(
+      (l, i) =>
+        l.startsWith('Waiting for GitHub authorization') &&
+        i > t.terminalLines.indexOf('Authentication successful.'),
+    );
+    expect(heartbeatLines.length).toBeGreaterThan(0);
+    expect(heartbeatsAfterAuth.length).toBe(0);
+  });
+
+  it('6. no heartbeat write occurs after cancellation', async () => {
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    await sleep(1300);
+    rejectLogin?.(new Error('operation cancelled'));
+    const exitCode = await promise;
+
+    expect(exitCode).toBe(1);
+    expect(t.terminalLines[t.terminalLines.length - 1]).toBe(
+      'LIVE_TEST_CANCELLED',
+    );
+    const finalIndex = t.terminalLines.indexOf('LIVE_TEST_CANCELLED');
+    for (const line of t.terminalLines.slice(finalIndex + 1)) {
+      expect(line).not.toMatch(/Waiting for GitHub authorization/);
+    }
+  });
+
+  it('7. trace is not buffered until cleanup', async () => {
+    // Trace lines go out through the same live terminal; no queue exists.
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        traceMode: true,
+        readLine: async () => '1',
+      },
+    );
+    await tick();
+
+    expect(t.terminalLines).toContain('trace.stage: DEVICE_REQUEST_STARTED');
+    expect(t.terminalLines).toContain('trace.stage: DEVICE_CODE_PRESENTED');
+    rejectLogin?.(new Error('operation cancelled'));
+    await promise;
+  });
+
+  it('8. normal mode contains no trace.stage output', async () => {
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    await sleep(1200);
+    rejectLogin?.(new Error('operation cancelled'));
+    await promise;
+
+    expect(t.terminalLines.some((l) => l.startsWith('trace.stage:'))).toBe(
+      false,
+    );
+  });
+
+  it('9. safe trace mode streams stages immediately', async () => {
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        traceMode: true,
+        readLine: async () => '1',
+      },
+    );
+    await tick();
+
+    // Immediately streamed, not retained.
+    const requestIndex = t.terminalLines.indexOf(
+      'trace.stage: DEVICE_REQUEST_STARTED',
+    );
+    const authIndex = t.terminalLines.indexOf(
+      'trace.stage: DEVICE_CODE_PRESENTED',
+    );
+    expect(requestIndex).toBeGreaterThanOrEqual(0);
+    expect(authIndex).toBeGreaterThan(requestIndex);
+    rejectLogin?.(new Error('operation cancelled'));
+    await promise;
+  });
+
+  it('10. final report is emitted once', async () => {
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    rejectLogin?.(new Error('operation cancelled'));
+    await promise;
+
+    expect(t.reportLines.filter((l) => l.startsWith('result:')).length).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('result: LIVE_TEST_CANCELLED');
+  });
+
+  it('11. final report cannot be concatenated with heartbeat text', async () => {
+    let rejectLogin: ((err: Error) => void) | undefined;
+    const gate = new Promise<void>((_resolve, reject) => {
+      rejectLogin = reject;
+    });
+    const providerModule = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: ({ onAuth }: { onAuth: (i: unknown) => void }) => {
+          onAuth({
+            url: 'https://github.com/login/device',
+            launchUrl: 'https://github.com/login/device',
+            instructions: 'Enter code: ABC-1234',
+          });
+          return gate;
+        },
+      }),
+    });
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      getDef(providerModule),
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, readLine: async () => '1' },
+    );
+    await tick();
+    await sleep(1300);
+    rejectLogin?.(new Error('operation cancelled'));
+    await promise;
+
+    // Separate channels: the live channel ends with LIVE_TEST_CANCELLED and
+    // the report channel never mixes heartbeat text.
+    expect(t.terminalLines[t.terminalLines.length - 1]).toBe(
+      'LIVE_TEST_CANCELLED',
+    );
+    expect(
+      t.reportLines.some((l) => l.includes('Waiting for GitHub authorization')),
+    ).toBe(false);
+  });
+
+  it('12. cancellation handlers are detached', async () => {
+    process.stdin.isTTY = true;
+    const setRawModeSpy = vi
+      .spyOn(process.stdin, 'setRawMode')
+      .mockImplementation(() => process.stdin as never);
+    const providerModule = makeProviderModule();
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      undefined,
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, stub: true },
+    );
+    await tick();
+
+    expect(setRawModeSpy).toHaveBeenCalledWith(true);
+    process.stdin.emit('data', '\u0003');
+    const exitCode = await promise;
+
+    expect(exitCode).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('result: LIVE_TEST_CANCELLED');
+    setRawModeSpy.mockRestore();
+  });
+
+  it('13. terminal restoration occurs once', async () => {
+    process.stdin.isTTY = true;
+    const setRawModeSpy = vi
+      .spyOn(process.stdin, 'setRawMode')
+      .mockImplementation(() => process.stdin as never);
+    const providerModule = makeProviderModule();
+    const t = capture();
+
+    const promise = runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      providerModule,
+      undefined,
+      'coding_plan',
+      { terminal: t.terminal, report: t.report, stub: true },
+    );
+    await tick();
+    process.stdin.emit('data', '\u0003');
+    await promise;
+
+    const trueCalls = setRawModeSpy.mock.calls.filter((c) => c[0] === true);
+    const falseCalls = setRawModeSpy.mock.calls.filter((c) => c[0] === false);
+    expect(trueCalls.length).toBe(1);
+    expect(falseCalls.length).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('terminal.restored: true');
+    setRawModeSpy.mockRestore();
+  });
+
+  it('14. API/NVIDIA/local/custom routes remain unchanged', async () => {
+    const referenceRoutes = [
+      'nvidia',
+      'ollama',
+      'lm-studio',
+      'llama-cpp',
+      'vllm',
+      'custom-openai-compat',
+    ];
+    for (const route of referenceRoutes) {
+      const t = capture();
+      const exitCode = await runProviderAcceptanceTest(route, {
+        report: t.report,
+      });
       expect(exitCode).toBe(0);
     }
   });

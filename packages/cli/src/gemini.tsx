@@ -468,7 +468,9 @@ export async function main() {
       const { runProviderAcceptanceTest } = await import(
         './providerAcceptanceHarness.js'
       );
-      exitCode = await runProviderAcceptanceTest(argv.testProvider);
+      exitCode = await runProviderAcceptanceTest(argv.testProvider, {
+        traceMode: argv.traceSafe === true,
+      });
     } else if (argv.testProviderList) {
       const { printProviderTestList } = await import(
         './providerAcceptanceHarness.js'

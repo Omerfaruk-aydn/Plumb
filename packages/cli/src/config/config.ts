@@ -121,6 +121,7 @@ export interface CliArgs {
   testProvider: string | undefined;
   testProviderList: boolean | undefined;
   testProviderNext: boolean | undefined;
+  traceSafe: boolean | undefined;
 }
 
 /**
@@ -560,6 +561,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Choose the next unverified provider for live acceptance testing.',
+        })
+        .option('trace-safe', {
+          type: 'boolean',
+          description:
+            'When running --test-provider, stream safe stage markers to the terminal in real time (no tokens, user codes, or secrets). Omitting it prints no trace.stage lines at all.',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

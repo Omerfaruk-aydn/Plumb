@@ -579,6 +579,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       testProvider: undefined,
       testProviderList: undefined,
       testProviderNext: undefined,
+      traceSafe: undefined,
     });
 
     await act(async () => {
@@ -650,6 +651,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       testProvider: undefined,
       testProviderList: undefined,
       testProviderNext: undefined,
+      traceSafe: undefined,
     });
 
     await act(async () => {
