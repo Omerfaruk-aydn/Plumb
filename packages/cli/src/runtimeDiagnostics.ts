@@ -1129,13 +1129,15 @@ export async function buildPlanDiagnostics(
     }
     lines.push(`mechanism: ${mechanism}`);
 
-    // Registration classification: the OMP login thunks embed the upstream
-    // product's public client; api-key plans use PLUMB-owned key handling.
-    const registrationClass = hasLogin
-      ? 'UPSTREAM_PRODUCT_OWNED_REGISTRATION'
+    // Registration classification: honest label per the coding-plan governance
+    // rules. api-key plans with OMP login use the official CLI delegation route
+    // (same auth page the official CLI uses). OAuth/device-code plans use the
+    // upstream product's public OAuth client.
+    const registrationClass = !hasLogin
+      ? 'MISSING_REGISTRATION'
       : mechanism === 'API_KEY'
-        ? 'PLUMB_OWNED_VALID_REGISTRATION'
-        : 'MISSING_REGISTRATION';
+        ? 'OFFICIAL_CLI_DELEGATION'
+        : 'UPSTREAM_PRODUCT_OWNED_REGISTRATION';
     lines.push(`registration: ${registrationClass}`);
 
     const isSelectable =
@@ -1151,17 +1153,30 @@ export async function buildPlanDiagnostics(
     const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
     lines.push(`bundled.model.count: ${bundledModels.length}`);
 
-    // Final matrix classification: a selectable coding plan with an OMP
-    // login (or an API-key path) is PRODUCTION_READY; a plan whose OMP
-    // login is missing or non-selectable is DOWNSTREAM_BLOCKED.
-    const finalClassification =
-      isSelectable && (hasLogin || mechanism === 'API_KEY')
-        ? 'PRODUCTION_READY'
-        : hasLogin
-          ? 'BLOCKED_NOT_SELECTABLE'
-          : 'DOWNSTREAM_BLOCKED_NO_LOGIN';
+    // Final matrix classification. PRODUCTION_READY is reserved exclusively
+    // for plans whose real login + model population + real streamed response
+    // have been verified by a live user test. Static diagnostics can only
+    // claim IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED (code paths
+    // verified to the external user-account boundary), IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE
+    // (route incomplete), or BLOCKED_CLIENT_REGISTRATION (registration
+    // cannot legitimately be used by PLUMB).
+    let finalClassification: string;
+    if (!isSelectable) {
+      finalClassification = 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE';
+    } else if (!hasLogin && mechanism !== 'API_KEY') {
+      finalClassification = 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE';
+    } else {
+      finalClassification =
+        'IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED';
+    }
     lines.push(`final.classification: ${finalClassification}`);
     lines.push(`last.safe.error: none`);
+
+    // Live verification gate: only real user tests can upgrade to PRODUCTION_READY.
+    lines.push(`live.status: NOT_LIVE_VERIFIED`);
+    lines.push(
+      `live.gate: PLUMB_CODING_PLAN_AUTH_STATIC_REPAIR_READY_FOR_LIVE_USER_TEST`,
+    );
 
     if (isSelectable && !hasLogin && mechanism !== 'API_KEY') {
       failures.push(
@@ -1189,4 +1204,110 @@ export async function printPlanDiagnostics(
     process.stderr.write(`diagnose-plan: FAIL: ${failure}\n`);
   }
   return failures.length > 0 ? 1 : 0;
+}
+
+// ─── Coding-plan live-verification gate ──────────────────────────────
+
+/**
+ * All 23 PLUMB coding-plan ids (canonical or alias) in the order they
+ * appear in the catalog. Used by the live-status gate and the matrix test.
+ */
+export const ALL_CODING_PLAN_IDS: readonly string[] = [
+  'openai-codex',
+  'github-copilot',
+  'cursor',
+  'kimi-code',
+  'minimax-code',
+  'alibaba-coding-plan',
+  'alibaba-token-plan',
+  'zhipu-coding-plan',
+  'qwen-portal',
+  'zai-coding-plan',
+  'opencode-go',
+  'opencode-zen',
+  'gitlab-duo',
+  'gitlab-duo-agent',
+  'devin',
+  'antigravity',
+  'google-gemini-cli',
+  'umans',
+  'sakana',
+  'minimax-code-cn',
+  'xiaomi-token-plan-sgp',
+  'xiaomi-token-plan-ams',
+  'xiaomi-token-plan-cn',
+];
+
+interface LiveVerificationStatus {
+  providerId: string;
+  status:
+    | 'PENDING_REAL_DEVICE_LOGIN'
+    | 'PENDING_REAL_OAUTH_OR_BLOCKED'
+    | 'OFFICIAL_DELEGATION_VERIFIED_OR_BLOCKED'
+    | 'LIVE_VERIFIED';
+}
+
+/**
+ * Live verification status for the four previously-broken coding plans.
+ * Until the user completes a real login flow, these plans remain in a
+ * pending state. PRODUCTION_READY is reserved exclusively for plans whose
+ * real login + model population + real streamed response have been verified
+ * by a live user test.
+ */
+const LIVE_VERIFICATION_STATUS: readonly LiveVerificationStatus[] = [
+  {
+    providerId: 'github-copilot',
+    status: 'PENDING_REAL_DEVICE_LOGIN',
+  },
+  {
+    providerId: 'kimi-code',
+    status: 'PENDING_REAL_DEVICE_LOGIN',
+  },
+  {
+    providerId: 'opencode-go',
+    status: 'OFFICIAL_DELEGATION_VERIFIED_OR_BLOCKED',
+  },
+  {
+    providerId: 'antigravity',
+    status: 'PENDING_REAL_OAUTH_OR_BLOCKED',
+  },
+];
+
+/**
+ * Build the coding-plan live-verification gate report (section 7 of the
+ * governance rules). Prints the real-user test status for the four
+ * previously-broken coding plans and the total count of live-verified plans.
+ * No credentials are printed.
+ */
+export function buildCodingPlanLiveStatus(): string[] {
+  const lines: string[] = [];
+  lines.push('PLUMB coding-plan live-verification gate');
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+  lines.push('');
+
+  for (const entry of LIVE_VERIFICATION_STATUS) {
+    const label = entry.providerId.toUpperCase().replace(/-/g, '_');
+    lines.push(`${label}: ${entry.status}`);
+  }
+
+  lines.push('');
+  const liveVerifiedCount = 0; // no plans have been live-verified yet
+  lines.push(`LIVE_VERIFIED_CODING_PLANS: ${liveVerifiedCount}`);
+  lines.push('');
+
+  lines.push('PLUMB_CODING_PLAN_AUTH_STATIC_REPAIR_READY_FOR_LIVE_USER_TEST');
+
+  return lines;
+}
+
+/**
+ * Print the coding-plan live-verification gate report.
+ * Returns the process exit code.
+ */
+export function printCodingPlanLiveStatus(): number {
+  const lines = buildCodingPlanLiveStatus();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  return 0;
 }

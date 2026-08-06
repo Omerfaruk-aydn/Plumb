@@ -117,6 +117,7 @@ export interface CliArgs {
   diagnoseModels: string | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
+  codingPlanStatus: boolean | undefined;
   testProvider: string | undefined;
   testProviderList: boolean | undefined;
   testProviderNext: boolean | undefined;
@@ -539,6 +540,11 @@ export async function parseArguments(
           type: 'string',
           description:
             'Print safe coding-plan auth diagnostics for a specific provider (derived mechanism, OMP login backing, registration classification, selectability, bundled model count, final matrix classification) without exposing credentials. Usage: plumb --diagnose-plan <provider-id>',
+        })
+        .option('coding-plan-status', {
+          type: 'boolean',
+          description:
+            'Print the coding-plan live-verification gate report showing real-user test status for the four previously-broken coding plans. No credentials are printed.',
         })
         .option('test-provider', {
           type: 'string',

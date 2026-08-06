@@ -155,7 +155,9 @@ describe('buildPlanDiagnostics', () => {
       expect(failures, `${id} should build without failures`).toEqual([]);
       expect(report).toContain(`PLUMB coding-plan diagnostics: ${id}`);
       expect(report).toContain('selectable: true');
-      expect(report).toMatch(/final\.classification: PRODUCTION_READY/);
+      expect(report).toMatch(
+        /final\.classification: IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED/,
+      );
     }
   });
 
@@ -168,12 +170,10 @@ describe('buildPlanDiagnostics', () => {
     );
   });
 
-  it('reports the api_key mechanism and owned registration for opencode-go', async () => {
+  it('reports the api_key mechanism and OFFICIAL_CLI_DELEGATION for opencode-go', async () => {
     const { lines } = await buildPlanDiagnostics('opencode-go');
     const report = lines.join('\n');
     expect(report).toContain('mechanism: API_KEY');
-    expect(report).toContain(
-      'registration: UPSTREAM_PRODUCT_OWNED_REGISTRATION',
-    );
+    expect(report).toContain('registration: OFFICIAL_CLI_DELEGATION');
   });
 });
