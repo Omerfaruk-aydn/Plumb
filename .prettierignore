@@ -24,3 +24,9 @@ Thumbs.db
 packages/sdk/test-data/*.json
 *.mdx
 packages/vscode-ide-companion/NOTICES.txt
+# OMP-imported source (source-fidelity-tracked against upstream, see
+# docs/architecture/plumb-ownership-manifest.json) — must stay byte-close to
+# the pinned upstream to keep adaptationDiffs review-able and avoid stale
+# false positives in the ownership governance suite.
+packages/provider/src/omp-ai/
+packages/provider/src/omp-catalog/
