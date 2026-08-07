@@ -85,6 +85,13 @@ export {
   resetPlumbModelRegistry,
 } from './registry/model-registry.js';
 
+// Auto-mode model-routing policy
+export {
+  resolveAutoModel,
+  type UsableProviderModels,
+  type AutoModelSelection,
+} from './registry/auto-model-policy.js';
+
 // Model catalog (generated from OMP upstream)
 export {
   getCatalogProviders,

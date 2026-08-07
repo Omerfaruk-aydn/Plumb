@@ -16,6 +16,8 @@ export interface SearchableModelPickerProps {
   onCancel: () => void;
   onRefresh?: () => void;
   initialQuery?: string;
+  /** Pre-highlight (not auto-select) this model id if present in `models`. */
+  initialSelectedId?: string;
 }
 
 const MAX_VISIBLE_ROWS = 15;
@@ -53,10 +55,17 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
   onCancel,
   onRefresh,
   initialQuery = '',
+  initialSelectedId,
 }) => {
   const [query, setQuery] = useState(initialQuery);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollOffset, setScrollOffset] = useState(0);
+  const initialIndex = Math.max(
+    0,
+    initialSelectedId ? models.findIndex((m) => m.id === initialSelectedId) : 0,
+  );
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+  const [scrollOffset, setScrollOffset] = useState(() =>
+    initialIndex >= MAX_VISIBLE_ROWS ? initialIndex - MAX_VISIBLE_ROWS + 1 : 0,
+  );
 
   const filteredModels = useMemo(() => {
     if (!query.trim()) return models;
@@ -68,7 +77,10 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
     );
   }, [models, query]);
 
-  const visibleModels = useMemo(() => filteredModels.slice(scrollOffset, scrollOffset + MAX_VISIBLE_ROWS), [filteredModels, scrollOffset]);
+  const visibleModels = useMemo(
+    () => filteredModels.slice(scrollOffset, scrollOffset + MAX_VISIBLE_ROWS),
+    [filteredModels, scrollOffset],
+  );
 
   const handleSelect = useCallback(() => {
     const model = filteredModels[selectedIndex];

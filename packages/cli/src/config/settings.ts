@@ -1242,6 +1242,55 @@ export function saveModelChange(
   }
 }
 
+/**
+ * Provider-scoped "remember model" — parallels saveModelChange's single
+ * global `model.name`, but keyed per provider so switching providers via
+ * /model doesn't overwrite every other provider's remembered choice.
+ * Read back via readPlumbProviderModels; not auto-applied on restart today
+ * (same as the existing write-only `plumb.provider.id` key it sits beside).
+ */
+export function savePlumbProviderModel(
+  loadedSettings: LoadedSettings,
+  providerId: string,
+  modelId: string,
+): void {
+  try {
+    const existing = readPlumbProviderModels(loadedSettings);
+    loadedSettings.setValue(SettingScope.User, 'plumb.provider.models', {
+      ...existing,
+      [providerId]: modelId,
+    });
+  } catch (error) {
+    const detailedErrorMessage = getFsErrorMessage(error);
+    coreEvents.emitFeedback(
+      'error',
+      `Failed to save provider model selection: ${detailedErrorMessage}`,
+      error,
+    );
+  }
+}
+
+export function readPlumbProviderModels(
+  loadedSettings: LoadedSettings,
+): Record<string, string> {
+  const merged: Record<string, unknown> = loadedSettings.merged;
+  const plumb = merged['plumb'];
+  if (!isRecord(plumb)) return {};
+  const provider = plumb['provider'];
+  if (!isRecord(provider)) return {};
+  const models = provider['models'];
+  if (!isRecord(models)) return {};
+  const result: Record<string, string> = {};
+  for (const [providerId, modelId] of Object.entries(models)) {
+    if (typeof modelId === 'string') result[providerId] = modelId;
+  }
+  return result;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function migrateExperimentalSettings(
   settings: Settings,
   loadedSettings: LoadedSettings,

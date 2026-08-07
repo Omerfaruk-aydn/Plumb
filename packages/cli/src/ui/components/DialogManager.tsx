@@ -25,7 +25,9 @@ import { relaunchApp } from '../../utils/processUtils.js';
 import { SessionBrowser } from './SessionBrowser.js';
 import { PermissionsModifyTrustDialog } from './PermissionsModifyTrustDialog.js';
 import { ModelDialog } from './ModelDialog.js';
+import { PlumbModelDialog } from './PlumbModelDialog.js';
 import { VoiceModelDialog } from './VoiceModelDialog.js';
+import { AuthType } from '@google/gemini-cli-core';
 import { theme } from '../semantic-colors.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 import { useQuotaState } from '../contexts/QuotaContext.js';
@@ -243,6 +245,14 @@ export const DialogManager = ({
     );
   }
   if (uiState.isModelDialogOpen) {
+    // Provider-aware /model for PLUMB_PROVIDER sessions; the legacy
+    // Gemini-only dialog stays for non-PLUMB auth (USE_GEMINI/USE_VERTEX_AI
+    // etc.), which never touches the provider registry.
+    if (
+      settings.merged.security.auth.selectedType === AuthType.PLUMB_PROVIDER
+    ) {
+      return <PlumbModelDialog onClose={uiActions.closeModelDialog} />;
+    }
     return <ModelDialog onClose={uiActions.closeModelDialog} />;
   }
   if (uiState.isVoiceModelDialogOpen) {
