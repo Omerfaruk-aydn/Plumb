@@ -34,6 +34,14 @@ vi.mock('./apiKeyCredentialStorage.js', () => ({
 
 vi.mock('./fakeContentGenerator.js');
 
+const mockGetApiKey =
+  vi.fn<(providerId: string) => Promise<string | undefined>>();
+vi.mock('@google/gemini-cli-provider', () => ({
+  getPlumbProviderRegistry: () => ({
+    getApiKey: mockGetApiKey,
+  }),
+}));
+
 const mockConfig = {
   getModel: vi.fn().mockReturnValue('gemini-pro'),
   getProxy: vi.fn().mockReturnValue(undefined),
@@ -1525,5 +1533,86 @@ describe('createContentGeneratorConfig', () => {
     );
     expect(config.apiKey).toBe('');
     expect(config.vertexai).toBe(false);
+  });
+
+  describe('PLUMB_PROVIDER credential resolution', () => {
+    const mockConfigPlain = mockConfig as unknown as Record<string, unknown>;
+    const plumbConfig = {
+      ...mockConfigPlain,
+      getPlumbProvider: vi.fn().mockReturnValue('github-copilot'),
+    } as unknown as Config;
+
+    beforeEach(() => {
+      mockGetApiKey.mockReset();
+    });
+
+    it('resolves the stored credential from the canonical registry instead of the transient setup apiKey', async () => {
+      mockGetApiKey.mockResolvedValue('gho_stored_access_token');
+
+      const config = await createContentGeneratorConfig(
+        plumbConfig,
+        AuthType.PLUMB_PROVIDER,
+        // No literal apiKey passed — this is the real post-login/restart/
+        // model-switch shape, where refreshAuth() is called without one.
+        undefined,
+      );
+
+      expect(mockGetApiKey).toHaveBeenCalledWith('github-copilot');
+      expect(config.apiKey).toBe('gho_stored_access_token');
+    });
+
+    it('falls back to the transient apiKey argument when the store has nothing for this provider yet', async () => {
+      mockGetApiKey.mockResolvedValue(undefined);
+
+      const config = await createContentGeneratorConfig(
+        plumbConfig,
+        AuthType.PLUMB_PROVIDER,
+        'literal-setup-key',
+      );
+
+      expect(config.apiKey).toBe('literal-setup-key');
+    });
+
+    it('never mixes providers — resolves strictly by the active provider id', async () => {
+      mockGetApiKey.mockImplementation(async (providerId: string) =>
+        providerId === 'nvidia' ? 'nvapi-real-key' : undefined,
+      );
+      const nvidiaConfig = {
+        ...mockConfigPlain,
+        getPlumbProvider: vi.fn().mockReturnValue('nvidia'),
+      } as unknown as Config;
+
+      const config = await createContentGeneratorConfig(
+        nvidiaConfig,
+        AuthType.PLUMB_PROVIDER,
+      );
+
+      expect(mockGetApiKey).toHaveBeenCalledWith('nvidia');
+      expect(mockGetApiKey).not.toHaveBeenCalledWith('github-copilot');
+      expect(config.apiKey).toBe('nvapi-real-key');
+    });
+
+    it('resolves to an empty string (not a thrown error) when neither the store nor the argument has a credential', async () => {
+      mockGetApiKey.mockResolvedValue(undefined);
+
+      const config = await createContentGeneratorConfig(
+        plumbConfig,
+        AuthType.PLUMB_PROVIDER,
+      );
+
+      expect(config.apiKey).toBe('');
+    });
+
+    it('does not throw when credential resolution itself fails, falling back to the transient apiKey', async () => {
+      mockGetApiKey.mockRejectedValue(new Error('keychain unavailable'));
+
+      const config = await createContentGeneratorConfig(
+        plumbConfig,
+        AuthType.PLUMB_PROVIDER,
+        'fallback-key',
+      );
+
+      expect(config.apiKey).toBe('fallback-key');
+    });
   });
 });

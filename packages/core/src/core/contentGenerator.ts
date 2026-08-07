@@ -33,6 +33,8 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
 import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
 import { PlumbContentGenerator } from './plumbContentGenerator.js';
+import { getPlumbProviderRegistry } from '@google/gemini-cli-provider';
+import { debugLogger } from '../utils/debugLogger.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -179,10 +181,32 @@ export async function createContentGeneratorConfig(
     return contentGeneratorConfig;
   }
 
-  // PLUMB_PROVIDER: apiKey is resolved from PlumbCredentialStore at stream time.
-  // No env-var check needed at config creation time.
+  // PLUMB_PROVIDER: resolve the real credential from the canonical
+  // PlumbProviderRegistry/credential store here, not from the transient
+  // `apiKey` argument — that argument is only ever populated on the literal
+  // API-key setup path (see handleProviderSetupComplete), so relying on it
+  // alone left every OAuth/coding-plan provider (e.g. github-copilot)
+  // permanently sending an empty credential on every real chat turn.
+  // getApiKey() already generically resolves either an unexpired OAuth
+  // access token or an API key for the given provider — it's the existing
+  // single-string resolution the credential store already exposes, not a
+  // new mechanism.
   if (authType === AuthType.PLUMB_PROVIDER) {
-    contentGeneratorConfig.apiKey = apiKey ?? '';
+    const providerId = config?.getPlumbProvider?.() ?? undefined;
+    let resolvedApiKey = apiKey;
+    if (providerId) {
+      try {
+        resolvedApiKey =
+          (await getPlumbProviderRegistry().getApiKey(providerId)) ?? apiKey;
+      } catch (err) {
+        debugLogger.warn(
+          `Failed to resolve stored credential for provider ${providerId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+    contentGeneratorConfig.apiKey = resolvedApiKey ?? '';
     return contentGeneratorConfig;
   }
 

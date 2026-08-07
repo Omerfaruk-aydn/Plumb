@@ -41,6 +41,7 @@ import {
   getAdminBlockedMcpServersMessage,
   getProjectRootForWorktree,
   isGeminiWorktree,
+  AuthType,
   type WorktreeSettings,
   type HookDefinition,
   type HookEventName,
@@ -1027,7 +1028,7 @@ export async function loadCliConfig(
     enabled: !!profileSelector,
   };
 
-  return new Config({
+  const config = new Config({
     acpMode: isAcpMode,
     clientName,
     sessionId,
@@ -1194,6 +1195,31 @@ export async function loadCliConfig(
     },
     enableConseca: settings.security?.enableConseca,
   });
+
+  // Restore the active PLUMB provider on cold start. Without this, a
+  // returning PLUMB_PROVIDER session's first config.refreshAuth() call has
+  // no provider id to resolve a stored credential against (see
+  // createContentGeneratorConfig in packages/core/src/core/contentGenerator.ts),
+  // so restart would keep sending an empty credential for OAuth/coding-plan
+  // providers like github-copilot even though the keychain has one.
+  if (settings.security?.auth?.selectedType === AuthType.PLUMB_PROVIDER) {
+    const persistedProviderId = readPlumbProviderId(settings);
+    if (persistedProviderId) {
+      config.setPlumbProvider(persistedProviderId);
+    }
+  }
+
+  return config;
+}
+
+function readPlumbProviderId(settings: MergedSettings): string | undefined {
+  const settingsRecord: Record<string, unknown> = settings;
+  const plumb = settingsRecord['plumb'];
+  if (!isRecord(plumb)) return undefined;
+  const provider = plumb['provider'];
+  if (!isRecord(provider)) return undefined;
+  const id = provider['id'];
+  return typeof id === 'string' && id.length > 0 ? id : undefined;
 }
 
 function mergeExcludeTools(

@@ -17,6 +17,7 @@ import {
   ASK_USER_TOOL_NAME,
   debugLogger,
   ApprovalMode,
+  AuthType,
   type MCPServerConfig,
   type GeminiCLIExtension,
   Storage,
@@ -1970,6 +1971,70 @@ describe('loadCliConfig model selection', () => {
     );
 
     expect(config.getModel()).toBe('auto');
+  });
+});
+
+describe('loadCliConfig PLUMB provider restart restore', () => {
+  beforeEach(() => {
+    vi.spyOn(ExtensionManager.prototype, 'getExtensions').mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('restores the persisted active provider on cold start for a PLUMB_PROVIDER session', async () => {
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const config = await loadCliConfig(
+      createTestMergedSettings({
+        security: {
+          auth: { selectedType: AuthType.PLUMB_PROVIDER },
+        },
+        // Not part of the formal Settings schema (write-only key, see
+        // settings.ts savePlumbProviderModel/readPlumbProviderModels) but
+        // this is exactly the shape AppContainer persists via
+        // settings.setValue(SettingScope.User, 'plumb.provider.id', ...).
+        plumb: { provider: { id: 'github-copilot' } },
+      } as unknown as Partial<Settings>),
+      'test-session',
+      argv,
+    );
+
+    expect(config.getPlumbProvider()).toBe('github-copilot');
+  });
+
+  it('does not set a provider when no PLUMB provider was ever persisted', async () => {
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const config = await loadCliConfig(
+      createTestMergedSettings({
+        security: {
+          auth: { selectedType: AuthType.PLUMB_PROVIDER },
+        },
+      }),
+      'test-session',
+      argv,
+    );
+
+    expect(config.getPlumbProvider()).toBeNull();
+  });
+
+  it('does not restore a provider for non-PLUMB auth types even if plumb.provider.id is stale in settings', async () => {
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const config = await loadCliConfig(
+      createTestMergedSettings({
+        security: {
+          auth: { selectedType: AuthType.USE_GEMINI },
+        },
+        plumb: { provider: { id: 'github-copilot' } },
+      } as unknown as Partial<Settings>),
+      'test-session',
+      argv,
+    );
+
+    expect(config.getPlumbProvider()).toBeNull();
   });
 });
 
