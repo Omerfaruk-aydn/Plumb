@@ -1226,4 +1226,175 @@ describe('model selection input ownership and validation', () => {
     const serialized = JSON.stringify(calls);
     expect(serialized).not.toContain('TOKEN_ACCESS_XYZ');
   });
+
+  it('31. 38-model fixture: 1 selects the first model', async () => {
+    const MODELS_38 = Array.from({ length: 38 }, (_, i) => ({
+      id: `model-${i + 1}`,
+      name: `Model ${i + 1}`,
+      api: 'openai-completions',
+    }));
+    const module38 = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => MODELS_38,
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      module38,
+      getDef(module38),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    const report = t.reportLines.join('\n');
+    expect(report).toContain('models.bundled.count: 38');
+    expect(report).toContain('models.final.count: 38');
+    expect(report).toContain('selected.model: model-1');
+    expect(report).toContain('result: LIVE_VERIFIED');
+  });
+
+  it('32. 38-model fixture: 38 selects the last model', async () => {
+    const MODELS_38 = Array.from({ length: 38 }, (_, i) => ({
+      id: `model-${i + 1}`,
+      name: `Model ${i + 1}`,
+      api: 'openai-completions',
+    }));
+    const module38 = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => MODELS_38,
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      module38,
+      getDef(module38),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 38 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.reportLines.join('\n')).toContain('selected.model: model-38');
+  });
+
+  it('33. 38-model fixture: 0 reprompts then 1 succeeds', async () => {
+    const MODELS_38 = Array.from({ length: 38 }, (_, i) => ({
+      id: `model-${i + 1}`,
+      name: `Model ${i + 1}`,
+      api: 'openai-completions',
+    }));
+    const module38 = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => MODELS_38,
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      module38,
+      getDef(module38),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'number', value: 0 },
+          { type: 'number', value: 1 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    const report = t.reportLines.join('\n');
+    expect(report).toContain('selected.model: model-1');
+    expect(report).toContain('models.final.count: 38');
+    const prompts = t.terminalLines.filter((l) =>
+      l.startsWith('Enter model number'),
+    );
+    expect(prompts.length).toBe(2);
+  });
+
+  it('34. 38-model fixture: 39 reprompts then 38 succeeds', async () => {
+    const MODELS_38 = Array.from({ length: 38 }, (_, i) => ({
+      id: `model-${i + 1}`,
+      name: `Model ${i + 1}`,
+      api: 'openai-completions',
+    }));
+    const module38 = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => MODELS_38,
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      module38,
+      getDef(module38),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'number', value: 39 },
+          { type: 'number', value: 38 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.reportLines.join('\n')).toContain('selected.model: model-38');
+  });
+
+  it('35. 38-model fixture: cancel after invalid keeps count 38', async () => {
+    const MODELS_38 = Array.from({ length: 38 }, (_, i) => ({
+      id: `model-${i + 1}`,
+      name: `Model ${i + 1}`,
+      api: 'openai-completions',
+    }));
+    const module38 = makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => MODELS_38,
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      module38,
+      getDef(module38),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'number', value: 0 },
+          { type: 'cancel' },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(1);
+    const report = t.reportLines.join('\n');
+    expect(report).toContain('models.final.count: 38');
+    expect(report).toContain('result: LIVE_TEST_CANCELLED');
+  });
 });
