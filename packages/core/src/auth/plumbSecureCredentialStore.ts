@@ -13,6 +13,22 @@ import * as path from 'node:path';
 import { homedir } from '../utils/paths.js';
 import { KeychainService } from '../services/keychainService.js';
 import { randomUUID } from 'node:crypto';
+import type {
+  IPlumbCredentialStore,
+  PlumbCredential,
+  PlumbCredentialEntry,
+  PlumbCredentialSource,
+  PlumbOAuthCredential,
+  PlumbApiKeyCredential,
+} from '@google/gemini-cli-provider';
+
+export type {
+  PlumbOAuthCredential,
+  PlumbApiKeyCredential,
+  PlumbCredential,
+  PlumbCredentialSource,
+  PlumbCredentialEntry,
+};
 
 // ─── Constants ────────────────────────────────────────────────────────
 
@@ -20,48 +36,6 @@ const PLUMB_DIR = '.plumb';
 const METADATA_FILE = 'providers.json';
 const KEYCHAIN_SERVICE_NAME = 'plumb-provider-credentials';
 const OAUTH_REFRESH_SKEW_MS = 60_000;
-
-// ─── Types ────────────────────────────────────────────────────────────
-
-export interface PlumbOAuthCredential {
-  type: 'oauth';
-  provider: string;
-  access: string;
-  refresh: string;
-  expires: number;
-  email?: string;
-  accountId?: string;
-  orgId?: string;
-  orgName?: string;
-  authorizedAt?: number;
-  projectId?: string;
-}
-
-export interface PlumbApiKeyCredential {
-  type: 'api_key';
-  provider: string;
-  key: string;
-  label?: string;
-}
-
-export type PlumbCredential = PlumbOAuthCredential | PlumbApiKeyCredential;
-
-export type PlumbCredentialSource =
-  | 'runtime'
-  | 'config'
-  | 'oauth'
-  | 'api_key'
-  | 'env'
-  | 'fallback'
-  | 'none';
-
-export interface PlumbCredentialEntry {
-  provider: string;
-  credential: PlumbCredential;
-  source: PlumbCredentialSource;
-  lastUsed?: number;
-  usageCount?: number;
-}
 
 interface NonSecretMetadata {
   version: 3;
@@ -94,7 +68,7 @@ async function ensurePlumbDir(): Promise<void> {
 
 // ─── PlumbSecureCredentialStore ────────────────────────────────────────
 
-export class PlumbSecureCredentialStore {
+export class PlumbSecureCredentialStore implements IPlumbCredentialStore {
   readonly #keychain: KeychainService;
   #metadata: NonSecretMetadata = { version: 3, providers: {} };
   #loaded = false;
@@ -237,6 +211,22 @@ export class PlumbSecureCredentialStore {
 
     this.#metadataDirty = true;
     await this.#flushMetadata();
+  }
+
+  /** Thin delegation to satisfy IPlumbCredentialStore — same physical write path as storeCredential. */
+  async storeOAuthCredential(
+    provider: string,
+    credential: PlumbOAuthCredential,
+  ): Promise<void> {
+    await this.storeCredential(provider, credential);
+  }
+
+  /** Thin delegation to satisfy IPlumbCredentialStore — same physical write path as storeCredential. */
+  async storeApiKeyCredential(
+    provider: string,
+    credential: PlumbApiKeyCredential,
+  ): Promise<void> {
+    await this.storeCredential(provider, credential);
   }
 
   async removeCredentials(provider: string): Promise<void> {
