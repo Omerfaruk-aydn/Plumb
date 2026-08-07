@@ -437,7 +437,9 @@ export async function main() {
     argv.codingPlanStatus ||
     argv.testProvider ||
     argv.testProviderList ||
-    argv.testProviderNext
+    argv.testProviderNext ||
+    argv.diagnoseAntigravityRoute ||
+    argv.testAntigravityRoute
   ) {
     const {
       printRuntimeIdentity,
@@ -448,6 +450,8 @@ export async function main() {
       printAuthStateDiagnostics,
       printPlanDiagnostics,
       printCodingPlanLiveStatus,
+      printAntigravityRouteDiagnostics,
+      runAntigravityRouteTest,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
@@ -481,6 +485,10 @@ export async function main() {
         './providerAcceptanceHarness.js'
       );
       exitCode = await printProviderTestNext();
+    } else if (argv.diagnoseAntigravityRoute) {
+      exitCode = await printAntigravityRouteDiagnostics();
+    } else if (argv.testAntigravityRoute) {
+      exitCode = await runAntigravityRouteTest(argv.testAntigravityRoute);
     } else {
       exitCode = await printProviderRuntimeDiagnostics();
     }

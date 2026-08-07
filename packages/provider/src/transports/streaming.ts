@@ -532,18 +532,30 @@ async function* anthropicMessagesStream(
 // bare access token, dropping projectId). Rather than widen that shared
 // contract for one provider family, this reads the full PlumbOAuthCredential
 // directly from the canonical PlumbProviderRegistry.
-async function* googleCloudCodeAssistStream(
+export interface AntigravityRequestDescriptor {
+  url: string;
+  headers: Record<string, string>;
+  body: unknown;
+}
+
+export type AntigravityRequestResult =
+  | { ok: true; descriptor: AntigravityRequestDescriptor }
+  | { ok: false; error: PlumbStreamEvent };
+
+/**
+ * Builds the exact request (URL/headers/body) a real google-gemini-cli /
+ * google-antigravity chat turn sends — used by BOTH normal chat
+ * (googleCloudCodeAssistStream below) and the `plumb --diagnose-antigravity-route`
+ * / `--test-antigravity-route` CLI diagnostics, so the two can never silently
+ * diverge into "the diagnostic looks right but chat uses something else."
+ * Never resolves with the raw accessToken/projectId anywhere but inside the
+ * returned descriptor (which callers must sanitize before printing).
+ */
+export async function buildAntigravityRequest(
   options: PlumbStreamOptions,
-): AsyncGenerator<PlumbStreamEvent> {
-  const {
-    model,
-    messages,
-    tools,
-    signal,
-    systemPrompt,
-    maxTokens,
-    temperature,
-  } = options;
+): Promise<AntigravityRequestResult> {
+  const { model, messages, tools, systemPrompt, maxTokens, temperature } =
+    options;
 
   const { getPlumbProviderRegistry } = await import(
     '../registry/provider-registry.js'
@@ -558,14 +570,16 @@ async function* googleCloudCodeAssistStream(
     !credential.access ||
     !credential.projectId
   ) {
-    yield {
-      type: 'error',
+    return {
+      ok: false,
       error: {
-        code: 'MISSING_CREDENTIAL',
-        message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+        type: 'error',
+        error: {
+          code: 'MISSING_CREDENTIAL',
+          message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+        },
       },
     };
-    return;
   }
   const accessToken = credential.access;
   const projectId = credential.projectId;
@@ -643,14 +657,16 @@ async function* googleCloudCodeAssistStream(
       isAntigravity,
     );
   } catch (err) {
-    yield {
-      type: 'error',
+    return {
+      ok: false,
       error: {
-        code: 'REQUEST_BUILD_FAILED',
-        message: `Failed to build ${model.provider} request: ${(err as Error).message}`,
+        type: 'error',
+        error: {
+          code: 'REQUEST_BUILD_FAILED',
+          message: `Failed to build ${model.provider} request: ${(err as Error).message}`,
+        },
       },
     };
-    return;
   }
 
   const baseUrl = (model.baseUrl ?? gcli.DEFAULT_ENDPOINT).replace(/\/+$/, '');
@@ -665,13 +681,26 @@ async function* googleCloudCodeAssistStream(
     headers['User-Agent'] = gcli.getAntigravityUserAgent();
   }
 
+  return { ok: true, descriptor: { url, headers, body: requestBody } };
+}
+
+async function* googleCloudCodeAssistStream(
+  options: PlumbStreamOptions,
+): AsyncGenerator<PlumbStreamEvent> {
+  const result = await buildAntigravityRequest(options);
+  if (!result.ok) {
+    yield result.error;
+    return;
+  }
+  const { url, headers, body } = result.descriptor;
+
   let response: Response;
   try {
     response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(requestBody),
-      signal,
+      body: JSON.stringify(body),
+      signal: options.signal,
     });
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
@@ -700,7 +729,7 @@ async function* googleCloudCodeAssistStream(
       type: 'error',
       error: {
         code,
-        message: `${model.provider} request failed (HTTP ${response.status}).`,
+        message: `${options.model.provider} request failed (HTTP ${response.status}).`,
       },
     };
     return;

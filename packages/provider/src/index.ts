@@ -191,6 +191,9 @@ export {
   plumbModelStream,
   registerPlumbTransport,
   hasPlumbTransport,
+  buildAntigravityRequest,
+  type AntigravityRequestDescriptor,
+  type AntigravityRequestResult,
 } from './transports/streaming.js';
 
 // Coding plan implementations

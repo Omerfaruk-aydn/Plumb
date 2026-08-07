@@ -123,6 +123,8 @@ export interface CliArgs {
   testProviderList: boolean | undefined;
   testProviderNext: boolean | undefined;
   traceSafe: boolean | undefined;
+  diagnoseAntigravityRoute: boolean | undefined;
+  testAntigravityRoute: string | undefined;
 }
 
 /**
@@ -567,6 +569,16 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'When running --test-provider, stream safe stage markers to the terminal in real time (no tokens, user codes, or secrets). Omitting it prints no trace.stage lines at all.',
+        })
+        .option('diagnose-antigravity-route', {
+          type: 'boolean',
+          description:
+            'Print safe Google Antigravity route diagnostics (endpoint, path, query keys, header names, body field presence, requestId shape) for the currently configured provider/model, built via the exact production request-builder normal chat uses. Sends no network request. No credentials are printed.',
+        })
+        .option('test-antigravity-route', {
+          type: 'string',
+          description:
+            'Send one real, minimal request to Google Antigravity using the already-stored credential and the exact production transport, then print safe HTTP-result metadata (status, content-type, safe error classification). Never modifies credentials or persists state. Usage: plumb --test-antigravity-route <model-id>',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

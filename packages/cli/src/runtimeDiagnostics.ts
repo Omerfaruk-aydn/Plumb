@@ -1311,3 +1311,327 @@ export function printCodingPlanLiveStatus(): number {
   }
   return 0;
 }
+
+// ─── Antigravity route diagnostics ────────────────────────────────────
+//
+// Both handlers below call the SAME production function
+// (buildAntigravityRequest, exported from @google/gemini-cli-provider's
+// transports/streaming.ts) that normal chat calls via plumbModelStream —
+// see NORMAL_CHAT_TRANSPORT_FUNCTION == DIAGNOSTIC_TRANSPORT_FUNCTION in
+// the streaming.test.ts suite for the structural proof. Neither handler
+// prints the access token, project id value, or raw response body — only
+// presence/shape.
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+async function readPersistedAntigravitySelection(): Promise<{
+  providerId: string | undefined;
+  modelId: string | undefined;
+}> {
+  const { loadSettings } = await import('./config/settings.js');
+  const settings = loadSettings(process.cwd());
+  const merged = settings.merged as unknown as Record<string, unknown>;
+  const plumb = merged['plumb'];
+  const provider = isPlainRecord(plumb) ? plumb['provider'] : undefined;
+  const providerIdValue = isPlainRecord(provider) ? provider['id'] : undefined;
+  const providerId = isNonEmptyString(providerIdValue)
+    ? providerIdValue
+    : undefined;
+  const model = merged['model'];
+  const modelNameValue = isPlainRecord(model) ? model['name'] : undefined;
+  const modelId = isNonEmptyString(modelNameValue) ? modelNameValue : undefined;
+  return { providerId, modelId };
+}
+
+/** Safe (non-secret) summary of an AntigravityRequestDescriptor. */
+function describeAntigravityRequest(
+  descriptor: import('@google/gemini-cli-provider').AntigravityRequestDescriptor,
+): string[] {
+  const lines: string[] = [];
+  const url = new URL(descriptor.url);
+  lines.push(`request.origin: ${url.origin}`);
+  lines.push(`request.pathname: ${url.pathname}`);
+  lines.push(
+    `request.query.keys: ${[...url.searchParams.keys()].join(',') || '(none)'}`,
+  );
+  lines.push(`request.query.alt.present: ${url.searchParams.has('alt')}`);
+  lines.push(`request.query.key.present: ${url.searchParams.has('key')}`);
+  lines.push(
+    `request.headers.names: ${Object.keys(descriptor.headers).join(',')}`,
+  );
+  const authHeader = descriptor.headers['Authorization'];
+  lines.push(`request.authorization.present: ${authHeader !== undefined}`);
+  lines.push(
+    `request.authorization.scheme: ${authHeader ? authHeader.split(' ')[0] : '(none)'}`,
+  );
+
+  const body = descriptor.body;
+  if (isPlainRecord(body)) {
+    lines.push(`request.body.keys: ${Object.keys(body).join(',')}`);
+    lines.push(`request.body.project.present: ${'project' in body}`);
+    const bodyModel = body['model'];
+    lines.push(
+      `request.body.model: ${isNonEmptyString(bodyModel) ? bodyModel : '(unknown)'}`,
+    );
+    lines.push(`request.body.request.present: ${'request' in body}`);
+    lines.push(`request.body.requestId.present: ${'requestId' in body}`);
+    const requestId = body['requestId'];
+    lines.push(
+      `request.body.requestId.shape: ${
+        isNonEmptyString(requestId)
+          ? /^agent\/[^/]+\/\d+\/[^/]+\/\d+$/.test(requestId)
+            ? 'agent/<id>/<ts>/<trajectory>/<step>'
+            : 'unrecognized'
+          : '(absent)'
+      }`,
+    );
+    const inner = body['request'];
+    lines.push(
+      `request.body.sessionId.present: ${isPlainRecord(inner) && 'sessionId' in inner}`,
+    );
+    lines.push(
+      `request.body.labels.present: ${isPlainRecord(inner) && 'labels' in inner}`,
+    );
+    const bodyUserAgent = body['userAgent'];
+    lines.push(
+      `request.body.userAgent: ${isNonEmptyString(bodyUserAgent) ? bodyUserAgent : '(absent)'}`,
+    );
+    const bodyRequestType = body['requestType'];
+    lines.push(
+      `request.body.requestType: ${isNonEmptyString(bodyRequestType) ? bodyRequestType : '(absent)'}`,
+    );
+  }
+  return lines;
+}
+
+/**
+ * `plumb --diagnose-antigravity-route` — inspects the same production
+ * registry/model/credential objects normal chat uses for the currently
+ * persisted provider+model selection, and (if it resolves to
+ * google-antigravity) builds the real request descriptor via
+ * buildAntigravityRequest without sending it. Never sends a network
+ * request; safe to run at any time.
+ */
+export async function buildAntigravityRouteDiagnostics(): Promise<{
+  lines: string[];
+  failures: string[];
+}> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+  lines.push('PLUMB Antigravity route diagnostics');
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+    installBunGlobal();
+
+    const { providerId, modelId } = await readPersistedAntigravitySelection();
+    lines.push(`active.provider: ${providerId ?? '(none configured)'}`);
+    lines.push(`active.model: ${modelId ?? '(none configured)'}`);
+
+    if (providerId !== 'google-antigravity') {
+      lines.push(
+        'note: the currently configured provider is not google-antigravity; nothing further to diagnose. Use --test-antigravity-route <model> to probe it directly regardless of the active session.',
+      );
+      return { lines, failures };
+    }
+    if (!modelId) {
+      failures.push('no active model configured');
+      return { lines, failures };
+    }
+
+    const registry = providerModule.getPlumbProviderRegistry();
+    await registry.initialize();
+    const state = registry.getProviderState('google-antigravity');
+    lines.push(`credential.kind: ${state?.credentials?.type ?? '(none)'}`);
+    lines.push(`credential.present: ${!!state?.credentials}`);
+    if (state?.credentials?.type === 'oauth') {
+      lines.push(
+        `credential.accessToken.present: ${!!state.credentials.access}`,
+      );
+      lines.push(
+        `credential.projectId.present: ${!!state.credentials.projectId}`,
+      );
+    }
+
+    const modelRegistry = providerModule.getPlumbModelRegistry();
+    const model = modelRegistry.findModel('google-antigravity', modelId);
+    if (!model) {
+      failures.push(
+        `model ${modelId} not found in the google-antigravity catalog`,
+      );
+      return { lines, failures };
+    }
+    lines.push(`catalog.model.displayId: ${model.id}`);
+    lines.push(
+      `catalog.model.requestModelId: ${model.requestModelId ?? '(same as displayId)'}`,
+    );
+    lines.push(`catalog.model.api: ${model.api}`);
+
+    lines.push('transport.function: googleCloudCodeAssistStream');
+    lines.push(
+      'transport.source: packages/provider/src/transports/streaming.ts',
+    );
+    lines.push('buildRequest.used: true');
+    lines.push(
+      'buildRequest.source: packages/provider/src/omp-ai/providers/google-gemini-cli.ts',
+    );
+
+    const result = await providerModule.buildAntigravityRequest({
+      model,
+      messages: [{ role: 'user', content: '(diagnostic — not sent)' }],
+      apiKey: '',
+    });
+
+    if (!result.ok) {
+      lines.push(`build.result: ${result.error.error?.code ?? 'ERROR'}`);
+      failures.push(
+        result.error.error?.message ?? 'failed to build Antigravity request',
+      );
+      return { lines, failures };
+    }
+
+    lines.push('build.result: ok');
+    lines.push(...describeAntigravityRequest(result.descriptor));
+  } catch (err) {
+    failures.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return { lines, failures };
+}
+
+export async function printAntigravityRouteDiagnostics(): Promise<number> {
+  const { lines, failures } = await buildAntigravityRouteDiagnostics();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-antigravity-route: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
+/**
+ * `plumb --test-antigravity-route <model>` — sends ONE real, minimal
+ * request to the real google-antigravity endpoint using the already-stored
+ * credential, through the exact production transport
+ * (googleCloudCodeAssistStream / buildAntigravityRequest). Never modifies
+ * credentials, never persists state, never prints the prompt or any
+ * secret. Classifies the HTTP result without ever printing the response
+ * body.
+ */
+export async function runAntigravityRouteTest(
+  modelId: string,
+): Promise<number> {
+  process.stdout.write('PLUMB Antigravity live route probe\n');
+  process.stdout.write(`git.head.embedded: ${BUILD_IDENTITY.gitHead}\n`);
+  process.stdout.write(`provider: google-antigravity\n`);
+  process.stdout.write(`display.model: ${modelId}\n`);
+
+  try {
+    installBunGlobal();
+    const providerModule = await import('@google/gemini-cli-provider');
+    const registry = providerModule.getPlumbProviderRegistry();
+    await registry.initialize();
+
+    const state = registry.getProviderState('google-antigravity');
+    if (!state?.credentials || state.credentials.type !== 'oauth') {
+      process.stderr.write(
+        'test-antigravity-route: FAIL: no stored google-antigravity OAuth credential. Sign in via /login google-antigravity first.\n',
+      );
+      return 1;
+    }
+
+    const modelRegistry = providerModule.getPlumbModelRegistry();
+    const model = modelRegistry.findModel('google-antigravity', modelId);
+    if (!model) {
+      process.stderr.write(
+        `test-antigravity-route: FAIL: model ${modelId} not found in the google-antigravity catalog.\n`,
+      );
+      return 1;
+    }
+    process.stdout.write(`wire.model: ${model.requestModelId ?? model.id}\n`);
+
+    const result = await providerModule.buildAntigravityRequest({
+      model,
+      messages: [{ role: 'user', content: 'ping' }],
+      apiKey: '',
+    });
+    if (!result.ok) {
+      process.stdout.write(
+        `safe.error.classification: ${result.error.error?.code ?? 'BUILD_FAILED'}\n`,
+      );
+      process.stderr.write(
+        `test-antigravity-route: FAIL: ${result.error.error?.message ?? 'failed to build request'}\n`,
+      );
+      return 1;
+    }
+
+    const url = new URL(result.descriptor.url);
+    process.stdout.write(`origin: ${url.origin}\n`);
+    process.stdout.write(`pathname: ${url.pathname}\n`);
+    process.stdout.write(
+      `query.keys: ${[...url.searchParams.keys()].join(',') || '(none)'}\n`,
+    );
+    process.stdout.write(
+      `authorization.present: ${result.descriptor.headers['Authorization'] !== undefined}\n`,
+    );
+    const bodyRecord = isPlainRecord(result.descriptor.body)
+      ? result.descriptor.body
+      : {};
+    process.stdout.write(`project.present: ${'project' in bodyRecord}\n`);
+
+    let response: Response;
+    try {
+      response = await fetch(result.descriptor.url, {
+        method: 'POST',
+        headers: result.descriptor.headers,
+        body: JSON.stringify(result.descriptor.body),
+      });
+    } catch (err) {
+      process.stdout.write('safe.error.classification: REQUEST_FAILED\n');
+      process.stderr.write(
+        `test-antigravity-route: FAIL: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      return 1;
+    }
+
+    process.stdout.write(`HTTP.status: ${response.status}\n`);
+    process.stdout.write(
+      `HTTP.contentType: ${response.headers.get('content-type') ?? '(none)'}\n`,
+    );
+    const traceId =
+      response.headers.get('x-goog-trace-id') ??
+      response.headers.get('x-request-id');
+    if (traceId) {
+      process.stdout.write(`google.requestId: ${traceId}\n`);
+    }
+    // Drain the body without ever printing it — required to let the
+    // connection close cleanly, but its content (which may echo request
+    // context) must never reach the terminal.
+    await response.body?.cancel();
+
+    if (response.status === 404) {
+      process.stdout.write('404.classification: ENDPOINT_NOT_FOUND\n');
+    } else if (response.ok) {
+      process.stdout.write('result: HTTP_OK\n');
+    } else {
+      process.stdout.write(
+        `safe.error.classification: HTTP_${response.status}\n`,
+      );
+    }
+
+    return 0;
+  } catch (err) {
+    process.stderr.write(
+      `test-antigravity-route: FAIL: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return 1;
+  }
+}
