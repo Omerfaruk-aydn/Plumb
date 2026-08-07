@@ -261,6 +261,21 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
       expect(capturedBody?.['model']).toBe(modelId);
       expect(capturedBody?.['project']).toBe('my-real-gcp-project');
 
+      // Real production defect (round 2): these envelope fields — generated
+      // by the pinned buildAntigravityRequestEnvelope, reached only by
+      // calling the real exported buildRequest — were entirely absent from
+      // the hand-built body in the first fix and are suspected load-bearing
+      // for Google's request routing (still 404s without them).
+      expect(typeof capturedBody?.['requestId']).toBe('string');
+      expect(capturedBody?.['requestId']).toMatch(/^agent\//);
+      expect(capturedBody?.['userAgent']).toBe('antigravity');
+      expect(capturedBody?.['requestType']).toBe('agent');
+      const request = capturedBody?.['request'] as
+        | Record<string, unknown>
+        | undefined;
+      expect(typeof request?.['sessionId']).toBe('string');
+      expect(request?.['labels']).toBeTruthy();
+
       // OAUTH_TOKEN_IN_QUERY: ZERO / QUERY_KEY_PARAMETER_FOR_ANTIGRAVITY_OAUTH: ZERO
       const query = new URL(capturedUrl).searchParams;
       expect(query.has('key')).toBe(false);
@@ -278,6 +293,40 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
       expect(capturedHeaders?.['x-api-key']).toBeUndefined();
     });
   }
+
+  it('sends the catalog requestModelId (wire id), never the display id, when they differ', async () => {
+    // Real catalog shape: gpt-oss-120b (display id) has
+    // requestModelId 'gpt-oss-120b-medium' (wire id) — confirmed against
+    // the actual bundled antigravity catalog. Sending the display id
+    // instead of the wire id is a plausible cause of a route-not-found 404.
+    mockGetProviderState.mockReturnValue({ credentials: validOAuthCredential });
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (
+      _url: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return new Response('data: {"response":{"candidates":[]}}\n\n', {
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const model: PlumbModel = {
+      ...antigravityModel('gpt-oss-120b'),
+      requestModelId: 'gpt-oss-120b-medium',
+    };
+
+    for await (const _event of plumbModelStream({
+      model,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'unused',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody?.['model']).toBe('gpt-oss-120b-medium');
+    expect(capturedBody?.['model']).not.toBe('gpt-oss-120b');
+  });
 
   it('never falls back to the public Gemini API host/path for google-antigravity', async () => {
     mockGetProviderState.mockReturnValue({ credentials: validOAuthCredential });

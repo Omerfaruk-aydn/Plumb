@@ -509,19 +509,21 @@ async function* anthropicMessagesStream(
 
 // ─── Google Cloud Code Assist streaming (google-gemini-cli / google-antigravity) ──
 //
-// Real production defect: this API family (OAuth-only — google-gemini-cli
-// and google-antigravity share it, per the pinned OMP implementation in
-// omp-ai/providers/google-gemini-cli.ts) was previously routed through
-// googleGenerativeAiStream below, which builds a public-Gemini-API request
-// (`/models/<id>:streamGenerateContent?key=<apiKey>`). For an OAuth access
-// token that put the token in the URL query string and hit a path that
-// doesn't exist on the real Cloud Code Assist host, producing a Google HTML
-// 404 with the token visible in the request. The real endpoint is a
-// completely different API: `/v1internal:streamGenerateContent`,
-// `Authorization: Bearer`, and a `{project, model, request: {...}}` request
-// envelope — reusing the pinned OMP constants (DEFAULT_ENDPOINT,
-// ANTIGRAVITY_DAILY_ENDPOINT, getAntigravityUserAgent) rather than
-// re-deriving them, per the real google-gemini-cli.ts reference.
+// Real production defect (two rounds): this API family (OAuth-only —
+// google-gemini-cli and google-antigravity share it, per the pinned OMP
+// implementation in omp-ai/providers/google-gemini-cli.ts) was previously
+// routed through googleGenerativeAiStream below, a public-Gemini-API client
+// (`?key=<token>`), leaking the OAuth token into the URL and 404ing. A first
+// fix pointed the URL/auth at the real endpoint but still built the request
+// BODY by hand — missing the envelope fields
+// (requestId/sessionId/labels/userAgent/requestType) that
+// buildAntigravityRequestEnvelope (private, called from the exported
+// buildRequest) generates to mirror the real antigravity/hub client, and
+// that Google's backend evidently requires to route the request at all
+// (still 404s without them). Delegating to the real exported buildRequest
+// here — rather than hand-copying its private envelope logic — makes this
+// call byte-identical to the pinned reference by construction, not by
+// differential comparison.
 //
 // Credential note: this API needs both the OAuth access token AND the
 // project id. PlumbStreamOptions.apiKey is a single flat string (the
@@ -533,7 +535,15 @@ async function* anthropicMessagesStream(
 async function* googleCloudCodeAssistStream(
   options: PlumbStreamOptions,
 ): AsyncGenerator<PlumbStreamEvent> {
-  const { model, messages, tools, signal, systemPrompt } = options;
+  const {
+    model,
+    messages,
+    tools,
+    signal,
+    systemPrompt,
+    maxTokens,
+    temperature,
+  } = options;
 
   const { getPlumbProviderRegistry } = await import(
     '../registry/provider-registry.js'
@@ -560,34 +570,91 @@ async function* googleCloudCodeAssistStream(
   const accessToken = credential.access;
   const projectId = credential.projectId;
 
-  const { DEFAULT_ENDPOINT, getAntigravityUserAgent } = await import(
-    '../omp-ai/providers/google-gemini-cli.js'
-  );
-  const baseUrl = (model.baseUrl ?? DEFAULT_ENDPOINT).replace(/\/+$/, '');
-  const url = `${baseUrl}/v1internal:streamGenerateContent?alt=sse`;
-
+  const gcli = await import('../omp-ai/providers/google-gemini-cli.js');
   const isAntigravity = model.provider === 'google-antigravity';
-  const contents = buildGeminiContents(messages);
-  const request: Record<string, unknown> = { contents };
-  if (systemPrompt) {
-    request['systemInstruction'] = { parts: [{ text: systemPrompt }] };
+
+  // Minimal PLUMB -> OMP message/model/tool conversion. PlumbMessage/
+  // PlumbModel/PlumbTool are already flatter than OMP's Message/Model/Tool
+  // (PlumbContentGenerator itself only ever hands this transport plain
+  // text-ish history — see #convertMessages in plumbContentGenerator.ts),
+  // so this covers the real shape in play without inventing history this
+  // transport was never given in the first place.
+  const now = Date.now();
+  const ompMessages: import('../omp-ai/types.js').Message[] = [];
+  for (const msg of messages) {
+    if (msg.role === 'system') continue;
+    const text = typeof msg.content === 'string' ? msg.content : '';
+    if (msg.role === 'user') {
+      ompMessages.push({ role: 'user', content: text, timestamp: now });
+    } else if (msg.role === 'assistant') {
+      ompMessages.push({
+        role: 'assistant',
+        content: [{ type: 'text', text }],
+        api: model.api,
+        provider: model.provider,
+        model: model.id,
+        timestamp: now,
+      } as unknown as import('../omp-ai/types.js').Message);
+    } else if (msg.role === 'tool') {
+      ompMessages.push({
+        role: 'toolResult',
+        toolCallId: msg.toolCallId ?? '',
+        toolName: msg.name ?? '',
+        content: [{ type: 'text', text }],
+        isError: false,
+      } as unknown as import('../omp-ai/types.js').Message);
+    }
   }
-  if (tools && tools.length > 0) {
-    request['tools'] = [
-      {
-        functionDeclarations: tools.map((t) => ({
+
+  const context: import('../omp-ai/types.js').Context = {
+    systemPrompt: systemPrompt ? [systemPrompt] : undefined,
+    messages: ompMessages,
+    tools: (tools ?? []).map(
+      (t) =>
+        ({
           name: t.function.name,
-          description: t.function.description,
+          description: t.function.description ?? '',
           parameters: t.function.parameters,
-        })),
-      },
-    ];
-  }
-  const body = {
-    project: projectId,
-    model: model.requestModelId ?? model.id,
-    request,
+        }) as unknown as import('../omp-ai/types.js').Tool,
+    ),
   };
+
+  const ompModel = {
+    id: model.id,
+    requestModelId: model.requestModelId,
+    name: model.name ?? model.id,
+    api: 'google-gemini-cli',
+    provider: model.provider,
+    baseUrl: model.baseUrl ?? gcli.DEFAULT_ENDPOINT,
+    reasoning: model.reasoning,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: model.contextWindow,
+    maxTokens: model.maxTokens,
+  } as unknown as import('../omp-ai/types.js').Model<'google-gemini-cli'>;
+
+  let requestBody: unknown;
+  try {
+    requestBody = gcli.buildRequest(
+      ompModel,
+      context,
+      projectId,
+      { maxTokens, temperature },
+      isAntigravity,
+    );
+  } catch (err) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'REQUEST_BUILD_FAILED',
+        message: `Failed to build ${model.provider} request: ${(err as Error).message}`,
+      },
+    };
+    return;
+  }
+
+  const baseUrl = (model.baseUrl ?? gcli.DEFAULT_ENDPOINT).replace(/\/+$/, '');
+  const url = `${baseUrl}/v1internal:streamGenerateContent?alt=sse`;
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
@@ -595,7 +662,7 @@ async function* googleCloudCodeAssistStream(
     Accept: 'text/event-stream',
   };
   if (isAntigravity) {
-    headers['User-Agent'] = getAntigravityUserAgent();
+    headers['User-Agent'] = gcli.getAntigravityUserAgent();
   }
 
   let response: Response;
@@ -603,7 +670,7 @@ async function* googleCloudCodeAssistStream(
     response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
       signal,
     });
   } catch (err) {
@@ -622,10 +689,17 @@ async function* googleCloudCodeAssistStream(
     // Never surface the raw response body: it can echo request context
     // (this endpoint has previously returned bodies referencing the request
     // path) and, more importantly, must never be trusted to be secret-free.
+    // Classify by status rather than collapsing every failure to one code,
+    // so a genuinely-not-found route reads differently from e.g. a rejected
+    // request shape.
+    const code =
+      response.status === 404
+        ? 'ENDPOINT_NOT_FOUND'
+        : `HTTP_${response.status}`;
     yield {
       type: 'error',
       error: {
-        code: `HTTP_${response.status}`,
+        code,
         message: `${model.provider} request failed (HTTP ${response.status}).`,
       },
     };
