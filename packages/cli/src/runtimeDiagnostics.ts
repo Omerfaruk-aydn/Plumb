@@ -1511,8 +1511,26 @@ async function probeRawCredentialScope(
     return { ...NO_CREDENTIAL_PROBE, scope };
   }
 
-  const entry =
-    entries.find((e) => e.credential.type === 'oauth') ?? entries[0];
+  // Prefer a non-expired OAuth entry over an expired one — the store
+  // dedupes OAuth refs on write (exactly one should ever exist per
+  // provider), but this stays defensive against pre-fix legacy stores that
+  // may still hold multiple entries, so a stale one is never preferred
+  // over a fresher one.
+  const oauthEntries = entries.filter((e) => e.credential.type === 'oauth');
+  const bestOauth =
+    oauthEntries.find(
+      (e) => e.credential.type === 'oauth' && e.credential.expires > Date.now(),
+    ) ??
+    (oauthEntries.length > 0
+      ? oauthEntries.reduce((latest, e) =>
+          e.credential.type === 'oauth' &&
+          latest.credential.type === 'oauth' &&
+          e.credential.expires > latest.credential.expires
+            ? e
+            : latest,
+        )
+      : undefined);
+  const entry = bestOauth ?? entries[0];
   const cred = entry.credential;
 
   if (cred.type === 'api_key') {
@@ -1830,50 +1848,43 @@ export async function runAntigravityRouteTest(
       ANTIGRAVITY_CANONICAL_ID,
     );
 
-    let rawProbe = await probeRawCredentialScope(registryProviderId);
-    // Backward-compatible coarse field.
+    const beforeProbe = await probeRawCredentialScope(registryProviderId);
     process.stdout.write(
-      `credential.present: ${rawProbe.storageEntryPresent}\n`,
+      `credential.present: ${beforeProbe.storageEntryPresent}\n`,
     );
-    for (const line of credentialProbeLines(rawProbe, 'credential')) {
-      process.stdout.write(`${line}\n`);
-    }
+    process.stdout.write(
+      `credential.classification.before: ${beforeProbe.classification}\n`,
+    );
 
-    // A credential that exists but is past expiry is NOT the same defect as
-    // "never signed in" — it is recoverable via the real, pinned OMP refresh
-    // path (the stored refresh token), which is a normal silent token
-    // refresh, not a re-authentication / new OAuth flow. Attempt it once,
-    // read-only otherwise.
-    if (rawProbe.classification === 'EXPIRED_REFRESHABLE') {
-      process.stdout.write('refresh.attempted: true\n');
-      const coreModule = await import('@google/gemini-cli-core');
-      const authService = coreModule.getPlumbProviderAuthService();
-      const refreshResult =
-        await authService.refreshCredential(registryProviderId);
+    // Canonical resolver — same one buildAntigravityRequest uses for normal
+    // chat. Classifies, and (only when expired-but-refreshable) performs
+    // exactly one silent refresh-token exchange; never a new OAuth/login
+    // flow. Only reports SUCCESS after re-reading the store and confirming
+    // the refreshed credential is genuinely usable.
+    const resolved =
+      await providerModule.resolveUsablePlumbCredential(registryProviderId);
+    process.stdout.write(`refresh.attempted: ${resolved.refreshAttempted}\n`);
+    if (resolved.refreshAttempted) {
       process.stdout.write(
-        `refresh.result: ${refreshResult.success ? 'SUCCESS' : 'FAILED'}\n`,
+        `refresh.result: ${resolved.classification === 'VALID_CREDENTIAL' ? 'SUCCESS' : 'FAILED'}\n`,
       );
-      rawProbe = await probeRawCredentialScope(registryProviderId);
-      if (rawProbe.classification !== 'VALID_CREDENTIAL') {
-        process.stdout.write(
-          `credential.classification: ${rawProbe.classification === 'EXPIRED_REFRESHABLE' || rawProbe.classification === 'EXPIRED_UNREFRESHABLE' ? 'REFRESH_FAILED' : rawProbe.classification}\n`,
-        );
-        process.stdout.write('http.status: NOT_SENT\n');
-        process.stderr.write(
-          `test-antigravity-route: FAIL: token refresh did not produce a usable credential (${refreshResult.error ?? 'unknown reason'}).\n`,
-        );
-        return 1;
-      }
-      process.stdout.write('credential.classification: VALID_CREDENTIAL\n');
-    } else {
-      process.stdout.write('refresh.attempted: false\n');
     }
+    process.stdout.write(
+      `credential.classification.after: ${resolved.classification}\n`,
+    );
+    process.stdout.write(
+      `credential.runtimeUsable: ${resolved.classification === 'VALID_CREDENTIAL'}\n`,
+    );
 
-    const state = registry.getProviderState(registryProviderId);
-    if (!state?.credentials || state.credentials.type !== 'oauth') {
+    if (
+      !resolved.credential ||
+      resolved.classification !== 'VALID_CREDENTIAL'
+    ) {
       process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
-        'test-antigravity-route: FAIL: no stored google-antigravity OAuth credential. Sign in via /login google-antigravity first.\n',
+        resolved.classification === 'NO_CREDENTIAL'
+          ? 'test-antigravity-route: FAIL: no stored google-antigravity OAuth credential. Sign in via /login google-antigravity first.\n'
+          : `test-antigravity-route: FAIL: credential unusable (${resolved.classification}: ${resolved.refreshFailureReason ?? 'no further detail'}).\n`,
       );
       return 1;
     }

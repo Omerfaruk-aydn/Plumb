@@ -15,6 +15,7 @@ const mockGetProviderState = vi.fn();
 const mockFindModel = vi.fn();
 const mockBuildAntigravityRequest = vi.fn();
 const mockInitialize = vi.fn().mockResolvedValue(undefined);
+const mockResolveUsablePlumbCredential = vi.fn();
 
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
   // PlumbProviderRegistry state is actually keyed by).
   resolvePlumbProviderId: (id: string) =>
     id === 'google-antigravity' ? 'antigravity' : id,
+  resolveUsablePlumbCredential: mockResolveUsablePlumbCredential,
 }));
 
 const mockStoreGetCredentials = vi.fn();
@@ -249,9 +251,11 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
       accountLabels: [],
       credentialRefs: ['plumb:cred:antigravity:test-ref'],
     });
-    mockRefreshCredential.mockResolvedValue({
-      success: false,
-      error: 'not used in this test',
+    // Canonical resolver — same one production buildAntigravityRequest uses.
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'VALID_CREDENTIAL',
+      credential: validCredential,
+      refreshAttempted: false,
     });
   });
 
@@ -315,6 +319,11 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
       accountLabels: [],
       credentialRefs: [],
     });
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'NO_CREDENTIAL',
+      credential: null,
+      refreshAttempted: false,
+    });
     let fetchCalled = false;
     globalThis.fetch = (async () => {
       fetchCalled = true;
@@ -331,22 +340,20 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
       ...validCredential,
       expires: Date.now() - 1_000,
     };
-    mockStoreGetCredentials.mockResolvedValueOnce([
+    // Before repair, the raw-store probe would still find this stale entry
+    // — matches the real bug reproduced in streaming.test.ts.
+    mockStoreGetCredentials.mockResolvedValue([
       {
         provider: 'antigravity',
         credential: expiredCredential,
         source: 'oauth',
       },
     ]);
-    mockRefreshCredential.mockResolvedValue({
-      success: true,
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'VALID_CREDENTIAL',
       credential: validCredential,
+      refreshAttempted: true,
     });
-    // After a successful refresh, the next raw-store probe (and the
-    // registry) must reflect the refreshed, non-expired credential.
-    mockStoreGetCredentials.mockResolvedValueOnce([
-      { provider: 'antigravity', credential: validCredential, source: 'oauth' },
-    ]);
 
     let fetchCalled = false;
     globalThis.fetch = (async () => {
@@ -358,10 +365,17 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
     const code = await runAntigravityRouteTest('gpt-oss-120b-medium');
     const output = logs.join('') + errs.join('');
 
-    expect(output).toContain('credential.classification: EXPIRED_REFRESHABLE');
+    expect(output).toContain(
+      'credential.classification.before: EXPIRED_REFRESHABLE',
+    );
     expect(output).toContain('refresh.attempted: true');
     expect(output).toContain('refresh.result: SUCCESS');
-    expect(mockRefreshCredential).toHaveBeenCalledWith('antigravity');
+    expect(output).toContain(
+      'credential.classification.after: VALID_CREDENTIAL',
+    );
+    expect(mockResolveUsablePlumbCredential).toHaveBeenCalledWith(
+      'antigravity',
+    );
     expect(fetchCalled).toBe(true);
     expect(code).toBe(0);
   });
@@ -378,9 +392,11 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
         source: 'oauth',
       },
     ]);
-    mockRefreshCredential.mockResolvedValue({
-      success: false,
-      error: 'refresh token rejected',
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'REFRESH_FAILED',
+      credential: null,
+      refreshAttempted: true,
+      refreshFailureReason: 'refresh token rejected',
     });
 
     let fetchCalled = false;
@@ -401,11 +417,14 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
     expect(output).not.toMatch(/sign in|re-?auth/i);
   });
 
-  it('never attempts a refresh for a valid, non-expired credential', async () => {
+  it('never reports a refresh attempt for a valid, non-expired credential', async () => {
     globalThis.fetch = (async () =>
       new Response(null, { status: 200 })) as typeof fetch;
     const { runAntigravityRouteTest } = await import('./runtimeDiagnostics.js');
-    await runAntigravityRouteTest('gpt-oss-120b-medium');
-    expect(mockRefreshCredential).not.toHaveBeenCalled();
+    const code = await runAntigravityRouteTest('gpt-oss-120b-medium');
+    const output = logs.join('') + errs.join('');
+    expect(output).toContain('refresh.attempted: false');
+    expect(output).not.toContain('refresh.result:');
+    expect(code).toBe(0);
   });
 });

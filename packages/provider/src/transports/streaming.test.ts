@@ -22,6 +22,11 @@ vi.mock('../registry/provider-registry.js', () => ({
   }),
 }));
 
+const mockResolveUsablePlumbCredential = vi.fn();
+vi.mock('../auth/credential-resolver.js', () => ({
+  resolveUsablePlumbCredential: mockResolveUsablePlumbCredential,
+}));
+
 describe('transport/stream activation', () => {
   it('creates an OMP-backed PlumbEventStream', () => {
     const stream = createNormalizationStream();
@@ -225,12 +230,15 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
 
   afterEach(() => {
     mockGetProviderState.mockReset();
+    mockResolveUsablePlumbCredential.mockReset();
   });
 
   for (const modelId of ['gemini-3-pro', 'claude-sonnet-4-6', 'gpt-oss-120b']) {
     it(`routes ${modelId} through google-antigravity regardless of model family prefix`, async () => {
-      mockGetProviderState.mockReturnValue({
-        credentials: validOAuthCredential,
+      mockResolveUsablePlumbCredential.mockResolvedValue({
+        classification: 'VALID_CREDENTIAL',
+        credential: validOAuthCredential,
+        refreshAttempted: false,
       });
       let capturedUrl = '';
       let capturedHeaders: Record<string, string> | undefined;
@@ -299,7 +307,11 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     // requestModelId 'gpt-oss-120b-medium' (wire id) — confirmed against
     // the actual bundled antigravity catalog. Sending the display id
     // instead of the wire id is a plausible cause of a route-not-found 404.
-    mockGetProviderState.mockReturnValue({ credentials: validOAuthCredential });
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'VALID_CREDENTIAL',
+      credential: validOAuthCredential,
+      refreshAttempted: false,
+    });
     let capturedBody: Record<string, unknown> | undefined;
     globalThis.fetch = (async (
       _url: string | URL | Request,
@@ -329,7 +341,11 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
   });
 
   it('never falls back to the public Gemini API host/path for google-antigravity', async () => {
-    mockGetProviderState.mockReturnValue({ credentials: validOAuthCredential });
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'VALID_CREDENTIAL',
+      credential: validOAuthCredential,
+      refreshAttempted: false,
+    });
     let capturedUrl = '';
     globalThis.fetch = (async (url: string | URL | Request) => {
       capturedUrl = String(url);
@@ -352,7 +368,11 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
   });
 
   it('yields MISSING_CREDENTIAL and never calls fetch when no OAuth credential is stored', async () => {
-    mockGetProviderState.mockReturnValue(undefined);
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'NO_CREDENTIAL',
+      credential: null,
+      refreshAttempted: false,
+    });
     let fetchCalled = false;
     globalThis.fetch = (async () => {
       fetchCalled = true;
@@ -377,8 +397,10 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
   });
 
   it('yields MISSING_CREDENTIAL when the stored credential has no projectId', async () => {
-    mockGetProviderState.mockReturnValue({
-      credentials: { ...validOAuthCredential, projectId: undefined },
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'VALID_CREDENTIAL',
+      credential: { ...validOAuthCredential, projectId: undefined },
+      refreshAttempted: false,
     });
     let fetchCalled = false;
     globalThis.fetch = (async () => {
@@ -410,8 +432,18 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     // Looking the credential up under model.provider directly always misses
     // — even with a real, valid, stored OAuth credential — and silently
     // falls through to MISSING_CREDENTIAL without ever sending a request.
-    mockGetProviderState.mockImplementation((id: string) =>
-      id === 'antigravity' ? { credentials: validOAuthCredential } : undefined,
+    mockResolveUsablePlumbCredential.mockImplementation(async (id: string) =>
+      id === 'antigravity'
+        ? {
+            classification: 'VALID_CREDENTIAL',
+            credential: validOAuthCredential,
+            refreshAttempted: false,
+          }
+        : {
+            classification: 'NO_CREDENTIAL',
+            credential: null,
+            refreshAttempted: false,
+          },
     );
     let fetchCalled = false;
     globalThis.fetch = (async () => {
@@ -430,8 +462,12 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
       events.push(event);
     }
 
-    expect(mockGetProviderState).toHaveBeenCalledWith('antigravity');
-    expect(mockGetProviderState).not.toHaveBeenCalledWith('google-antigravity');
+    expect(mockResolveUsablePlumbCredential).toHaveBeenCalledWith(
+      'antigravity',
+    );
+    expect(mockResolveUsablePlumbCredential).not.toHaveBeenCalledWith(
+      'google-antigravity',
+    );
     expect(fetchCalled).toBe(true);
     expect(events.some((e) => e.type === 'error')).toBe(false);
   });

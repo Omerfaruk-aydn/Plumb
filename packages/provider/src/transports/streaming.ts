@@ -557,10 +557,10 @@ export async function buildAntigravityRequest(
   const { model, messages, tools, systemPrompt, maxTokens, temperature } =
     options;
 
-  const { getPlumbProviderRegistry } = await import(
-    '../registry/provider-registry.js'
-  );
   const { resolvePlumbProviderId } = await import('../catalog/providers.js');
+  const { resolveUsablePlumbCredential } = await import(
+    '../auth/credential-resolver.js'
+  );
   // `model.provider` on a catalog-projected PlumbModel carries the OMP
   // registry id (e.g. `google-antigravity`), but PlumbProviderRegistry
   // credential state is keyed by the PLUMB presentation id (`antigravity`)
@@ -568,24 +568,22 @@ export async function buildAntigravityRequest(
   // this always misses and falls through to MISSING_CREDENTIAL even when a
   // valid credential is stored.
   const registryProviderId = resolvePlumbProviderId(model.provider);
-  const credential =
-    getPlumbProviderRegistry().getProviderState(
-      registryProviderId,
-    )?.credentials;
+  // Classifies the stored credential and — only when it is expired but a
+  // refresh token is available — performs one silent refresh-token
+  // exchange (never a new OAuth/login flow) before returning. Shared with
+  // the `--diagnose-antigravity-route` / `--test-antigravity-route`
+  // diagnostics so normal chat and diagnostics can never diverge here.
+  const resolved = await resolveUsablePlumbCredential(registryProviderId);
+  const credential = resolved.credential;
 
-  if (
-    !credential ||
-    credential.type !== 'oauth' ||
-    !credential.access ||
-    !credential.projectId
-  ) {
+  if (!credential || !credential.access || !credential.projectId) {
     return {
       ok: false,
       error: {
         type: 'error',
         error: {
           code: 'MISSING_CREDENTIAL',
-          message: `No credential available for provider: ${registryProviderId}. Sign in again via /login ${registryProviderId}.`,
+          message: `No credential available for provider: ${registryProviderId} (${resolved.classification}). Sign in again via /login ${registryProviderId}.`,
         },
       },
     };

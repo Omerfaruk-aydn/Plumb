@@ -190,13 +190,53 @@ export class PlumbSecureCredentialStore implements IPlumbCredentialStore {
         credentialRefs: [],
       };
     }
+    const meta = this.#metadata.providers[provider];
 
+    // Write the new credential FIRST, prune stale ones AFTER. A concurrent
+    // reader (getCredentials/getApiKey) must never observe a window where
+    // this provider has zero OAuth entries — during a refresh, that reads
+    // as "never signed in" (NO_CREDENTIAL) instead of "has a valid/expired
+    // credential", which is a real, observed race under concurrent
+    // resolveUsablePlumbCredential() calls. Prune-before-write can produce
+    // exactly that empty window; write-before-prune can only ever produce a
+    // transient DUPLICATE (old + new both present), which every reader
+    // already resolves safely (prefers non-expired, else most-recent).
     const ref = this.#makeRef(provider, credential);
     await this.#keychain.setPassword(ref, JSON.stringify(credential));
-
-    const meta = this.#metadata.providers[provider];
     if (!meta.credentialRefs.includes(ref)) {
       meta.credentialRefs.push(ref);
+    }
+
+    // A provider has exactly one active OAuth credential at a time
+    // (PlumbProviderState.credentials is singular). Without this, every
+    // login/refresh appends a brand-new keychain ref under a fresh UUID
+    // without ever removing the previous one — refs accumulate forever,
+    // including already-expired entries, and a reader that doesn't
+    // explicitly re-check expiry on every entry (or that stops at the first
+    // match) can resolve a stale/expired credential even immediately after
+    // a genuinely successful refresh. Prune all OTHER OAuth refs for this
+    // provider (never the one just written) so exactly one survives.
+    if (credential.type === 'oauth') {
+      const survivors: string[] = [ref];
+      for (const otherRef of meta.credentialRefs) {
+        if (otherRef === ref) continue;
+        const raw = await this.#keychain
+          .getPassword(otherRef)
+          .catch(() => null);
+        if (!raw) continue;
+        let existing: PlumbCredential | undefined;
+        try {
+          existing = JSON.parse(raw) as PlumbCredential;
+        } catch {
+          continue;
+        }
+        if (existing.type === 'oauth') {
+          await this.#keychain.deletePassword(otherRef).catch(() => {});
+          continue;
+        }
+        survivors.push(otherRef);
+      }
+      meta.credentialRefs = survivors;
     }
     if (credential.type === 'oauth' && credential.email) {
       if (!meta.accountLabels.includes(credential.email)) {

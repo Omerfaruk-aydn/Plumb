@@ -77,7 +77,7 @@ describe('Antigravity diagnostics — production bootstrap lifecycle', () => {
     expect(firstOutput).toContain('credential.store.configured: true');
     expect(firstOutput).toContain('credential.present: false');
     expect(first.failures).toEqual([
-      'No credential available for provider: antigravity. Sign in again via /login antigravity.',
+      'No credential available for provider: antigravity (NO_CREDENTIAL). Sign in again via /login antigravity.',
     ]);
 
     // ── Phase 2: persist a real credential, then probe live ──────────

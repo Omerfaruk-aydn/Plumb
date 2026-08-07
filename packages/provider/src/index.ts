@@ -69,6 +69,18 @@ export {
   resetPlumbCredentialStore,
 } from './auth/credential-store.js';
 
+// Canonical OAuth credential resolver (refresh, single-flight, classification)
+export {
+  type CredentialClassification,
+  type PlumbRefreshResult,
+  type PlumbCredentialRefresher,
+  type UsableCredentialResult,
+  registerPlumbCredentialRefresher,
+  resetPlumbCredentialRefresher,
+  clearPlumbCredentialResolverInFlight,
+  resolveUsablePlumbCredential,
+} from './auth/credential-resolver.js';
+
 // Provider registry
 export {
   PlumbProviderRegistry,
