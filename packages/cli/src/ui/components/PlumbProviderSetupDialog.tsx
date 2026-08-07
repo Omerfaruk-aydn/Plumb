@@ -11,8 +11,10 @@ import {
   PlumbProviderCategory,
   type PlumbProvider,
   type PlumbModel,
+  type PlumbProviderAuthState,
   getCatalogModels,
   getCodingPlan,
+  getPlumbProviderRegistry,
   validateCodingPlanApiKey,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
@@ -29,6 +31,7 @@ import { SearchableModelPicker } from './SearchableModelPicker.js';
 type SetupStep =
   | 'connection-type'
   | 'provider-select'
+  | 'connected'
   | 'authenticate'
   | 'oauth-waiting'
   | 'model-select'
@@ -46,6 +49,12 @@ interface SetupState {
   error: string | null;
   loading: boolean;
   oauthStatus: string | null;
+  // Real connection state for the currently selected provider, read from the
+  // canonical PlumbProviderRegistry — never a UI-only boolean. Populated when
+  // handleProviderSelect finds an existing 'authenticated'/'expired' state,
+  // so the dialog can offer Continue/Re-authenticate/Logout instead of
+  // silently restarting device-code login on an already-connected provider.
+  connectionAuthState: PlumbProviderAuthState | null;
 }
 
 export interface PlumbProviderSetupDialogProps {
@@ -58,6 +67,7 @@ export interface PlumbProviderSetupDialogProps {
   onOAuthLogin?: (
     providerId: string,
   ) => Promise<{ success: boolean; error?: string }>;
+  onLogout?: (providerId: string) => Promise<void>;
   onRefreshModels?: () => Promise<
     Array<{ id: string; name?: string; provider: string }>
   >;
@@ -111,6 +121,7 @@ export const PlumbProviderSetupDialog: React.FC<
   models: initialModels,
   fullModels: initialFullModels,
   onOAuthLogin,
+  onLogout,
   onRefreshModels,
   onRefreshFullModels,
   completionStage,
@@ -137,6 +148,7 @@ export const PlumbProviderSetupDialog: React.FC<
     error: null,
     loading: false,
     oauthStatus: null,
+    connectionAuthState: null,
   });
   const [confirmPending, setConfirmPending] = useState(false);
 
@@ -244,15 +256,74 @@ export const PlumbProviderSetupDialog: React.FC<
 
   const handleProviderSelect = useCallback((provider: PlumbProvider) => {
     setApiKeyInput('');
+
+    // Read the real connection state from the canonical registry before
+    // deciding where to route — never restart device-code/OAuth login for a
+    // provider that already has a usable credential (that state is derived
+    // fresh here, not cached, so it reflects logins/logouts that happened
+    // earlier in this same running process).
+    if (!provider.allowUnauthenticated) {
+      const providerState = getPlumbProviderRegistry().getProviderState(
+        provider.id,
+      );
+      if (
+        providerState?.authState === 'authenticated' ||
+        providerState?.authState === 'expired'
+      ) {
+        setState((s) => ({
+          ...s,
+          step: 'connected',
+          selectedProvider: provider,
+          connectionAuthState: providerState.authState,
+          error: null,
+          loading: false,
+          oauthStatus: null,
+        }));
+        return;
+      }
+    }
+
     setState((s) => ({
       ...s,
       step: provider.allowUnauthenticated ? 'model-select' : 'authenticate',
       selectedProvider: provider,
+      connectionAuthState: null,
       error: null,
       loading: false,
       oauthStatus: null,
     }));
   }, []);
+
+  const handleConnectedAction = useCallback(
+    (action: 'continue' | 'reauth' | 'logout') => {
+      if (action === 'continue') {
+        setState((s) => ({ ...s, step: 'model-select' }));
+        return;
+      }
+      if (action === 'reauth') {
+        setState((s) => ({ ...s, step: 'authenticate' }));
+        return;
+      }
+      // action === 'logout'
+      const providerId = state.selectedProvider?.id;
+      if (!providerId) return;
+      setState((s) => ({ ...s, loading: true }));
+      void (async () => {
+        try {
+          if (onLogout) await onLogout(providerId);
+        } finally {
+          setState((s) => ({
+            ...s,
+            step: 'provider-select',
+            selectedProvider: null,
+            connectionAuthState: null,
+            loading: false,
+          }));
+        }
+      })();
+    },
+    [state.selectedProvider, onLogout],
+  );
 
   const handleOAuthStart = useCallback(async () => {
     if (!state.selectedProvider || !onOAuthLogin) return;
@@ -398,6 +469,15 @@ export const PlumbProviderSetupDialog: React.FC<
           }));
           return true;
         }
+        if (step === 'connected') {
+          setState((s) => ({
+            ...s,
+            step: 'provider-select',
+            selectedProvider: null,
+            connectionAuthState: null,
+          }));
+          return true;
+        }
         if (step === 'authenticate') {
           setState((s) => ({
             ...s,
@@ -418,6 +498,13 @@ export const PlumbProviderSetupDialog: React.FC<
           return true;
         }
         if (step === 'model-select') {
+          // A provider entered via the 'connected' step (already had a
+          // usable credential) backs out to 'connected', not 'authenticate'
+          // — Escape must never re-offer a login the user didn't ask for.
+          if (state.connectionAuthState) {
+            setState((s) => ({ ...s, step: 'connected', selectedModel: null }));
+            return true;
+          }
           setState((s) => ({
             ...s,
             step: provider?.allowUnauthenticated
@@ -540,6 +627,14 @@ export const PlumbProviderSetupDialog: React.FC<
         if (step === 'provider-select') {
           setState((s) => ({ ...s, step: 'connection-type', category: null }));
         }
+        if (step === 'connected') {
+          setState((s) => ({
+            ...s,
+            step: 'provider-select',
+            selectedProvider: null,
+            connectionAuthState: null,
+          }));
+        }
         return true;
       }
 
@@ -605,6 +700,57 @@ export const PlumbProviderSetupDialog: React.FC<
             <Text dimColor>Backspace: back to connection types</Text>
           </Box>
         </>
+      )}
+
+      {step === 'connected' && provider && (
+        <Box flexDirection="column">
+          <Text bold>{provider.name}</Text>
+          <Box marginY={1}>
+            <Text
+              color={
+                state.connectionAuthState === 'expired' ? 'yellow' : 'green'
+              }
+            >
+              Status:{' '}
+              {state.connectionAuthState === 'expired'
+                ? 'Session expired'
+                : 'Connected'}
+            </Text>
+          </Box>
+          {state.connectionAuthState === 'authenticated' && (
+            <Box marginBottom={1}>
+              <Text dimColor>
+                {providerFullModels.length} model
+                {providerFullModels.length === 1 ? '' : 's'} available
+              </Text>
+            </Box>
+          )}
+          <RadioButtonSelect
+            items={[
+              ...(state.connectionAuthState === 'authenticated'
+                ? [
+                    {
+                      key: 'continue',
+                      value: 'continue' as const,
+                      label: 'Continue using this account',
+                    },
+                  ]
+                : []),
+              {
+                key: 'reauth',
+                value: 'reauth' as const,
+                label: 'Re-authenticate',
+              },
+              { key: 'logout', value: 'logout' as const, label: 'Logout' },
+            ]}
+            onSelect={handleConnectedAction}
+            isFocused={true}
+            showNumbers={false}
+          />
+          <Box marginTop={1}>
+            <Text dimColor>Backspace: back to provider list</Text>
+          </Box>
+        </Box>
       )}
 
       {step === 'authenticate' && provider && (
@@ -858,6 +1004,7 @@ function getStepNumber(step: SetupStep): number {
       return 1;
     case 'provider-select':
       return 2;
+    case 'connected':
     case 'authenticate':
     case 'oauth-waiting':
       return 3;

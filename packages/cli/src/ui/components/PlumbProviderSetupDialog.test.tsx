@@ -8,8 +8,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
-import { PlumbProviderCategory } from '@google/gemini-cli-provider';
-import type { PlumbProvider } from '@google/gemini-cli-provider';
+import {
+  PlumbProviderCategory,
+  getPlumbProviderRegistry,
+  resetPlumbProviderRegistry,
+  registerPlumbCredentialStoreFactory,
+  resetPlumbCredentialStore,
+} from '@google/gemini-cli-provider';
+import type {
+  PlumbProvider,
+  PlumbCredential,
+  IPlumbCredentialStore,
+} from '@google/gemini-cli-provider';
 
 enum TerminalKeys {
   ENTER = '\u000D',
@@ -355,7 +365,11 @@ describe('PlumbProviderSetupDialog', () => {
     );
     const models = [
       ...mockModels,
-      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+      {
+        id: 'nvidia/llama-3.1-nemotron-70b-instruct',
+        name: 'Nemotron',
+        provider: 'nvidia',
+      },
     ];
     const onComplete = vi.fn();
     const onOAuthLogin = vi.fn().mockResolvedValue({ success: true });
@@ -442,7 +456,11 @@ describe('PlumbProviderSetupDialog', () => {
     );
     const models = [
       ...mockModels,
-      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+      {
+        id: 'nvidia/llama-3.1-nemotron-70b-instruct',
+        name: 'Nemotron',
+        provider: 'nvidia',
+      },
     ];
     const onComplete = vi.fn();
 
@@ -564,7 +582,11 @@ describe('PlumbProviderSetupDialog', () => {
     const groups = new Map<string, PlumbProvider[]>();
     groups.set('api-key', [nvidia]);
     const models = [
-      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+      {
+        id: 'nvidia/llama-3.1-nemotron-70b-instruct',
+        name: 'Nemotron',
+        provider: 'nvidia',
+      },
     ];
 
     const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
@@ -624,7 +646,11 @@ describe('PlumbProviderSetupDialog', () => {
     const groups = new Map<string, PlumbProvider[]>();
     groups.set('api-key', [nvidia]);
     const models = [
-      { id: 'nvidia/llama-3.1-nemotron-70b-instruct', name: 'Nemotron', provider: 'nvidia' },
+      {
+        id: 'nvidia/llama-3.1-nemotron-70b-instruct',
+        name: 'Nemotron',
+        provider: 'nvidia',
+      },
     ];
     const onComplete = vi.fn();
     const onOAuthLogin = vi.fn();
@@ -737,5 +763,294 @@ describe('PlumbProviderSetupDialog', () => {
 
     expect(lastFrame()).toContain('Provider initialization failed');
     expect(lastFrame()).toContain('Confirm setup');
+  });
+});
+
+// ─── Connection-state guard (duplicate-login fix) ───────────────────────
+//
+// Proves the dialog reads real state from the canonical PlumbProviderRegistry
+// before offering login, instead of always restarting device-code/OAuth for
+// any selected provider.
+
+function createStubCredentialStore(): IPlumbCredentialStore {
+  const creds = new Map<string, PlumbCredential[]>();
+  return {
+    async getCredentials(providerId) {
+      return (creds.get(providerId) ?? []).map((credential) => ({
+        provider: providerId,
+        credential,
+        source: credential.type === 'oauth' ? 'oauth' : 'api_key',
+      }));
+    },
+    async getApiKey(providerId) {
+      const list = creds.get(providerId) ?? [];
+      const apiKey = list.find((c) => c.type === 'api_key');
+      return apiKey?.type === 'api_key' ? apiKey.key : undefined;
+    },
+    async hasCredentials(providerId) {
+      return (creds.get(providerId)?.length ?? 0) > 0;
+    },
+    async listAuthenticatedProviders() {
+      return [...creds.keys()];
+    },
+    async storeCredential(providerId, credential) {
+      const list = creds.get(providerId) ?? [];
+      list.push(credential);
+      creds.set(providerId, list);
+    },
+    async storeOAuthCredential(providerId, credential) {
+      const list = creds.get(providerId) ?? [];
+      list.push(credential);
+      creds.set(providerId, list);
+    },
+    async storeApiKeyCredential(providerId, credential) {
+      const list = creds.get(providerId) ?? [];
+      list.push(credential);
+      creds.set(providerId, list);
+    },
+    async removeCredentials(providerId) {
+      creds.delete(providerId);
+    },
+    async removeCredential(providerId, credentialType) {
+      const list = creds.get(providerId) ?? [];
+      const filtered = list.filter((c) => c.type !== credentialType);
+      creds.set(providerId, filtered);
+      return filtered.length !== list.length;
+    },
+    async clearAll() {
+      creds.clear();
+    },
+    async setProviderMetadata() {},
+    async getProviderMetadata() {
+      return null;
+    },
+    async healthCheck() {
+      return { available: true, usingFallback: false };
+    },
+  };
+}
+
+// The shared `mockProviders` fixture above uses illustrative ids ('copilot')
+// that never touch the real catalog. These tests exercise the REAL
+// PlumbProviderRegistry singleton, which validates provider ids against the
+// real catalog (getPlumbProvider) — so this describe block uses the real
+// catalog id 'github-copilot' instead.
+const registryTestProviders: PlumbProvider[] = mockProviders.map((p) =>
+  p.id === 'copilot' ? { ...p, id: 'github-copilot' } : p,
+);
+const registryTestCategoryGroups = new Map([
+  [
+    'coding-plan',
+    registryTestProviders.filter(
+      (p) => p.category === PlumbProviderCategory.CODING_PLAN,
+    ),
+  ],
+  [
+    'oauth',
+    registryTestProviders.filter(
+      (p) => p.category === PlumbProviderCategory.OAUTH_ACCOUNT,
+    ),
+  ],
+  [
+    'api-key',
+    registryTestProviders.filter(
+      (p) => p.category === PlumbProviderCategory.API_KEY,
+    ),
+  ],
+  [
+    'local',
+    registryTestProviders.filter(
+      (p) => p.category === PlumbProviderCategory.LOCAL,
+    ),
+  ],
+  [
+    'custom-endpoint',
+    registryTestProviders.filter(
+      (p) => p.category === PlumbProviderCategory.CUSTOM_ENDPOINT,
+    ),
+  ],
+]);
+
+describe('PlumbProviderSetupDialog — connection-state guard', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    resetPlumbCredentialStore();
+    resetPlumbProviderRegistry();
+    registerPlumbCredentialStoreFactory(() =>
+      Promise.resolve(createStubCredentialStore()),
+    );
+    await getPlumbProviderRegistry().initialize();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    resetPlumbProviderRegistry();
+    resetPlumbCredentialStore();
+  });
+
+  const validOAuthCredential = (providerId: string): PlumbCredential => ({
+    type: 'oauth',
+    provider: providerId,
+    access: 'gho_test_access',
+    refresh: 'gho_test_refresh',
+    expires: Date.now() + 3600_000,
+  });
+
+  it('shows the Connected step (not device-code auth) for an already-authenticated provider', async () => {
+    await getPlumbProviderRegistry().setAuthenticated(
+      'github-copilot',
+      validOAuthCredential('github-copilot'),
+    );
+
+    const onOAuthLogin = vi.fn().mockResolvedValue({ success: true });
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={registryTestProviders}
+        categoryGroups={registryTestCategoryGroups}
+        models={mockModels}
+        onOAuthLogin={onOAuthLogin}
+      />,
+    );
+    await waitUntilReady();
+
+    // Coding Plan category (index 0) → GitHub Copilot (only entry)
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    const frame = lastFrame();
+    expect(frame).toContain('Connected');
+    expect(frame).not.toContain('Press Enter to get a device code');
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+  });
+
+  it('explicit Re-authenticate action starts the device-code/OAuth step', async () => {
+    await getPlumbProviderRegistry().setAuthenticated(
+      'github-copilot',
+      validOAuthCredential('github-copilot'),
+    );
+
+    const onOAuthLogin = vi.fn().mockResolvedValue({ success: true });
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={registryTestProviders}
+        categoryGroups={registryTestCategoryGroups}
+        models={mockModels}
+        onOAuthLogin={onOAuthLogin}
+      />,
+    );
+    await waitUntilReady();
+
+    await pressKey(stdin, TerminalKeys.ENTER); // Coding Plan
+    await waitUntilReady();
+    await pressKey(stdin, TerminalKeys.ENTER); // GitHub Copilot → Connected step
+    await waitUntilReady();
+    expect(lastFrame()).toContain('Connected');
+
+    // Connected step items: Continue (0), Re-authenticate (1), Logout (2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Authenticate: GitHub Copilot');
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+
+    // OAuth is only triggered by the explicit Enter inside the auth step,
+    // never merely by reaching it.
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+    expect(onOAuthLogin).toHaveBeenCalledWith('github-copilot');
+  });
+
+  it('Logout removes only the selected provider — an unrelated authenticated provider is unaffected', async () => {
+    await getPlumbProviderRegistry().setAuthenticated(
+      'github-copilot',
+      validOAuthCredential('github-copilot'),
+    );
+    await getPlumbProviderRegistry().setAuthenticated(
+      'anthropic',
+      validOAuthCredential('anthropic'),
+    );
+
+    const onLogout = vi.fn().mockResolvedValue(undefined);
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={registryTestProviders}
+        categoryGroups={registryTestCategoryGroups}
+        models={mockModels}
+        onLogout={onLogout}
+      />,
+    );
+    await waitUntilReady();
+
+    await pressKey(stdin, TerminalKeys.ENTER); // Coding Plan
+    await waitUntilReady();
+    await pressKey(stdin, TerminalKeys.ENTER); // GitHub Copilot → Connected step
+    await waitUntilReady();
+
+    // Connected step items: Continue (0), Re-authenticate (1), Logout (2)
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(onLogout).toHaveBeenCalledExactlyOnceWith('github-copilot');
+    expect(lastFrame()).toContain('Choose provider');
+
+    // The unrelated provider's registry-authenticated state was never
+    // touched by this dialog — onLogout is scoped to the selected provider
+    // id only.
+    expect(
+      getPlumbProviderRegistry().isProviderAuthenticated('anthropic'),
+    ).toBe(true);
+  });
+
+  it('shows the expired-session variant and still requires explicit re-authentication', async () => {
+    await getPlumbProviderRegistry().setAuthenticated(
+      'github-copilot',
+      validOAuthCredential('github-copilot'),
+    );
+    // Force the registry to reclassify this credential as expired (60s skew).
+    await getPlumbProviderRegistry().setAuthenticated('github-copilot', {
+      ...(validOAuthCredential('github-copilot') as PlumbCredential & {
+        type: 'oauth';
+      }),
+      expires: Date.now() - 1000,
+    });
+    await getPlumbProviderRegistry().ensureValidCredentials('github-copilot');
+
+    const onOAuthLogin = vi.fn().mockResolvedValue({ success: true });
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={registryTestProviders}
+        categoryGroups={registryTestCategoryGroups}
+        models={mockModels}
+        onOAuthLogin={onOAuthLogin}
+      />,
+    );
+    await waitUntilReady();
+
+    await pressKey(stdin, TerminalKeys.ENTER); // Coding Plan
+    await waitUntilReady();
+    await pressKey(stdin, TerminalKeys.ENTER); // GitHub Copilot → Connected step
+    await waitUntilReady();
+
+    const frame = lastFrame();
+    expect(frame).toContain('Session expired');
+    // No silent re-login — the dialog must not have called onOAuthLogin
+    // merely by reaching this step, and "Continue" must not be offered for
+    // an expired credential.
+    expect(onOAuthLogin).not.toHaveBeenCalled();
+    expect(frame).not.toContain('Continue using this account');
   });
 });

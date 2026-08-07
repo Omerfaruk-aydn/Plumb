@@ -1067,6 +1067,23 @@ Logging in with Google... Restarting PLUMB to continue.
     [],
   );
 
+  const handleProviderLogout = useCallback(
+    async (providerId: string): Promise<void> => {
+      try {
+        const authServiceModule = await import('@google/gemini-cli-core');
+        const authService =
+          authServiceModule.getPlumbProviderAuthService?.() ??
+          new authServiceModule.PlumbProviderAuthService();
+        await authService.logout(providerId);
+      } catch (err) {
+        debugLogger.warn(
+          `Provider logout failed for ${providerId}: ${getErrorMessage(err)}`,
+        );
+      }
+    },
+    [],
+  );
+
   const handleApiKeyCancel = useCallback(() => {
     // Never open legacy AuthDialog — return to PLUMB provider setup.
     setAuthState(AuthState.Unauthenticated);
@@ -2890,6 +2907,7 @@ Logging in with Google... Restarting PLUMB to continue.
       openProviderSetupDialog,
       handleProviderSetupComplete,
       handleProviderOAuthLogin,
+      handleProviderLogout,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,
@@ -2998,6 +3016,7 @@ Logging in with Google... Restarting PLUMB to continue.
       openProviderSetupDialog,
       handleProviderSetupComplete,
       handleProviderOAuthLogin,
+      handleProviderLogout,
       handleEditorSelect,
       exitEditorDialog,
       exitPrivacyNotice,

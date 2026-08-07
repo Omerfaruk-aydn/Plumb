@@ -42,6 +42,7 @@ export interface UIActions {
   handleProviderOAuthLogin: (
     providerId: string,
   ) => Promise<{ success: boolean; error?: string }>;
+  handleProviderLogout: (providerId: string) => Promise<void>;
   handleEditorSelect: (
     editorType: EditorType | undefined,
     scope: LoadableSettingScope,

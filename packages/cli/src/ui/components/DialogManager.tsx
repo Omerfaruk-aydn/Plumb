@@ -320,6 +320,7 @@ export const DialogManager = ({
           onComplete={uiActions.handleProviderSetupComplete}
           onCancel={uiActions.closeProviderSetupDialog}
           onOAuthLogin={uiActions.handleProviderOAuthLogin}
+          onLogout={uiActions.handleProviderLogout}
           onRefreshModels={refreshModels}
           onRefreshFullModels={refreshFullModels}
           completionStage={uiState.setupCompletionStage}
