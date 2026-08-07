@@ -315,12 +315,32 @@ async function* anthropicMessagesStream(
 
   if (temperature !== undefined) body.temperature = temperature;
 
-  // Determine auth header: OAuth tokens use Authorization: Bearer;
-  // API keys use x-api-key. Both are supported by Anthropic's API.
+  // A missing/empty credential must fail loudly here — sending the request
+  // with no auth header at all just produces a less specific upstream error
+  // ("missing required Authorization header") for the same underlying
+  // problem (no resolved credential for this provider).
+  if (!apiKey) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'MISSING_CREDENTIAL',
+        message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+      },
+    };
+    return;
+  }
+
+  // GitHub Copilot's Anthropic-compatible proxy requires Authorization:
+  // Bearer regardless of credential kind — it does not accept x-api-key
+  // (confirmed: sending x-api-key alone produces "missing required
+  // Authorization header" from Copilot's endpoint). Native Anthropic API
+  // endpoints accept both; x-api-key remains the default there.
   // The model.headers field can carry provider-specific headers
   // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
   const authHeaders: Record<string, string> = {};
-  if (apiKey) {
+  if (model.provider === 'github-copilot') {
+    authHeaders['Authorization'] = `Bearer ${apiKey}`;
+  } else {
     authHeaders['x-api-key'] = apiKey;
   }
 
