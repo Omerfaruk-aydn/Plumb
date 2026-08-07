@@ -1418,6 +1418,30 @@ function describeAntigravityRequest(
  * buildAntigravityRequest without sending it. Never sends a network
  * request; safe to run at any time.
  */
+const ANTIGRAVITY_CANONICAL_ID = 'google-antigravity';
+
+/**
+ * Run the canonical production provider-runtime bootstrap
+ * (registerPlumbCredentialStoreFactory + bundled model registration +
+ * registry initialization) — the exact same function normal chat calls
+ * from `@google/gemini-cli-core` during startup. Idempotent: safe to call
+ * once more even though the CLI's normal startup path already calls it,
+ * and safe to call from a diagnostic process that never reaches that path.
+ * This function is the ONLY place a diagnostic may reach for provider
+ * runtime setup — it must never register its own credential store.
+ */
+async function bootstrapProductionProviderRuntime(): Promise<boolean> {
+  try {
+    const { initializePlumbProviders } = await import(
+      '@google/gemini-cli-core'
+    );
+    await initializePlumbProviders();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function buildAntigravityRouteDiagnostics(): Promise<{
   lines: string[];
   failures: string[];
@@ -1428,14 +1452,25 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
     installBunGlobal();
+    const providerModule = await import('@google/gemini-cli-provider');
+
+    const runtimeInitialized = await bootstrapProductionProviderRuntime();
+    lines.push(`runtime.initialized: ${runtimeInitialized}`);
 
     const { providerId, modelId } = await readPersistedAntigravitySelection();
-    lines.push(`active.provider: ${providerId ?? '(none configured)'}`);
+    const canonicalProviderId = providerId
+      ? providerModule.resolveProviderAlias(providerId)
+      : undefined;
+    lines.push(
+      `active.provider.persisted: ${providerId ?? '(none configured)'}`,
+    );
+    lines.push(
+      `active.provider.canonical: ${canonicalProviderId ?? '(none configured)'}`,
+    );
     lines.push(`active.model: ${modelId ?? '(none configured)'}`);
 
-    if (providerId !== 'google-antigravity') {
+    if (canonicalProviderId !== ANTIGRAVITY_CANONICAL_ID) {
       lines.push(
         'note: the currently configured provider is not google-antigravity; nothing further to diagnose. Use --test-antigravity-route <model> to probe it directly regardless of the active session.',
       );
@@ -1447,8 +1482,27 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
     }
 
     const registry = providerModule.getPlumbProviderRegistry();
-    await registry.initialize();
-    const state = registry.getProviderState('google-antigravity');
+    let credentialStoreConfigured = true;
+    try {
+      await registry.initialize();
+    } catch (err) {
+      credentialStoreConfigured = false;
+      lines.push(`credential.store.configured: false`);
+      failures.push(
+        `credential store unavailable: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { lines, failures };
+    }
+    lines.push(`credential.store.configured: ${credentialStoreConfigured}`);
+
+    // Same resolution production buildAntigravityRequest performs internally
+    // (resolvePlumbProviderId(model.provider)) — PlumbProviderRegistry state
+    // is keyed by the PLUMB presentation id (`antigravity`), not the OMP id
+    // (`google-antigravity`) this diagnostic otherwise reports/uses.
+    const registryProviderId = providerModule.resolvePlumbProviderId(
+      ANTIGRAVITY_CANONICAL_ID,
+    );
+    const state = registry.getProviderState(registryProviderId);
     lines.push(`credential.kind: ${state?.credentials?.type ?? '(none)'}`);
     lines.push(`credential.present: ${!!state?.credentials}`);
     if (state?.credentials?.type === 'oauth') {
@@ -1461,7 +1515,7 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
     }
 
     const modelRegistry = providerModule.getPlumbModelRegistry();
-    const model = modelRegistry.findModel('google-antigravity', modelId);
+    const model = modelRegistry.findModel(ANTIGRAVITY_CANONICAL_ID, modelId);
     if (!model) {
       failures.push(
         `model ${modelId} not found in the google-antigravity catalog`,
@@ -1533,15 +1587,39 @@ export async function runAntigravityRouteTest(
   process.stdout.write(`git.head.embedded: ${BUILD_IDENTITY.gitHead}\n`);
   process.stdout.write(`provider: google-antigravity\n`);
   process.stdout.write(`display.model: ${modelId}\n`);
+  process.stdout.write('request.attempted: false\n');
 
   try {
     installBunGlobal();
     const providerModule = await import('@google/gemini-cli-provider');
-    const registry = providerModule.getPlumbProviderRegistry();
-    await registry.initialize();
 
-    const state = registry.getProviderState('google-antigravity');
+    const runtimeInitialized = await bootstrapProductionProviderRuntime();
+    process.stdout.write(`runtime.initialized: ${runtimeInitialized}\n`);
+
+    const registry = providerModule.getPlumbProviderRegistry();
+    try {
+      await registry.initialize();
+    } catch (err) {
+      process.stdout.write('credential.store.configured: false\n');
+      process.stdout.write('http.status: NOT_SENT\n');
+      process.stderr.write(
+        `test-antigravity-route: FAIL: credential store unavailable: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      return 1;
+    }
+    process.stdout.write('credential.store.configured: true\n');
+
+    // Same resolution production buildAntigravityRequest performs internally
+    // (resolvePlumbProviderId(model.provider)) — PlumbProviderRegistry state
+    // is keyed by the PLUMB presentation id (`antigravity`), not the OMP id
+    // (`google-antigravity`).
+    const registryProviderId = providerModule.resolvePlumbProviderId(
+      ANTIGRAVITY_CANONICAL_ID,
+    );
+    const state = registry.getProviderState(registryProviderId);
+    process.stdout.write(`credential.present: ${!!state?.credentials}\n`);
     if (!state?.credentials || state.credentials.type !== 'oauth') {
+      process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
         'test-antigravity-route: FAIL: no stored google-antigravity OAuth credential. Sign in via /login google-antigravity first.\n',
       );
@@ -1549,8 +1627,9 @@ export async function runAntigravityRouteTest(
     }
 
     const modelRegistry = providerModule.getPlumbModelRegistry();
-    const model = modelRegistry.findModel('google-antigravity', modelId);
+    const model = modelRegistry.findModel(ANTIGRAVITY_CANONICAL_ID, modelId);
     if (!model) {
+      process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
         `test-antigravity-route: FAIL: model ${modelId} not found in the google-antigravity catalog.\n`,
       );
@@ -1564,6 +1643,7 @@ export async function runAntigravityRouteTest(
       apiKey: '',
     });
     if (!result.ok) {
+      process.stdout.write('http.status: NOT_SENT\n');
       process.stdout.write(
         `safe.error.classification: ${result.error.error?.code ?? 'BUILD_FAILED'}\n`,
       );
@@ -1588,6 +1668,7 @@ export async function runAntigravityRouteTest(
     process.stdout.write(`project.present: ${'project' in bodyRecord}\n`);
 
     let response: Response;
+    process.stdout.write('request.attempted: true\n');
     try {
       response = await fetch(result.descriptor.url, {
         method: 'POST',
@@ -1595,6 +1676,7 @@ export async function runAntigravityRouteTest(
         body: JSON.stringify(result.descriptor.body),
       });
     } catch (err) {
+      process.stdout.write('http.status: NOT_SENT\n');
       process.stdout.write('safe.error.classification: REQUEST_FAILED\n');
       process.stderr.write(
         `test-antigravity-route: FAIL: ${err instanceof Error ? err.message : String(err)}\n`,

@@ -59,6 +59,23 @@ export function resolveProviderAlias(plumbId: string): string {
   return PLUMB_TO_OMP_ID[plumbId] ?? plumbId;
 }
 
+const OMP_TO_PLUMB_ID: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(PLUMB_TO_OMP_ID).map(([plumbId, ompId]) => [ompId, plumbId]),
+);
+
+/**
+ * Resolve an OMP registry/catalog id (or an already-PLUMB id) back to the
+ * PLUMB presentation id. `PlumbProviderRegistry`/credential-store state and
+ * `PlumbProvider` catalog entries are keyed by this id (e.g. `antigravity`),
+ * NOT by the OMP id a projected `PlumbModel.provider` field carries (e.g.
+ * `google-antigravity`) — callers that resolve a provider from a model
+ * object must go through this before looking up registry/credential state.
+ * Returns the input unchanged when it is not an aliased OMP id.
+ */
+export function resolvePlumbProviderId(ompOrPlumbId: string): string {
+  return OMP_TO_PLUMB_ID[ompOrPlumbId] ?? ompOrPlumbId;
+}
+
 /**
  * PLUMB-only synthetic providers with no OMP registry/catalog backing.
  * These are legitimate PLUMB product surfaces (a generic OpenAI-compatible

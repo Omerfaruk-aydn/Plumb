@@ -441,6 +441,22 @@ export async function main() {
     argv.diagnoseAntigravityRoute ||
     argv.testAntigravityRoute
   ) {
+    // PLUMB: diagnostics must run through the exact same provider-runtime
+    // bootstrap normal chat uses below (credential store factory
+    // registration, bundled model registration, provider registry
+    // initialization) — not a diagnostic-only duplicate. initializePlumbProviders
+    // is idempotent, so this has no effect on the later call in the normal
+    // (non-diagnostic) startup path.
+    try {
+      const { initializePlumbProviders } = await import(
+        '@google/gemini-cli-core'
+      );
+      await initializePlumbProviders();
+    } catch {
+      // Provider subsystem not available — individual diagnostics degrade
+      // on their own (e.g. auth.state: unavailable) rather than crashing.
+    }
+
     const {
       printRuntimeIdentity,
       printLogoDiagnostics,

@@ -52,6 +52,7 @@ export {
   getProvidersByCategory,
   getProviderSetupGroups,
   resolveProviderAlias,
+  resolvePlumbProviderId,
   CODING_PLAN_PROVIDERS,
   OAUTH_PROVIDERS,
   API_KEY_PROVIDERS,

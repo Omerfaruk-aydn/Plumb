@@ -57,4 +57,23 @@ describe('coding-plan catalog presentation', () => {
     const { resolveProviderAlias } = await import('./providers.js');
     expect(resolveProviderAlias('antigravity')).toBe('google-antigravity');
   });
+
+  it('resolvePlumbProviderId reverses the alias back to the PLUMB registry id', async () => {
+    const { resolvePlumbProviderId } = await import('./providers.js');
+    expect(resolvePlumbProviderId('google-antigravity')).toBe('antigravity');
+    // Already-PLUMB / non-aliased ids pass through unchanged.
+    expect(resolvePlumbProviderId('antigravity')).toBe('antigravity');
+    expect(resolvePlumbProviderId('github-copilot')).toBe('github-copilot');
+    expect(resolvePlumbProviderId('nvidia')).toBe('nvidia');
+  });
+
+  it('resolveProviderAlias and resolvePlumbProviderId round-trip for every aliased provider', async () => {
+    const { resolveProviderAlias, resolvePlumbProviderId } = await import(
+      './providers.js'
+    );
+    for (const plumbId of ['antigravity', 'llama-cpp', 'anthropic-api']) {
+      const ompId = resolveProviderAlias(plumbId);
+      expect(resolvePlumbProviderId(ompId)).toBe(plumbId);
+    }
+  });
 });

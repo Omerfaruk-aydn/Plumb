@@ -560,9 +560,18 @@ export async function buildAntigravityRequest(
   const { getPlumbProviderRegistry } = await import(
     '../registry/provider-registry.js'
   );
-  const credential = getPlumbProviderRegistry().getProviderState(
-    model.provider,
-  )?.credentials;
+  const { resolvePlumbProviderId } = await import('../catalog/providers.js');
+  // `model.provider` on a catalog-projected PlumbModel carries the OMP
+  // registry id (e.g. `google-antigravity`), but PlumbProviderRegistry
+  // credential state is keyed by the PLUMB presentation id (`antigravity`)
+  // that login/UI/settings use — resolve back to that id before lookup, or
+  // this always misses and falls through to MISSING_CREDENTIAL even when a
+  // valid credential is stored.
+  const registryProviderId = resolvePlumbProviderId(model.provider);
+  const credential =
+    getPlumbProviderRegistry().getProviderState(
+      registryProviderId,
+    )?.credentials;
 
   if (
     !credential ||
@@ -576,7 +585,7 @@ export async function buildAntigravityRequest(
         type: 'error',
         error: {
           code: 'MISSING_CREDENTIAL',
-          message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+          message: `No credential available for provider: ${registryProviderId}. Sign in again via /login ${registryProviderId}.`,
         },
       },
     };

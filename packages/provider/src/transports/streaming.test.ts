@@ -402,6 +402,40 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     });
   });
 
+  it('resolves the credential via the PLUMB registry id, not the raw model.provider OMP id', async () => {
+    // Real production defect: model.provider on a catalog-projected
+    // PlumbModel carries the OMP registry id ("google-antigravity"), but
+    // PlumbProviderRegistry/credential-store state is keyed by the PLUMB
+    // presentation id ("antigravity") that login/UI/settings actually use.
+    // Looking the credential up under model.provider directly always misses
+    // — even with a real, valid, stored OAuth credential — and silently
+    // falls through to MISSING_CREDENTIAL without ever sending a request.
+    mockGetProviderState.mockImplementation((id: string) =>
+      id === 'antigravity' ? { credentials: validOAuthCredential } : undefined,
+    );
+    let fetchCalled = false;
+    globalThis.fetch = (async () => {
+      fetchCalled = true;
+      return new Response('data: {"response":{"candidates":[]}}\n\n', {
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: antigravityModel('gemini-3-pro'),
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'unused',
+    })) {
+      events.push(event);
+    }
+
+    expect(mockGetProviderState).toHaveBeenCalledWith('antigravity');
+    expect(mockGetProviderState).not.toHaveBeenCalledWith('google-antigravity');
+    expect(fetchCalled).toBe(true);
+    expect(events.some((e) => e.type === 'error')).toBe(false);
+  });
+
   it('a plain API-key Google/Gemini provider is unaffected (still uses the public API path)', async () => {
     let capturedUrl = '';
     globalThis.fetch = (async (url: string | URL | Request) => {

@@ -18,6 +18,8 @@ const mockInitialize = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
+  registerPlumbCredentialStoreFactory: vi.fn(),
+  initBundledModels: vi.fn(),
   getPlumbProviderRegistry: () => ({
     initialize: mockInitialize,
     getProviderState: mockGetProviderState,
@@ -26,6 +28,17 @@ vi.mock('@google/gemini-cli-provider', () => ({
     findModel: mockFindModel,
   }),
   buildAntigravityRequest: mockBuildAntigravityRequest,
+  // Real resolver behavior — mirrors packages/provider/src/catalog/providers.ts.
+  resolveProviderAlias: (id: string) =>
+    id === 'antigravity' ? 'google-antigravity' : id,
+  // OMP id `google-antigravity` -> PLUMB registry id `antigravity` (the id
+  // PlumbProviderRegistry state is actually keyed by).
+  resolvePlumbProviderId: (id: string) =>
+    id === 'google-antigravity' ? 'antigravity' : id,
+}));
+
+vi.mock('@google/gemini-cli-core', () => ({
+  initializePlumbProviders: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('./config/settings.js', () => ({
