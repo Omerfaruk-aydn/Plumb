@@ -87,6 +87,21 @@ async function* openAICompatibleStream(
   if (temperature !== undefined && temperature >= 0)
     body.temperature = temperature;
 
+  // A missing/empty credential must fail loudly here — falling through
+  // silently produces `Authorization: Bearer ` (no token), which providers
+  // like GitHub Copilot reject as "Authorization header is badly formatted"
+  // instead of the actual problem (no resolved credential for this provider).
+  if (!apiKey) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'MISSING_CREDENTIAL',
+        message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+      },
+    };
+    return;
+  }
+
   // Azure OpenAI uses api-key header; all others use Authorization: Bearer.
   // The model.headers field can carry provider-specific headers.
   const authHeaders: Record<string, string> = {};

@@ -474,9 +474,20 @@
     "packages/provider/src/omp-ai/registry/oauth.ts",
     "packages/provider/src/omp-ai/utils/schema.ts",
     "packages/provider/src/omp-catalog/identity.ts",
-    "packages/provider/src/omp-catalog/provider-models.ts"
+    "packages/provider/src/omp-catalog/provider-models.ts",
+    "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts"
   ],
   "adaptationDiffs": [
+    {
+      "path": "packages/provider/src/omp-ai/providers/anthropic.ts",
+      "upstream": "packages/ai/src/providers/anthropic.ts",
+      "reason": "PLUMB fix: buildAnthropicClientOptions now throws AIError.MissingApiKeyError for github-copilot when apiKey is empty, instead of silently building an empty `Authorization: Bearer ` header that GitHub rejects as badly formatted"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/providers/openai-shared.ts",
+      "upstream": "packages/ai/src/providers/openai-shared.ts",
+      "reason": "PLUMB fix: resolveOpenAIRequestSetup now throws AIError.MissingApiKeyError for github-copilot when rawApiKey is empty, instead of silently building an empty `Authorization: Bearer ` header that GitHub rejects as badly formatted"
+    },
     {
       "path": "packages/provider/src/omp-ai/auth-storage.ts",
       "upstream": "packages/ai/src/auth-storage.ts",
