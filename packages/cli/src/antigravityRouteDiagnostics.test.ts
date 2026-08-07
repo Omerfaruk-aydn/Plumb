@@ -312,6 +312,35 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
     expect(output).not.toContain('ping');
   });
 
+  it('prints request.attempted exactly once, with the true final value, never a stale placeholder', async () => {
+    globalThis.fetch = (async () =>
+      new Response(null, { status: 200 })) as typeof fetch;
+    const { runAntigravityRouteTest } = await import('./runtimeDiagnostics.js');
+    await runAntigravityRouteTest('gpt-oss-120b-medium');
+    const output = logs.join('');
+    const matches = output.match(/request\.attempted: (true|false)/g) ?? [];
+    expect(matches).toEqual(['request.attempted: true']);
+  });
+
+  it('prints request.attempted: false exactly once when the credential is unusable, never true', async () => {
+    mockGetProviderState.mockReturnValue(undefined);
+    mockStoreGetCredentials.mockResolvedValue([]);
+    mockStoreGetProviderMetadata.mockResolvedValue({
+      accountLabels: [],
+      credentialRefs: [],
+    });
+    mockResolveUsablePlumbCredential.mockResolvedValue({
+      classification: 'NO_CREDENTIAL',
+      credential: null,
+      refreshAttempted: false,
+    });
+    const { runAntigravityRouteTest } = await import('./runtimeDiagnostics.js');
+    await runAntigravityRouteTest('gpt-oss-120b-medium');
+    const output = logs.join('');
+    const matches = output.match(/request\.attempted: (true|false)/g) ?? [];
+    expect(matches).toEqual(['request.attempted: false']);
+  });
+
   it('fails clearly without calling fetch when there is no stored credential', async () => {
     mockGetProviderState.mockReturnValue(undefined);
     mockStoreGetCredentials.mockResolvedValue([]);

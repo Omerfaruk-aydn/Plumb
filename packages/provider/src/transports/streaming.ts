@@ -24,6 +24,92 @@ import {
 } from '../types.js';
 import { EventStream } from '../omp-ai/utils/event-stream.js';
 
+// ─── Safe Antigravity request/response tracing ────────────────────────
+//
+// Opt-in only (PLUMB_ANTIGRAVITY_TRACE_SAFE=1), off by default, zero
+// behavior change when unset. Exists so a real normal-chat 404 can be
+// compared against a real `--test-antigravity-route` 200 at the exact same
+// code path both go through (buildAntigravityRequest / this fetch call) —
+// never a token, project ID, or message/tool content.
+
+function antigravityTraceEnabled(): boolean {
+  return process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'] === '1';
+}
+
+function makeAntigravityTraceId(): string {
+  return `ag-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function traceAntigravity(line: string): void {
+  if (!antigravityTraceEnabled()) return;
+  process.stderr.write(`[antigravity-trace] ${line}\n`);
+}
+
+/**
+ * Safe (non-secret) summary of a built Antigravity request descriptor,
+ * shared by the trace facility here and (structurally mirrored) by the
+ * `--diagnose-antigravity-route` CLI diagnostic — same fields, same
+ * omissions. Never includes a token, project ID value, or message/tool
+ * content.
+ */
+function describeAntigravityRequestSafely(
+  descriptor: AntigravityRequestDescriptor,
+): string[] {
+  const lines: string[] = [];
+  try {
+    const url = new URL(descriptor.url);
+    lines.push(`request.origin: ${url.origin}`);
+    lines.push(`request.pathname: ${url.pathname}`);
+    lines.push(
+      `request.query.keys: ${[...url.searchParams.keys()].join(',') || '(none)'}`,
+    );
+  } catch {
+    lines.push('request.origin: (unparseable)');
+  }
+  lines.push(
+    `request.headers.names: ${Object.keys(descriptor.headers).join(',')}`,
+  );
+  lines.push(
+    `request.authorization.present: ${descriptor.headers['Authorization'] !== undefined}`,
+  );
+  const body = descriptor.body;
+  if (body && typeof body === 'object') {
+    const rec = body as Record<string, unknown>;
+    lines.push(`request.body.topLevelKeys: ${Object.keys(rec).join(',')}`);
+    lines.push(`request.body.project.present: ${'project' in rec}`);
+    const bodyModel = rec['model'];
+    lines.push(
+      `request.body.model: ${typeof bodyModel === 'string' ? bodyModel : '(unknown)'}`,
+    );
+    lines.push(`request.body.requestId.present: ${'requestId' in rec}`);
+    const inner = rec['request'];
+    lines.push(`request.body.request.present: ${'request' in rec}`);
+    if (inner && typeof inner === 'object') {
+      const innerRec = inner as Record<string, unknown>;
+      lines.push(`request.body.sessionId.present: ${'sessionId' in innerRec}`);
+      lines.push(`request.body.labels.present: ${'labels' in innerRec}`);
+      const contents = innerRec['contents'];
+      lines.push(
+        `request.contents.count: ${Array.isArray(contents) ? contents.length : 0}`,
+      );
+      const tools = innerRec['tools'];
+      lines.push(
+        `request.tools.count: ${Array.isArray(tools) ? tools.length : 0}`,
+      );
+      lines.push(
+        `request.systemInstruction.present: ${'systemInstruction' in innerRec}`,
+      );
+    }
+    lines.push(
+      `request.body.userAgent: ${String(rec['userAgent'] ?? '(absent)')}`,
+    );
+    lines.push(
+      `request.body.requestType: ${String(rec['requestType'] ?? '(absent)')}`,
+    );
+  }
+  return lines;
+}
+
 // ─── Transport implementations ─────────────────────────────────────────
 
 type PlumbTransportFactory = (
@@ -553,9 +639,23 @@ export type AntigravityRequestResult =
  */
 export async function buildAntigravityRequest(
   options: PlumbStreamOptions,
+  callerTraceId?: string,
 ): Promise<AntigravityRequestResult> {
   const { model, messages, tools, systemPrompt, maxTokens, temperature } =
     options;
+
+  const traceId = antigravityTraceEnabled()
+    ? (callerTraceId ?? makeAntigravityTraceId())
+    : null;
+  if (traceId) {
+    traceAntigravity(`traceId=${traceId} provider.plumbId=${model.provider}`);
+    traceAntigravity(
+      `traceId=${traceId} model.displayId=${model.id} model.requestModelId=${model.requestModelId ?? '(none)'} model.api=${model.api} model.baseUrl=${model.baseUrl ?? '(none, will use DEFAULT_ENDPOINT)'}`,
+    );
+    traceAntigravity(
+      `traceId=${traceId} request.contents.count=${messages.length} request.tools.count=${tools?.length ?? 0} request.systemInstruction.present=${!!systemPrompt}`,
+    );
+  }
 
   const { resolvePlumbProviderId } = await import('../catalog/providers.js');
   const { resolveUsablePlumbCredential } = await import(
@@ -688,14 +788,33 @@ export async function buildAntigravityRequest(
     headers['User-Agent'] = gcli.getAntigravityUserAgent();
   }
 
-  return { ok: true, descriptor: { url, headers, body: requestBody } };
+  const descriptor = { url, headers, body: requestBody };
+  if (traceId) {
+    for (const line of describeAntigravityRequestSafely(descriptor)) {
+      traceAntigravity(`traceId=${traceId} ${line}`);
+    }
+  }
+
+  return { ok: true, descriptor };
 }
 
 async function* googleCloudCodeAssistStream(
   options: PlumbStreamOptions,
 ): AsyncGenerator<PlumbStreamEvent> {
-  const result = await buildAntigravityRequest(options);
+  // This function is reached by BOTH normal PLUMB chat and
+  // `--test-antigravity-route` (via buildAntigravityRequest, which the CLI
+  // diagnostic also calls directly) — there is no separate "normal chat"
+  // vs "probe" code path to distinguish here; a trace line captured with
+  // PLUMB_ANTIGRAVITY_TRACE_SAFE=1 during real interactive chat IS the
+  // normal-chat descriptor, directly comparable to a probe run's trace.
+  const traceId = antigravityTraceEnabled() ? makeAntigravityTraceId() : null;
+  const result = await buildAntigravityRequest(options, traceId ?? undefined);
   if (!result.ok) {
+    if (traceId) {
+      traceAntigravity(
+        `traceId=${traceId} build.result=FAILED code=${result.error.error?.code ?? '(unknown)'}`,
+      );
+    }
     yield result.error;
     return;
   }
@@ -710,6 +829,11 @@ async function* googleCloudCodeAssistStream(
       signal: options.signal,
     });
   } catch (err) {
+    if (traceId) {
+      traceAntigravity(
+        `traceId=${traceId} request.attempted=true fetch.threw=true`,
+      );
+    }
     if ((err as Error).name === 'AbortError') {
       yield { type: 'done', finishReason: 'cancelled' };
       return;
@@ -719,6 +843,16 @@ async function* googleCloudCodeAssistStream(
       error: { code: 'REQUEST_FAILED', message: (err as Error).message },
     };
     return;
+  }
+
+  if (traceId) {
+    const traceHeaderNames = ['x-goog-trace-id', 'x-request-id', 'server'];
+    const safeHeaders = traceHeaderNames
+      .map((h) => `${h}=${response.headers.get(h) ?? '(absent)'}`)
+      .join(' ');
+    traceAntigravity(
+      `traceId=${traceId} request.attempted=true HTTP.status=${response.status} HTTP.statusText=${response.statusText} HTTP.contentType=${response.headers.get('content-type') ?? '(none)'} ${safeHeaders}`,
+    );
   }
 
   if (!response.ok) {
@@ -732,6 +866,9 @@ async function* googleCloudCodeAssistStream(
       response.status === 404
         ? 'ENDPOINT_NOT_FOUND'
         : `HTTP_${response.status}`;
+    if (traceId) {
+      traceAntigravity(`traceId=${traceId} 404.classification=${code}`);
+    }
     yield {
       type: 'error',
       error: {

@@ -1818,7 +1818,6 @@ export async function runAntigravityRouteTest(
   process.stdout.write(`git.head.embedded: ${BUILD_IDENTITY.gitHead}\n`);
   process.stdout.write(`provider: google-antigravity\n`);
   process.stdout.write(`display.model: ${modelId}\n`);
-  process.stdout.write('request.attempted: false\n');
 
   try {
     installBunGlobal();
@@ -1832,6 +1831,7 @@ export async function runAntigravityRouteTest(
       await registry.initialize();
     } catch (err) {
       process.stdout.write('credential.store.configured: false\n');
+      process.stdout.write('request.attempted: false\n');
       process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
         `test-antigravity-route: FAIL: credential store unavailable: ${err instanceof Error ? err.message : String(err)}\n`,
@@ -1880,6 +1880,7 @@ export async function runAntigravityRouteTest(
       !resolved.credential ||
       resolved.classification !== 'VALID_CREDENTIAL'
     ) {
+      process.stdout.write('request.attempted: false\n');
       process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
         resolved.classification === 'NO_CREDENTIAL'
@@ -1892,6 +1893,7 @@ export async function runAntigravityRouteTest(
     const modelRegistry = providerModule.getPlumbModelRegistry();
     const model = modelRegistry.findModel(ANTIGRAVITY_CANONICAL_ID, modelId);
     if (!model) {
+      process.stdout.write('request.attempted: false\n');
       process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(
         `test-antigravity-route: FAIL: model ${modelId} not found in the google-antigravity catalog.\n`,
@@ -1906,6 +1908,7 @@ export async function runAntigravityRouteTest(
       apiKey: '',
     });
     if (!result.ok) {
+      process.stdout.write('request.attempted: false\n');
       process.stdout.write('http.status: NOT_SENT\n');
       process.stdout.write(
         `safe.error.classification: ${result.error.error?.code ?? 'BUILD_FAILED'}\n`,

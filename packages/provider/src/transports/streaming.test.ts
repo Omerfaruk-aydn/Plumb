@@ -503,4 +503,91 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     // consulted for a plain API-key Gemini request.
     expect(mockGetProviderState).not.toHaveBeenCalled();
   });
+
+  describe('PLUMB_ANTIGRAVITY_TRACE_SAFE opt-in tracing', () => {
+    const originalEnv = process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'];
+
+    afterEach(() => {
+      if (originalEnv === undefined) {
+        delete process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'];
+      } else {
+        process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'] = originalEnv;
+      }
+      vi.restoreAllMocks();
+    });
+
+    it('emits no trace output by default (env unset)', async () => {
+      delete process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'];
+      mockResolveUsablePlumbCredential.mockResolvedValue({
+        classification: 'VALID_CREDENTIAL',
+        credential: validOAuthCredential,
+        refreshAttempted: false,
+      });
+      const stderrLines: string[] = [];
+      vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+        stderrLines.push(String(chunk));
+        return true;
+      });
+      globalThis.fetch = (async () =>
+        new Response('data: {"response":{"candidates":[]}}\n\n', {
+          status: 200,
+        })) as typeof fetch;
+
+      for await (const _event of plumbModelStream({
+        model: antigravityModel('gemini-3-pro'),
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'unused',
+      })) {
+        // drain
+      }
+
+      expect(stderrLines.join('')).not.toContain('antigravity-trace');
+    });
+
+    it('emits a safe trace with a correlation id and no secrets when PLUMB_ANTIGRAVITY_TRACE_SAFE=1', async () => {
+      process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'] = '1';
+      mockResolveUsablePlumbCredential.mockResolvedValue({
+        classification: 'VALID_CREDENTIAL',
+        credential: validOAuthCredential,
+        refreshAttempted: false,
+      });
+      const stderrLines: string[] = [];
+      vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+        stderrLines.push(String(chunk));
+        return true;
+      });
+      globalThis.fetch = (async () =>
+        new Response('data: {"response":{"candidates":[]}}\n\n', {
+          status: 200,
+        })) as typeof fetch;
+
+      for await (const _event of plumbModelStream({
+        model: antigravityModel('gemini-3-pro'),
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'unused',
+      })) {
+        // drain
+      }
+
+      const output = stderrLines.join('');
+      expect(output).toContain('[antigravity-trace]');
+      expect(output).toMatch(/traceId=ag-[a-z0-9]+/);
+      expect(output).toContain('HTTP.status=200');
+      expect(output).toContain(
+        'request.origin: https://daily-cloudcode-pa.googleapis.com',
+      );
+      expect(output).toContain(
+        'request.pathname: /v1internal:streamGenerateContent',
+      );
+      // Never a secret.
+      expect(output).not.toContain(validOAuthCredential.access);
+      expect(output).not.toContain(validOAuthCredential.projectId);
+      expect(output).not.toContain('hi');
+      // Same correlation id threads through request-build and response lines.
+      const ids = [...output.matchAll(/traceId=(ag-[a-z0-9]+)/g)].map(
+        (m) => m[1],
+      );
+      expect(new Set(ids).size).toBe(1);
+    });
+  });
 });
