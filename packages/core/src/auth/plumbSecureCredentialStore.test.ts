@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PlumbSecureCredentialStore } from './plumbSecureCredentialStore.js';
 import type {
@@ -14,14 +17,31 @@ import type {
 
 describe('PlumbSecureCredentialStore', () => {
   let store: PlumbSecureCredentialStore;
+  let isolatedHome: string;
+  let previousHome: string | undefined;
 
   beforeEach(async () => {
+    // Isolate GEMINI_CLI_HOME per test run so this suite's real-file writes
+    // (~/.plumb/providers.json) never race other suites (e.g.
+    // omp-keychain-adapter.test.ts) that touch the same real path.
+    isolatedHome = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-secure-store-test-'),
+    );
+    previousHome = process.env['GEMINI_CLI_HOME'];
+    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+
     store = new PlumbSecureCredentialStore();
     await store.clearAll();
   });
 
   afterEach(async () => {
     await store.clearAll();
+    if (previousHome === undefined) {
+      delete process.env['GEMINI_CLI_HOME'];
+    } else {
+      process.env['GEMINI_CLI_HOME'] = previousHome;
+    }
+    fs.rmSync(isolatedHome, { recursive: true, force: true });
   });
 
   it('satisfies the canonical IPlumbCredentialStore interface at compile time', () => {

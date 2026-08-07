@@ -1,14 +1,18 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
- * PLUMB provider subsystem initialization.
- * Called once at startup to load bundled models and initialize the provider registry.
+ * @license
  */
 
 import { debugLogger } from '../utils/debugLogger.js';
 import { getPlumbCredentialStore as getCoreCredentialStore } from '../auth/plumbSecureCredentialStore.js';
+// Type-only import: erased at compile time, so this does not create a
+// runtime load-order cycle with the dynamic `import()` below — it only
+// gives the dynamically-imported module a real static shape to check
+// against, instead of the `any` it silently had before.
+import type * as GeminiCliProviderModule from '@google/gemini-cli-provider';
 
 let initialized = false;
 
@@ -17,20 +21,24 @@ export async function initializePlumbProviders(): Promise<void> {
   initialized = true;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const mod = await import('@google/gemini-cli-provider');
+    const mod: typeof GeminiCliProviderModule = await import(
+      '@google/gemini-cli-provider'
+    );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    mod.registerPlumbCredentialStoreFactory(() => Promise.resolve(getCoreCredentialStore()));
+    // Return type is pinned to the canonical interface here, at the
+    // production wiring boundary — if the concrete store class ever stops
+    // satisfying IPlumbCredentialStore, this line fails typecheck instead
+    // of surfacing as a runtime "is not a function" error post-auth.
+    mod.registerPlumbCredentialStoreFactory(
+      (): Promise<GeminiCliProviderModule.IPlumbCredentialStore> =>
+        Promise.resolve(getCoreCredentialStore()),
+    );
 
     // Register all bundled OMP-derived models
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     mod.initBundledModels();
 
     // Initialize the provider registry
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const { getPlumbProviderRegistry } = mod;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await getPlumbProviderRegistry().initialize();
 
     debugLogger.debug('PLUMB provider subsystem initialized.');
