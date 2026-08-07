@@ -359,8 +359,14 @@ export abstract class OAuthCallbackFlow {
 			});
 		}
 
+		// The rendered page must never embed the authorization code or state
+		// nonce — only the boolean outcome and a sanitized error message. The
+		// real code/state above already went to #callbackResolve for the
+		// server-side token exchange; nothing else needs them.
+		const renderState = resultState.ok ? { ok: true } : { ok: false, error: resultState.error };
+
 		return new Response(
-			(templateHtml as unknown as string).replaceAll("__OAUTH_STATE__", JSON.stringify(resultState)),
+			(templateHtml as unknown as string).replaceAll("__OAUTH_STATE__", JSON.stringify(renderState)),
 			{
 				status: resultState.ok ? 200 : 500,
 				headers: { "Content-Type": "text/html" },

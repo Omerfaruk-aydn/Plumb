@@ -475,9 +475,20 @@
     "packages/provider/src/omp-ai/utils/schema.ts",
     "packages/provider/src/omp-catalog/identity.ts",
     "packages/provider/src/omp-catalog/provider-models.ts",
-    "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts"
+    "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts",
+    "packages/provider/src/omp-ai/registry/oauth/callback-server.test.ts"
   ],
   "adaptationDiffs": [
+    {
+      "path": "packages/provider/src/omp-ai/registry/oauth/oauth.html",
+      "upstream": "packages/ai/src/registry/oauth/oauth.html",
+      "reason": "PLUMB rebrand: OAuth callback success/error page showed upstream 'oh my pi' branding (title, wordmark, logo) to real PLUMB users completing device/browser OAuth logins (e.g. Antigravity). Replaced with PLUMB title/wordmark/messaging; presentation-only, no change to the __OAUTH_STATE__ contract or page routing"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/registry/oauth/callback-server.ts",
+      "upstream": "packages/ai/src/registry/oauth/callback-server.ts",
+      "reason": "PLUMB fix: the HTML response now serializes a sanitized renderState (ok/error only) instead of the raw resultState, which embedded the OAuth authorization code and state nonce directly into the rendered callback page. No change to the actual code/state values used for token exchange (#callbackResolve/#callbackReject), callback routing, or server lifecycle"
+    },
     {
       "path": "packages/provider/src/omp-ai/providers/anthropic.ts",
       "upstream": "packages/ai/src/providers/anthropic.ts",
