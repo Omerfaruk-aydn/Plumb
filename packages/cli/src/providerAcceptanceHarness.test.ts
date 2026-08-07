@@ -32,9 +32,12 @@ import {
   runProviderAcceptanceTest,
   runCodingPlanLiveAcceptance,
   ACCEPTANCE_STUB_ENV,
+  ACCEPTANCE_STUB_AUTO_AUTH_ENV,
   type LiveTerminal,
   type ReportEmitter,
+  type ModelChoiceAttempt,
 } from './providerAcceptanceHarness.js';
+import { recordAcceptance } from './providerAcceptance.js';
 
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
@@ -765,5 +768,462 @@ describe('live acceptance terminal channels', () => {
       });
       expect(exitCode).toBe(0);
     }
+  });
+});
+
+describe('model selection input ownership and validation', () => {
+  let originalIsTTY: boolean | undefined;
+  let originalSetRawMode:
+    | ((mode: boolean) => NodeJS.ReadStream & { fd: 0 })
+    | undefined;
+
+  const MODEL_CRED = { access: 'TOKEN_ACCESS_XYZ', apiEndpoint: undefined };
+  const OAuthModule = (overrides: Record<string, unknown> = {}) =>
+    makeProviderModule({
+      getProviderDefinition: () => ({
+        login: () => MODEL_CRED,
+        refreshToken: vi.fn(),
+      }),
+      getCatalogModels: () => [
+        { id: 'gpt-4o', name: 'GPT-4o', api: 'openai-completions' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', api: 'openai-completions' },
+      ],
+      ...overrides,
+    });
+
+  const sequence = (
+    attempts: ModelChoiceAttempt[],
+  ): (() => Promise<ModelChoiceAttempt>) => {
+    let i = 0;
+    return async () => attempts[Math.min(i++, attempts.length - 1)];
+  };
+
+  beforeEach(() => {
+    originalIsTTY = process.stdin.isTTY;
+    originalSetRawMode = process.stdin.setRawMode;
+    delete process.env[ACCEPTANCE_STUB_ENV];
+    delete process.env[ACCEPTANCE_STUB_AUTO_AUTH_ENV];
+    process.stdin.isTTY = true;
+    if (typeof process.stdin.setRawMode !== 'function') {
+      Object.defineProperty(process.stdin, 'setRawMode', {
+        value: () => process.stdin,
+        configurable: true,
+        writable: true,
+      });
+    }
+    vi.mocked(recordAcceptance).mockClear();
+  });
+
+  afterEach(() => {
+    if (originalIsTTY !== undefined) {
+      process.stdin.isTTY = originalIsTTY;
+    } else {
+      process.stdin.isTTY = undefined as unknown as boolean;
+    }
+    if (originalSetRawMode) {
+      Object.defineProperty(process.stdin, 'setRawMode', {
+        value: originalSetRawMode,
+        configurable: true,
+        writable: true,
+      });
+    }
+  });
+
+  it('15. loaded-model count survives into the final result', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.reportLines.join('\n')).toContain('models.bundled.count: 2');
+    expect(t.reportLines.join('\n')).toContain('models.final.count: 2');
+  });
+
+  it('16. empty input reprompts instead of failing', async () => {
+    const t = capture();
+    const attempts = [
+      { type: 'text', value: '' },
+      { type: 'number', value: 2 },
+    ] as ModelChoiceAttempt[];
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence(attempts),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(
+      t.terminalLines.filter((l) =>
+        l.startsWith('Please enter a number from 1 to 2'),
+      ),
+    ).toHaveLength(1);
+    expect(
+      t.terminalLines.filter((l) => l.startsWith('Enter model number [1-2]:')),
+    ).toHaveLength(2);
+  });
+
+  it('17. whitespace input reprompts', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'text', value: '   ' },
+          { type: 'number', value: 1 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(
+      t.terminalLines.some((l) =>
+        l.startsWith('Please enter a number from 1 to 2'),
+      ),
+    ).toBe(true);
+  });
+
+  it('18. non-numeric input reprompts', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'text', value: 'abc' },
+          { type: 'number', value: 1 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.terminalLines.some((l) => l.includes('non-numeric'))).toBe(true);
+  });
+
+  it('18. zero reprompts', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'number', value: 0 },
+          { type: 'number', value: 1 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(
+      t.terminalLines.some((l) =>
+        l.startsWith('Please enter a number from 1 to 2'),
+      ),
+    ).toBe(true);
+  });
+
+  it('19. count+1 reprompts', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: sequence([
+          { type: 'number', value: 3 },
+          { type: 'number', value: 1 },
+        ] as ModelChoiceAttempt[]),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(
+      t.terminalLines.some((l) =>
+        l.startsWith('Please enter a number from 1 to 2'),
+      ),
+    ).toBe(true);
+  });
+
+  it('20. first number selects first model', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.terminalLines).toContain('Selected model: gpt-4o');
+    expect(t.reportLines.join('\n')).toContain('selected.model: gpt-4o');
+  });
+
+  it('21. last number selects last model', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 2 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.reportLines.join('\n')).toContain('selected.model: gpt-4o-mini');
+  });
+
+  it('22. cancellation at model selection preserves loaded counts', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'cancel' }),
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('result: LIVE_TEST_CANCELLED');
+    expect(t.reportLines.join('\n')).toContain('models.bundled.count: 2');
+    expect(t.reportLines.join('\n')).toContain('models.final.count: 2');
+  });
+
+  it('23. EOF at model selection reports MODEL_SELECTION_STDIN_CLOSED', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'end' }),
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('MODEL_SELECTION_STDIN_CLOSED');
+    expect(t.reportLines.join('\n')).toContain('models.final.count: 2');
+  });
+
+  it('24. stream cannot begin before confirmed model selection', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'cancel' }),
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(t.reportLines.join('\n')).toContain('stream.started: false');
+  });
+
+  it('25. model prefix does not change routing provider', async () => {
+    const claudeModule = OAuthModule({
+      getCatalogModels: () => [
+        {
+          id: 'claude-opus-4.6',
+          name: 'Claude Opus',
+          api: 'openai-completions',
+        },
+      ],
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      claudeModule,
+      getDef(claudeModule),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(t.reportLines.join('\n')).toContain(
+      'selected.model: claude-opus-4.6',
+    );
+    expect(t.reportLines.join('\n')).toContain(
+      'routing.provider: github-copilot',
+    );
+    expect(t.reportLines.join('\n')).toContain(
+      'credential.provider: github-copilot',
+    );
+  });
+
+  it('26. verified credential reaches the stream transport', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const streamModule = OAuthModule({
+      getCatalogModels: () => [
+        { id: 'gpt-4o', name: 'GPT-4o', api: 'openai-completions' },
+      ],
+      async *plumbModelStream(opts: Record<string, unknown>) {
+        seen.push(opts);
+        yield { type: 'text', text: 'PLUMB_TEST_OK' };
+      },
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      streamModule,
+      getDef(streamModule),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]['apiKey']).toBe('TOKEN_ACCESS_XYZ');
+    expect(seen[0]['model']).toMatchObject({ provider: 'github-copilot' });
+    expect(t.reportLines.join('\n')).toContain(
+      'authorization.header.present: true',
+    );
+    expect(t.reportLines.join('\n')).toContain('result: LIVE_VERIFIED');
+  });
+
+  it('27. stream failure preserves counts and phases', async () => {
+    const streamFail = OAuthModule({
+      async *plumbModelStream() {
+        yield { type: 'error', error: { code: 'E', message: 'boom' } };
+      },
+    });
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      streamFail,
+      getDef(streamFail),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(1);
+    const report = t.reportLines.join('\n');
+    expect(report).toContain('models.final.count: 2');
+    expect(report).toContain('selected.model: gpt-4o');
+    expect(report).toContain('stream.started: true');
+    expect(report).toContain('stream.completed: false');
+    expect(report).toContain('safe.error: boom');
+  });
+
+  it('28. raw mode is not active during the model prompt', async () => {
+    const setRawModeSpy = vi
+      .spyOn(process.stdin, 'setRawMode')
+      .mockImplementation(() => process.stdin as never);
+    const t = capture();
+    await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    const trueCalls = setRawModeSpy.mock.calls.filter((c) => c[0] === true);
+    const falseCalls = setRawModeSpy.mock.calls.filter((c) => c[0] === false);
+    expect(trueCalls.length).toBe(1);
+    expect(falseCalls.length).toBe(1);
+    setRawModeSpy.mockRestore();
+  });
+
+  it('29. no duplicate stic-only data owners remain during picker', async () => {
+    const t = capture();
+    await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    // raw-mode cancellation listener was released before the model prompt.
+    expect(process.stdin.listenerCount('data')).toBe(0);
+  });
+
+  it('30. acceptance persistence contains no secret', async () => {
+    const t = capture();
+    const exitCode = await runCodingPlanLiveAcceptance(
+      'github-copilot',
+      'github-copilot',
+      OAuthModule(),
+      getDef(OAuthModule()),
+      'coding_plan',
+      {
+        terminal: t.terminal,
+        report: t.report,
+        modelInput: async () => ({ type: 'number', value: 1 }),
+      },
+    );
+    expect(exitCode).toBe(0);
+    const calls = vi.mocked(recordAcceptance).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const serialized = JSON.stringify(calls);
+    expect(serialized).not.toContain('TOKEN_ACCESS_XYZ');
   });
 });
