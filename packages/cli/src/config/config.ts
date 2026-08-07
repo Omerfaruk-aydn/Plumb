@@ -125,6 +125,7 @@ export interface CliArgs {
   traceSafe: boolean | undefined;
   diagnoseAntigravityRoute: boolean | undefined;
   testAntigravityRoute: string | undefined;
+  diagnoseCredentialScope: string | undefined;
 }
 
 /**
@@ -579,6 +580,11 @@ export async function parseArguments(
           type: 'string',
           description:
             'Send one real, minimal request to Google Antigravity using the already-stored credential and the exact production transport, then print safe HTTP-result metadata (status, content-type, safe error classification). Never modifies credentials or persists state. Usage: plumb --test-antigravity-route <model-id>',
+        })
+        .option('diagnose-credential-scope', {
+          type: 'string',
+          description:
+            'Prove which literal string a provider credential is actually stored under in the real secure store (PLUMB presentation id vs. OMP catalog id), and classify it (no credential / expired-but-refreshable / valid / corrupted). Never modifies the store, never prints a token or project-id value. Usage: plumb --diagnose-credential-scope <provider-id>',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

@@ -40,8 +40,6 @@ export async function initializePlumbProviders(): Promise<void> {
     // Initialize the provider registry
     const { getPlumbProviderRegistry } = mod;
     await getPlumbProviderRegistry().initialize();
-
-    debugLogger.debug('PLUMB provider subsystem initialized.');
   } catch (err) {
     debugLogger.warn(
       'PLUMB provider subsystem not available:',

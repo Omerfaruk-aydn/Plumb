@@ -1442,6 +1442,215 @@ async function bootstrapProductionProviderRuntime(): Promise<boolean> {
   }
 }
 
+type CredentialClassification =
+  | 'NO_CREDENTIAL'
+  | 'EXPIRED_REFRESHABLE'
+  | 'EXPIRED_UNREFRESHABLE'
+  | 'REFRESH_FAILED'
+  | 'VALID_CREDENTIAL'
+  | 'INVALID_STORED_SHAPE';
+
+interface RawCredentialProbe {
+  scope: string;
+  storageEntryPresent: boolean;
+  decodingSuccess: boolean;
+  kind: 'oauth' | 'api_key' | 'none';
+  accessTokenPresent: boolean;
+  refreshTokenPresent: boolean;
+  projectIdPresent: boolean;
+  expiryPresent: boolean;
+  expired: boolean;
+  classification: CredentialClassification;
+}
+
+const NO_CREDENTIAL_PROBE: RawCredentialProbe = {
+  scope: '',
+  storageEntryPresent: false,
+  decodingSuccess: true,
+  kind: 'none',
+  accessTokenPresent: false,
+  refreshTokenPresent: false,
+  projectIdPresent: false,
+  expiryPresent: false,
+  expired: false,
+  classification: 'NO_CREDENTIAL',
+};
+
+/**
+ * Read a provider's credential DIRECTLY from the real secure store, bypassing
+ * PlumbProviderRegistry's expiry filter (which silently nulls out an expired
+ * OAuth credential's `credentials` field and reports it as absent, even when
+ * a perfectly refreshable credential is sitting in the store). This is what
+ * makes an EXPIRED_REFRESHABLE credential distinguishable from one that was
+ * never persisted at all — never modifies or removes anything.
+ */
+async function probeRawCredentialScope(
+  scope: string,
+): Promise<RawCredentialProbe> {
+  const core = await import('@google/gemini-cli-core');
+  const store = core.getPlumbCredentialStore();
+
+  const [entries, metadata] = await Promise.all([
+    store.getCredentials(scope).catch(() => []),
+    store.getProviderMetadata(scope).catch(() => null),
+  ]);
+  const refCount = metadata?.credentialRefs.length ?? 0;
+
+  if (entries.length === 0) {
+    if (refCount > 0) {
+      // Metadata references credential entries that failed to decode from
+      // the keychain — a real corruption/shape defect, not "never signed in".
+      return {
+        ...NO_CREDENTIAL_PROBE,
+        scope,
+        storageEntryPresent: true,
+        decodingSuccess: false,
+        classification: 'INVALID_STORED_SHAPE',
+      };
+    }
+    return { ...NO_CREDENTIAL_PROBE, scope };
+  }
+
+  const entry =
+    entries.find((e) => e.credential.type === 'oauth') ?? entries[0];
+  const cred = entry.credential;
+
+  if (cred.type === 'api_key') {
+    const present = !!cred.key;
+    return {
+      scope,
+      storageEntryPresent: true,
+      decodingSuccess: true,
+      kind: 'api_key',
+      accessTokenPresent: present,
+      refreshTokenPresent: false,
+      projectIdPresent: false,
+      expiryPresent: false,
+      expired: false,
+      classification: present ? 'VALID_CREDENTIAL' : 'INVALID_STORED_SHAPE',
+    };
+  }
+
+  const expired = cred.expires <= Date.now();
+  const hasRefresh = !!cred.refresh;
+  const classification: CredentialClassification = !cred.access
+    ? 'INVALID_STORED_SHAPE'
+    : expired
+      ? hasRefresh
+        ? 'EXPIRED_REFRESHABLE'
+        : 'EXPIRED_UNREFRESHABLE'
+      : 'VALID_CREDENTIAL';
+
+  return {
+    scope,
+    storageEntryPresent: true,
+    decodingSuccess: true,
+    kind: 'oauth',
+    accessTokenPresent: !!cred.access,
+    refreshTokenPresent: hasRefresh,
+    projectIdPresent: !!cred.projectId,
+    expiryPresent: typeof cred.expires === 'number',
+    expired,
+    classification,
+  };
+}
+
+function credentialProbeLines(
+  probe: RawCredentialProbe,
+  prefix: string,
+): string[] {
+  return [
+    `${prefix}.storageEntry.present: ${probe.storageEntryPresent}`,
+    `${prefix}.decoding.success: ${probe.decodingSuccess}`,
+    `${prefix}.kind: ${probe.kind}`,
+    `${prefix}.accessToken.present: ${probe.accessTokenPresent}`,
+    `${prefix}.refreshToken.present: ${probe.refreshTokenPresent}`,
+    `${prefix}.projectId.present: ${probe.projectIdPresent}`,
+    `${prefix}.expiry.present: ${probe.expiryPresent}`,
+    `${prefix}.expired: ${probe.expired}`,
+    `${prefix}.classification: ${probe.classification}`,
+  ];
+}
+
+/**
+ * `plumb --diagnose-credential-scope <provider>` — proves, rather than
+ * assumes, which literal string PlumbProviderRegistry/credential-store state
+ * is actually keyed by for a given provider, by probing the REAL secure
+ * store under both the PLUMB presentation id and the OMP catalog id. Never
+ * modifies the store. Never prints a token/project-id value.
+ */
+export async function buildCredentialScopeDiagnostics(
+  requestedProviderId: string,
+): Promise<{ lines: string[]; failures: string[] }> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+  lines.push(`PLUMB credential scope diagnostics: ${requestedProviderId}`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    installBunGlobal();
+    const providerModule = await import('@google/gemini-cli-provider');
+    const runtimeInitialized = await bootstrapProductionProviderRuntime();
+    lines.push(`runtime.initialized: ${runtimeInitialized}`);
+
+    const canonicalProviderId =
+      providerModule.resolveProviderAlias(requestedProviderId);
+    lines.push(`requested.provider: ${requestedProviderId}`);
+    lines.push(`canonical.catalog.provider: ${canonicalProviderId}`);
+    lines.push(`credentialStore.configured: ${runtimeInitialized}`);
+
+    // Every candidate literal scope this provider could plausibly be keyed
+    // under: the requested id as given, the canonical OMP id, and the PLUMB
+    // registry id resolved from that OMP id — deduplicated.
+    const candidateScopes = Array.from(
+      new Set([
+        requestedProviderId,
+        canonicalProviderId,
+        providerModule.resolvePlumbProviderId(canonicalProviderId),
+      ]),
+    );
+
+    const probes = new Map<string, RawCredentialProbe>();
+    for (const scope of candidateScopes) {
+      probes.set(scope, await probeRawCredentialScope(scope));
+    }
+    for (const scope of candidateScopes) {
+      const probe = probes.get(scope)!;
+      lines.push(
+        `candidateScope.${scope}.present: ${probe.storageEntryPresent}`,
+      );
+    }
+
+    const resolvedScope = candidateScopes.find(
+      (s) => probes.get(s)!.storageEntryPresent,
+    );
+    lines.push(`resolved.scope: ${resolvedScope ?? '(none)'}`);
+
+    const resolvedProbe = resolvedScope
+      ? probes.get(resolvedScope)!
+      : { ...NO_CREDENTIAL_PROBE, scope: requestedProviderId };
+    lines.push(...credentialProbeLines(resolvedProbe, 'credential'));
+  } catch (err) {
+    failures.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return { lines, failures };
+}
+
+export async function printCredentialScopeDiagnostics(
+  requestedProviderId: string,
+): Promise<number> {
+  const { lines, failures } =
+    await buildCredentialScopeDiagnostics(requestedProviderId);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-credential-scope: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
 export async function buildAntigravityRouteDiagnostics(): Promise<{
   lines: string[];
   failures: string[];
@@ -1503,16 +1712,20 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
       ANTIGRAVITY_CANONICAL_ID,
     );
     const state = registry.getProviderState(registryProviderId);
-    lines.push(`credential.kind: ${state?.credentials?.type ?? '(none)'}`);
+    // Coarse, registry-filtered view (kept for backward compatibility with
+    // existing callers of this field) — an expired credential reads as
+    // absent here even when it is actually present-and-refreshable. See the
+    // truthful credential.* block below for the real classification.
     lines.push(`credential.present: ${!!state?.credentials}`);
-    if (state?.credentials?.type === 'oauth') {
-      lines.push(
-        `credential.accessToken.present: ${!!state.credentials.access}`,
-      );
-      lines.push(
-        `credential.projectId.present: ${!!state.credentials.projectId}`,
-      );
-    }
+
+    // Truthful view: read the real secure store directly, so an expired
+    // credential is reported as EXPIRED_REFRESHABLE instead of indistinguishable
+    // from "never signed in".
+    const rawProbe = await probeRawCredentialScope(registryProviderId);
+    lines.push(...credentialProbeLines(rawProbe, 'credential'));
+    lines.push(
+      `credential.runtimeUsable: ${rawProbe.classification === 'VALID_CREDENTIAL'}`,
+    );
 
     const modelRegistry = providerModule.getPlumbModelRegistry();
     const model = modelRegistry.findModel(ANTIGRAVITY_CANONICAL_ID, modelId);
@@ -1616,8 +1829,47 @@ export async function runAntigravityRouteTest(
     const registryProviderId = providerModule.resolvePlumbProviderId(
       ANTIGRAVITY_CANONICAL_ID,
     );
+
+    let rawProbe = await probeRawCredentialScope(registryProviderId);
+    // Backward-compatible coarse field.
+    process.stdout.write(
+      `credential.present: ${rawProbe.storageEntryPresent}\n`,
+    );
+    for (const line of credentialProbeLines(rawProbe, 'credential')) {
+      process.stdout.write(`${line}\n`);
+    }
+
+    // A credential that exists but is past expiry is NOT the same defect as
+    // "never signed in" — it is recoverable via the real, pinned OMP refresh
+    // path (the stored refresh token), which is a normal silent token
+    // refresh, not a re-authentication / new OAuth flow. Attempt it once,
+    // read-only otherwise.
+    if (rawProbe.classification === 'EXPIRED_REFRESHABLE') {
+      process.stdout.write('refresh.attempted: true\n');
+      const coreModule = await import('@google/gemini-cli-core');
+      const authService = coreModule.getPlumbProviderAuthService();
+      const refreshResult =
+        await authService.refreshCredential(registryProviderId);
+      process.stdout.write(
+        `refresh.result: ${refreshResult.success ? 'SUCCESS' : 'FAILED'}\n`,
+      );
+      rawProbe = await probeRawCredentialScope(registryProviderId);
+      if (rawProbe.classification !== 'VALID_CREDENTIAL') {
+        process.stdout.write(
+          `credential.classification: ${rawProbe.classification === 'EXPIRED_REFRESHABLE' || rawProbe.classification === 'EXPIRED_UNREFRESHABLE' ? 'REFRESH_FAILED' : rawProbe.classification}\n`,
+        );
+        process.stdout.write('http.status: NOT_SENT\n');
+        process.stderr.write(
+          `test-antigravity-route: FAIL: token refresh did not produce a usable credential (${refreshResult.error ?? 'unknown reason'}).\n`,
+        );
+        return 1;
+      }
+      process.stdout.write('credential.classification: VALID_CREDENTIAL\n');
+    } else {
+      process.stdout.write('refresh.attempted: false\n');
+    }
+
     const state = registry.getProviderState(registryProviderId);
-    process.stdout.write(`credential.present: ${!!state?.credentials}\n`);
     if (!state?.credentials || state.credentials.type !== 'oauth') {
       process.stdout.write('http.status: NOT_SENT\n');
       process.stderr.write(

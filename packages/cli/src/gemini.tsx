@@ -439,7 +439,8 @@ export async function main() {
     argv.testProviderList ||
     argv.testProviderNext ||
     argv.diagnoseAntigravityRoute ||
-    argv.testAntigravityRoute
+    argv.testAntigravityRoute ||
+    argv.diagnoseCredentialScope
   ) {
     // PLUMB: diagnostics must run through the exact same provider-runtime
     // bootstrap normal chat uses below (credential store factory
@@ -468,6 +469,7 @@ export async function main() {
       printCodingPlanLiveStatus,
       printAntigravityRouteDiagnostics,
       runAntigravityRouteTest,
+      printCredentialScopeDiagnostics,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
@@ -505,6 +507,10 @@ export async function main() {
       exitCode = await printAntigravityRouteDiagnostics();
     } else if (argv.testAntigravityRoute) {
       exitCode = await runAntigravityRouteTest(argv.testAntigravityRoute);
+    } else if (argv.diagnoseCredentialScope) {
+      exitCode = await printCredentialScopeDiagnostics(
+        argv.diagnoseCredentialScope,
+      );
     } else {
       exitCode = await printProviderRuntimeDiagnostics();
     }
