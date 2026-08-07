@@ -480,6 +480,11 @@
   ],
   "adaptationDiffs": [
     {
+      "path": "packages/provider/src/omp-ai/providers/google-gemini-cli.ts",
+      "upstream": "packages/ai/src/providers/google-gemini-cli.ts",
+      "reason": "PLUMB fix: exported the previously-private DEFAULT_ENDPOINT constant so packages/provider/src/transports/streaming.ts (the transport PlumbContentGenerator actually calls) can send real google-antigravity/google-gemini-cli requests to the real pinned Cloud Code Assist endpoint/path/Bearer-auth instead of the public Gemini API `?key=` shape it was previously using, which leaked the OAuth access token into the URL query string and 404'd. No change to this file's own request-building/streaming logic"
+    },
+    {
       "path": "packages/provider/src/omp-ai/registry/oauth/oauth.html",
       "upstream": "packages/ai/src/registry/oauth/oauth.html",
       "reason": "PLUMB rebrand: OAuth callback success/error page showed upstream 'oh my pi' branding (title, wordmark, logo) to real PLUMB users completing device/browser OAuth logins (e.g. Antigravity). Replaced with PLUMB title/wordmark/messaging; presentation-only, no change to the __OAUTH_STATE__ contract or page routing"

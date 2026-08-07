@@ -7,10 +7,20 @@
  * stream-normalization authority and is importable by the PLUMB facade.
  */
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { installBunGlobal } from '../omp-shims/bun-runtime.js';
 import { createNormalizationStream, plumbModelStream } from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
 import type { PlumbModel, PlumbStreamEvent } from '../types.js';
+
+installBunGlobal();
+
+const mockGetProviderState = vi.fn();
+vi.mock('../registry/provider-registry.js', () => ({
+  getPlumbProviderRegistry: () => ({
+    getProviderState: mockGetProviderState,
+  }),
+}));
 
 describe('transport/stream activation', () => {
   it('creates an OMP-backed PlumbEventStream', () => {
@@ -183,5 +193,195 @@ describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', (
       type: 'error',
       error: { code: 'MISSING_CREDENTIAL' },
     });
+  });
+});
+
+describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport', () => {
+  // Real production defect: an Antigravity request leaked the OAuth access
+  // token into `?key=<token>` and hit a public-Gemini-API-shaped path
+  // (`/models/<id>:streamGenerateContent`) that doesn't exist on the real
+  // Cloud Code Assist host, producing a Google HTML 404. The real endpoint
+  // is `/v1internal:streamGenerateContent` with `Authorization: Bearer` —
+  // see the pinned reference in omp-ai/providers/google-gemini-cli.ts.
+  const antigravityModel = (modelId: string): PlumbModel => ({
+    id: modelId,
+    provider: 'google-antigravity',
+    api: 'google-gemini-cli',
+    baseUrl: 'https://daily-cloudcode-pa.googleapis.com',
+    contextWindow: 200_000,
+    maxTokens: 8_192,
+    reasoning: false,
+    input: 'text',
+  });
+
+  const validOAuthCredential = {
+    type: 'oauth' as const,
+    provider: 'google-antigravity',
+    access: 'ya29.real-oauth-access-token',
+    refresh: 'refresh-token',
+    expires: Date.now() + 3_600_000,
+    projectId: 'my-real-gcp-project',
+  };
+
+  afterEach(() => {
+    mockGetProviderState.mockReset();
+  });
+
+  for (const modelId of ['gemini-3-pro', 'claude-sonnet-4-6', 'gpt-oss-120b']) {
+    it(`routes ${modelId} through google-antigravity regardless of model family prefix`, async () => {
+      mockGetProviderState.mockReturnValue({
+        credentials: validOAuthCredential,
+      });
+      let capturedUrl = '';
+      let capturedHeaders: Record<string, string> | undefined;
+      let capturedBody: Record<string, unknown> | undefined;
+      globalThis.fetch = (async (
+        url: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        capturedUrl = String(url);
+        capturedHeaders = init?.headers as Record<string, string>;
+        capturedBody = JSON.parse(String(init?.body));
+        return new Response('data: {"response":{"candidates":[]}}\n\n', {
+          status: 200,
+        });
+      }) as typeof fetch;
+
+      for await (const _event of plumbModelStream({
+        model: antigravityModel(modelId),
+        messages: [{ role: 'user', content: 'merhaba' }],
+        apiKey: 'unused-for-this-provider',
+      })) {
+        // drain
+      }
+
+      // ROUTING_PROVIDER: google-antigravity, regardless of the model's
+      // own family (gemini/claude/gpt-oss) — dispatch is by model.api, not
+      // by inferring a provider from the model id prefix.
+      expect(capturedBody?.['model']).toBe(modelId);
+      expect(capturedBody?.['project']).toBe('my-real-gcp-project');
+
+      // OAUTH_TOKEN_IN_QUERY: ZERO / QUERY_KEY_PARAMETER_FOR_ANTIGRAVITY_OAUTH: ZERO
+      const query = new URL(capturedUrl).searchParams;
+      expect(query.has('key')).toBe(false);
+      expect(capturedUrl).not.toContain(validOAuthCredential.access);
+
+      // Real pinned endpoint/path, not the public Gemini API shape.
+      expect(capturedUrl).toBe(
+        'https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse',
+      );
+
+      // AUTHORIZATION_HEADER_PRESENT: TRUE
+      expect(capturedHeaders?.['Authorization']).toBe(
+        `Bearer ${validOAuthCredential.access}`,
+      );
+      expect(capturedHeaders?.['x-api-key']).toBeUndefined();
+    });
+  }
+
+  it('never falls back to the public Gemini API host/path for google-antigravity', async () => {
+    mockGetProviderState.mockReturnValue({ credentials: validOAuthCredential });
+    let capturedUrl = '';
+    globalThis.fetch = (async (url: string | URL | Request) => {
+      capturedUrl = String(url);
+      return new Response('data: {"response":{"candidates":[]}}\n\n', {
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: antigravityModel('claude-sonnet-4-6'),
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'unused',
+    })) {
+      // drain
+    }
+
+    // PUBLIC_GEMINI_FALLBACK: ZERO
+    expect(capturedUrl).not.toContain('generativelanguage.googleapis.com');
+    expect(capturedUrl).not.toContain('/models/claude-sonnet-4-6:');
+  });
+
+  it('yields MISSING_CREDENTIAL and never calls fetch when no OAuth credential is stored', async () => {
+    mockGetProviderState.mockReturnValue(undefined);
+    let fetchCalled = false;
+    globalThis.fetch = (async () => {
+      fetchCalled = true;
+      return new Response(null, { status: 200 });
+    }) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: antigravityModel('gemini-3-pro'),
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+    })) {
+      events.push(event);
+    }
+
+    expect(fetchCalled).toBe(false);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'MISSING_CREDENTIAL' },
+    });
+  });
+
+  it('yields MISSING_CREDENTIAL when the stored credential has no projectId', async () => {
+    mockGetProviderState.mockReturnValue({
+      credentials: { ...validOAuthCredential, projectId: undefined },
+    });
+    let fetchCalled = false;
+    globalThis.fetch = (async () => {
+      fetchCalled = true;
+      return new Response(null, { status: 200 });
+    }) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: antigravityModel('gemini-3-pro'),
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'irrelevant',
+    })) {
+      events.push(event);
+    }
+
+    expect(fetchCalled).toBe(false);
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'MISSING_CREDENTIAL' },
+    });
+  });
+
+  it('a plain API-key Google/Gemini provider is unaffected (still uses the public API path)', async () => {
+    let capturedUrl = '';
+    globalThis.fetch = (async (url: string | URL | Request) => {
+      capturedUrl = String(url);
+      return new Response('data: {"candidates":[]}\n\n', { status: 200 });
+    }) as typeof fetch;
+
+    const geminiApiModel: PlumbModel = {
+      id: 'gemini-2.5-flash',
+      provider: 'google',
+      api: 'google-generative-ai',
+      contextWindow: 1_000_000,
+      maxTokens: 8_192,
+      reasoning: false,
+      input: 'text',
+    };
+
+    for await (const _event of plumbModelStream({
+      model: geminiApiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'plain-api-key',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toContain('generativelanguage.googleapis.com');
+    expect(capturedUrl).toContain('key=plain-api-key');
+    // The registry lookup used by the Antigravity path must never be
+    // consulted for a plain API-key Gemini request.
+    expect(mockGetProviderState).not.toHaveBeenCalled();
   });
 });

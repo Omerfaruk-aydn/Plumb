@@ -316,6 +316,15 @@ const ANTIGRAVITY_DAILY_ENDPOINT = "https://daily-cloudcode-pa.googleapis.com";
 const ANTIGRAVITY_SANDBOX_ENDPOINT = "https://daily-cloudcode-pa.sandbox.googleapis.com";
 const ANTIGRAVITY_ENDPOINT_FALLBACKS = [ANTIGRAVITY_DAILY_ENDPOINT, ANTIGRAVITY_SANDBOX_ENDPOINT] as const;
 
+// PLUMB: exported so transports/streaming.ts — the transport PlumbContentGenerator
+// actually calls for real chat streaming — can fall back to the real pinned
+// Cloud Code Assist default endpoint instead of the public Gemini API when a
+// model's catalog entry has no explicit baseUrl, without duplicating (and
+// risking drift from) this literal. Antigravity models carry their own
+// baseUrl in the catalog already, so the antigravity-specific fallback
+// endpoints aren't needed here.
+export { DEFAULT_ENDPOINT };
+
 export {
 	ANTIGRAVITY_SYSTEM_INSTRUCTION,
 	getAntigravityUserAgent,

@@ -507,6 +507,222 @@ async function* anthropicMessagesStream(
   yield { type: 'done', finishReason };
 }
 
+// ─── Google Cloud Code Assist streaming (google-gemini-cli / google-antigravity) ──
+//
+// Real production defect: this API family (OAuth-only — google-gemini-cli
+// and google-antigravity share it, per the pinned OMP implementation in
+// omp-ai/providers/google-gemini-cli.ts) was previously routed through
+// googleGenerativeAiStream below, which builds a public-Gemini-API request
+// (`/models/<id>:streamGenerateContent?key=<apiKey>`). For an OAuth access
+// token that put the token in the URL query string and hit a path that
+// doesn't exist on the real Cloud Code Assist host, producing a Google HTML
+// 404 with the token visible in the request. The real endpoint is a
+// completely different API: `/v1internal:streamGenerateContent`,
+// `Authorization: Bearer`, and a `{project, model, request: {...}}` request
+// envelope — reusing the pinned OMP constants (DEFAULT_ENDPOINT,
+// ANTIGRAVITY_DAILY_ENDPOINT, getAntigravityUserAgent) rather than
+// re-deriving them, per the real google-gemini-cli.ts reference.
+//
+// Credential note: this API needs both the OAuth access token AND the
+// project id. PlumbStreamOptions.apiKey is a single flat string (the
+// contract every other transport in this file shares — Copilot, NVIDIA,
+// etc. — and PlumbSecureCredentialStore.getApiKey() only ever returns a
+// bare access token, dropping projectId). Rather than widen that shared
+// contract for one provider family, this reads the full PlumbOAuthCredential
+// directly from the canonical PlumbProviderRegistry.
+async function* googleCloudCodeAssistStream(
+  options: PlumbStreamOptions,
+): AsyncGenerator<PlumbStreamEvent> {
+  const { model, messages, tools, signal, systemPrompt } = options;
+
+  const { getPlumbProviderRegistry } = await import(
+    '../registry/provider-registry.js'
+  );
+  const credential = getPlumbProviderRegistry().getProviderState(
+    model.provider,
+  )?.credentials;
+
+  if (
+    !credential ||
+    credential.type !== 'oauth' ||
+    !credential.access ||
+    !credential.projectId
+  ) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'MISSING_CREDENTIAL',
+        message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+      },
+    };
+    return;
+  }
+  const accessToken = credential.access;
+  const projectId = credential.projectId;
+
+  const { DEFAULT_ENDPOINT, getAntigravityUserAgent } = await import(
+    '../omp-ai/providers/google-gemini-cli.js'
+  );
+  const baseUrl = (model.baseUrl ?? DEFAULT_ENDPOINT).replace(/\/+$/, '');
+  const url = `${baseUrl}/v1internal:streamGenerateContent?alt=sse`;
+
+  const isAntigravity = model.provider === 'google-antigravity';
+  const contents = buildGeminiContents(messages);
+  const request: Record<string, unknown> = { contents };
+  if (systemPrompt) {
+    request['systemInstruction'] = { parts: [{ text: systemPrompt }] };
+  }
+  if (tools && tools.length > 0) {
+    request['tools'] = [
+      {
+        functionDeclarations: tools.map((t) => ({
+          name: t.function.name,
+          description: t.function.description,
+          parameters: t.function.parameters,
+        })),
+      },
+    ];
+  }
+  const body = {
+    project: projectId,
+    model: model.requestModelId ?? model.id,
+    request,
+  };
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+  };
+  if (isAntigravity) {
+    headers['User-Agent'] = getAntigravityUserAgent();
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      yield { type: 'done', finishReason: 'cancelled' };
+      return;
+    }
+    yield {
+      type: 'error',
+      error: { code: 'REQUEST_FAILED', message: (err as Error).message },
+    };
+    return;
+  }
+
+  if (!response.ok) {
+    // Never surface the raw response body: it can echo request context
+    // (this endpoint has previously returned bodies referencing the request
+    // path) and, more importantly, must never be trusted to be secret-free.
+    yield {
+      type: 'error',
+      error: {
+        code: `HTTP_${response.status}`,
+        message: `${model.provider} request failed (HTTP ${response.status}).`,
+      },
+    };
+    return;
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    yield {
+      type: 'error',
+      error: { code: 'NO_RESPONSE_BODY', message: 'No response body' },
+    };
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finishReason: string | undefined;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const data = trimmed.slice(6);
+
+        try {
+          const parsed = JSON.parse(data);
+          // Cloud Code Assist wraps the Gemini response shape under
+          // `.response` (vs the public API's flat shape) — the only
+          // structural difference from googleGenerativeAiStream's parsing.
+          const candidate = parsed.response?.candidates?.[0];
+          if (!candidate) continue;
+
+          if (candidate.finishReason) {
+            finishReason = candidate.finishReason;
+          }
+
+          const parts = candidate.content?.parts ?? [];
+          for (const part of parts) {
+            if (part.text) {
+              yield { type: 'text', text: part.text };
+            } else if (part.thought) {
+              yield { type: 'thinking', thinkingText: part.thought };
+            } else if (part.functionCall) {
+              yield {
+                type: 'tool_call',
+                toolCall: {
+                  id: part.functionCall.name,
+                  name: part.functionCall.name,
+                  arguments: JSON.stringify(part.functionCall.args ?? {}),
+                },
+              };
+            }
+          }
+
+          const usageMetadata = parsed.response?.usageMetadata;
+          if (usageMetadata) {
+            yield {
+              type: 'usage',
+              usage: {
+                inputTokens: usageMetadata.promptTokenCount ?? 0,
+                outputTokens: usageMetadata.candidatesTokenCount ?? 0,
+                reasoningTokens: usageMetadata.thoughtsTokenCount,
+                totalTokens: usageMetadata.totalTokenCount ?? 0,
+              },
+            };
+          }
+        } catch {
+          // Skip unparseable lines
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      // Graceful cancellation
+    } else {
+      yield {
+        type: 'error',
+        error: { code: 'STREAM_ERROR', message: (err as Error).message },
+      };
+      return;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  yield { type: 'done', finishReason };
+}
+
 // ─── Google Gemini streaming ───────────────────────────────────────────
 
 async function* googleGenerativeAiStream(
@@ -892,8 +1108,13 @@ export async function* plumbModelStream(
     case 'anthropic-messages':
       yield* anthropicMessagesStream(options);
       break;
-    case 'google-generative-ai':
     case 'google-gemini-cli':
+      // Covers both google-gemini-cli and google-antigravity providers —
+      // see googleCloudCodeAssistStream's comment for why this must not
+      // share googleGenerativeAiStream (public-API-only) below.
+      yield* googleCloudCodeAssistStream(options);
+      break;
+    case 'google-generative-ai':
     case 'google-vertex':
       yield* googleGenerativeAiStream(options);
       break;
