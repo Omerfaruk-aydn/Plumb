@@ -175,11 +175,11 @@ describe('printAntigravityRouteDiagnostics (--diagnose-antigravity-route)', () =
                       ],
                     }
                   : {}),
-                ...(options.systemPrompt
+                ...(typeof options['systemPrompt'] === 'string'
                   ? {
                       systemInstruction: {
                         role: 'user',
-                        parts: [{ text: options.systemPrompt }],
+                        parts: [{ text: options['systemPrompt'] }],
                       },
                     }
                   : {}),
@@ -551,11 +551,11 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
                         ],
                       }
                     : {}),
-                  ...(options.systemPrompt
+                  ...(typeof options['systemPrompt'] === 'string'
                     ? {
                         systemInstruction: {
                           role: 'user',
-                          parts: [{ text: options.systemPrompt }],
+                          parts: [{ text: options['systemPrompt'] }],
                         },
                       }
                     : {}),
