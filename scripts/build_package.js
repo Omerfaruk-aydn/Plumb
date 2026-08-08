@@ -74,6 +74,14 @@ if (packageName === 'provider') {
   copyAssetsOnly(join(process.cwd(), 'src'), join(process.cwd(), 'dist'));
 } else {
   execSync('npx --no-install tsc --build', { stdio: 'inherit' });
+  const providerIndex = join(process.cwd(), '..', 'provider', 'dist', 'index.js');
+  if (!existsSync(providerIndex)) {
+    const providerDir = join(process.cwd(), '..', 'provider');
+    const buildScript = join(process.cwd(), '..', '..', 'scripts', 'build_package.js');
+    if (existsSync(providerDir) && existsSync(buildScript)) {
+      execSync(`node "${buildScript}"`, { cwd: providerDir, stdio: 'inherit' });
+    }
+  }
 }
 
 // Run package-specific bundling if the script exists
