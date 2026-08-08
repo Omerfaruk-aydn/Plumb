@@ -1,5 +1,6 @@
 import { fetchAntigravityDiscoveryModels } from "../discovery/antigravity.js";
 import { fetchGeminiModels } from "../discovery/gemini.js";
+import { fetchVertexModels } from "../discovery/vertex.js";
 import type { ModelManagerOptions } from "../model-manager.js";
 import type { FetchImpl } from "../types.js";
 import { GEMINI_CLI_VARIANT_COLLAPSE_TABLE } from "../variant-collapse.js";
@@ -53,8 +54,27 @@ export function googleModelManagerOptions(
 	};
 }
 
-export function googleVertexModelManagerOptions(_config?: GoogleVertexModelManagerConfig): ModelManagerOptions {
-	return { providerId: "google-vertex" };
+export function googleVertexModelManagerOptions(config?: GoogleVertexModelManagerConfig): ModelManagerOptions {
+	// Only the API-key auth path is wired here: the `ModelManagerConfig` this
+	// receives from the catalog descriptor only ever carries `apiKey`/`baseUrl`/
+	// `fetch` (see descriptor-types.ts), never a project-scoped OAuth/ADC
+	// access token. `fetchVertexModels` also accepts `accessToken`+`project`
+	// for that path; wiring it through requires a config surface this call
+	// site does not have yet.
+	const apiKey = config?.apiKey;
+	return {
+		providerId: "google-vertex",
+		...(apiKey
+			? {
+					fetchDynamicModels: () =>
+						fetchVertexModels({
+							apiKey,
+							location: config?.location,
+							fetch: toDiscoveryFetch(config?.fetch),
+						}),
+				}
+			: undefined),
+	};
 }
 
 export function googleAntigravityModelManagerOptions(

@@ -479,7 +479,9 @@
     "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts",
     "packages/provider/src/omp-ai/registry/oauth/callback-server.test.ts",
     "packages/provider/src/omp-ai/registry/oauth/response-parser.ts",
-    "packages/provider/src/omp-ai/registry/oauth/response-parser.test.ts"
+    "packages/provider/src/omp-ai/registry/oauth/response-parser.test.ts",
+    "packages/provider/src/omp-catalog/discovery/vertex.ts",
+    "packages/provider/src/omp-catalog/discovery/vertex.test.ts"
   ],
   "adaptationDiffs": [
     {
@@ -545,7 +547,7 @@
     {
       "path": "packages/provider/src/omp-catalog/provider-models/google.ts",
       "upstream": "packages/catalog/src/provider-models/google.ts",
-      "reason": "type-level cast for the optional preconnect member (Node fetch typings); runtime behavior unchanged"
+      "reason": "type-level cast for the optional preconnect member (Node fetch typings); runtime behavior unchanged. PLUMB feature: googleVertexModelManagerOptions now wires fetchDynamicModels (via new discovery/vertex.ts, publishers.models.list) when an apiKey is configured, instead of always returning a static-only options object — upstream has no Vertex dynamic-discovery path at all"
     },
     {
       "path": "packages/provider/src/omp-catalog/provider-models/ollama.ts",
