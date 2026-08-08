@@ -116,4 +116,98 @@ describe('PlumbSecureCredentialStore', () => {
     expect(await store.hasCredentials('nvidia')).toBe(true);
     expect(await store.getApiKey('nvidia')).toBe('nvapi-key');
   });
+
+  describe('credential isolation matrix (zero cross-provider bleed)', () => {
+    // Pairs the universal-provider-ecosystem plan calls out explicitly as
+    // never allowed to bleed into each other, plus the two pairs this
+    // session found to be the sharpest real risk: `anthropic`/`anthropic-api`
+    // and `google`/`google-vertex` are distinct PLUMB provider ids that
+    // resolve to the same (or a related) OMP registry/catalog backing —
+    // resolvePlumbProviderId() must never be applied before a credential
+    // lookup, or these would collapse onto one credential-store key.
+    const ISOLATION_PAIRS: ReadonlyArray<[string, string]> = [
+      ['openai', 'anthropic-api'],
+      ['anthropic', 'anthropic-api'],
+      ['google', 'google-vertex'],
+      ['google-vertex', 'antigravity'],
+      ['github-copilot', 'openai'],
+      ['opencode-go', 'opencode-zen'],
+      ['nvidia', 'openai'],
+      ['openrouter', 'openai'],
+    ];
+
+    it.each(ISOLATION_PAIRS)(
+      'a credential stored for %s is invisible under %s',
+      async (providerA, providerB) => {
+        await store.storeApiKeyCredential(providerA, {
+          type: 'api_key',
+          provider: providerA,
+          key: `key-for-${providerA}`,
+        });
+
+        expect(await store.hasCredentials(providerB)).toBe(false);
+        expect(await store.getApiKey(providerB)).toBeUndefined();
+        expect(await store.getCredentials(providerB)).toEqual([]);
+
+        // The original provider's credential must be untouched by the check.
+        expect(await store.getApiKey(providerA)).toBe(`key-for-${providerA}`);
+      },
+    );
+
+    it('anthropic (OAuth account) and anthropic-api (direct key) hold independent credentials simultaneously', async () => {
+      await store.storeOAuthCredential('anthropic', {
+        type: 'oauth',
+        provider: 'anthropic',
+        access: 'anthropic-oauth-access',
+        refresh: 'anthropic-oauth-refresh',
+        expires: Date.now() + 3600_000,
+      });
+      await store.storeApiKeyCredential('anthropic-api', {
+        type: 'api_key',
+        provider: 'anthropic-api',
+        key: 'sk-ant-direct-key',
+      });
+
+      expect(await store.getApiKey('anthropic-api')).toBe('sk-ant-direct-key');
+      // `anthropic` holds its own OAuth credential, isolated from
+      // `anthropic-api`'s direct key — getApiKey returns the OAuth access
+      // token for it, never the other provider id's key.
+      expect(await store.getApiKey('anthropic')).toBe('anthropic-oauth-access');
+      const anthropicEntries = await store.getCredentials('anthropic');
+      expect(anthropicEntries).toHaveLength(1);
+      expect(
+        (anthropicEntries[0].credential as PlumbOAuthCredential).access,
+      ).toBe('anthropic-oauth-access');
+
+      await store.removeCredentials('anthropic');
+      expect(await store.hasCredentials('anthropic')).toBe(false);
+      expect(await store.getApiKey('anthropic-api')).toBe('sk-ant-direct-key');
+    });
+
+    it('storing credentials for every isolation-matrix provider leaves each independently retrievable', async () => {
+      const providers = [
+        'openai',
+        'anthropic',
+        'anthropic-api',
+        'google',
+        'google-vertex',
+        'antigravity',
+        'github-copilot',
+        'opencode-go',
+        'opencode-zen',
+        'nvidia',
+        'openrouter',
+      ];
+      for (const provider of providers) {
+        await store.storeApiKeyCredential(provider, {
+          type: 'api_key',
+          provider,
+          key: `key-${provider}`,
+        });
+      }
+      for (const provider of providers) {
+        expect(await store.getApiKey(provider)).toBe(`key-${provider}`);
+      }
+    });
+  });
 });
