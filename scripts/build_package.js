@@ -73,7 +73,7 @@ if (packageName === 'provider') {
 
   copyAssetsOnly(join(process.cwd(), 'src'), join(process.cwd(), 'dist'));
 } else {
-  execSync('npx --no-install tsc --build', { stdio: 'inherit' });
+  execSync('npx --no-install tsc', { stdio: 'inherit' });
 }
 
 // Run package-specific bundling if the script exists
