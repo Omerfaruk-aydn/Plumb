@@ -117,13 +117,25 @@ export class PlumbContentGenerator implements ContentGenerator {
       // Non-fatal: fall through with bare model object
     }
 
+    // `this.#providerId` is the PLUMB presentation id (e.g. "antigravity");
+    // transports key branching (isAntigravity, credential resolution) on the
+    // canonical OMP id (e.g. "google-antigravity") that `registryModel.provider`
+    // already carries via the catalog projection. Overwriting it with the raw
+    // presentation id here desyncs normal chat from that canonical id while
+    // diagnostics/probes construct it correctly, silently downgrading the
+    // request envelope. Resolve the alias so both paths agree.
+    const resolvedProviderId =
+      (registryModel as any)?.provider ??
+      plumbModule.resolveProviderAlias?.(this.#providerId) ??
+      this.#providerId;
+
     const model: Record<string, any> = {
       // Start with registry model if available (carries baseUrl, api, contextWindow, etc.)
       ...(registryModel ?? {}),
       // Always override with the explicit selection to prevent model ID prefix
       // inference from replacing the routing provider.
       id: this.#modelId,
-      provider: this.#providerId,
+      provider: resolvedProviderId,
       api: (registryModel as any)?.api ?? 'openai-completions',
       contextWindow: (registryModel as any)?.contextWindow ?? 200000,
       maxTokens: (registryModel as any)?.maxTokens ?? 65536,
