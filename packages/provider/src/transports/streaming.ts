@@ -914,24 +914,59 @@ async function* googleCloudCodeAssistStream(
   }
 
   if (!response.ok) {
-    // Never surface the raw response body: it can echo request context
-    // (this endpoint has previously returned bodies referencing the request
-    // path) and, more importantly, must never be trusted to be secret-free.
-    // Classify by status rather than collapsing every failure to one code,
-    // so a genuinely-not-found route reads differently from e.g. a rejected
-    // request shape.
+    let safeStatus: string | undefined;
+    let safeField: string | undefined;
+    let safeReason: string | undefined;
+
+    if (response.status >= 400 && response.status < 500) {
+      try {
+        const bodyText = await response.text();
+        if (bodyText) {
+          const parsed = JSON.parse(bodyText);
+          const errObj = parsed?.error ?? parsed;
+          if (typeof errObj?.status === 'string') {
+            safeStatus = errObj.status;
+          }
+          if (typeof errObj?.reason === 'string') {
+            safeReason = errObj.reason;
+          }
+          if (Array.isArray(errObj?.details)) {
+            for (const d of errObj.details) {
+              if (Array.isArray(d?.fieldViolations)) {
+                for (const fv of d.fieldViolations) {
+                  if (typeof fv?.field === 'string' && fv.field.length < 200) {
+                    safeField = fv.field;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Ignored — non-JSON or unparseable 4xx response
+      }
+    }
+
     const code =
       response.status === 404
         ? 'ENDPOINT_NOT_FOUND'
-        : `HTTP_${response.status}`;
+        : safeStatus
+          ? `HTTP_${response.status}_${safeStatus}`
+          : `HTTP_${response.status}`;
+
     if (traceId) {
-      traceAntigravity(`traceId=${traceId} 404.classification=${code}`);
+      traceAntigravity(
+        `traceId=${traceId} http.status=${response.status} classification=${code} safeStatus=${safeStatus ?? '(none)'} safeReason=${safeReason ?? '(none)'} safeField=${safeField ?? '(none)'}`,
+      );
     }
+
+    const extraDetail = [safeStatus, safeField].filter(Boolean).join(': ');
     yield {
       type: 'error',
       error: {
         code,
-        message: `${options.model.provider} request failed (HTTP ${response.status}).`,
+        message: `${options.model.provider} request failed (HTTP ${response.status}${extraDetail ? ` - ${extraDetail}` : ''}).`,
       },
     };
     return;

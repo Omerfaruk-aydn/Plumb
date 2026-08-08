@@ -197,10 +197,15 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 			if (typeof msg.content === "string") {
 				// Skip empty user messages
 				if (!msg.content || msg.content.trim() === "") continue;
-				contents.push({
-					role: "user",
-					parts: [{ text: msg.content.toWellFormed() }],
-				});
+				const lastContent = contents[contents.length - 1];
+				if (lastContent?.role === "user") {
+					lastContent.parts.push({ text: msg.content.toWellFormed() });
+				} else {
+					contents.push({
+						role: "user",
+						parts: [{ text: msg.content.toWellFormed() }],
+					});
+				}
 			} else {
 				const supportsImages = model.input.includes("image");
 				const parts: Part[] = [];
@@ -225,10 +230,15 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 					parts.push({ text: NON_VISION_IMAGE_PLACEHOLDER });
 				}
 				if (parts.length === 0) continue;
-				contents.push({
-					role: "user",
-					parts,
-				});
+				const lastContent = contents[contents.length - 1];
+				if (lastContent?.role === "user") {
+					lastContent.parts.push(...parts);
+				} else {
+					contents.push({
+						role: "user",
+						parts,
+					});
+				}
 			}
 		} else if (msg.role === "assistant") {
 			const parts: Part[] = [];
@@ -283,10 +293,15 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 			}
 
 			if (parts.length === 0) continue;
-			contents.push({
-				role: "model",
-				parts,
-			});
+			const lastContent = contents[contents.length - 1];
+			if (lastContent?.role === "model") {
+				lastContent.parts.push(...parts);
+			} else {
+				contents.push({
+					role: "model",
+					parts,
+				});
+			}
 		} else if (msg.role === "toolResult") {
 			// Extract text and image content
 			const supportsImages = model.input.includes("image");

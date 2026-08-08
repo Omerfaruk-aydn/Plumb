@@ -37,6 +37,15 @@ vi.mock('@google/gemini-cli-provider', () => ({
   resolvePlumbProviderId: (id: string) =>
     id === 'google-antigravity' ? 'antigravity' : id,
   resolveUsablePlumbCredential: mockResolveUsablePlumbCredential,
+  antigravityTraceEnabled: vi.fn(() => false),
+  makeAntigravityTraceId: vi.fn(() => 'ag-trace-123'),
+  traceAntigravityFinalHttpRequest: vi.fn(),
+  traceAntigravityHttpResponse: vi.fn(),
+}));
+
+vi.mock('@google/gemini-cli-provider/dist/auth/credential-resolver.js', () => ({
+  resolveUsablePlumbCredential: (scope: string) =>
+    mockResolveUsablePlumbCredential(scope),
 }));
 
 const mockStoreGetCredentials = vi.fn();
