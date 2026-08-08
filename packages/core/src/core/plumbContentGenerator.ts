@@ -23,6 +23,7 @@ import type {
 } from '@google/genai';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
+import type { Config } from '../config/config.js';
 import { debugLogger } from '../utils/debugLogger.js';
 
 export class PlumbContentGenerator implements ContentGenerator {
@@ -30,12 +31,19 @@ export class PlumbContentGenerator implements ContentGenerator {
   readonly #providerId: string;
   readonly #modelId: string;
   readonly #apiKey: string;
+  readonly #gcConfig?: Config;
 
   userTier?: UserTierId;
   userTierName?: string;
   paidTier?: GeminiUserTier;
 
-  constructor(providerId: string, modelId: string, apiKey: string) {
+  constructor(
+    providerId: string,
+    modelId: string,
+    apiKey: string,
+    gcConfig?: Config,
+  ) {
+    this.#gcConfig = gcConfig;
     this.#providerId = providerId;
     this.#modelId = modelId;
     this.#apiKey = apiKey;
@@ -80,14 +88,15 @@ export class PlumbContentGenerator implements ContentGenerator {
 
   generateContentStream(
     request: GenerateContentParameters,
-    _userPromptId: string,
+    userPromptId: string,
     _role: LlmRole,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    return Promise.resolve(this.#doStream(request));
+    return Promise.resolve(this.#doStream(request, userPromptId));
   }
 
   async *#doStream(
     request: GenerateContentParameters,
+    userPromptId: string,
   ): AsyncGenerator<GenerateContentResponse> {
     let plumbModule: any;
     try {
@@ -143,13 +152,50 @@ export class PlumbContentGenerator implements ContentGenerator {
       input: (registryModel as any)?.input ?? 'text',
     };
 
+    const abortSignal = (request as any).config?.abortSignal as
+      | AbortSignal
+      | undefined;
+
+    // Claude Subscription tool authority (PLUMB_CORE_TOOL_SCHEDULER): only
+    // this transport's model actually needs a caller-supplied executor —
+    // every other transport's tool calls are surfaced as ordinary
+    // functionCall chunks (below) and executed by this class's own caller
+    // (the normal Gemini agent loop / CoreToolScheduler), exactly as
+    // before. Requires a real Config (always present in production; may be
+    // absent in unit tests that construct this class directly) and a real
+    // AbortSignal to bind tool-call cancellation to this turn. Imported
+    // dynamically (not at module top level) — claudeSubscriptionToolBridge.ts
+    // pulls in the full Scheduler subsystem, which every other
+    // PlumbContentGenerator consumer/test has no reason to eagerly load.
+    let toolExecutor:
+      | ReturnType<
+          typeof import('./claudeSubscriptionToolBridge.js').createClaudeSubscriptionToolExecutor
+        >
+      | undefined;
+    if (
+      model['api'] === 'claude-agent-sdk' &&
+      tools.length > 0 &&
+      this.#gcConfig &&
+      abortSignal
+    ) {
+      const { createClaudeSubscriptionToolExecutor } = await import(
+        './claudeSubscriptionToolBridge.js'
+      );
+      toolExecutor = createClaudeSubscriptionToolExecutor(
+        this.#gcConfig,
+        userPromptId,
+        abortSignal,
+      );
+    }
+
     try {
       const stream = plumbModule.plumbModelStream({
         model,
         messages,
         tools,
         apiKey: this.#apiKey,
-        signal: (request as any).config?.abortSignal as AbortSignal | undefined,
+        signal: abortSignal,
+        toolExecutor,
         systemPrompt,
         traceSource: 'NORMAL_CHAT',
         generatorInstance: {

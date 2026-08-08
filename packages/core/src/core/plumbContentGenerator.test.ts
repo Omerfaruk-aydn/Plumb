@@ -14,8 +14,15 @@ const testRequest: GenerateContentParameters = {
 };
 const testRole = LlmRole.MAIN;
 
-const { mockFindModel, mockResolveProviderAlias, mockPlumbModelStream } =
-  vi.hoisted(() => ({
+const {
+  mockFindModel,
+  mockResolveProviderAlias,
+  mockPlumbModelStream,
+  mockCreateClaudeSubscriptionToolExecutor,
+  sentinelToolExecutor,
+} = vi.hoisted(() => {
+  const sentinelToolExecutor = vi.fn();
+  return {
     mockFindModel: vi.fn(),
     mockResolveProviderAlias: vi.fn((id: string) =>
       id === 'antigravity' ? 'google-antigravity' : id,
@@ -25,12 +32,22 @@ const { mockFindModel, mockResolveProviderAlias, mockPlumbModelStream } =
     }) {
       yield { candidates: [{ content: { parts: [], role: 'model' } }] };
     }),
-  }));
+    mockCreateClaudeSubscriptionToolExecutor: vi
+      .fn()
+      .mockReturnValue(sentinelToolExecutor),
+    sentinelToolExecutor,
+  };
+});
 
 vi.mock('@google/gemini-cli-provider', () => ({
   getPlumbModelRegistry: () => ({ findModel: mockFindModel }),
   resolveProviderAlias: mockResolveProviderAlias,
   plumbModelStream: mockPlumbModelStream,
+}));
+
+vi.mock('./claudeSubscriptionToolBridge.js', () => ({
+  createClaudeSubscriptionToolExecutor:
+    mockCreateClaudeSubscriptionToolExecutor,
 }));
 
 import { PlumbContentGenerator } from './plumbContentGenerator.js';
@@ -40,6 +57,10 @@ describe('PlumbContentGenerator', () => {
     mockFindModel.mockReset();
     mockResolveProviderAlias.mockClear();
     mockPlumbModelStream.mockClear();
+    mockCreateClaudeSubscriptionToolExecutor.mockClear();
+    mockCreateClaudeSubscriptionToolExecutor.mockReturnValue(
+      sentinelToolExecutor,
+    );
   });
 
   it('routes the transport using the canonical OMP provider id from the registry lookup, not the raw PLUMB presentation id', async () => {
@@ -324,6 +345,142 @@ describe('PlumbContentGenerator', () => {
         name: 'read_file',
         args: { path: 'a.ts' },
       });
+    });
+  });
+
+  describe('Claude Subscription tool-authority wiring (regression: must never leak into other providers)', () => {
+    beforeEach(() => {
+      mockFindModel.mockReturnValue({
+        id: 'claude-sonnet-5',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        contextWindow: 200000,
+        maxTokens: 64000,
+        reasoning: true,
+        input: 'text',
+      });
+    });
+
+    const fakeConfig = {} as never;
+    const requestWithTools = {
+      model: 'unused',
+      contents: [{ role: 'user', parts: [{ text: 'read a file' }] }],
+      config: {
+        abortSignal: new AbortController().signal,
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: 'read_file',
+                description: 'Read a file',
+                parameters: { type: 'object', properties: {} },
+              },
+            ],
+          },
+        ],
+      },
+    } as unknown as GenerateContentParameters;
+
+    it('wires a real toolExecutor when provider=claude-subscription, api=claude-agent-sdk, tools are present, and a real Config + AbortSignal are available', async () => {
+      const generator = new PlumbContentGenerator(
+        'claude-subscription',
+        'claude-sonnet-5',
+        '',
+        fakeConfig,
+      );
+      const stream = await generator.generateContentStream(
+        requestWithTools,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(mockCreateClaudeSubscriptionToolExecutor).toHaveBeenCalledTimes(1);
+      expect(mockCreateClaudeSubscriptionToolExecutor).toHaveBeenCalledWith(
+        fakeConfig,
+        'prompt-id',
+        requestWithTools.config!.abortSignal,
+      );
+      const { toolExecutor } = mockPlumbModelStream.mock.calls[0][0] as {
+        toolExecutor?: unknown;
+      };
+      expect(toolExecutor).toBe(sentinelToolExecutor);
+    });
+
+    it('does NOT wire a toolExecutor when no Config was supplied at construction (e.g. direct unit-test construction)', async () => {
+      const generator = new PlumbContentGenerator(
+        'claude-subscription',
+        'claude-sonnet-5',
+        '',
+        // no gcConfig
+      );
+      const stream = await generator.generateContentStream(
+        requestWithTools,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(mockCreateClaudeSubscriptionToolExecutor).not.toHaveBeenCalled();
+      const { toolExecutor } = mockPlumbModelStream.mock.calls[0][0] as {
+        toolExecutor?: unknown;
+      };
+      expect(toolExecutor).toBeUndefined();
+    });
+
+    it('does NOT wire a toolExecutor for a non-claude-agent-sdk provider, even with tools present and a real Config', async () => {
+      mockFindModel.mockReturnValue({
+        id: 'gpt-5.5',
+        provider: 'openai',
+        api: 'openai-completions',
+        contextWindow: 200000,
+        maxTokens: 64000,
+        reasoning: true,
+        input: 'text',
+      });
+      const generator = new PlumbContentGenerator(
+        'openai',
+        'gpt-5.5',
+        'api-key',
+        fakeConfig,
+      );
+      const stream = await generator.generateContentStream(
+        requestWithTools,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(mockCreateClaudeSubscriptionToolExecutor).not.toHaveBeenCalled();
+      const { toolExecutor } = mockPlumbModelStream.mock.calls[0][0] as {
+        toolExecutor?: unknown;
+      };
+      expect(toolExecutor).toBeUndefined();
+    });
+
+    it('does NOT wire a toolExecutor when there are no tools for this turn', async () => {
+      const generator = new PlumbContentGenerator(
+        'claude-subscription',
+        'claude-sonnet-5',
+        '',
+        fakeConfig,
+      );
+      const stream = await generator.generateContentStream(
+        testRequest, // no config.tools
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(mockCreateClaudeSubscriptionToolExecutor).not.toHaveBeenCalled();
     });
   });
 });
