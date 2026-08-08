@@ -55,6 +55,7 @@ import {
   loadSettings,
   isWorktreeEnabled,
   type LoadedSettings,
+  readPlumbProviderModels,
 } from './settings.js';
 
 import { loadSandboxConfig } from './sandboxConfig.js';
@@ -942,8 +943,31 @@ export async function loadCliConfig(
   );
 
   const defaultModel = GEMINI_MODEL_ALIAS_AUTO;
+  // Restart persistence: PlumbModelDialog calls `savePlumbProviderModel`
+  // (writing plumb.provider.models[providerId]) on every selection, but
+  // historically nothing ever read it back on cold start — only the
+  // provider id was restored (see the persisted-provider-id restoration
+  // below), while `config.setModel(modelId, true)` uses isTemporary=true
+  // and so never wrote the single global `model.name` setting either. Net
+  // effect: restart correctly restored the last-used PROVIDER but silently
+  // dropped back to whatever `settings.model.name`/default MODEL was
+  // stale/unset for it. Consult the per-provider memory first so a PLUMB
+  // provider session actually resumes on the model it was last using.
+  const persistedProviderIdForModel =
+    settings.security?.auth?.selectedType === AuthType.PLUMB_PROVIDER
+      ? readPlumbProviderId(settings)
+      : undefined;
+  const persistedProviderModel =
+    persistedProviderIdForModel && options.loadedSettings
+      ? readPlumbProviderModels(options.loadedSettings)[
+          persistedProviderIdForModel
+        ]
+      : undefined;
   const rawModel =
-    argv.model || process.env['GEMINI_MODEL'] || settings.model?.name;
+    argv.model ||
+    process.env['GEMINI_MODEL'] ||
+    persistedProviderModel ||
+    settings.model?.name;
 
   // Ensure specifiedModel is a string (e.g. if yargs parsed multiple --model as an array)
   const specifiedModel = Array.isArray(rawModel)

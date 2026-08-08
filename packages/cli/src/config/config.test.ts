@@ -26,6 +26,7 @@ import { loadCliConfig, parseArguments, type CliArgs } from './config.js';
 import {
   type Settings,
   type MergedSettings,
+  type LoadedSettings,
   createTestMergedSettings,
 } from './settings.js';
 import * as ServerConfig from '@google/gemini-cli-core';
@@ -1974,6 +1975,21 @@ describe('loadCliConfig model selection', () => {
   });
 });
 
+/**
+ * Minimal LoadedSettings stub covering exactly the methods loadCliConfig
+ * calls on it when `options.loadedSettings` is provided (getConsolidated
+ * Allowed/ExcludedMcpServers), plus `.merged` (read by
+ * readPlumbProviderModels). Real LoadedSettings has a much larger surface
+ * PLUMB's own tests don't exercise here.
+ */
+function makeLoadedSettingsStub(merged: MergedSettings): LoadedSettings {
+  return {
+    merged,
+    getConsolidatedAllowedMcpServers: () => undefined,
+    getConsolidatedExcludedMcpServers: () => undefined,
+  } as unknown as LoadedSettings;
+}
+
 describe('loadCliConfig PLUMB provider restart restore', () => {
   beforeEach(() => {
     vi.spyOn(ExtensionManager.prototype, 'getExtensions').mockReturnValue([]);
@@ -2035,6 +2051,82 @@ describe('loadCliConfig PLUMB provider restart restore', () => {
     );
 
     expect(config.getPlumbProvider()).toBeNull();
+  });
+
+  // Regression: PlumbModelDialog writes plumb.provider.models[providerId]
+  // (savePlumbProviderModel) on every selection, and calls
+  // config.setModel(modelId, true) — isTemporary=true, which never
+  // persists the single global `model.name` setting either. Before this
+  // fix, cold start restored the correct PROVIDER but always fell back to
+  // the stale/default global model for it, silently dropping the user's
+  // actual last-used model on restart.
+  it('restores the per-provider remembered model on cold start (not just the provider id)', async () => {
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const merged = createTestMergedSettings({
+      security: {
+        auth: { selectedType: AuthType.PLUMB_PROVIDER },
+      },
+      plumb: {
+        provider: {
+          id: 'github-copilot',
+          models: {
+            'github-copilot': 'claude-sonnet-5',
+            nvidia: 'gpt-oss-120b',
+          },
+        },
+      },
+    } as unknown as Partial<Settings>);
+    const loadedSettings = makeLoadedSettingsStub(merged);
+
+    const config = await loadCliConfig(merged, 'test-session', argv, {
+      loadedSettings,
+    });
+
+    expect(config.getPlumbProvider()).toBe('github-copilot');
+    expect(config.getModel()).toBe('claude-sonnet-5');
+  });
+
+  it('does not apply a stale per-provider remembered model when the user explicitly passes --model', async () => {
+    process.argv = ['node', 'script.js', '--model', 'gpt-5.5'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const merged = createTestMergedSettings({
+      security: {
+        auth: { selectedType: AuthType.PLUMB_PROVIDER },
+      },
+      plumb: {
+        provider: {
+          id: 'github-copilot',
+          models: { 'github-copilot': 'claude-sonnet-5' },
+        },
+      },
+    } as unknown as Partial<Settings>);
+    const loadedSettings = makeLoadedSettingsStub(merged);
+
+    const config = await loadCliConfig(merged, 'test-session', argv, {
+      loadedSettings,
+    });
+
+    expect(config.getModel()).toBe('gpt-5.5');
+  });
+
+  it('falls back to the global settings.model.name when no per-provider model is remembered', async () => {
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const merged = createTestMergedSettings({
+      security: {
+        auth: { selectedType: AuthType.PLUMB_PROVIDER },
+      },
+      plumb: { provider: { id: 'github-copilot' } },
+      model: { name: 'gemini-3.1-pro-preview' },
+    } as unknown as Partial<Settings>);
+    const loadedSettings = makeLoadedSettingsStub(merged);
+
+    const config = await loadCliConfig(merged, 'test-session', argv, {
+      loadedSettings,
+    });
+
+    expect(config.getModel()).toBe('gemini-3.1-pro-preview');
   });
 });
 
