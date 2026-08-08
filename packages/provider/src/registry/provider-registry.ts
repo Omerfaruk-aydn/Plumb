@@ -192,6 +192,23 @@ export class PlumbProviderRegistry {
   async logout(providerId: PlumbProviderId): Promise<void> {
     await this.#ensureStore().removeCredentials(providerId);
     invalidateModelCache(providerId);
+    // Also clear the model registry's in-memory discovered-model cache for
+    // this provider — invalidateModelCache above only clears the on-disk
+    // cache (registry/model-cache.ts). Without this, a currently-running
+    // process that logs out and back in as a DIFFERENT account on the same
+    // provider keeps serving the previous account's discovered models
+    // (PlumbModelRegistry.#discoveredModels) until restart — a real
+    // cross-account stale-entitlement leak, not just a cosmetic staleness
+    // issue. Dynamic import avoids a static circular dependency
+    // (model-registry.ts already imports this module for
+    // getPlumbProviderRegistry()).
+    try {
+      const { getPlumbModelRegistry } = await import('./model-registry.js');
+      getPlumbModelRegistry().invalidateCache(providerId);
+    } catch {
+      // Non-fatal: the on-disk cache is already invalidated above, and a
+      // fresh process will not see stale in-memory state regardless.
+    }
     this.#activeProviders.delete(providerId);
     if (this.#selectedProvider === providerId) {
       this.#selectedProvider = null;
