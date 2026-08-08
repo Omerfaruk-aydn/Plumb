@@ -52,8 +52,7 @@ if (packageName === 'provider') {
     base.endsWith('.md') ||
     base.endsWith('.md.js') ||
     base.endsWith('.html') ||
-    base.endsWith('.json') ||
-    !base.includes('.');
+    base.endsWith('.json');
   if (existsSync(srcDir) && existsSync(distDir)) {
     cpSync(srcDir, distDir, {
       recursive: true,
