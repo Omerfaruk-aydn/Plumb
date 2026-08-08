@@ -47,16 +47,21 @@ if (packageName === 'provider') {
   // at runtime (`with { type: "json" }` is native on Node 24).
   const srcDir = join(process.cwd(), 'src');
   const distDir = join(process.cwd(), 'dist');
-  const isCopyableAsset = (src, base) =>
-    statSync(src).isDirectory() ||
-    base.endsWith('.md') ||
-    base.endsWith('.md.js') ||
-    base.endsWith('.html') ||
-    base.endsWith('.json');
+  const isCopyableAsset = (src) => {
+    if (statSync(src).isDirectory()) return true;
+    const base = basename(src);
+    if (base.endsWith('.ts')) return false;
+    return (
+      base.endsWith('.md') ||
+      base.endsWith('.md.js') ||
+      base.endsWith('.html') ||
+      base.endsWith('.json')
+    );
+  };
   if (existsSync(srcDir) && existsSync(distDir)) {
     cpSync(srcDir, distDir, {
       recursive: true,
-      filter: (src) => isCopyableAsset(src, basename(src)),
+      filter: (src) => isCopyableAsset(src),
     });
   }
 } else {
