@@ -11,6 +11,5 @@
     }
   },
   "include": ["index.ts", "src/**/*.ts", "src/**/*.json"],
-  "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../provider" }]
+  "exclude": ["node_modules", "dist"]
 }
