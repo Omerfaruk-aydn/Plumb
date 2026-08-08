@@ -351,8 +351,9 @@
       "classification": "THIN_PLUMB_UI_FACADE",
       "active": false,
       "responsibilities": [],
-      "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/"
+      "tests": ["packages/core/src/auth/plumbProviderAuthService.test.ts"],
+      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/",
+      "note": "Still imported by packages/core/src/config/plumbInit.ts, packages/core/src/index.ts, and packages/cli/src/runtimeDiagnostics.ts as PLUMB's OAuth/device-code/API-key login UX entry point, which calls into the OMP oauth-registry (replacementOwner) rather than reimplementing provider OAuth itself. `active:false` reflects the manifest's convention that a THIN_PLUMB_UI_FACADE never counts as a subsystem-owning authority (enforced by ownership.test.ts's zero-legacy-active invariant), not that the file is unused — do not delete without confirming plumbInit.ts/index.ts/runtimeDiagnostics.ts no longer import it."
     },
     {
       "path": "packages/core/src/auth/codex-bridge.ts",
@@ -476,7 +477,9 @@
     "packages/provider/src/omp-catalog/identity.ts",
     "packages/provider/src/omp-catalog/provider-models.ts",
     "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts",
-    "packages/provider/src/omp-ai/registry/oauth/callback-server.test.ts"
+    "packages/provider/src/omp-ai/registry/oauth/callback-server.test.ts",
+    "packages/provider/src/omp-ai/registry/oauth/response-parser.ts",
+    "packages/provider/src/omp-ai/registry/oauth/response-parser.test.ts"
   ],
   "adaptationDiffs": [
     {
@@ -553,6 +556,21 @@
       "path": "packages/provider/src/omp-catalog/types.ts",
       "upstream": "packages/catalog/src/types.ts",
       "reason": "comment rewording for the FetchImpl re-export (pi-utils shim provenance); no code change"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/providers/google-shared.ts",
+      "upstream": "packages/ai/src/providers/google-shared.ts",
+      "reason": "PLUMB fix: consecutive same-role (user/model) content parts are now merged into the last Content entry instead of pushed as a new adjacent-same-role entry, matching CONVERSATION ROLE NORMALIZATION requirements for Google's generateContent wire format (Antigravity/Vertex/Gemini reject or mishandle back-to-back same-role Content turns produced when a multi-part user or tool-result turn spans multiple source messages). No change to per-part transformation logic"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/registry/oauth/github-copilot.ts",
+      "upstream": "packages/ai/src/registry/oauth/github-copilot.ts",
+      "reason": "PLUMB fix: fetchJson now parses the auth-exchange response body through the shared parseAuthJsonResponse hardening wrapper (./response-parser.ts) instead of raw response.json(), rejecting malformed/oversized bodies safely instead of throwing an unstructured parse error. No change to the device-flow/token-exchange control logic"
+    },
+    {
+      "path": "packages/provider/src/omp-ai/registry/oauth/kimi.ts",
+      "upstream": "packages/ai/src/registry/oauth/kimi.ts",
+      "reason": "PLUMB fix: device-authorization, token-poll, and token-refresh responses now parse through the shared parseAuthJsonResponse hardening wrapper (./response-parser.ts) instead of raw response.json(), rejecting malformed/oversized bodies safely. No change to the device-flow/refresh control logic"
     }
   ]
 }
