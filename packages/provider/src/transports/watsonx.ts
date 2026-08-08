@@ -25,15 +25,25 @@
  * Bedrock's AWS_REGION — not credentials, and not overloaded onto the
  * model id or provider id.
  *
- * SCOPE (v1, deliberately conservative — matches the same pattern already
- * used for claude-subscription this session): text + streaming + system
- * prompt + multi-turn history + usage + cancellation. Tool/function
- * calling is NOT wired yet — IBM's own API reference documents
- * `tool_choice_option: auto` and `required` as "not yet supported" (only
- * `none` is fully supported today), so wiring PLUMB's generic tool-calling
- * path onto an upstream capability IBM itself flags as incomplete would
- * risk silent, upstream-caused failures. Tools remain a documented,
- * explicit follow-up, not silently dropped without a trace.
+ * SCOPE: text + streaming + system prompt + multi-turn history + usage +
+ * cancellation + tool/function calling. Tool-call/tool-result message
+ * reconstruction reuses streaming.ts's buildOpenAIMessages() directly,
+ * since watsonx.ai's TextChatMessages wire format is genuinely
+ * OpenAI-Chat-Completions-shaped (see the official SDK's messages.d.ts) —
+ * there is exactly one implementation of this logic, never a second,
+ * watsonx-specific copy. Tool EXECUTION is never performed here: this
+ * transport only translates upstream `tool_calls` deltas into PLUMB's
+ * generic `tool_call` PlumbStreamEvent, exactly like every other
+ * OpenAI-wire-compatible transport in streaming.ts — the caller's normal
+ * agent loop (the same CoreToolScheduler-backed pipeline every other
+ * provider uses) executes the tool and reinjects the result as a
+ * `role:'tool'` message on the next turn.
+ *
+ * IBM's own API reference flags `tool_choice_option: auto`/`required` as
+ * "not yet supported" (only the default/unset behavior is documented as
+ * fully working today) — PLUMB never sets `tool_choice_option`, so the
+ * model is free to voluntarily emit `tool_calls` when `tools` are present,
+ * which is all PLUMB's tool-calling contract requires.
  *
  * Official docs referenced: IBM Cloud IAM token exchange
  * (https://cloud.ibm.com/docs/account?topic=account-iamtoken_from_apikey),
@@ -45,6 +55,7 @@
 import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
 import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';
+import { buildOpenAIMessages } from './streaming.js';
 
 /** Official watsonx.ai API version query parameter used in IBM's own examples. */
 const API_VERSION = '2024-05-31';
@@ -86,26 +97,30 @@ export function resolveWatsonxContext(): WatsonxContext {
   };
 }
 
-interface WatsonxChatMessage {
-  role: string;
-  content: string;
+/**
+ * watsonx.ai's TextChatMessages wire format (see the official SDK's
+ * messages.d.ts) is OpenAI Chat-Completions-shaped: assistant messages
+ * carry `tool_calls: [{id, type: 'function', function: {name, arguments}}]`,
+ * tool-result messages carry `{role: 'tool', content, tool_call_id}`. This
+ * reuses streaming.ts's buildOpenAIMessages() directly rather than a
+ * second, watsonx-specific reimplementation of the exact same
+ * tool-call/tool-result reconstruction logic.
+ */
+function buildMessages(options: PlumbStreamOptions): Record<string, unknown>[] {
+  return buildOpenAIMessages(options.messages, options.systemPrompt);
 }
 
-function buildMessages(options: PlumbStreamOptions): WatsonxChatMessage[] {
-  const messages: WatsonxChatMessage[] = [];
-  if (options.systemPrompt) {
-    messages.push({ role: 'system', content: options.systemPrompt });
-  }
-  for (const msg of options.messages) {
-    // Tool-role history is intentionally skipped in this v1 scope — see
-    // module doc (no tool-calling wired yet, so there is never a real
-    // tool-result to replay here).
-    if (msg.role === 'tool') continue;
-    const text = typeof msg.content === 'string' ? msg.content : '';
-    if (!text) continue;
-    messages.push({ role: msg.role, content: text });
-  }
-  return messages;
+interface WatsonxTool {
+  type: 'function';
+  function: { name: string; description: string; parameters: unknown };
+}
+
+function buildTools(options: PlumbStreamOptions): WatsonxTool[] | undefined {
+  if (!options.tools || options.tools.length === 0) return undefined;
+  return options.tools.map((t) => ({
+    type: 'function',
+    function: t.function,
+  }));
 }
 
 let cachedClient: {
@@ -204,11 +219,20 @@ export async function* streamWatsonx(
   const serviceUrl = resolveWatsonxServiceUrl();
   const client = getClient(options.apiKey, serviceUrl);
   const messages = buildMessages(options);
+  const tools = buildTools(options);
 
   let stream: AsyncIterable<{
     data: {
       choices: Array<{
-        delta?: { content?: string; role?: string };
+        delta?: {
+          content?: string;
+          role?: string;
+          tool_calls?: Array<{
+            index?: number;
+            id?: string;
+            function?: { name?: string; arguments?: string };
+          }>;
+        };
         finish_reason?: string;
       }>;
       usage?: {
@@ -221,11 +245,20 @@ export async function* streamWatsonx(
   try {
     stream = await client.textChatStream({
       modelId: options.model.requestModelId ?? options.model.id,
-      messages,
+      messages: messages as unknown as Parameters<
+        typeof client.textChatStream
+      >[0]['messages'],
       projectId,
       spaceId,
       maxTokens: options.maxTokens,
       temperature: options.temperature,
+      ...(tools
+        ? {
+            tools: tools as Parameters<
+              typeof client.textChatStream
+            >[0]['tools'],
+          }
+        : {}),
       returnObject: true,
       signal: options.signal,
     });
@@ -245,6 +278,20 @@ export async function* streamWatsonx(
       const choice = chunk.data.choices?.[0];
       if (choice?.delta?.content) {
         yield { type: 'text', text: choice.delta.content };
+      }
+      if (choice?.delta?.tool_calls) {
+        for (const tc of choice.delta.tool_calls) {
+          if (tc.function) {
+            yield {
+              type: 'tool_call',
+              toolCall: {
+                id: tc.id ?? `call_${tc.index ?? 0}`,
+                name: tc.function.name ?? '',
+                arguments: tc.function.arguments ?? '',
+              },
+            };
+          }
+        }
       }
       if (choice?.finish_reason) {
         finishReason = choice.finish_reason;

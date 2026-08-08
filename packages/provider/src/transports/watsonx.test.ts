@@ -282,4 +282,331 @@ describe('streamWatsonx', () => {
     expect(chatParams.projectId).toBe('proj-1');
     expect(chatParams.spaceId).toBeUndefined();
   });
+
+  describe('tool calling', () => {
+    it('does not pass a tools param when no tools are offered', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(makeStream([]));
+      const mod = await importFresh();
+      for await (const _e of mod.streamWatsonx({
+        model: watsonxModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'k',
+      })) {
+        // drain
+      }
+      const [chatParams] = mockTextChatStream.mock.calls[0] as [
+        Record<string, unknown>,
+      ];
+      expect('tools' in chatParams).toBe(false);
+    });
+
+    it('passes PlumbTool[] through as watsonx TextChatParameterTools[]', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(makeStream([]));
+      const mod = await importFresh();
+      for await (const _e of mod.streamWatsonx({
+        model: watsonxModel,
+        messages: [{ role: 'user', content: 'what is the weather' }],
+        apiKey: 'k',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'get_weather',
+              description: 'Get the weather for a location',
+              parameters: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+                required: ['location'],
+              },
+            },
+          },
+        ],
+      })) {
+        // drain
+      }
+      const [chatParams] = mockTextChatStream.mock.calls[0] as [
+        {
+          tools: Array<{
+            type: string;
+            function: { name: string; description: string };
+          }>;
+        },
+      ];
+      expect(chatParams.tools).toEqual([
+        {
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            description: 'Get the weather for a location',
+            parameters: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+            },
+          },
+        },
+      ]);
+    });
+
+    it('emits a single tool_call PlumbStreamEvent for a single streamed tool call', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(
+        makeStream([
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: 'call_abc',
+                        function: {
+                          name: 'get_weather',
+                          arguments: '{"location":"Paris"}',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          { data: { choices: [{ finish_reason: 'tool_calls' }] } },
+        ]),
+      );
+      const mod = await importFresh();
+      const events = await drain(
+        mod.streamWatsonx({
+          model: watsonxModel,
+          messages: [{ role: 'user', content: 'weather in Paris?' }],
+          apiKey: 'k',
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                description: 'Get the weather',
+                parameters: {},
+              },
+            },
+          ],
+        }),
+      );
+      expect(events).toEqual([
+        {
+          type: 'tool_call',
+          toolCall: {
+            id: 'call_abc',
+            name: 'get_weather',
+            arguments: '{"location":"Paris"}',
+          },
+        },
+        { type: 'done', finishReason: 'tool_calls' },
+      ]);
+    });
+
+    it('emits one tool_call PlumbStreamEvent per streamed tool call for multiple sequential tool calls', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(
+        makeStream([
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: 'call_1',
+                        function: { name: 'tool_a', arguments: '{}' },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 1,
+                        id: 'call_2',
+                        function: { name: 'tool_b', arguments: '{}' },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          { data: { choices: [{ finish_reason: 'tool_calls' }] } },
+        ]),
+      );
+      const mod = await importFresh();
+      const events = await drain(
+        mod.streamWatsonx({
+          model: watsonxModel,
+          messages: [{ role: 'user', content: 'do two things' }],
+          apiKey: 'k',
+          tools: [
+            {
+              type: 'function',
+              function: { name: 'tool_a', description: '', parameters: {} },
+            },
+            {
+              type: 'function',
+              function: { name: 'tool_b', description: '', parameters: {} },
+            },
+          ],
+        }),
+      );
+      expect(events).toEqual([
+        {
+          type: 'tool_call',
+          toolCall: { id: 'call_1', name: 'tool_a', arguments: '{}' },
+        },
+        {
+          type: 'tool_call',
+          toolCall: { id: 'call_2', name: 'tool_b', arguments: '{}' },
+        },
+        { type: 'done', finishReason: 'tool_calls' },
+      ]);
+    });
+
+    it('reconstructs prior assistant tool_calls and tool-result history via buildOpenAIMessages -- tool result reinjection / continuation after tool / multi-turn after tool', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(makeStream([]));
+      const mod = await importFresh();
+      for await (const _e of mod.streamWatsonx({
+        model: watsonxModel,
+        messages: [
+          { role: 'user', content: 'weather in Paris?' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_call',
+                id: 'call_abc',
+                name: 'get_weather',
+                arguments: '{"location":"Paris"}',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            toolCallId: 'call_abc',
+            content: '{"tempC":18,"condition":"cloudy"}',
+          },
+          { role: 'user', content: 'and in London?' },
+        ],
+        apiKey: 'k',
+      })) {
+        // drain
+      }
+      const [chatParams] = mockTextChatStream.mock.calls[0] as [
+        {
+          messages: Array<{
+            role: string;
+            content?: unknown;
+            tool_calls?: Array<{ id: string; function: { name: string } }>;
+            tool_call_id?: string;
+          }>;
+        },
+      ];
+      const assistantMsg = chatParams.messages.find(
+        (m) => m.role === 'assistant',
+      );
+      expect(assistantMsg?.tool_calls).toEqual([
+        {
+          id: 'call_abc',
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            arguments: '{"location":"Paris"}',
+          },
+        },
+      ]);
+      const toolMsg = chatParams.messages.find((m) => m.role === 'tool');
+      expect(toolMsg?.tool_call_id).toBe('call_abc');
+      expect(toolMsg?.content).toBe('{"tempC":18,"condition":"cloudy"}');
+      const lastUserMsg = chatParams.messages[chatParams.messages.length - 1];
+      expect(lastUserMsg?.role).toBe('user');
+    });
+
+    it('respects cancellation via AbortSignal mid-tool-call streaming', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      const controller = new AbortController();
+      mockTextChatStream.mockResolvedValue(
+        (async function* () {
+          yield {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: 'call_1',
+                        function: { name: 'tool_a', arguments: '{}' },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+          controller.abort();
+          yield {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 1,
+                        id: 'call_2',
+                        function: {
+                          name: 'should_not_appear',
+                          arguments: '{}',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          };
+        })(),
+      );
+      const mod = await importFresh();
+      const events = await drain(
+        mod.streamWatsonx({
+          model: watsonxModel,
+          messages: [{ role: 'user', content: 'do a thing' }],
+          apiKey: 'k',
+          signal: controller.signal,
+          tools: [
+            {
+              type: 'function',
+              function: { name: 'tool_a', description: '', parameters: {} },
+            },
+          ],
+        }),
+      );
+      expect(events).toEqual([
+        {
+          type: 'tool_call',
+          toolCall: { id: 'call_1', name: 'tool_a', arguments: '{}' },
+        },
+        { type: 'done', finishReason: 'cancelled' },
+      ]);
+    });
+  });
 });

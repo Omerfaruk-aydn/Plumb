@@ -1579,7 +1579,15 @@ function buildOpenAIUserContent(
   return parts;
 }
 
-function buildOpenAIMessages(
+/**
+ * Builds OpenAI Chat-Completions-shaped messages (assistant.tool_calls[],
+ * tool.tool_call_id). Exported for reuse by transports whose wire format is
+ * genuinely identical here — currently watsonx.ts, whose TextChatMessages
+ * type is OpenAI-message-shaped (see the official SDK's messages.d.ts) —
+ * so tool-call/tool-result history reconstruction has exactly one
+ * implementation, never a second copy.
+ */
+export function buildOpenAIMessages(
   messages: PlumbStreamOptions['messages'],
   systemPrompt?: string,
 ): Record<string, unknown>[] {
