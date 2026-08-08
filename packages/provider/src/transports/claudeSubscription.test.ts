@@ -315,4 +315,143 @@ describe('streamClaudeSubscription', () => {
     const callArgs = JSON.stringify(mockQuery.mock.calls[0]);
     expect(callArgs).not.toContain('should-never-be-forwarded');
   });
+
+  describe('multi-turn conversation (stateless-per-call transcript serialization)', () => {
+    it('carries the full prior conversation into turn 2 and turn 3 (each query() is independent, per the documented v1 scope)', async () => {
+      const mod = await importFresh();
+
+      // Turn 1
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([
+          {
+            type: 'assistant',
+            content: [{ type: 'text', text: 'Hi! How can I help?' }],
+          },
+          { type: 'result', subtype: 'success' },
+        ]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [{ role: 'user', content: 'What is 2+2?' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+      const turn1Prompt = mockQuery.mock.calls[0]![0].prompt as string;
+      expect(turn1Prompt).toContain('What is 2+2?');
+
+      // Turn 2 — caller (plumbContentGenerator) re-sends the full history,
+      // including the assistant's turn-1 reply, per PlumbStreamOptions'
+      // stateless-per-call contract shared by every transport in this file.
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([
+          { type: 'assistant', content: [{ type: 'text', text: 'It is 4.' }] },
+          { type: 'result', subtype: 'success' },
+        ]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [
+          { role: 'user', content: 'What is 2+2?' },
+          { role: 'assistant', content: 'Hi! How can I help?' },
+          { role: 'user', content: 'And what is 4+4?' },
+        ],
+        apiKey: '',
+      })) {
+        // drain
+      }
+      const turn2Prompt = mockQuery.mock.calls[1]![0].prompt as string;
+      expect(turn2Prompt).toContain('What is 2+2?');
+      expect(turn2Prompt).toContain('Hi! How can I help?');
+      expect(turn2Prompt).toContain('And what is 4+4?');
+
+      // Turn 3 — full accumulated history again.
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([
+          { type: 'assistant', content: [{ type: 'text', text: 'It is 8.' }] },
+          { type: 'result', subtype: 'success' },
+        ]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [
+          { role: 'user', content: 'What is 2+2?' },
+          { role: 'assistant', content: 'Hi! How can I help?' },
+          { role: 'user', content: 'And what is 4+4?' },
+          { role: 'assistant', content: 'It is 4.' },
+          { role: 'user', content: 'And 8+8?' },
+        ],
+        apiKey: '',
+      })) {
+        // drain
+      }
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+      const turn3Prompt = mockQuery.mock.calls[2]![0].prompt as string;
+      expect(turn3Prompt).toContain('What is 2+2?');
+      expect(turn3Prompt).toContain('And what is 4+4?');
+      expect(turn3Prompt).toContain('It is 4.');
+      expect(turn3Prompt).toContain('And 8+8?');
+    });
+
+    it("a new conversation (fresh, single-message history) never carries over a prior call's transcript text", async () => {
+      const mod = await importFresh();
+
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [{ role: 'user', content: 'SECRET_PRIOR_TOPIC' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [{ role: 'user', content: 'brand new topic' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+
+      const secondPrompt = mockQuery.mock.calls[1]![0].prompt as string;
+      expect(secondPrompt).toContain('brand new topic');
+      expect(secondPrompt).not.toContain('SECRET_PRIOR_TOPIC');
+    });
+
+    it('switching model between turns uses the newly selected model on the next call, not the previous one', async () => {
+      const mod = await importFresh();
+
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+      expect(mockQuery.mock.calls[0]![0].options.model).toBe(
+        subscriptionModel.id,
+      );
+
+      const otherModel = { ...subscriptionModel, id: 'claude-opus-4-8' };
+      mockQuery.mockReturnValueOnce(
+        makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+      );
+      for await (const _e of mod.streamClaudeSubscription({
+        model: otherModel,
+        messages: [{ role: 'user', content: 'hi again' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+      expect(mockQuery.mock.calls[1]![0].options.model).toBe('claude-opus-4-8');
+    });
+  });
 });
