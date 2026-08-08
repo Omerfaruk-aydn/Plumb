@@ -277,6 +277,43 @@ export interface PlumbStreamEvent {
   finishReason?: string;
 }
 
+/**
+ * A single tool-execution request handed from a transport (e.g. the Claude
+ * Agent SDK's in-process MCP bridge) to the caller-supplied execution
+ * authority. Transports never execute tools themselves — they only
+ * translate their own SDK/protocol-native tool-call shape into this
+ * canonical request and forward it to `PlumbStreamOptions.toolExecutor`.
+ */
+export interface PlumbToolExecutionRequest {
+  toolName: string;
+  args: Record<string, unknown>;
+  /** Caller-facing correlation id for this single tool invocation. */
+  toolCallId: string;
+}
+
+/** Coarse outcome of a single tool execution, safe to surface to any transport. */
+export type PlumbToolExecutionStatus = 'success' | 'error' | 'cancelled';
+
+export interface PlumbToolExecutionResult {
+  status: PlumbToolExecutionStatus;
+  /** Human/model-readable result text (already safe to hand back to the model). */
+  content: string;
+  isError: boolean;
+}
+
+/**
+ * Caller-supplied tool execution authority. A transport that accepts tool
+ * calls (currently only the Claude Agent SDK's in-process MCP bridge) must
+ * route every request through exactly one call to this function and use
+ * only its result — never execute a tool by any other means. This is the
+ * dependency-inversion seam that lets `packages/provider` (which cannot
+ * import `packages/core`) delegate to the real, single, canonical
+ * CoreToolScheduler-backed execution pipeline that `packages/core` owns.
+ */
+export type PlumbToolExecutor = (
+  request: PlumbToolExecutionRequest,
+) => Promise<PlumbToolExecutionResult>;
+
 export interface PlumbStreamOptions {
   model: PlumbModel;
   messages: PlumbMessage[];
@@ -287,6 +324,15 @@ export interface PlumbStreamOptions {
   temperature?: number;
   systemPrompt?: string;
   traceSource?: 'NORMAL_CHAT' | 'LIVE_PROBE';
+  /**
+   * The single execution authority for tool calls a transport's model
+   * requests. Only wired for transports whose SDK/protocol requires the
+   * caller to supply a tool-execution callback in-process (currently just
+   * Claude Agent SDK MCP tools). Absent (or the transport's `tools` list
+   * empty) means tool calling stays disabled for that turn — never a
+   * silent no-op executor.
+   */
+  toolExecutor?: PlumbToolExecutor;
   generatorInstance?: {
     instanceId: string;
     providerAtConstruction: string;

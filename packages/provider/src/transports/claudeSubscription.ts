@@ -44,10 +44,13 @@
  * answer.
  */
 
+import { z } from 'zod';
 import type {
   PlumbModel,
   PlumbStreamEvent,
   PlumbStreamOptions,
+  PlumbTool,
+  PlumbToolExecutor,
 } from '../types.js';
 
 // ─── SDK types (structural subset — avoids a hard type-only dependency on
@@ -93,11 +96,44 @@ interface SdkQuery extends AsyncGenerator<SdkMessage, void> {
   close?: () => void;
 }
 
+/** Structural subset of the SDK's documented CallToolResult shape. */
+interface SdkCallToolResult {
+  content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
+}
+
+/** Structural subset of the SDK's documented tool()/createSdkMcpServer() API. */
+interface SdkMcpServerConfigWithInstance {
+  type: 'sdk';
+  name: string;
+  instance: unknown;
+}
+
 interface ClaudeAgentSdkModule {
   query(params: {
     prompt: string;
     options?: Record<string, unknown>;
   }): SdkQuery;
+  /**
+   * Optional — present on SDK builds that support in-process MCP custom
+   * tools (the mechanism this module uses to give PLUMB sole tool-execution
+   * authority; see buildPlumbMcpServer below). Structurally optional so
+   * this file still type-checks against older/partial mocks.
+   */
+  tool?(
+    name: string,
+    description: string,
+    inputSchema: Record<string, z.ZodTypeAny>,
+    handler: (
+      args: Record<string, unknown>,
+      extra: unknown,
+    ) => Promise<SdkCallToolResult>,
+  ): unknown;
+  createSdkMcpServer?(options: {
+    name: string;
+    version?: string;
+    tools?: unknown[];
+  }): SdkMcpServerConfigWithInstance;
 }
 
 let cachedSdkModule: ClaudeAgentSdkModule | null | undefined;
@@ -299,6 +335,151 @@ function formatTranscriptPrompt(options: PlumbStreamOptions): string {
   return lines.join('\n\n');
 }
 
+// ─── Tool authority bridge (PLUMB owns execution) ──────────────────────
+//
+// CLAUDE_SUBSCRIPTION_TOOL_AUTHORITY: PLUMB_CORE_TOOL_SCHEDULER
+//
+// The Agent SDK's built-in tool set stays permanently disabled (`tools: []`
+// in streamClaudeSubscription below) — that invariant is unconditional and
+// does not depend on whether a caller wires a tool executor. Instead, when
+// a caller supplies both `options.tools` (a non-empty PlumbTool[], already
+// the exact same list every other transport in this codebase builds its
+// native tool-calling params from) AND `options.toolExecutor` (the
+// dependency-inverted seam a `packages/core` caller uses to route into the
+// real, single CoreToolScheduler-backed execution pipeline — see
+// PlumbToolExecutor in types.ts), this module registers those tools as an
+// in-process MCP server via the SDK's own documented `tool()` /
+// `createSdkMcpServer()` / `options.mcpServers` mechanism (structurally
+// distinct from `options.tools`, which only ever toggles the SDK's
+// *built-in* Bash/Read/Edit/... tool set).
+//
+// This file NEVER executes a tool itself. Every MCP tool handler below
+// does exactly one thing: translate the SDK's call into a
+// PlumbToolExecutionRequest, await exactly one call to the caller-supplied
+// executor, and translate the PlumbToolExecutionResult back into the SDK's
+// documented CallToolResult shape. It is an ADAPTER, not an executor —
+// there must remain exactly one implementation of any given tool (owned by
+// `packages/core`'s real tool registry/scheduler), never a
+// Claude-subscription-specific reimplementation.
+
+/**
+ * Minimal, deterministic JSON-Schema -> Zod-raw-shape converter for the
+ * common shapes PLUMB's own tool `parameters` objects actually use (a
+ * top-level object schema with typed properties). This exists ONLY so the
+ * Agent SDK's `tool()` call has a schema to show the model — it is NOT the
+ * authoritative validation boundary. The real CoreToolScheduler pipeline
+ * (reached via the injected executor) performs the actual, authoritative
+ * parameter validation against the tool's real JSON Schema; a property this
+ * converter cannot faithfully represent degrades to `z.unknown()` rather
+ * than silently narrowing/rejecting it, so real validation is never
+ * weakened or duplicated here — only the model's up-front guidance is.
+ */
+function jsonSchemaPropertyToZod(schema: unknown): z.ZodTypeAny {
+  if (!schema || typeof schema !== 'object') return z.unknown();
+  const s = schema as Record<string, unknown>;
+  switch (s['type']) {
+    case 'string':
+      return Array.isArray(s['enum']) && s['enum'].length > 0
+        ? z.enum(s['enum'] as [string, ...string[]])
+        : z.string();
+    case 'number':
+    case 'integer':
+      return z.number();
+    case 'boolean':
+      return z.boolean();
+    case 'array':
+      return z.array(jsonSchemaPropertyToZod(s['items']));
+    case 'object': {
+      const shape = jsonSchemaToZodShape(s);
+      return z.object(shape);
+    }
+    default:
+      return z.unknown();
+  }
+}
+
+function jsonSchemaToZodShape(
+  parameters: Record<string, unknown> | undefined,
+): z.ZodRawShape {
+  const shape: z.ZodRawShape = {};
+  const properties = parameters?.['properties'];
+  if (!properties || typeof properties !== 'object') return shape;
+  const required = new Set(
+    Array.isArray(parameters?.['required'])
+      ? (parameters['required'] as unknown[]).filter(
+          (r): r is string => typeof r === 'string',
+        )
+      : [],
+  );
+  for (const [key, propSchema] of Object.entries(
+    properties as Record<string, unknown>,
+  )) {
+    const zodType = jsonSchemaPropertyToZod(propSchema);
+    shape[key] = required.has(key) ? zodType : zodType.optional();
+  }
+  return shape;
+}
+
+/**
+ * Converts one PlumbToolExecutionResult into the SDK's documented
+ * CallToolResult shape. Never exposes raw internal error objects/stack
+ * traces — `result.content` is already the safe, human-readable text the
+ * executor produced.
+ */
+function toSdkCallToolResult(
+  result: import('../types.js').PlumbToolExecutionResult,
+): SdkCallToolResult {
+  return {
+    content: [{ type: 'text', text: result.content }],
+    isError: result.isError,
+  };
+}
+
+/**
+ * Builds the in-process MCP server that gives PLUMB (via `executor`) sole
+ * tool-execution authority for this Claude Subscription turn. Returns
+ * `undefined` when the SDK build doesn't expose `tool()`/`createSdkMcpServer`
+ * (older/partial installs) or there are no tools to register — callers
+ * must treat that as "no tools this turn", never fall back to enabling the
+ * SDK's own built-in tools.
+ */
+function buildPlumbMcpServer(
+  sdk: ClaudeAgentSdkModule,
+  tools: PlumbTool[],
+  executor: PlumbToolExecutor,
+): SdkMcpServerConfigWithInstance | undefined {
+  if (!sdk.tool || !sdk.createSdkMcpServer) return undefined;
+  if (tools.length === 0) return undefined;
+
+  const sdkTools = tools.map((plumbTool) => {
+    const shape = jsonSchemaToZodShape(plumbTool.function.parameters);
+    let callCounter = 0;
+    return sdk.tool!(
+      plumbTool.function.name,
+      plumbTool.function.description,
+      shape,
+      async (args) => {
+        // One MCP tool call -> one executor call -> one CallToolResult.
+        // callCounter/name/args are the full identity of this single
+        // invocation; the executor (packages/core) is solely responsible
+        // for correlating it to a real CoreToolScheduler run.
+        const toolCallId = `${plumbTool.function.name}:${callCounter++}`;
+        const result = await executor({
+          toolName: plumbTool.function.name,
+          args,
+          toolCallId,
+        });
+        return toSdkCallToolResult(result);
+      },
+    );
+  });
+
+  return sdk.createSdkMcpServer({
+    name: 'plumb',
+    tools: sdkTools as unknown[],
+  });
+}
+
 /**
  * Streams a Claude subscription turn through the official Agent SDK.
  *
@@ -308,8 +489,13 @@ function formatTranscriptPrompt(options: PlumbStreamOptions): string {
  * stateless-per-call contract every other transport in this file uses),
  * rather than adopting the SDK's own session/`resume` state. This forfeits
  * some SDK-side efficiency but requires no new persistent-session-id
- * plumbing in plumbContentGenerator.ts. Tools are hard-disabled
- * (`tools: []`) — see module doc for why.
+ * plumbing in plumbContentGenerator.ts.
+ *
+ * TOOLS: the SDK's own built-in tool set is unconditionally disabled
+ * (`tools: []`) — see module doc. PLUMB-owned tools are enabled only when
+ * the caller supplies both `options.tools` (non-empty) and
+ * `options.toolExecutor` (see buildPlumbMcpServer above); when neither is
+ * present, this turn has no tools at all, exactly like every prior release.
  */
 export async function* streamClaudeSubscription(
   options: PlumbStreamOptions,
@@ -330,15 +516,25 @@ export async function* streamClaudeSubscription(
   const model = resolveSdkModelId(options.model);
   const prompt = formatTranscriptPrompt(options);
 
+  const mcpServer =
+    options.tools && options.tools.length > 0 && options.toolExecutor
+      ? buildPlumbMcpServer(sdk, options.tools, options.toolExecutor)
+      : undefined;
+
   let query: SdkQuery;
   try {
     query = sdk.query({
       prompt,
       options: {
         model,
+        // SDK built-in tools (Bash, Read, Edit, ...) stay disabled
+        // unconditionally — PLUMB tools (if any) are registered exclusively
+        // through mcpServers below, never through this field.
         tools: [],
+        ...(mcpServer
+          ? { mcpServers: { plumb: mcpServer }, maxTurns: 10 }
+          : { maxTurns: 1 }),
         abortController: toAbortController(options.signal),
-        maxTurns: 1,
       },
     });
   } catch (err) {
