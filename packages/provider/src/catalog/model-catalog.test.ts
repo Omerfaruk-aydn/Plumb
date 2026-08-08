@@ -9,7 +9,7 @@
  * correct wire dialect (`claude-agent-sdk`) on the very first chat turn,
  * without depending on a live discovery call having already run.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { getCatalogModels, getCatalogModel } from './model-catalog.js';
 import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
 
@@ -81,5 +81,59 @@ describe('claude-subscription static catalog floor', () => {
     for (const model of anthropicModels) {
       expect(model.api).toBe('anthropic-messages');
     }
+  });
+});
+
+describe('oci-genai static catalog floor', () => {
+  const ORIGINAL_ENV = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  it('returns real OCI model ids tagged with the openai-completions dialect (genuinely wire-compatible, not an approximation)', () => {
+    const models = getCatalogModels('oci-genai');
+    expect(models.length).toBeGreaterThan(0);
+    for (const model of models) {
+      expect(model.provider).toBe('oci-genai');
+      expect(model.api).toBe('openai-completions');
+      expect(model.id).toMatch(/^openai\.gpt-oss-/);
+    }
+  });
+
+  it('builds the region-specific baseUrl from OCI_REGION (defaults to us-chicago-1)', () => {
+    delete process.env['OCI_REGION'];
+    const [defaultModel] = getCatalogModels('oci-genai');
+    expect(defaultModel!.baseUrl).toBe(
+      'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1',
+    );
+
+    process.env['OCI_REGION'] = 'eu-frankfurt-1';
+    const [euModel] = getCatalogModels('oci-genai');
+    expect(euModel!.baseUrl).toBe(
+      'https://inference.generativeai.eu-frankfurt-1.oci.oraclecloud.com/openai/v1',
+    );
+  });
+
+  it('carries the required opc-compartment-id header from OCI_COMPARTMENT_ID, and omits it when unset', () => {
+    process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..real';
+    const [withCompartment] = getCatalogModels('oci-genai');
+    expect(withCompartment!.headers).toEqual({
+      'opc-compartment-id': 'ocid1.compartment.oc1..real',
+    });
+
+    delete process.env['OCI_COMPARTMENT_ID'];
+    const [withoutCompartment] = getCatalogModels('oci-genai');
+    expect(withoutCompartment!.headers).toBeUndefined();
+  });
+
+  it('getCatalogModel resolves a specific OCI model with the same baseUrl/header wiring', () => {
+    process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..real';
+    const resolved = getCatalogModel('oci-genai', 'openai.gpt-oss-120b');
+    expect(resolved).toBeDefined();
+    expect(resolved!.provider).toBe('oci-genai');
+    expect(resolved!.headers).toEqual({
+      'opc-compartment-id': 'ocid1.compartment.oc1..real',
+    });
   });
 });

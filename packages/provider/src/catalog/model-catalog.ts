@@ -171,8 +171,57 @@ function watsonxCatalogModels(): PlumbModel[] {
   }));
 }
 
+/**
+ * `oci-genai` is a PLUMB-only synthetic (no OMP catalog descriptor) whose
+ * OpenAI-compatible chat completions endpoint
+ * (https://inference.generativeai.{region}.oci.oraclecloud.com/openai/v1)
+ * is officially documented as wire-identical to OpenAI's Chat Completions
+ * API -- api: 'openai-completions' is genuinely accurate here, not an
+ * approximation. Real, minimal, confirmed OCI model ids (openai.gpt-oss-*
+ * -- see transports registration in registry/model-discovery.ts / catalog
+ * providers.ts for sourcing). baseUrl and the required opc-compartment-id
+ * header are resolved fresh from ambient env config (OCI_REGION,
+ * OCI_COMPARTMENT_ID) on every call rather than cached, so a region/
+ * compartment change takes effect on the very next model lookup.
+ */
+const OCI_GENAI_PROVIDER_ID = 'oci-genai';
+const OCI_DEFAULT_REGION = 'us-chicago-1';
+
+interface OciGenaiStaticModel {
+  id: string;
+  name: string;
+}
+
+const OCI_GENAI_STATIC_MODELS: readonly OciGenaiStaticModel[] = [
+  { id: 'openai.gpt-oss-120b', name: 'GPT-OSS 120B (OCI)' },
+  { id: 'openai.gpt-oss-20b', name: 'GPT-OSS 20B (OCI)' },
+];
+
+function ociGenaiCatalogModels(): PlumbModel[] {
+  const region = process.env['OCI_REGION']?.trim() || OCI_DEFAULT_REGION;
+  const baseUrl = `https://inference.generativeai.${region}.oci.oraclecloud.com/openai/v1`;
+  const compartmentId = process.env['OCI_COMPARTMENT_ID']?.trim();
+  return OCI_GENAI_STATIC_MODELS.map((m) => ({
+    id: m.id,
+    name: m.name,
+    provider: OCI_GENAI_PROVIDER_ID as PlumbProviderId,
+    api: 'openai-completions' as PlumbKnownApi,
+    baseUrl,
+    ...(compartmentId
+      ? { headers: { 'opc-compartment-id': compartmentId } }
+      : {}),
+    contextWindow: 131072,
+    maxTokens: 8192,
+    reasoning: false,
+    input: 'text' as const,
+  }));
+}
+
 /** Get all models for a provider from the bundled OMP catalog. */
 export function getCatalogModels(providerId: PlumbProviderId): PlumbModel[] {
+  if (providerId === OCI_GENAI_PROVIDER_ID) {
+    return ociGenaiCatalogModels();
+  }
   if (providerId === WATSONX_PROVIDER_ID) {
     return watsonxCatalogModels();
   }
@@ -191,6 +240,9 @@ export function getCatalogModel(
 ): PlumbModel | undefined {
   if (providerId === WATSONX_PROVIDER_ID) {
     return watsonxCatalogModels().find((m) => m.id === modelId);
+  }
+  if (providerId === OCI_GENAI_PROVIDER_ID) {
+    return ociGenaiCatalogModels().find((m) => m.id === modelId);
   }
   if (providerId === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
     return claudeSubscriptionCatalogModels().find((m) => m.id === modelId);

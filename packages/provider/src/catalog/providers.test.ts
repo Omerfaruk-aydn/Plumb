@@ -24,6 +24,7 @@ const PLUMB_ONLY_IDS = new Set([
   'google-login',
   'claude-subscription',
   'watsonx',
+  'oci-genai',
 ]);
 
 // PLUMB presentation id → OMP registry id (mirrors the facade alias map).
@@ -222,9 +223,9 @@ describe('provider catalog projection', () => {
       ).toEqual([]);
     });
 
-    it('every bespoke-injected PLUMB-only synthetic (claude-subscription, watsonx) also resolves to a valid setup branch', () => {
+    it('every bespoke-injected PLUMB-only synthetic (claude-subscription, watsonx, oci-genai) also resolves to a valid setup branch', () => {
       const failures: string[] = [];
-      for (const id of ['claude-subscription', 'watsonx']) {
+      for (const id of ['claude-subscription', 'watsonx', 'oci-genai']) {
         const provider = PLUMB_PROVIDERS.find((p) => p.id === id);
         if (!provider || !hasValidSetupBranch(provider)) failures.push(id);
       }

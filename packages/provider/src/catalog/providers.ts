@@ -88,6 +88,7 @@ const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
   'google-login',
   'claude-subscription',
   'watsonx',
+  'oci-genai',
 ]);
 
 /**
@@ -637,6 +638,25 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
         envVars: ['WATSONX_PROJECT_ID', 'WATSONX_SPACE_ID', 'WATSONX_REGION'],
       },
       { type: 'api_key', envVar: 'IBM_CLOUD_API_KEY' },
+    ],
+  },
+  'oci-genai': {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 26,
+    description: 'Oracle Cloud Infrastructure Generative AI',
+    // Real credential is an OCI Generative AI API key (PLUMB-owned, stored
+    // via the canonical credential store) -- OCI's own officially-documented
+    // simpler auth path (a plain bearer token) for this service, distinct
+    // from the full OCI Config/instance-principal RSA-signing scheme used
+    // elsewhere in OCI's APIs. OCI_COMPARTMENT_ID (the compartment OCID
+    // billed/authorized for requests, sent as the required
+    // opc-compartment-id header) and OCI_REGION (regional endpoint -- there
+    // is no single global OCI host) are ambient environment configuration,
+    // not credentials.
+    authMethods: [
+      { type: 'env', envVars: ['OCI_COMPARTMENT_ID', 'OCI_REGION'] },
+      { type: 'api_key', envVar: 'OCI_GENAI_API_KEY' },
     ],
   },
   aimlapi: {

@@ -39,7 +39,11 @@ const EMPTY_DATA: ProviderSetupData = {
  * (PlumbProviderSetupDialog.tsx); `watsonx` is a plain api_key provider
  * and works through the dialog's existing generic AuthStep once injected.
  */
-const SYNTHETIC_PROVIDER_IDS_TO_INJECT = ['claude-subscription', 'watsonx'];
+const SYNTHETIC_PROVIDER_IDS_TO_INJECT = [
+  'claude-subscription',
+  'watsonx',
+  'oci-genai',
+];
 
 export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
   const [data, setData] = useState<ProviderSetupData>(EMPTY_DATA);
