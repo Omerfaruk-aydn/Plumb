@@ -76,6 +76,10 @@ if (packageName === 'provider') {
 
   copyAssetsOnly(join(process.cwd(), 'src'), join(process.cwd(), 'dist'));
 } else {
+  const tsbuildinfo = join(process.cwd(), 'dist', 'tsconfig.tsbuildinfo');
+  if (existsSync(tsbuildinfo)) {
+    rmSync(tsbuildinfo, { force: true });
+  }
   execSync('npx --no-install tsc --build', { stdio: 'inherit' });
   const providerIndex = join(process.cwd(), '..', 'provider', 'dist', 'index.js');
   if (!existsSync(providerIndex)) {
