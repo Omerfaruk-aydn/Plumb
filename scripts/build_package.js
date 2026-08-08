@@ -18,7 +18,7 @@
 // limitations under the License.
 
 import { execSync } from 'node:child_process';
-import { writeFileSync, existsSync, cpSync, rmSync, statSync } from 'node:fs';
+import { writeFileSync, existsSync, cpSync, rmSync, statSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 if (!process.cwd().includes('packages')) {
