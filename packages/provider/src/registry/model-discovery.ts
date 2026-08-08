@@ -372,6 +372,51 @@ class BedrockDiscovery implements ProviderModelDiscovery {
   }
 }
 
+/**
+ * Azure OpenAI deployment discovery.
+ *
+ * RESEARCHED AND REJECTED: Azure's old resource-level deployment-listing
+ * data-plane API (`GET {endpoint}/openai/deployments?api-version=2023-03-15-preview`,
+ * usable with the same simple API-key credential PLUMB's Azure OpenAI
+ * provider already uses) is officially retired. The only remaining live
+ * deployment-listing API is the Azure Resource Manager management plane
+ * (`GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/
+ * providers/Microsoft.CognitiveServices/accounts/{account}/deployments`),
+ * which requires an entirely different, heavier credential authority (Azure
+ * AD/Entra ID service-principal or `DefaultAzureCredential`-style OAuth
+ * token scoped to `management.azure.com`, plus subscription/resource-group/
+ * account identifiers) that a plain `AZURE_OPENAI_API_KEY` user does not
+ * have configured in PLUMB at all today. Building that Azure AD/ARM
+ * credential authority is real, separate scope -- not silently faked here.
+ *
+ * Until that ARM credential authority exists, this formalizes PLUMB's
+ * existing manual mechanism (`AZURE_OPENAI_DEPLOYMENT_NAME_MAP`, already
+ * consumed by omp-ai/providers/azure-openai-responses.ts's
+ * `resolveDeploymentName`/`parseAzureDeploymentNameMap`) into the same
+ * discovery pipeline every other provider uses, so a user's configured
+ * deployments actually show up in /model instead of being invisible until
+ * a request is attempted. Provenance is honestly USER_CONFIGURED_DEPLOYMENT
+ * (a manual mapping the user typed), never ACCOUNT_DYNAMIC -- PLUMB did not
+ * verify these deployments exist by calling Azure.
+ */
+class AzureDeploymentDiscovery implements ProviderModelDiscovery {
+  readonly providerId = 'azure';
+
+  async discover(): Promise<DiscoveredModel[]> {
+    const raw = process.env['AZURE_OPENAI_DEPLOYMENT_NAME_MAP'];
+    if (!raw) return [];
+    const { parseAzureDeploymentNameMap } = await import(
+      '../omp-ai/providers/openai-shared.js'
+    );
+    const map = parseAzureDeploymentNameMap(raw);
+    return [...map.entries()].map(([modelId, deploymentName]) => ({
+      id: modelId,
+      name: `${modelId} -> ${deploymentName}`,
+      api: 'azure-openai-responses' as PlumbKnownApi,
+    }));
+  }
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -382,6 +427,7 @@ function register(discovery: ProviderModelDiscovery): void {
 
 // Register all known discovery adapters
 register(new BedrockDiscovery());
+register(new AzureDeploymentDiscovery());
 register(new OllamaDiscovery());
 register(new OpenAICompatLocalDiscovery('lm-studio', 'http://127.0.0.1:1234'));
 register(new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080'));
