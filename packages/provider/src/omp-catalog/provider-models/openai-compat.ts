@@ -966,6 +966,60 @@ export function huggingfaceModelManagerOptions(
 }
 
 // ---------------------------------------------------------------------------
+// 4b. SambaNova Cloud (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface SambaNovaModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * SambaNova Cloud — OpenAI-compatible chat completions
+ * (https://docs.sambanova.ai/docs/en/features/openai-compatibility).
+ * Not in oh-my-pi's bundled catalog (models.json has no "sambanova" key),
+ * so this has zero static reference models to merge with — the provider id
+ * cast below is safe because createSimpleOpenAICompletionsOptions's only use
+ * of it is `getBundledModels(providerId)`, which returns `[]` for an unknown
+ * key rather than throwing; the model list is entirely dynamic-discovery-driven.
+ */
+export function sambaNovaModelManagerOptions(
+	config?: SambaNovaModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"sambanova" as Parameters<typeof getBundledModels>[0],
+		"https://api.sambanova.ai/v1",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
+// 4c. Nebius AI Studio (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface NebiusModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * Nebius AI Studio — OpenAI-compatible chat completions
+ * (https://docs.studio.nebius.com/api-reference/introduction). Same
+ * no-bundled-catalog situation as SambaNova above.
+ */
+export function nebiusModelManagerOptions(
+	config?: NebiusModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"nebius" as Parameters<typeof getBundledModels>[0],
+		"https://api.studio.nebius.com/v1",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
 // 5. NVIDIA
 // ---------------------------------------------------------------------------
 

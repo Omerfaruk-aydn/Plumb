@@ -489,6 +489,20 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     description: 'Venice AI privacy-focused inference',
     authMethods: [{ type: 'api_key', envVar: 'VENICE_API_KEY' }],
   },
+  sambanova: {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 39,
+    description: 'SambaNova Cloud fast inference (Llama, DeepSeek, Qwen)',
+    authMethods: [{ type: 'api_key', envVar: 'SAMBANOVA_API_KEY' }],
+  },
+  nebius: {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 40,
+    description: 'Nebius AI Studio inference platform',
+    authMethods: [{ type: 'api_key', envVar: 'NEBIUS_API_KEY' }],
+  },
   azure: {
     category: PlumbProviderCategory.API_KEY,
     group: 'API Providers',

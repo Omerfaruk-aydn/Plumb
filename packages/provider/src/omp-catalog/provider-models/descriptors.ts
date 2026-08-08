@@ -31,6 +31,7 @@ import {
 	mistralModelManagerOptions,
 	moonshotModelManagerOptions,
 	nanoGptModelManagerOptions,
+	nebiusModelManagerOptions,
 	novitaModelManagerOptions,
 	nvidiaModelManagerOptions,
 	ollamaModelManagerOptions,
@@ -41,6 +42,7 @@ import {
 	qianfanModelManagerOptions,
 	qwenPortalModelManagerOptions,
 	sakanaModelManagerOptions,
+	sambaNovaModelManagerOptions,
 	siliconflowCnModelManagerOptions,
 	siliconflowModelManagerOptions,
 	syntheticModelManagerOptions,
@@ -290,6 +292,22 @@ export const CATALOG_PROVIDERS = [
 		envVars: ["NVIDIA_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => nvidiaModelManagerOptions(config),
 		catalogDiscovery: { label: "NVIDIA" },
+	},
+	{
+		id: "sambanova",
+		defaultModel: "Meta-Llama-3.3-70B-Instruct",
+		envVars: ["SAMBANOVA_API_KEY"],
+		createModelManagerOptions: (config: ModelManagerConfig) => sambaNovaModelManagerOptions(config),
+		// No bundled/models.dev catalog entry exists for this provider — the
+		// dynamic /models response IS the complete catalog, nothing to merge.
+		dynamicModelsAuthoritative: true,
+	},
+	{
+		id: "nebius",
+		defaultModel: "meta-llama/Meta-Llama-3.1-70B-Instruct",
+		envVars: ["NEBIUS_API_KEY"],
+		createModelManagerOptions: (config: ModelManagerConfig) => nebiusModelManagerOptions(config),
+		dynamicModelsAuthoritative: true,
 	},
 	{
 		id: "novita",

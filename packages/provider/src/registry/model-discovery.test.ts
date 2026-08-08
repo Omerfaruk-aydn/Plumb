@@ -47,6 +47,8 @@ const OMP_BACKED_SAMPLE = [
   'github-copilot',
   'anthropic',
   'anthropic-api',
+  'sambanova',
+  'nebius',
 ];
 
 describe('Discovery Adapter Registry', () => {
