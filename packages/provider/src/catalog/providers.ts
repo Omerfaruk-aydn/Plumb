@@ -559,6 +559,13 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     description: 'Volcengine Ark (Doubao models, China mainland)',
     authMethods: [{ type: 'api_key', envVar: 'VOLCENGINE_API_KEY' }],
   },
+  portkey: {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 44,
+    description: 'Portkey AI Gateway (multi-vendor proxy)',
+    authMethods: [{ type: 'api_key', envVar: 'PORTKEY_API_KEY' }],
+  },
   azure: {
     category: PlumbProviderCategory.API_KEY,
     group: 'API Providers',

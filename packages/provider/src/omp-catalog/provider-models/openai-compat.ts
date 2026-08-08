@@ -1098,6 +1098,36 @@ export function volcengineArkModelManagerOptions(
 }
 
 // ---------------------------------------------------------------------------
+// 4g. Portkey AI Gateway (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface PortkeyModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * Portkey AI Gateway — OpenAI-compatible (https://portkey.ai/docs/integrations/llms/openai,
+ * base https://api.portkey.ai/v1). Portkey's own OpenAI-SDK integration
+ * example authenticates by passing the Portkey key as the standard OpenAI
+ * client `apiKey` (i.e. plain `Authorization: Bearer`), so no gateway-
+ * specific header is needed here. This is the upstream vendor authority for
+ * whatever model a request is routed to — a distinct credential scope from
+ * every model vendor it can proxy to, per the gateway-vs-upstream-vendor
+ * separation this provider category requires.
+ */
+export function portkeyModelManagerOptions(
+	config?: PortkeyModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"portkey" as Parameters<typeof getBundledModels>[0],
+		"https://api.portkey.ai/v1",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
 // 5. NVIDIA
 // ---------------------------------------------------------------------------
 

@@ -43,6 +43,7 @@ import {
 	openrouterModelManagerOptions,
 	qianfanModelManagerOptions,
 	qwenPortalModelManagerOptions,
+	portkeyModelManagerOptions,
 	sakanaModelManagerOptions,
 	sambaNovaModelManagerOptions,
 	siliconflowCnModelManagerOptions,
@@ -387,6 +388,13 @@ export const CATALOG_PROVIDERS = [
 		envVars: ["OPENROUTER_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => openrouterModelManagerOptions(config),
 		catalogDiscovery: { label: "OpenRouter", allowUnauthenticated: true },
+	},
+	{
+		id: "portkey",
+		defaultModel: "gpt-5.5",
+		envVars: ["PORTKEY_API_KEY"],
+		createModelManagerOptions: (config: ModelManagerConfig) => portkeyModelManagerOptions(config),
+		dynamicModelsAuthoritative: true,
 	},
 	{
 		id: "qianfan",
