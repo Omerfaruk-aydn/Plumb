@@ -129,6 +129,25 @@ describe('provider catalog projection', () => {
     expect(envMethod.envVars).toContain('AWS_SECRET_ACCESS_KEY');
   });
 
+  it('llama-cpp and vllm are correctly marked allowUnauthenticated (real local keyless servers, not a dead-end auth step)', () => {
+    // Regression: llama-cpp has no OMP catalog descriptor at all
+    // (allowUnauthenticated would resolve to undefined/falsy), and vllm's
+    // descriptor sets allowUnauthenticated:true nested inside
+    // catalogDiscovery rather than at the top level this projection reads
+    // (also resolves to false). Both are real local, keyless servers --
+    // without the presentation-layer override, both would route to the
+    // 'authenticate' step with authMethods: [{type:'none'}], which matches
+    // none of AuthStep's branches (a dead end, same class of bug fixed for
+    // claude-subscription and amazon-bedrock).
+    for (const id of ['llama-cpp', 'vllm']) {
+      const provider = PLUMB_PROVIDERS.find((p) => p.id === id);
+      expect(provider, `${id} not found`).toBeDefined();
+      expect(provider!.allowUnauthenticated, `${id}.allowUnauthenticated`).toBe(
+        true,
+      );
+    }
+  });
+
   it('claude-subscription is a PLUMB-only synthetic (no OMP backing, not in the OMP-derived selectable set)', () => {
     const sub = PLUMB_PROVIDERS.find((p) => p.id === 'claude-subscription');
     expect(sub).toBeDefined();

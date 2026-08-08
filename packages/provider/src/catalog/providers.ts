@@ -147,6 +147,21 @@ interface PlumbPresentation {
   description?: string;
   /** PLUMB-only auth-method UX (labels, prompts). Empty array = derive from OMP. */
   authMethods?: PlumbAuthMethod[];
+  /**
+   * PLUMB-side override for whether this provider can be used without
+   * authentication, when the OMP catalog descriptor's own
+   * `allowUnauthenticated` signal is missing or misplaced. Two real cases
+   * found in this catalog: `llama-cpp` has no OMP catalog descriptor at
+   * all (undefined `allowUnauthenticated`), and `vllm`'s descriptor sets
+   * `allowUnauthenticated: true` inside its nested `catalogDiscovery`
+   * object rather than at the top level this projection actually reads —
+   * both would otherwise route to the generic 'authenticate' step with
+   * `authMethods: [{type: 'none'}]`, which matches none of AuthStep's
+   * branches and is a dead end (Enter does nothing). Only set this when
+   * the provider is genuinely a local/keyless runtime; never use it to
+   * paper over a real missing-credential case.
+   */
+  allowUnauthenticatedOverride?: boolean;
 }
 
 /** PLUMB-only presentation fields (no OMP counterpart). */
@@ -724,6 +739,11 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     order: 4,
     description: 'llama.cpp local server (OpenAI-compatible)',
     authMethods: [{ type: 'none' }],
+    // No OMP catalog descriptor exists for llama.cpp at all, so
+    // allowUnauthenticated would otherwise resolve to undefined (falsy) —
+    // a real local, keyless server, but routed to a dead-end 'authenticate'
+    // step (authMethods: [{type:'none'}] matches no AuthStep branch).
+    allowUnauthenticatedOverride: true,
   },
   vllm: {
     category: PlumbProviderCategory.LOCAL,
@@ -731,6 +751,11 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     order: 5,
     description: 'vLLM local server (OpenAI-compatible)',
     authMethods: [{ type: 'none' }],
+    // vLLM's OMP descriptor sets allowUnauthenticated: true nested inside
+    // catalogDiscovery, not at the top level this projection reads —
+    // without this override it resolves to false and hits the same
+    // dead-end as llama-cpp above.
+    allowUnauthenticatedOverride: true,
   },
   'custom-openai-compat': {
     category: PlumbProviderCategory.CUSTOM_ENDPOINT,
@@ -836,9 +861,9 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
     ? [...catalogEntry.envVars]
     : plumbEnvVars(plumbId);
 
-  const allowUnauthenticated = catalogEntry
-    ? (catalogEntry.allowUnauthenticated ?? false)
-    : undefined;
+  const allowUnauthenticated =
+    presentation?.allowUnauthenticatedOverride ??
+    (catalogEntry ? (catalogEntry.allowUnauthenticated ?? false) : undefined);
 
   const provider: PlumbProvider = {
     id: plumbId,
