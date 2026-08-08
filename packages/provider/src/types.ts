@@ -82,7 +82,8 @@ export type PlumbKnownApi =
   | 'gitlab-duo-agent'
   | 'openrouter'
   | 'claude-agent-sdk'
-  | 'watsonx-chat';
+  | 'watsonx-chat'
+  | 'oci-openai-responses';
 
 // ─── Thinking control ─────────────────────────────────────────────────
 

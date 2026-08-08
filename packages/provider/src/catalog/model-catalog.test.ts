@@ -91,13 +91,20 @@ describe('oci-genai static catalog floor', () => {
     process.env = { ...ORIGINAL_ENV };
   });
 
-  it('returns real OCI model ids tagged with the openai-completions dialect (genuinely wire-compatible, not an approximation)', () => {
+  it("returns real OCI model ids tagged with the oci-openai-responses dialect (Responses API, Oracle's documented primary interface)", () => {
     const models = getCatalogModels('oci-genai');
     expect(models.length).toBeGreaterThan(0);
     for (const model of models) {
       expect(model.provider).toBe('oci-genai');
-      expect(model.api).toBe('openai-completions');
+      expect(model.api).toBe('oci-openai-responses');
       expect(model.id).toMatch(/^openai\.gpt-oss-/);
+    }
+  });
+
+  it('leaves toolsSupported undefined (unknown) -- no live per-model capability discovery adapter exists yet for oci-genai', () => {
+    const models = getCatalogModels('oci-genai');
+    for (const model of models) {
+      expect(model.toolsSupported).toBeUndefined();
     }
   });
 

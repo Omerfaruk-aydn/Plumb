@@ -645,27 +645,43 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 26,
     description: 'Oracle Cloud Infrastructure Generative AI',
-    // Real credential is an OCI Generative AI API key (PLUMB-owned, stored
-    // via the canonical credential store) -- OCI officially documents this
-    // as the `OCI_GENAI_API_KEY` credential authority, a distinct,
-    // simpler bearer-token mechanism from `OCI_IAM` (config-profile/
-    // session-token/instance-principal/resource-principal, all backed by
-    // the full OCI request-signing scheme used elsewhere in OCI's APIs).
-    // Oracle's own docs: "Use API keys for testing and early development.
-    // Use IAM-based authentication for production workloads and
-    // OCI-managed environments." OCI_IAM is not yet wired (tracked
-    // separately); this presentation covers the OCI_GENAI_API_KEY path.
+    // Two distinct, non-overlapping credential authorities, both real and
+    // officially documented -- never conflated:
+    //   OCI_GENAI_API_KEY -- simple bearer token (PLUMB-owned, stored via
+    //     the canonical credential store). Oracle: "Use API keys for
+    //     testing and early development."
+    //   OCI_IAM -- selected by setting OCI_IAM_AUTH_MODE (one of
+    //     config_profile/session/instance_principal/resource_principal --
+    //     see transports/ociGenaiIamAuth.ts). Requests are signed via the
+    //     official `oci-common` SDK's DefaultRequestSigner against a real
+    //     `AuthenticationDetailsProvider`; PLUMB never copies private key
+    //     PEM/session token/signed Authorization material into its own
+    //     settings -- config_profile/session read straight from the OCI
+    //     config file (PLUMB stores only the safe OCI_IAM_CONFIG_PATH/
+    //     OCI_IAM_CONFIG_PROFILE reference), instance_principal/
+    //     resource_principal read no local secret at all. Oracle: "Use
+    //     IAM-based authentication for production workloads and
+    //     OCI-managed environments." Classified as
+    //     EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY.
     // OCI_COMPARTMENT_ID (the compartment OCID billed/authorized for
     // requests, sent as opc-compartment-id), OCI_GENAI_PROJECT_ID (the
     // required, distinct Generative AI project OCID -- see
     // catalog/model-catalog.ts's oci-genai module doc for the
     // project-vs-compartment distinction), and OCI_REGION (regional
     // endpoint -- there is no single global OCI host) are ambient
-    // environment configuration, not credentials.
+    // environment configuration, not credentials, and apply to both auth
+    // authorities.
     authMethods: [
       {
         type: 'env',
-        envVars: ['OCI_COMPARTMENT_ID', 'OCI_GENAI_PROJECT_ID', 'OCI_REGION'],
+        envVars: [
+          'OCI_COMPARTMENT_ID',
+          'OCI_GENAI_PROJECT_ID',
+          'OCI_REGION',
+          'OCI_IAM_AUTH_MODE',
+          'OCI_IAM_CONFIG_PROFILE',
+          'OCI_IAM_CONFIG_PATH',
+        ],
       },
       { type: 'api_key', envVar: 'OCI_GENAI_API_KEY' },
     ],

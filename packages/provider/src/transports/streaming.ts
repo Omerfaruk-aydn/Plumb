@@ -31,6 +31,7 @@ import {
 } from './errorClassification.js';
 import { streamClaudeSubscription } from './claudeSubscription.js';
 import { streamWatsonx } from './watsonx.js';
+import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -1520,7 +1521,17 @@ interface AssistantContentSplit {
   toolCalls: Array<{ id: string; name: string; arguments: string }>;
 }
 
-function splitAssistantContent(
+/**
+ * Splits an assistant message's structured content into its text and
+ * tool-call parts. Exported for reuse by transports whose wire format
+ * needs the same split but a different final shape than
+ * `buildOpenAIMessages` -- currently ociGenaiResponses.ts, whose Responses
+ * API `input` array represents a prior tool call as its own flat
+ * `function_call` item rather than Chat Completions' nested
+ * `assistant.tool_calls[]` -- so there is exactly one place that walks
+ * `PlumbContentPart[]` looking for tool-call parts, never a second copy.
+ */
+export function splitAssistantContent(
   content: PlumbStreamOptions['messages'][number]['content'],
 ): AssistantContentSplit {
   if (typeof content === 'string') {
@@ -1548,8 +1559,12 @@ function splitAssistantContent(
   };
 }
 
-/** Text-only projection of a message's content (system/tool-role turns). */
-function contentToText(
+/**
+ * Text-only projection of a message's content (system/tool-role turns).
+ * Exported for reuse by ociGenaiResponses.ts -- see splitAssistantContent's
+ * doc comment above.
+ */
+export function contentToText(
   content: PlumbStreamOptions['messages'][number]['content'],
 ): string {
   if (typeof content === 'string') return content;
@@ -1800,6 +1815,7 @@ registerPlumbTransport('openai-responses', openAICompatibleStream);
 registerPlumbTransport('anthropic-messages', anthropicMessagesStream);
 registerPlumbTransport('claude-agent-sdk', streamClaudeSubscription);
 registerPlumbTransport('watsonx-chat', streamWatsonx);
+registerPlumbTransport('oci-openai-responses', streamOciGenaiResponses);
 
 // Google
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);

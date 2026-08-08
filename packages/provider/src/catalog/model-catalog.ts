@@ -173,17 +173,22 @@ function watsonxCatalogModels(): PlumbModel[] {
 
 /**
  * `oci-genai` is a PLUMB-only synthetic (no OMP catalog descriptor) whose
- * OpenAI-compatible chat completions endpoint
- * (https://inference.generativeai.{region}.oci.oraclecloud.com/openai/v1)
- * is officially documented as wire-identical to OpenAI's Chat Completions
- * API -- api: 'openai-completions' is genuinely accurate here, not an
- * approximation. Real, minimal, confirmed OCI model ids (openai.gpt-oss-*
- * -- see transports registration in registry/model-discovery.ts / catalog
- * providers.ts for sourcing). baseUrl and the required opc-compartment-id
- * header are resolved fresh from ambient env config (OCI_REGION,
- * OCI_COMPARTMENT_ID, OCI_GENAI_PROJECT_ID) on every call rather than
- * cached, so a region/compartment/project change takes effect on the very
- * next model lookup.
+ * base URL (https://inference.generativeai.{region}.oci.oraclecloud.com/openai/v1)
+ * hosts both an OpenAI-Chat-Completions-wire-identical `/chat/completions`
+ * endpoint and the Responses API at `/responses`. Oracle documents the
+ * Responses API as the primary OpenAI-compatible interface for new/agentic
+ * workloads, so `api: 'oci-openai-responses'` (transports/ociGenaiResponses.ts)
+ * is the default dialect here -- a distinct, explicit dialect rather than
+ * folding it into the generic `openai-completions` transport, since OCI's
+ * Responses calls carry OCI-specific auth (OCI_GENAI_API_KEY bearer OR
+ * OCI_IAM signing -- see transports/ociGenaiIamAuth.ts) and capability
+ * surface. Real, minimal, confirmed OCI model ids (openai.gpt-oss-* -- see
+ * transports registration in registry/model-discovery.ts / catalog
+ * providers.ts for sourcing). baseUrl and the required opc-compartment-id/
+ * OpenAI-Project headers are resolved fresh from ambient env config
+ * (OCI_REGION, OCI_COMPARTMENT_ID, OCI_GENAI_PROJECT_ID) on every call
+ * rather than cached, so a region/compartment/project change takes effect
+ * on the very next model lookup.
  *
  * PROJECT vs COMPARTMENT: Oracle's own docs state plainly "OCI
  * OpenAI-compatible API calls require a project" -- a distinct
@@ -199,6 +204,13 @@ function watsonxCatalogModels(): PlumbModel[] {
  * reference for this specific header name; this is the one mechanism
  * consistent with "unmodified OpenAI SDK compatibility", not a guess from
  * the model name or an invented header.)
+ *
+ * TOOLS CAPABILITY: no live OCI model/region discovery adapter exists yet
+ * (tracked as separate follow-up work -- see registry/model-discovery.ts),
+ * so this static floor cannot report real per-model `toolsSupported`
+ * metadata the way WatsonxDiscovery does; it stays `undefined` (unknown),
+ * never guessed `true`, consistent with the "undefined means unknown"
+ * contract on `PlumbModel.toolsSupported`.
  */
 const OCI_GENAI_PROVIDER_ID = 'oci-genai';
 const OCI_DEFAULT_REGION = 'us-chicago-1';
@@ -225,7 +237,7 @@ function ociGenaiCatalogModels(): PlumbModel[] {
     id: m.id,
     name: m.name,
     provider: OCI_GENAI_PROVIDER_ID as PlumbProviderId,
-    api: 'openai-completions' as PlumbKnownApi,
+    api: 'oci-openai-responses' as PlumbKnownApi,
     baseUrl,
     ...(Object.keys(headers).length > 0 ? { headers } : {}),
     contextWindow: 131072,
