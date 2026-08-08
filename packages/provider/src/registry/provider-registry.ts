@@ -165,8 +165,18 @@ export class PlumbProviderRegistry {
     await this.#ensureStore().storeCredential(providerId, credential);
 
     // Invalidate model cache when credentials change so discovery re-fetches
-    // with the new credential.
+    // with the new credential. This covers re-authentication (e.g. a
+    // different account signing in) WITHOUT an explicit prior logout() call
+    // — the same cross-account stale-entitlement risk applies here: without
+    // both invalidations, a currently-running process could keep serving
+    // the previous account's discovered models after switching accounts.
     invalidateModelCache(providerId);
+    try {
+      const { getPlumbModelRegistry } = await import('./model-registry.js');
+      getPlumbModelRegistry().invalidateCache(providerId);
+    } catch {
+      // Non-fatal: the on-disk cache is already invalidated above.
+    }
 
     this.#activeProviders.set(providerId, {
       provider,

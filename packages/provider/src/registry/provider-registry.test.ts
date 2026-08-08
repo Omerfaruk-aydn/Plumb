@@ -96,3 +96,28 @@ describe('PlumbProviderRegistry.logout', () => {
     expect(mockInvalidateModelCache).toHaveBeenCalledWith('github-copilot');
   });
 });
+
+describe('PlumbProviderRegistry.setAuthenticated', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('invalidates both the on-disk model cache and the model registry in-memory cache when re-authenticating without a prior explicit logout (account switch)', async () => {
+    const registry = new PlumbProviderRegistry();
+    await registry.initialize();
+
+    await registry.setAuthenticated('github-copilot', {
+      type: 'api_key',
+      provider: 'github-copilot',
+      key: 'new-account-key',
+    });
+
+    expect(mockInvalidateModelCache).toHaveBeenCalledWith('github-copilot');
+    // The regression this guards against: switching accounts by calling
+    // setAuthenticated() again (no explicit logout() in between) must not
+    // let the previous account's discovered models keep being served from
+    // the in-memory PlumbModelRegistry cache.
+    expect(mockGetPlumbModelRegistry).toHaveBeenCalled();
+    expect(mockInvalidateCache).toHaveBeenCalledWith('github-copilot');
+  });
+});
