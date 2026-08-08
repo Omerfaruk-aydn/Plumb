@@ -1241,6 +1241,215 @@ function extractCredential(credentialResult: unknown): {
  *
  * Returns exit code (0 = success, 1 = failure, 2 = blocked).
  */
+/**
+ * Claude Subscription (Agent SDK) acceptance test — bespoke, not routed
+ * through classifyProvider/runCodingPlanLiveAcceptance/the generic
+ * API-key path below. None of those fit: claude-subscription has no OMP
+ * registration, no PLUMB-initiated login, no env-var/keychain credential
+ * storage (the Agent SDK owns its own auth entirely), and no per-token
+ * pricing catalog. This invokes the SAME production implementation normal
+ * chat uses (transports/claudeSubscription.ts via plumbModelStream) --
+ * never a separate acceptance-only fake adapter.
+ *
+ * Never prints: OAuth tokens, session secrets, Claude credential contents,
+ * prompt text, or raw SDK internal files.
+ */
+async function runClaudeSubscriptionAcceptanceTest(
+  opts: LiveAcceptanceOptions,
+): Promise<number> {
+  const report = opts.report ?? finalReportWriteLine;
+  const providerId = 'claude-subscription';
+
+  const line = (label: string, value: string | boolean | number) =>
+    report(`${label}: ${value}`);
+
+  line('provider', providerId);
+  line('credentialAuthority', 'EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY');
+
+  let sdkPresent = false;
+  let sdkVersion = 'unknown';
+  try {
+    const sdkPkg = (await import(
+      '@anthropic-ai/claude-agent-sdk/package.json',
+      { with: { type: 'json' } } as never
+    )) as { default?: { version?: string }; version?: string };
+    sdkVersion = sdkPkg.default?.version ?? sdkPkg.version ?? 'unknown';
+    sdkPresent = true;
+  } catch {
+    sdkPresent = false;
+  }
+  line('sdk.present', sdkPresent);
+  line('sdk.version', sdkVersion);
+
+  const providerModule = await import('@google/gemini-cli-provider');
+
+  // Never reachable: raw Claude Code OAuth ('anthropic' provider id) is
+  // hard-blocked from selection (BLOCKED_UPSTREAM_POLICY,
+  // catalog/providers.ts) regardless of Claude Subscription's own state.
+  const anthropicProvider = providerModule.getPlumbProvider?.('anthropic');
+  const legacyOAuthReachable = anthropicProvider?.available === true;
+  line('legacyOAuth.reachable', legacyOAuthReachable);
+
+  if (!sdkPresent) {
+    const result = buildTestResult(
+      providerId,
+      {
+        registration: 'EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY',
+        category: 'oauth_account',
+      },
+      {
+        authResult: 'AGENT_SDK_UNAVAILABLE',
+        result: 'IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED',
+        safeError: 'Agent SDK package not installed',
+      },
+    );
+    emitResultReport(result, report);
+    void recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  const status = await providerModule.getClaudeSubscriptionStatus();
+  line('auth.status', status.status);
+
+  const models = providerModule.getCatalogModels?.(providerId) ?? [];
+  line('model.source', 'OFFICIAL_STATIC_METADATA (pinned Agent SDK aliases)');
+  line('model.count', models.length);
+
+  if (status.status !== 'CONNECTED_SUBSCRIPTION') {
+    const result = buildTestResult(
+      providerId,
+      {
+        registration: 'EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY',
+        category: 'oauth_account',
+      },
+      {
+        authResult: status.status,
+        modelsBundledCount: models.length,
+        modelsFinalCount: models.length,
+        result: 'IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED',
+        safeError: status.detail ?? `Not connected: ${status.status}`,
+      },
+    );
+    emitResultReport(result, report);
+    void recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  const selectedModel = models[0];
+  if (!selectedModel) {
+    report('SAFE_ERROR: no Claude Subscription model available');
+    return 1;
+  }
+  line('model.selected', selectedModel.id);
+
+  // Real production chat call -- the same plumbModelStream() dispatch
+  // normal chat uses, routed by model.api === 'claude-agent-sdk' to
+  // streamClaudeSubscription. Deliberately no tools/toolExecutor here: a
+  // real acceptance run must never modify files or run shell commands
+  // merely to prove the connection works (see module doc). Tool-authority
+  // round-trip verification (PLUMB_MCP_SERVER_REGISTERED,
+  // TOOL_REQUEST_RECEIVED, CORE_SCHEDULER_USED, TOOL_EXECUTED_ONCE) is
+  // covered by claudeSubscriptionTools.test.ts / claudeSubscriptionToolBridge.test.ts
+  // and is intentionally NOT part of this harness yet -- deferred, not
+  // silently claimed here.
+  line('tools.status', 'NOT_TESTED_BY_HARNESS (see unit tests instead)');
+  line(
+    'tool.authority',
+    'PLUMB_CORE_TOOL_SCHEDULER (design; not exercised by this harness run)',
+  );
+
+  let streamStarted = false;
+  let streamCompleted = false;
+  let sawText = false;
+  try {
+    const controller = new AbortController();
+    const stream = providerModule.plumbModelStream({
+      model: selectedModel,
+      messages: [
+        {
+          role: 'user',
+          content: 'Reply with exactly the single word: OK',
+        },
+      ],
+      apiKey: '',
+      signal: controller.signal,
+    });
+    for await (const event of stream) {
+      if (!streamStarted) {
+        streamStarted = true;
+        line('stream.started', true);
+      }
+      if (event.type === 'text') sawText = true;
+      if (event.type === 'error') {
+        const result = buildTestResult(
+          providerId,
+          {
+            registration: 'EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY',
+            category: 'oauth_account',
+          },
+          {
+            authResult: status.status,
+            modelsBundledCount: models.length,
+            modelsFinalCount: models.length,
+            selectedModel: selectedModel.id,
+            transportDialect: 'claude-agent-sdk',
+            streamStarted,
+            result: 'LIVE_TEST_FAILED',
+            safeError: event.error?.message ?? 'stream error',
+          },
+        );
+        emitResultReport(result, report);
+        void recordAcceptanceFromResult(result);
+        return 1;
+      }
+      if (event.type === 'done') streamCompleted = true;
+    }
+  } catch (err) {
+    line('stream.completed', false);
+    report(
+      `SAFE_ERROR: ${err instanceof Error ? err.message : 'stream failed'}`,
+    );
+    return 1;
+  }
+  line('stream.completed', streamCompleted);
+  line(
+    'multiTurn.available',
+    'DESIGNED (stateless-per-call transcript re-send; see claudeSubscription.test.ts multi-turn suite)',
+  );
+  line(
+    'cancellation.status',
+    'DESIGNED (AbortSignal wired; see claudeSubscription.test.ts cancellation test)',
+  );
+
+  const result = buildTestResult(
+    providerId,
+    {
+      registration: 'EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY',
+      category: 'oauth_account',
+    },
+    {
+      authResult: status.status,
+      accountIdentityPresent: Boolean(status.account),
+      modelsBundledCount: models.length,
+      modelsFinalCount: models.length,
+      selectedModel: selectedModel.id,
+      routingProvider: providerId,
+      transportProvider: providerId,
+      transportDialect: 'claude-agent-sdk',
+      streamStarted,
+      streamCompleted,
+      result: streamCompleted && sawText ? 'LIVE_VERIFIED' : 'LIVE_TEST_FAILED',
+      safeError: streamCompleted ? 'none' : 'stream did not complete',
+    },
+  );
+  emitResultReport(result, report);
+  void recordAcceptanceFromResult(result);
+  report(
+    'REAL_ACCOUNT_TEST: this run used your real Claude Subscription account.',
+  );
+  return result.result === 'LIVE_VERIFIED' ? 0 : 1;
+}
+
 export async function runProviderAcceptanceTest(
   providerId: string,
   opts: LiveAcceptanceOptions = {},
@@ -1252,6 +1461,10 @@ export async function runProviderAcceptanceTest(
   if (REFERENCE_ROUTES.has(providerId)) {
     report(`${providerId} is a verified reference route (skipping).`);
     return 0;
+  }
+
+  if (providerId === 'claude-subscription') {
+    return runClaudeSubscriptionAcceptanceTest(opts);
   }
 
   try {
