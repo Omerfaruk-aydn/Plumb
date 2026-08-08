@@ -646,16 +646,27 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     order: 26,
     description: 'Oracle Cloud Infrastructure Generative AI',
     // Real credential is an OCI Generative AI API key (PLUMB-owned, stored
-    // via the canonical credential store) -- OCI's own officially-documented
-    // simpler auth path (a plain bearer token) for this service, distinct
-    // from the full OCI Config/instance-principal RSA-signing scheme used
-    // elsewhere in OCI's APIs. OCI_COMPARTMENT_ID (the compartment OCID
-    // billed/authorized for requests, sent as the required
-    // opc-compartment-id header) and OCI_REGION (regional endpoint -- there
-    // is no single global OCI host) are ambient environment configuration,
-    // not credentials.
+    // via the canonical credential store) -- OCI officially documents this
+    // as the `OCI_GENAI_API_KEY` credential authority, a distinct,
+    // simpler bearer-token mechanism from `OCI_IAM` (config-profile/
+    // session-token/instance-principal/resource-principal, all backed by
+    // the full OCI request-signing scheme used elsewhere in OCI's APIs).
+    // Oracle's own docs: "Use API keys for testing and early development.
+    // Use IAM-based authentication for production workloads and
+    // OCI-managed environments." OCI_IAM is not yet wired (tracked
+    // separately); this presentation covers the OCI_GENAI_API_KEY path.
+    // OCI_COMPARTMENT_ID (the compartment OCID billed/authorized for
+    // requests, sent as opc-compartment-id), OCI_GENAI_PROJECT_ID (the
+    // required, distinct Generative AI project OCID -- see
+    // catalog/model-catalog.ts's oci-genai module doc for the
+    // project-vs-compartment distinction), and OCI_REGION (regional
+    // endpoint -- there is no single global OCI host) are ambient
+    // environment configuration, not credentials.
     authMethods: [
-      { type: 'env', envVars: ['OCI_COMPARTMENT_ID', 'OCI_REGION'] },
+      {
+        type: 'env',
+        envVars: ['OCI_COMPARTMENT_ID', 'OCI_GENAI_PROJECT_ID', 'OCI_REGION'],
+      },
       { type: 'api_key', envVar: 'OCI_GENAI_API_KEY' },
     ],
   },

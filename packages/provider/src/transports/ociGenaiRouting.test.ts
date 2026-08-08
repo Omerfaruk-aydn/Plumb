@@ -82,4 +82,25 @@ describe('oci-genai routing (production-shaped, no mocking of streaming.ts/model
     const headers = init.headers as Record<string, string>;
     expect(headers['opc-compartment-id']).toBeUndefined();
   });
+
+  it('sends the required OpenAI-Project header from OCI_GENAI_PROJECT_ID -- Oracle docs: "OCI OpenAI-compatible API calls require a project"', async () => {
+    process.env['OCI_GENAI_PROJECT_ID'] =
+      'ocid1.generativeaiproject.oc1.us-chicago-1.real';
+    const [model] = getCatalogModels('oci-genai');
+
+    const stream = plumbModelStream({
+      model: model!,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'real-oci-genai-key',
+    });
+    for await (const _e of stream) {
+      // drain
+    }
+
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['OpenAI-Project']).toBe(
+      'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+    );
+  });
 });

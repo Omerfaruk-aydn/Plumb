@@ -181,8 +181,24 @@ function watsonxCatalogModels(): PlumbModel[] {
  * -- see transports registration in registry/model-discovery.ts / catalog
  * providers.ts for sourcing). baseUrl and the required opc-compartment-id
  * header are resolved fresh from ambient env config (OCI_REGION,
- * OCI_COMPARTMENT_ID) on every call rather than cached, so a region/
- * compartment change takes effect on the very next model lookup.
+ * OCI_COMPARTMENT_ID, OCI_GENAI_PROJECT_ID) on every call rather than
+ * cached, so a region/compartment/project change takes effect on the very
+ * next model lookup.
+ *
+ * PROJECT vs COMPARTMENT: Oracle's own docs state plainly "OCI
+ * OpenAI-compatible API calls require a project" -- a distinct
+ * `ocid1.generativeaiproject.oc1.{region}.{id}` resource for organizing
+ * Generative AI agents/requests, separate from the general-purpose OCI
+ * compartment used for IAM policy scoping. Every officially documented
+ * client example passes it via the OpenAI SDK's own `project` constructor
+ * parameter (never a bespoke OCI-specific kwarg) -- Oracle's OpenAI-compat
+ * endpoint is deliberately built to accept the vanilla `openai` client
+ * unmodified, and that parameter's one documented wire mechanism across
+ * every OpenAI SDK is the `OpenAI-Project` request header, so that is what
+ * PLUMB sends here. (Oracle's docs do not publish a raw curl/header
+ * reference for this specific header name; this is the one mechanism
+ * consistent with "unmodified OpenAI SDK compatibility", not a guess from
+ * the model name or an invented header.)
  */
 const OCI_GENAI_PROVIDER_ID = 'oci-genai';
 const OCI_DEFAULT_REGION = 'us-chicago-1';
@@ -201,15 +217,17 @@ function ociGenaiCatalogModels(): PlumbModel[] {
   const region = process.env['OCI_REGION']?.trim() || OCI_DEFAULT_REGION;
   const baseUrl = `https://inference.generativeai.${region}.oci.oraclecloud.com/openai/v1`;
   const compartmentId = process.env['OCI_COMPARTMENT_ID']?.trim();
+  const projectId = process.env['OCI_GENAI_PROJECT_ID']?.trim();
+  const headers: Record<string, string> = {};
+  if (compartmentId) headers['opc-compartment-id'] = compartmentId;
+  if (projectId) headers['OpenAI-Project'] = projectId;
   return OCI_GENAI_STATIC_MODELS.map((m) => ({
     id: m.id,
     name: m.name,
     provider: OCI_GENAI_PROVIDER_ID as PlumbProviderId,
     api: 'openai-completions' as PlumbKnownApi,
     baseUrl,
-    ...(compartmentId
-      ? { headers: { 'opc-compartment-id': compartmentId } }
-      : {}),
+    ...(Object.keys(headers).length > 0 ? { headers } : {}),
     contextWindow: 131072,
     maxTokens: 8192,
     reasoning: false,

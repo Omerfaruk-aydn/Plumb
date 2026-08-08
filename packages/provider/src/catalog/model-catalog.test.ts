@@ -136,4 +136,28 @@ describe('oci-genai static catalog floor', () => {
       'opc-compartment-id': 'ocid1.compartment.oc1..real',
     });
   });
+
+  it('carries the required OpenAI-Project header from OCI_GENAI_PROJECT_ID -- Oracle docs: "OCI OpenAI-compatible API calls require a project"', () => {
+    process.env['OCI_GENAI_PROJECT_ID'] =
+      'ocid1.generativeaiproject.oc1.us-chicago-1.real';
+    const [withProject] = getCatalogModels('oci-genai');
+    expect(withProject!.headers).toEqual({
+      'OpenAI-Project': 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+    });
+
+    delete process.env['OCI_GENAI_PROJECT_ID'];
+    const [withoutProject] = getCatalogModels('oci-genai');
+    expect(withoutProject!.headers).toBeUndefined();
+  });
+
+  it('carries both opc-compartment-id and OpenAI-Project headers together when both are configured', () => {
+    process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..real';
+    process.env['OCI_GENAI_PROJECT_ID'] =
+      'ocid1.generativeaiproject.oc1.us-chicago-1.real';
+    const [model] = getCatalogModels('oci-genai');
+    expect(model!.headers).toEqual({
+      'opc-compartment-id': 'ocid1.compartment.oc1..real',
+      'OpenAI-Project': 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+    });
+  });
 });
