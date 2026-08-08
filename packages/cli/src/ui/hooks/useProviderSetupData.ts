@@ -27,6 +27,20 @@ const EMPTY_DATA: ProviderSetupData = {
   fullModels: [],
 };
 
+/**
+ * PLUMB-only synthetic providers (no OMP catalog descriptor -- see
+ * catalog/providers.ts PLUMB_SYNTHETIC_IDS) that are nonetheless real,
+ * usable, PLUMB-native providers needing manual injection into the setup
+ * UI. SELECTABLE_PROVIDERS / getProviderSetupGroups() derive availability
+ * from the OMP authority, which by design excludes every PLUMB-only
+ * synthetic -- that invariant is intentional and covered by a dedicated
+ * test (catalog/providers.test.ts), so it must not be relaxed there.
+ * `claude-subscription` additionally needs bespoke connection-probing UI
+ * (PlumbProviderSetupDialog.tsx); `watsonx` is a plain api_key provider
+ * and works through the dialog's existing generic AuthStep once injected.
+ */
+const SYNTHETIC_PROVIDER_IDS_TO_INJECT = ['claude-subscription', 'watsonx'];
+
 export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
   const [data, setData] = useState<ProviderSetupData>(EMPTY_DATA);
 
@@ -45,27 +59,15 @@ export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
         }));
         if (cancelled) return;
 
-        // `claude-subscription` is a PLUMB-only synthetic (Agent SDK-backed,
-        // transports/claudeSubscription.ts) with no OMP catalog descriptor.
-        // SELECTABLE_PROVIDERS / getProviderSetupGroups() derive availability
-        // from the OMP authority, which by design excludes every PLUMB-only
-        // synthetic (see catalog/providers.ts PLUMB_SYNTHETIC_IDS) -- that
-        // invariant is intentional and covered by a dedicated test
-        // (catalog/providers.test.ts), so it must not be relaxed here.
-        // Instead, inject this one bespoke provider directly: it is
-        // resolvable via getPlumbProvider() (ALL_PROVIDERS), just never
-        // auto-included in the OMP-derived selectable set.
-        const claudeSubscription = providerPackage.getPlumbProvider(
-          'claude-subscription',
-        );
-        const providers = claudeSubscription
-          ? [...providerPackage.SELECTABLE_PROVIDERS, claudeSubscription]
-          : [...providerPackage.SELECTABLE_PROVIDERS];
+        const providers = [...providerPackage.SELECTABLE_PROVIDERS];
         const categoryGroups = providerPackage.getProviderSetupGroups();
-        if (claudeSubscription) {
-          const group = claudeSubscription.group ?? 'Other';
+        for (const id of SYNTHETIC_PROVIDER_IDS_TO_INJECT) {
+          const provider = providerPackage.getPlumbProvider(id);
+          if (!provider) continue;
+          providers.push(provider);
+          const group = provider.group ?? 'Other';
           const existing = categoryGroups.get(group) ?? [];
-          categoryGroups.set(group, [...existing, claudeSubscription]);
+          categoryGroups.set(group, [...existing, provider]);
         }
 
         setData({

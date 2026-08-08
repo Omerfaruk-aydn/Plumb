@@ -87,6 +87,7 @@ const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
   'custom-openai-compat',
   'google-login',
   'claude-subscription',
+  'watsonx',
 ]);
 
 /**
@@ -612,6 +613,29 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
         type: 'env',
         envVars: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'],
       },
+    ],
+  },
+  watsonx: {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 25,
+    description: 'IBM watsonx.ai foundation models',
+    // Real credential is an IBM Cloud API key (PLUMB-owned, stored via the
+    // canonical credential store like every other api_key provider) --
+    // transports/watsonx.ts exchanges it for a short-lived IAM bearer token
+    // via the official @ibm-cloud/watsonx-ai SDK's IamAuthenticator, which
+    // PLUMB never stores or exposes. WATSONX_PROJECT_ID/WATSONX_SPACE_ID
+    // (execution context) and WATSONX_REGION (regional endpoint -- there is
+    // no single global watsonx.ai host) are ambient environment
+    // configuration, not credentials, surfaced here as informational 'env'
+    // entries alongside the real 'api_key' submit path (same pattern
+    // already used for google-vertex).
+    authMethods: [
+      {
+        type: 'env',
+        envVars: ['WATSONX_PROJECT_ID', 'WATSONX_SPACE_ID', 'WATSONX_REGION'],
+      },
+      { type: 'api_key', envVar: 'IBM_CLOUD_API_KEY' },
     ],
   },
   aimlapi: {

@@ -81,7 +81,8 @@ export type PlumbKnownApi =
   | 'devin-agent'
   | 'gitlab-duo-agent'
   | 'openrouter'
-  | 'claude-agent-sdk';
+  | 'claude-agent-sdk'
+  | 'watsonx-chat';
 
 // ─── Thinking control ─────────────────────────────────────────────────
 

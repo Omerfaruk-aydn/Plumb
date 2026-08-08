@@ -30,6 +30,16 @@ const claudeSubscriptionProvider: PlumbProvider = {
   group: 'OAuth Providers',
 };
 
+const watsonxProvider: PlumbProvider = {
+  id: 'watsonx',
+  name: 'IBM watsonx.ai',
+  category: PlumbProviderCategory.API_KEY,
+  description: 'IBM watsonx.ai foundation models',
+  authMethods: [{ type: 'api_key', envVar: 'IBM_CLOUD_API_KEY' }],
+  available: false,
+  group: 'API Providers',
+};
+
 vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@google/gemini-cli-provider')>();
@@ -45,8 +55,11 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
           [{ id: 'xai-oauth', name: 'xAI', group: 'OAuth Providers' }],
         ],
       ]),
-    getPlumbProvider: (id: string) =>
-      id === 'claude-subscription' ? claudeSubscriptionProvider : undefined,
+    getPlumbProvider: (id: string) => {
+      if (id === 'claude-subscription') return claudeSubscriptionProvider;
+      if (id === 'watsonx') return watsonxProvider;
+      return undefined;
+    },
   };
 });
 
@@ -76,6 +89,21 @@ describe('useProviderSetupData', () => {
     // The pre-existing OMP-backed entry in that group must still be there —
     // injection must append, not replace.
     expect(oauthGroup!.some((p) => p.id === 'xai-oauth')).toBe(true);
+  });
+
+  it('injects watsonx into the provider list and its presentation group (API Providers), alongside claude-subscription', async () => {
+    let result: { current: ReturnType<typeof useProviderSetupData> };
+    await act(async () => {
+      ({ result } = await renderHook(() => useProviderSetupData(true)));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    expect(result!.current.providers.some((p) => p.id === 'watsonx')).toBe(
+      true,
+    );
+    const apiGroup = result!.current.categoryGroups.get('API Providers');
+    expect(apiGroup).toBeDefined();
+    expect(apiGroup!.some((p) => p.id === 'watsonx')).toBe(true);
   });
 
   it('returns empty data when closed, without injecting claude-subscription', async () => {

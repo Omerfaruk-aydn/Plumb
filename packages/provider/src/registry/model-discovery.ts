@@ -242,6 +242,50 @@ class ClaudeSubscriptionDiscovery implements ProviderModelDiscovery {
   }
 }
 
+// ─── IBM watsonx.ai discovery (real live endpoint) ─────────────────────
+
+/**
+ * `watsonx` is a PLUMB-only synthetic (transports/watsonx.ts, official
+ * `@ibm-cloud/watsonx-ai` SDK) with no OMP catalog descriptor. Unlike
+ * claude-subscription, watsonx.ai DOES expose a real live model-list
+ * endpoint (`GET /ml/v1/foundation_model_specs`, wrapped by the SDK's
+ * `listFoundationModelSpecs()`), so this is genuine PROVIDER_DYNAMIC
+ * discovery -- not a static/pinned list. Requires an API key; returns []
+ * without one rather than guessing/caching a stale result.
+ */
+class WatsonxDiscovery implements ProviderModelDiscovery {
+  readonly providerId = 'watsonx';
+
+  async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
+    if (!context.apiKey) return [];
+    try {
+      const [
+        { WatsonXAI },
+        { IamAuthenticator },
+        { resolveWatsonxServiceUrl },
+      ] = await Promise.all([
+        import('@ibm-cloud/watsonx-ai'),
+        import('ibm-cloud-sdk-core'),
+        import('../transports/watsonx.js'),
+      ]);
+      const client = WatsonXAI.newInstance({
+        version: '2024-05-31',
+        serviceUrl: resolveWatsonxServiceUrl(),
+        authenticator: new IamAuthenticator({ apikey: context.apiKey }),
+      });
+      const response = await client.listFoundationModelSpecs({ limit: 200 });
+      const resources = response.result.resources ?? [];
+      return resources.map((m) => ({
+        id: m.model_id,
+        name: m.label,
+        api: 'watsonx-chat' as PlumbKnownApi,
+      }));
+    } catch {
+      return [];
+    }
+  }
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -271,6 +315,7 @@ register(new OpenAICompatDiscovery('novita', 'https://api.novita.ai'));
 register(new OpenAICompatDiscovery('venice', 'https://api.venice.ai'));
 register(new OpenAICompatDiscovery('perplexity', 'https://api.perplexity.ai'));
 register(new ClaudeSubscriptionDiscovery());
+register(new WatsonxDiscovery());
 
 // Fill every remaining catalog provider (one with a standard model-manager
 // factory) with the generic OMP-backed adapter. Hand-written adapters above

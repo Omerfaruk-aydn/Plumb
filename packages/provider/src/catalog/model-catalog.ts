@@ -134,8 +134,48 @@ function claudeSubscriptionCatalogModels(): PlumbModel[] {
   }));
 }
 
+/**
+ * `watsonx` is a PLUMB-only synthetic (transports/watsonx.ts, official
+ * `@ibm-cloud/watsonx-ai` SDK) with no OMP catalog descriptor. Same
+ * cold-start reasoning as claude-subscription above: without a static
+ * floor, a fresh process with a persisted `watsonx` selection would find
+ * no registry model on the first chat turn and fall back to the wrong
+ * wire dialect. Real, minimal, confirmed IBM foundation model ids
+ * (see transports/watsonx.ts module doc for sourcing) -- live discovery
+ * via the SDK's `listFoundationModelSpecs()` (registry/model-discovery.ts's
+ * WatsonxDiscovery) supersedes this floor once a discovery call has run.
+ */
+const WATSONX_PROVIDER_ID = 'watsonx';
+
+interface WatsonxStaticModel {
+  id: string;
+  name: string;
+}
+
+const WATSONX_STATIC_MODELS: readonly WatsonxStaticModel[] = [
+  { id: 'ibm/granite-3-3-8b-instruct', name: 'Granite 3.3 8B Instruct' },
+  { id: 'ibm/granite-4-h-small', name: 'Granite 4.0-h Small' },
+  { id: 'meta-llama/llama-3-3-70b-instruct', name: 'Llama 3.3 70B Instruct' },
+];
+
+function watsonxCatalogModels(): PlumbModel[] {
+  return WATSONX_STATIC_MODELS.map((m) => ({
+    id: m.id,
+    name: m.name,
+    provider: WATSONX_PROVIDER_ID as PlumbProviderId,
+    api: 'watsonx-chat' as PlumbKnownApi,
+    contextWindow: 131072,
+    maxTokens: 8192,
+    reasoning: false,
+    input: 'text' as const,
+  }));
+}
+
 /** Get all models for a provider from the bundled OMP catalog. */
 export function getCatalogModels(providerId: PlumbProviderId): PlumbModel[] {
+  if (providerId === WATSONX_PROVIDER_ID) {
+    return watsonxCatalogModels();
+  }
   if (providerId === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
     return claudeSubscriptionCatalogModels();
   }
@@ -149,6 +189,9 @@ export function getCatalogModel(
   providerId: PlumbProviderId,
   modelId: string,
 ): PlumbModel | undefined {
+  if (providerId === WATSONX_PROVIDER_ID) {
+    return watsonxCatalogModels().find((m) => m.id === modelId);
+  }
   if (providerId === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
     return claudeSubscriptionCatalogModels().find((m) => m.id === modelId);
   }

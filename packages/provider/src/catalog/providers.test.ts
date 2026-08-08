@@ -23,6 +23,7 @@ const PLUMB_ONLY_IDS = new Set([
   'custom-openai-compat',
   'google-login',
   'claude-subscription',
+  'watsonx',
 ]);
 
 // PLUMB presentation id → OMP registry id (mirrors the facade alias map).
@@ -156,5 +157,81 @@ describe('provider catalog projection', () => {
     expect(PRODUCTION_READY_PROVIDER_IDS.has('claude-subscription')).toBe(
       false,
     );
+  });
+
+  describe('auth dead-end regression invariant', () => {
+    // This session found the exact same real bug -- a provider whose
+    // authMethods/allowUnauthenticated shape matches none of
+    // PlumbProviderSetupDialog's branches, so selecting it in /login is a
+    // silent dead end -- five separate times (claude-subscription,
+    // amazon-bedrock, azure, llama-cpp, vllm). This test locks the
+    // invariant down permanently: every provider PLUMB actually intends
+    // users to reach through setup (every SELECTABLE_PROVIDERS entry, plus
+    // the PLUMB-only synthetics the setup dialog bespoke-injects --
+    // 'claude-subscription' and 'watsonx', see
+    // packages/cli/src/ui/hooks/useProviderSetupData.ts) must resolve to
+    // at least one valid, reachable setup branch. A future provider
+    // addition that reintroduces this bug class fails this test.
+    //
+    // Valid setup branches, matching PlumbProviderSetupDialog.tsx exactly:
+    //   - allowUnauthenticated: true (routes straight to model-select)
+    //   - authMethods includes oauth/api_key/device_code (a real submit
+    //     path exists in AuthStep + the authenticate-step Enter handler)
+    //   - authMethods is env-only, non-empty (the dedicated
+    //     "press Enter once the env vars are set" branch)
+    //   - id === 'claude-subscription' (the one legitimate bespoke
+    //     exception: no PLUMB-initiated auth at all -- a real connection
+    //     probe drives its own dedicated routing, see
+    //     probeClaudeSubscription in PlumbProviderSetupDialog.tsx)
+    const BESPOKE_PROBE_EXCEPTIONS = new Set(['claude-subscription']);
+
+    function hasValidSetupBranch(provider: {
+      id: string;
+      allowUnauthenticated?: boolean;
+      authMethods: Array<{ type: string }>;
+    }): boolean {
+      if (provider.allowUnauthenticated === true) return true;
+      if (BESPOKE_PROBE_EXCEPTIONS.has(provider.id)) return true;
+      if (
+        provider.authMethods.some(
+          (m) =>
+            m.type === 'oauth' ||
+            m.type === 'api_key' ||
+            m.type === 'device_code',
+        )
+      ) {
+        return true;
+      }
+      if (
+        provider.authMethods.length > 0 &&
+        provider.authMethods.every((m) => m.type === 'env')
+      ) {
+        return true;
+      }
+      return false;
+    }
+
+    it('every selectable provider resolves to a valid setup branch', () => {
+      const failures: string[] = [];
+      for (const provider of SELECTABLE_PROVIDERS) {
+        if (!hasValidSetupBranch(provider)) failures.push(provider.id);
+      }
+      expect(
+        failures,
+        `providers with no valid setup branch: ${failures.join(', ')}`,
+      ).toEqual([]);
+    });
+
+    it('every bespoke-injected PLUMB-only synthetic (claude-subscription, watsonx) also resolves to a valid setup branch', () => {
+      const failures: string[] = [];
+      for (const id of ['claude-subscription', 'watsonx']) {
+        const provider = PLUMB_PROVIDERS.find((p) => p.id === id);
+        if (!provider || !hasValidSetupBranch(provider)) failures.push(id);
+      }
+      expect(
+        failures,
+        `synthetic providers with no valid setup branch: ${failures.join(', ')}`,
+      ).toEqual([]);
+    });
   });
 });

@@ -30,6 +30,7 @@ import {
   classifyGoogleHttpError,
 } from './errorClassification.js';
 import { streamClaudeSubscription } from './claudeSubscription.js';
+import { streamWatsonx } from './watsonx.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -1790,6 +1791,7 @@ registerPlumbTransport('openai-responses', openAICompatibleStream);
 // Anthropic
 registerPlumbTransport('anthropic-messages', anthropicMessagesStream);
 registerPlumbTransport('claude-agent-sdk', streamClaudeSubscription);
+registerPlumbTransport('watsonx-chat', streamWatsonx);
 
 // Google
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);
