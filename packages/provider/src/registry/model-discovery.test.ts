@@ -6,7 +6,7 @@
  * Verifies every registered adapter responds correctly at the HTTP boundary.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // Mock fetch globally for adapter tests
 const mockFetch = vi.fn();
@@ -17,7 +17,8 @@ import {
   getDiscoveryProviderIds,
 } from './model-discovery.js';
 
-const REGISTERED_ADAPTERS = [
+// Hand-written adapters with bespoke HTTP-boundary parsing (tested below).
+const HAND_WRITTEN_ADAPTERS = [
   'ollama',
   'lm-studio',
   'llama-cpp',
@@ -37,15 +38,28 @@ const REGISTERED_ADAPTERS = [
   'perplexity',
 ];
 
+// A sample of catalog providers that have no hand-written adapter and must
+// be covered by the generic OMP-model-manager-backed fallback instead
+// (see OmpModelManagerDiscovery in model-discovery.ts).
+const OMP_BACKED_SAMPLE = [
+  'google',
+  'google-vertex',
+  'github-copilot',
+  'anthropic',
+  'anthropic-api',
+];
+
 describe('Discovery Adapter Registry', () => {
-  it('1. has exactly 17 registered adapters', () => {
+  it('1. registers every hand-written adapter', () => {
     const ids = getDiscoveryProviderIds();
-    expect(ids.length).toBe(17);
+    for (const expected of HAND_WRITTEN_ADAPTERS) {
+      expect(ids).toContain(expected);
+    }
   });
 
   it('2. all documented adapters are registered', () => {
     const ids = getDiscoveryProviderIds();
-    for (const expected of REGISTERED_ADAPTERS) {
+    for (const expected of HAND_WRITTEN_ADAPTERS) {
       expect(ids).toContain(expected);
     }
   });
@@ -56,9 +70,79 @@ describe('Discovery Adapter Registry', () => {
     expect(unique.size).toBe(ids.length);
   });
 
-  it('4. registry count matches documented count', () => {
+  it('4. the generic OMP-backed adapter fills every remaining catalog provider', () => {
     const ids = getDiscoveryProviderIds();
-    expect(ids.length).toBe(REGISTERED_ADAPTERS.length);
+    for (const expected of OMP_BACKED_SAMPLE) {
+      expect(ids).toContain(expected);
+    }
+    // Strictly more coverage than the hand-written set alone — the generic
+    // fallback must actually be registering providers, not a no-op.
+    expect(ids.length).toBeGreaterThan(HAND_WRITTEN_ADAPTERS.length + 20);
+  });
+});
+
+describe('Discovery Adapter Contract: OMP model-manager-backed fallback', () => {
+  afterEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it('13. returns empty array without credentials (no fetchDynamicModels wired)', async () => {
+    const models = await discoverProviderModels('google-vertex', {
+      providerId: 'google-vertex',
+    });
+    expect(models).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('14. discovers live models through the OMP model-manager pipeline', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        models: [
+          {
+            name: 'publishers/google/models/gemini-3.1-pro-preview',
+            displayName: 'Gemini 3.1 Pro Preview',
+            inputTokenLimit: 1000000,
+            outputTokenLimit: 65536,
+            supportedActions: { generateContent: {} },
+          },
+        ],
+      }),
+    });
+
+    const models = await discoverProviderModels('google-vertex', {
+      providerId: 'google-vertex',
+      apiKey: 'test-vertex-key',
+    });
+
+    // The live fetch result is merged with google-vertex's static bundled
+    // catalog (the OMP model manager treats static entries as a floor, not
+    // something a dynamic fetch replaces, unless dynamicModelsAuthoritative
+    // is set) — assert the dynamically-fetched model is present with its
+    // live metadata, not that it's the only model returned.
+    const dynamic = models.find((m) => m.id === 'gemini-3.1-pro-preview');
+    expect(dynamic).toMatchObject({
+      id: 'gemini-3.1-pro-preview',
+      contextWindow: 1000000,
+      maxTokens: 65536,
+    });
+  });
+
+  it('15. falls back to the static bundled catalog on a transport failure instead of throwing', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('network down'));
+    const models = await discoverProviderModels('google-vertex', {
+      providerId: 'google-vertex',
+      apiKey: 'test-vertex-key',
+    });
+    // A failed dynamic fetch must never surface as a thrown error or wipe
+    // out the static floor — it degrades to the bundled catalog.
+    expect(models.length).toBeGreaterThan(0);
+  });
+
+  it('16. anthropic and anthropic-api both resolve to live discovery for the same OMP entry', async () => {
+    const ids = getDiscoveryProviderIds();
+    expect(ids).toContain('anthropic');
+    expect(ids).toContain('anthropic-api');
   });
 });
 

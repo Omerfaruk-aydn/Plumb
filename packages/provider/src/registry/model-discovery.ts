@@ -16,7 +16,12 @@
 
 import type { PlumbProviderId } from '../types.js';
 import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
+import { createModelManager } from '../omp-catalog/model-manager.js';
+import { installBunGlobal } from '../omp-shims/bun-runtime.js';
+import { PROVIDER_DESCRIPTORS } from '../omp-catalog/provider-models/descriptors.js';
+import type { ProviderDescriptor } from '../omp-catalog/provider-models/descriptor-types.js';
 import type { Api } from '../omp-catalog/types.js';
+import { resolvePlumbProviderId } from '../catalog/providers.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -124,6 +129,66 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
   }
 }
 
+// ─── OMP model-manager-backed discovery (generic fallback) ─────────────
+
+/**
+ * Generic discovery adapter backed by the OMP `createModelManager` /
+ * `fetchDynamicModels` pipeline (`omp-catalog/model-manager.ts`). Used for
+ * every catalog provider that has a standard `{apiKey, baseUrl, fetch}`
+ * model-manager factory (`PROVIDER_DESCRIPTORS`) but no hand-written adapter
+ * above — this is what actually activates the dynamic-discovery machinery
+ * already wired per-provider in `omp-catalog/provider-models/*.ts` (Google
+ * Gemini API, Vertex AI, GitHub Copilot, Anthropic, Azure, OpenRouter's OMP
+ * variant, and ~35 others), which until this adapter existed was built,
+ * tested, and governance-tracked but never actually called from the live
+ * `PlumbModelRegistry` discovery path.
+ *
+ * `specialModelManager` providers (Antigravity, Gemini CLI, OpenAI Codex)
+ * are excluded from `PROVIDER_DESCRIPTORS` by design — their model manager
+ * needs an OAuth-token-driven config this generic `{apiKey}` bridge cannot
+ * build, and they already have bespoke coding-agent-runtime wiring.
+ */
+class OmpModelManagerDiscovery implements ProviderModelDiscovery {
+  constructor(
+    readonly providerId: string,
+    private readonly descriptor: ProviderDescriptor,
+  ) {}
+
+  async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
+    const apiKey = context.oauthToken ?? context.apiKey;
+    let options: ReturnType<ProviderDescriptor['createModelManagerOptions']>;
+    try {
+      options = this.descriptor.createModelManagerOptions({
+        apiKey,
+        baseUrl: context.baseUrl,
+      });
+    } catch {
+      return [];
+    }
+    // No live fetcher was configured for this credential shape (e.g. the
+    // factory only wires fetchDynamicModels when apiKey is present).
+    if (!options.fetchDynamicModels) return [];
+
+    try {
+      // OMP internals (fingerprintStatic, cache-provider-id) call Bun.hash;
+      // installBunGlobal() is idempotent and must run before any OMP module
+      // executes Bun-flavored code under Node (see omp-shims/bun-runtime.ts).
+      installBunGlobal();
+      const manager = createModelManager<Api>(options);
+      const result = await manager.refresh();
+      return result.models.map((m) => ({
+        id: m.id,
+        name: m.name,
+        contextWindow: m.contextWindow ?? undefined,
+        maxTokens: m.maxTokens ?? undefined,
+        reasoning: m.reasoning,
+      }));
+    } catch {
+      return [];
+    }
+  }
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -152,6 +217,24 @@ register(
 register(new OpenAICompatDiscovery('novita', 'https://api.novita.ai'));
 register(new OpenAICompatDiscovery('venice', 'https://api.venice.ai'));
 register(new OpenAICompatDiscovery('perplexity', 'https://api.perplexity.ai'));
+
+// Fill every remaining catalog provider (one with a standard model-manager
+// factory) with the generic OMP-backed adapter. Hand-written adapters above
+// always win — this only adds coverage, never replaces tested behavior.
+// Registered under both the raw OMP id and its resolved PLUMB presentation
+// id: a handful of OMP entries back two distinct PLUMB-facing ids (e.g.
+// `anthropic` backs both the PLUMB `anthropic` OAuth-account provider and
+// the `anthropic-api` direct-key provider — see PLUMB_TO_OMP_ID in
+// catalog/providers.ts), and both must resolve to real discovery.
+for (const descriptor of PROVIDER_DESCRIPTORS) {
+  const plumbId = resolvePlumbProviderId(descriptor.providerId);
+  if (!DISCOVERIES.has(descriptor.providerId)) {
+    register(new OmpModelManagerDiscovery(descriptor.providerId, descriptor));
+  }
+  if (plumbId !== descriptor.providerId && !DISCOVERIES.has(plumbId)) {
+    register(new OmpModelManagerDiscovery(plumbId, descriptor));
+  }
+}
 
 /** Get the discovery adapter for a provider. */
 export function getDiscovery(
