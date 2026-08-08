@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "composite": true,
-    "incremental": false,
+    "incremental": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
     "verbatimModuleSyntax": false,
