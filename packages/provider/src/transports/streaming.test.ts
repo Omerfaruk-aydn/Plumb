@@ -927,6 +927,72 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
       expect(new Set(ids).size).toBe(1);
     });
   });
+
+  describe('GOOGLE_CLOUD_CODE_ASSIST error classification (deliberately unchanged — preservation test)', () => {
+    // This dialect (googleCloudCodeAssistStream) is the highest-blast-radius
+    // REAL_VERIFIED path in this file and already implements its own precise
+    // classification (ENDPOINT_NOT_FOUND for 404, HTTP_${status}_${safeStatus}
+    // when Google's structured status is present). The taxonomy-normalization
+    // work in this file deliberately does NOT touch it — these tests pin the
+    // existing behavior so a future change here is a conscious decision, not
+    // an accidental regression.
+    it('a 404 (route not found) yields ENDPOINT_NOT_FOUND, unchanged', async () => {
+      mockResolveUsablePlumbCredential.mockResolvedValue({
+        classification: 'VALID_CREDENTIAL',
+        credential: validOAuthCredential,
+        refreshAttempted: false,
+      });
+      globalThis.fetch = (async () =>
+        new Response('<html><body>404 Not Found</body></html>', {
+          status: 404,
+        })) as typeof fetch;
+
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: antigravityModel('gemini-3-pro'),
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'unused',
+      })) {
+        events.push(event);
+      }
+      expect(events[0]).toMatchObject({
+        type: 'error',
+        error: { code: 'ENDPOINT_NOT_FOUND' },
+      });
+    });
+
+    it('a 403 with a structured Google status yields HTTP_403_<status>, unchanged', async () => {
+      mockResolveUsablePlumbCredential.mockResolvedValue({
+        classification: 'VALID_CREDENTIAL',
+        credential: validOAuthCredential,
+        refreshAttempted: false,
+      });
+      globalThis.fetch = (async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 403,
+              message: 'Caller does not have permission',
+              status: 'PERMISSION_DENIED',
+            },
+          }),
+          { status: 403 },
+        )) as typeof fetch;
+
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: antigravityModel('gemini-3-pro'),
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'unused',
+      })) {
+        events.push(event);
+      }
+      expect(events[0]).toMatchObject({
+        type: 'error',
+        error: { code: 'HTTP_403_PERMISSION_DENIED' },
+      });
+    });
+  });
 });
 
 describe('plumbModelStream — OpenAI-compatible HTTP error classification (openai-completions, openai-responses, openrouter, github-copilot)', () => {
