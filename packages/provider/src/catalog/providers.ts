@@ -366,9 +366,10 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     order: 4,
     description:
       'Claude Pro/Max/Team/Enterprise subscription via the official Claude Agent SDK. ' +
-      'PARTIAL_TOOLS_UNAVAILABLE: tool/function calling is disabled in this integration ' +
-      "(conservative default to avoid double-execution against the SDK's own built-in " +
-      'tools) — chat-only for now.',
+      'Tool/function calling is routed through PLUMB’s real tool ' +
+      'permission and execution pipeline (CoreToolScheduler) via the Agent ' +
+      "SDK's official MCP mechanism — the same confirmation UX every other " +
+      'provider uses, never the SDK’s own built-in tools.',
     // No OMP registry/catalog backing (PLUMB_SYNTHETIC_IDS) — this is a
     // distinct, PLUMB-native integration (transports/claudeSubscription.ts)
     // over the official Agent SDK, not an OMP-derived OAuth/API-key flow.
