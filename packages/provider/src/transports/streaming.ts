@@ -23,7 +23,11 @@ import {
   type PlumbKnownApi,
 } from '../types.js';
 import { EventStream } from '../omp-ai/utils/event-stream.js';
-import { classifyGenericHttpError } from './errorClassification.js';
+import {
+  classifyGenericHttpError,
+  classifyAnthropicHttpError,
+  classifyAnthropicSseErrorType,
+} from './errorClassification.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -457,7 +461,7 @@ async function* anthropicMessagesStream(
     }
     yield {
       type: 'error',
-      error: { code: 'REQUEST_FAILED', message: (err as Error).message },
+      error: { code: 'NETWORK_ERROR', message: (err as Error).message },
     };
     return;
   }
@@ -466,7 +470,7 @@ async function* anthropicMessagesStream(
     const errorText = await response.text().catch(() => 'Unknown error');
     yield {
       type: 'error',
-      error: { code: `HTTP_${response.status}`, message: errorText },
+      error: classifyAnthropicHttpError(response.status, errorText),
     };
     return;
   }
@@ -563,11 +567,20 @@ async function* anthropicMessagesStream(
               break;
             }
             case 'error': {
+              const sseMessage =
+                parsed.error?.message ?? 'Unknown provider error';
+              const canonical = classifyAnthropicSseErrorType(
+                parsed.error?.type,
+                sseMessage,
+              );
               yield {
                 type: 'error',
                 error: {
-                  code: parsed.error?.type ?? 'PROVIDER_ERROR',
-                  message: parsed.error?.message ?? 'Unknown provider error',
+                  // Keep the raw documented type as the code when it isn't
+                  // one of the currently-mapped values — still a real,
+                  // Anthropic-reported classification, not a guess.
+                  code: canonical ?? parsed.error?.type ?? 'PROVIDER_ERROR',
+                  message: sseMessage,
                 },
               };
               return;

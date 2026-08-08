@@ -201,6 +201,191 @@ describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', (
   });
 });
 
+describe('plumbModelStream — Anthropic Messages HTTP/SSE error classification (ANTHROPIC_MESSAGES, incl. github-copilot)', () => {
+  const nativeAnthropicModel: PlumbModel = {
+    id: 'claude-sonnet-5',
+    provider: 'anthropic',
+    api: 'anthropic-messages',
+    baseUrl: 'https://api.anthropic.com',
+    contextWindow: 200_000,
+    maxTokens: 8_192,
+    reasoning: false,
+    input: 'text',
+  };
+
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  async function runWithFetchResponse(
+    body: string,
+    status: number,
+  ): Promise<PlumbStreamEvent[]> {
+    globalThis.fetch = (async () =>
+      new Response(body, { status })) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+    })) {
+      events.push(event);
+    }
+    return events;
+  }
+
+  it('HTTP 401 authentication_error -> AUTH_REQUIRED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        type: 'error',
+        error: { type: 'authentication_error', message: 'invalid x-api-key' },
+      }),
+      401,
+    );
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'AUTH_REQUIRED', message: 'invalid x-api-key' },
+    });
+  });
+
+  it('HTTP 403 permission_error -> ACCOUNT_RESTRICTED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        type: 'error',
+        error: { type: 'permission_error', message: 'no access to this model' },
+      }),
+      403,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'ACCOUNT_RESTRICTED' },
+    });
+  });
+
+  it('HTTP 404 not_found_error -> MODEL_NOT_AVAILABLE', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        type: 'error',
+        error: { type: 'not_found_error', message: 'model not found' },
+      }),
+      404,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'MODEL_NOT_AVAILABLE' },
+    });
+  });
+
+  it('HTTP 429 rate_limit_error -> RATE_LIMITED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        type: 'error',
+        error: {
+          type: 'rate_limit_error',
+          message: 'Number of requests has exceeded your per-minute rate limit',
+        },
+      }),
+      429,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'RATE_LIMITED' },
+    });
+  });
+
+  it('HTTP 529 overloaded_error -> UPSTREAM_ERROR', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        type: 'error',
+        error: { type: 'overloaded_error', message: 'Overloaded' },
+      }),
+      529,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'UPSTREAM_ERROR' },
+    });
+  });
+
+  it('a proxy/gateway HTML 502 (never reached Anthropic) falls back to generic classification without leaking markup', async () => {
+    const events = await runWithFetchResponse(
+      '<!DOCTYPE html><html><body>502 Bad Gateway</body></html>',
+      502,
+    );
+    expect(events[0]).toMatchObject({ error: { code: 'UPSTREAM_ERROR' } });
+    const message = (events[0] as { error?: { message?: string } }).error
+      ?.message;
+    expect(message).not.toContain('<html');
+  });
+
+  it('a network failure (fetch throws) -> NETWORK_ERROR', async () => {
+    globalThis.fetch = (async () => {
+      throw new Error('getaddrinfo ENOTFOUND api.anthropic.com');
+    }) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'NETWORK_ERROR' },
+    });
+  });
+
+  it('a mid-stream SSE `event: error` with a documented type is classified (invalid_request_error -> INVALID_REQUEST)', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        `data: ${JSON.stringify({
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message: 'messages: at least one message is required',
+          },
+        })}\n\n`,
+        { status: 200 },
+      )) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+    })) {
+      events.push(event);
+    }
+    const errorEvent = events.find((e) => e.type === 'error');
+    expect(errorEvent).toMatchObject({
+      error: {
+        code: 'INVALID_REQUEST',
+        message: 'messages: at least one message is required',
+      },
+    });
+  });
+
+  it('a mid-stream SSE `event: error` with an undocumented type keeps the raw type as a fallback code', async () => {
+    globalThis.fetch = (async () =>
+      new Response(
+        `data: ${JSON.stringify({
+          type: 'error',
+          error: { type: 'some_future_error_type', message: 'new error kind' },
+        })}\n\n`,
+        { status: 200 },
+      )) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+    })) {
+      events.push(event);
+    }
+    const errorEvent = events.find((e) => e.type === 'error');
+    expect(errorEvent).toMatchObject({
+      error: { code: 'some_future_error_type', message: 'new error kind' },
+    });
+  });
+});
+
 describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport', () => {
   // Real production defect: an Antigravity request leaked the OAuth access
   // token into `?key=<token>` and hit a public-Gemini-API-shaped path
