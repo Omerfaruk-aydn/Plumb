@@ -1333,8 +1333,10 @@ export function buildRequest(
 		}
 	}
 
-	// Claude on Antigravity always forces VALIDATED, even with no tools declared.
+	// Claude on Antigravity always forces VALIDATED, even with no tools declared,
+	// and top-level request.tools is not supported by Cloud Code Assist Stream endpoint for Claude models.
 	if (isAntigravity && isClaudeModel(model.id)) {
+		delete request.tools;
 		request.toolConfig = {
 			functionCallingConfig: {
 				mode: "VALIDATED" as FunctionCallingConfigMode,
