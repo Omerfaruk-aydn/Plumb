@@ -1,0 +1,241 @@
+/**
+ * @license
+ * Copyright 2026 PLUMB Authors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Canonical, evidence-based HTTP-error classification for PLUMB streaming
+ * transports (transports/streaming.ts). Maps a raw upstream HTTP response
+ * (status + body) onto the plan's normalized error taxonomy — never a
+ * guess: every mapping below is backed by either the HTTP status code
+ * itself (universally true across providers) or a structured field a
+ * provider's own error schema documents (Google's canonical `status`/
+ * `reason`, Anthropic's `error.type`, OMP's vetted rate-limit-reason
+ * heuristics in omp-ai/error/rate-limit.ts).
+ *
+ * Deliberately narrow: only classifies the initial (pre-stream) HTTP
+ * response. Mid-stream read/parse failures keep their existing
+ * STREAM_ERROR code — this module does not touch that path.
+ */
+
+import { parseRateLimitReason } from '../omp-ai/error/rate-limit.js';
+
+/**
+ * Minimal shape of the safe-Google-error extraction result this module
+ * needs (the real type is `SafeGoogleErrorDetails` in streaming.ts — kept
+ * structural here rather than imported to avoid a circular dependency;
+ * streaming.ts imports classifyGoogleHttpError, not the other way around).
+ */
+export interface GoogleErrorEvidence {
+  status?: string;
+  safeMessage?: string;
+}
+
+/**
+ * Canonical error codes a streaming transport may report on its initial
+ * HTTP response. Not every dialect can produce every code — see each
+ * dialect's classifyXError wrapper for which subset applies.
+ */
+export type PlumbCanonicalErrorCode =
+  | 'INVALID_REQUEST' // 400 and unclassified 4xx
+  | 'AUTH_REQUIRED' // 401
+  | 'ACCOUNT_RESTRICTED' // 403
+  | 'MODEL_NOT_AVAILABLE' // 404
+  | 'TIMEOUT' // 408
+  | 'CONFLICT' // 409
+  | 'RATE_LIMITED' // 429 (no stronger evidence of quota exhaustion)
+  | 'QUOTA_EXHAUSTED' // 429 + rate-limit-reason evidence
+  | 'UPSTREAM_ERROR' // 5xx
+  | 'NETWORK_ERROR'; // fetch() rejected (not AbortError)
+
+export interface ClassifiedHttpError {
+  code: PlumbCanonicalErrorCode;
+  /** Sanitized, bounded message safe to surface in UI/logs. */
+  message: string;
+}
+
+const MAX_MESSAGE_LEN = 500;
+const HTML_MARKER_PATTERN = /<!doctype html|<html[\s>]|<body[\s>]/i;
+
+/**
+ * Extract a safe, bounded message from a raw error response body. Prefers a
+ * provider-reported `.error.message` / `.message` JSON field (the common
+ * shape across OpenAI-, Anthropic-, and Google-compatible APIs) over the raw
+ * body text — this is what keeps an upstream HTML error page (a CDN/gateway
+ * 5xx, a WAF block page) or an oversized JSON error blob from being dumped
+ * verbatim into a user-facing message.
+ */
+export function sanitizeErrorBodyMessage(
+  bodyText: string,
+  fallback: string,
+): string {
+  const trimmed = bodyText.trim();
+  if (!trimmed) return fallback;
+
+  if (HTML_MARKER_PATTERN.test(trimmed)) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (parsed && typeof parsed === 'object') {
+      const rec = parsed as Record<string, unknown>;
+      const nested = rec['error'];
+      const nestedMessage =
+        nested && typeof nested === 'object'
+          ? (nested as Record<string, unknown>)['message']
+          : undefined;
+      const message =
+        (typeof nestedMessage === 'string' && nestedMessage) ||
+        (typeof rec['message'] === 'string'
+          ? (rec['message'] as string)
+          : undefined);
+      if (message) {
+        return message.slice(0, MAX_MESSAGE_LEN);
+      }
+    }
+  } catch {
+    // Not JSON — fall through to the raw-text path below.
+  }
+
+  return trimmed.slice(0, MAX_MESSAGE_LEN) || fallback;
+}
+
+/**
+ * Classify a generic (OpenAI-/Anthropic-/Ollama-compatible) HTTP error
+ * response using only the HTTP status code and OMP's vetted rate-limit-
+ * reason text heuristics. No provider-specific structured-error parsing —
+ * dialects with a richer error schema (Google) use classifyGoogleHttpError
+ * instead.
+ */
+export function classifyGenericHttpError(
+  status: number,
+  bodyText: string,
+): ClassifiedHttpError {
+  const fallback = `HTTP ${status}`;
+  const message = sanitizeErrorBodyMessage(bodyText, fallback);
+
+  if (status === 401) return { code: 'AUTH_REQUIRED', message };
+  if (status === 403) return { code: 'ACCOUNT_RESTRICTED', message };
+  if (status === 404) return { code: 'MODEL_NOT_AVAILABLE', message };
+  if (status === 408) return { code: 'TIMEOUT', message };
+  if (status === 409) return { code: 'CONFLICT', message };
+  if (status === 429) {
+    const reason = parseRateLimitReason(message);
+    if (reason === 'QUOTA_EXHAUSTED') {
+      return { code: 'QUOTA_EXHAUSTED', message };
+    }
+    return { code: 'RATE_LIMITED', message };
+  }
+  if (status >= 500) return { code: 'UPSTREAM_ERROR', message };
+  // Any other 4xx (400, 422, ...): the request itself was rejected.
+  return { code: 'INVALID_REQUEST', message };
+}
+
+/**
+ * Classify an HTTP error response from a Google-family dialect (Gemini
+ * Developer API, Vertex AI, Cloud Code Assist) given the already-extracted
+ * safe error evidence (`extractSafeGoogleErrorDetails` in streaming.ts) —
+ * Google's `status` field is a documented canonical gRPC-style code
+ * (PERMISSION_DENIED/RESOURCE_EXHAUSTED/INVALID_ARGUMENT/...), a stronger
+ * signal than the bare HTTP status alone.
+ */
+export function classifyGoogleHttpError(
+  status: number,
+  bodyText: string,
+  details: GoogleErrorEvidence,
+): ClassifiedHttpError {
+  const fallback = `HTTP ${status}`;
+  const message = details.safeMessage ?? fallback;
+
+  switch (details.status) {
+    case 'PERMISSION_DENIED':
+      return { code: 'ACCOUNT_RESTRICTED', message };
+    case 'UNAUTHENTICATED':
+      return { code: 'AUTH_REQUIRED', message };
+    case 'INVALID_ARGUMENT':
+    case 'FAILED_PRECONDITION':
+      return { code: 'INVALID_REQUEST', message };
+    case 'NOT_FOUND':
+      return { code: 'MODEL_NOT_AVAILABLE', message };
+    case 'RESOURCE_EXHAUSTED': {
+      const reason = parseRateLimitReason(message);
+      return reason === 'QUOTA_EXHAUSTED'
+        ? { code: 'QUOTA_EXHAUSTED', message }
+        : { code: 'RATE_LIMITED', message };
+    }
+    case 'DEADLINE_EXCEEDED':
+      return { code: 'TIMEOUT', message };
+    default:
+      break;
+  }
+
+  // No (or unrecognized) structured Google status: fall back to the same
+  // HTTP-status-only classification every other dialect uses.
+  return classifyGenericHttpError(status, bodyText);
+}
+
+/** Anthropic Messages API documented SSE/HTTP error `type` values. */
+const ANTHROPIC_ERROR_TYPE_MAP: Readonly<
+  Record<string, PlumbCanonicalErrorCode>
+> = {
+  invalid_request_error: 'INVALID_REQUEST',
+  authentication_error: 'AUTH_REQUIRED',
+  permission_error: 'ACCOUNT_RESTRICTED',
+  not_found_error: 'MODEL_NOT_AVAILABLE',
+  request_too_large: 'INVALID_REQUEST',
+  rate_limit_error: 'RATE_LIMITED',
+  api_error: 'UPSTREAM_ERROR',
+  overloaded_error: 'UPSTREAM_ERROR',
+};
+
+/**
+ * Classify an Anthropic Messages API HTTP error response. Prefers the
+ * documented `error.type` field (a stronger signal than HTTP status alone);
+ * falls back to generic HTTP-status classification when the body doesn't
+ * carry that field (a proxy/gateway 4xx/5xx that never reached Anthropic).
+ */
+export function classifyAnthropicHttpError(
+  status: number,
+  bodyText: string,
+): ClassifiedHttpError {
+  const fallback = `HTTP ${status}`;
+  try {
+    const parsed = JSON.parse(bodyText.trim()) as {
+      error?: { type?: string; message?: string };
+    };
+    const type = parsed.error?.type;
+    if (type && type in ANTHROPIC_ERROR_TYPE_MAP) {
+      const message = (parsed.error?.message ?? fallback).slice(
+        0,
+        MAX_MESSAGE_LEN,
+      );
+      if (type === 'rate_limit_error') {
+        const reason = parseRateLimitReason(message);
+        return reason === 'QUOTA_EXHAUSTED'
+          ? { code: 'QUOTA_EXHAUSTED', message }
+          : { code: 'RATE_LIMITED', message };
+      }
+      return { code: ANTHROPIC_ERROR_TYPE_MAP[type], message };
+    }
+  } catch {
+    // Not the documented Anthropic error shape — fall through.
+  }
+  return classifyGenericHttpError(status, bodyText);
+}
+
+/**
+ * Map the same documented Anthropic `error.type` vocabulary onto a
+ * canonical code, for the streamed `event: error` SSE case (mid-stream,
+ * same schema as the HTTP-level error body).
+ */
+export function classifyAnthropicSseErrorType(
+  type: string | undefined,
+  message: string,
+): PlumbCanonicalErrorCode | undefined {
+  if (!type) return undefined;
+  if (type === 'rate_limit_error') {
+    const reason = parseRateLimitReason(message);
+    return reason === 'QUOTA_EXHAUSTED' ? 'QUOTA_EXHAUSTED' : 'RATE_LIMITED';
+  }
+  return ANTHROPIC_ERROR_TYPE_MAP[type];
+}

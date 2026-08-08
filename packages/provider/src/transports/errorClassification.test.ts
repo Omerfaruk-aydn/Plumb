@@ -1,0 +1,318 @@
+/**
+ * @license
+ * Copyright 2026 PLUMB Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  classifyGenericHttpError,
+  classifyGoogleHttpError,
+  classifyAnthropicHttpError,
+  classifyAnthropicSseErrorType,
+  sanitizeErrorBodyMessage,
+} from './errorClassification.js';
+
+describe('classifyGenericHttpError (OpenAI-/Ollama-compatible status codes)', () => {
+  it('400 -> INVALID_REQUEST', () => {
+    expect(
+      classifyGenericHttpError(
+        400,
+        JSON.stringify({ error: { message: 'bad request' } }),
+      ).code,
+    ).toBe('INVALID_REQUEST');
+  });
+
+  it('401 -> AUTH_REQUIRED', () => {
+    expect(
+      classifyGenericHttpError(
+        401,
+        JSON.stringify({ error: { message: 'invalid api key' } }),
+      ).code,
+    ).toBe('AUTH_REQUIRED');
+  });
+
+  it('403 -> ACCOUNT_RESTRICTED', () => {
+    expect(
+      classifyGenericHttpError(
+        403,
+        JSON.stringify({ error: { message: 'forbidden' } }),
+      ).code,
+    ).toBe('ACCOUNT_RESTRICTED');
+  });
+
+  it('404 -> MODEL_NOT_AVAILABLE', () => {
+    expect(
+      classifyGenericHttpError(
+        404,
+        JSON.stringify({ error: { message: 'model not found' } }),
+      ).code,
+    ).toBe('MODEL_NOT_AVAILABLE');
+  });
+
+  it('408 -> TIMEOUT', () => {
+    expect(classifyGenericHttpError(408, '').code).toBe('TIMEOUT');
+  });
+
+  it('409 -> CONFLICT', () => {
+    expect(classifyGenericHttpError(409, '').code).toBe('CONFLICT');
+  });
+
+  it('429 with no quota evidence -> RATE_LIMITED', () => {
+    const result = classifyGenericHttpError(
+      429,
+      JSON.stringify({
+        error: { message: 'Too many requests, please slow down.' },
+      }),
+    );
+    expect(result.code).toBe('RATE_LIMITED');
+  });
+
+  it('429 with quota-exhaustion evidence -> QUOTA_EXHAUSTED', () => {
+    const result = classifyGenericHttpError(
+      429,
+      JSON.stringify({
+        error: { message: 'You have exceeded your monthly quota.' },
+      }),
+    );
+    expect(result.code).toBe('QUOTA_EXHAUSTED');
+  });
+
+  it('500/502/503 -> UPSTREAM_ERROR', () => {
+    expect(classifyGenericHttpError(500, '').code).toBe('UPSTREAM_ERROR');
+    expect(classifyGenericHttpError(502, '').code).toBe('UPSTREAM_ERROR');
+    expect(classifyGenericHttpError(503, '').code).toBe('UPSTREAM_ERROR');
+  });
+
+  it('an unmapped 4xx (422) falls back to INVALID_REQUEST rather than guessing', () => {
+    expect(classifyGenericHttpError(422, '').code).toBe('INVALID_REQUEST');
+  });
+
+  it('extracts the nested error.message field from a JSON body', () => {
+    const result = classifyGenericHttpError(
+      400,
+      JSON.stringify({ error: { message: 'Specific reason from provider' } }),
+    );
+    expect(result.message).toBe('Specific reason from provider');
+  });
+
+  it('falls back to a bounded raw-text message for a non-JSON body', () => {
+    const result = classifyGenericHttpError(500, 'plain text upstream failure');
+    expect(result.message).toBe('plain text upstream failure');
+  });
+
+  it('never surfaces a raw HTML error page as the message', () => {
+    const html =
+      '<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>nginx</p></body></html>';
+    const result = classifyGenericHttpError(502, html);
+    expect(result.message).not.toContain('<html');
+    expect(result.message).not.toContain('<body');
+    expect(result.code).toBe('UPSTREAM_ERROR');
+  });
+
+  it('bounds an oversized JSON error message to a safe length', () => {
+    const huge = 'x'.repeat(10_000);
+    const result = classifyGenericHttpError(
+      400,
+      JSON.stringify({ error: { message: huge } }),
+    );
+    expect(result.message.length).toBeLessThanOrEqual(500);
+  });
+});
+
+describe('classifyGoogleHttpError (Gemini/Vertex/Cloud Code Assist)', () => {
+  it('PERMISSION_DENIED -> ACCOUNT_RESTRICTED', () => {
+    const result = classifyGoogleHttpError(403, '', {
+      status: 'PERMISSION_DENIED',
+      safeMessage: 'Caller does not have permission',
+    });
+    expect(result.code).toBe('ACCOUNT_RESTRICTED');
+  });
+
+  it('UNAUTHENTICATED -> AUTH_REQUIRED', () => {
+    const result = classifyGoogleHttpError(401, '', {
+      status: 'UNAUTHENTICATED',
+      safeMessage: 'Request had invalid authentication credentials',
+    });
+    expect(result.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('INVALID_ARGUMENT -> INVALID_REQUEST', () => {
+    const result = classifyGoogleHttpError(400, '', {
+      status: 'INVALID_ARGUMENT',
+      safeMessage: 'Invalid value for field',
+    });
+    expect(result.code).toBe('INVALID_REQUEST');
+  });
+
+  it('NOT_FOUND -> MODEL_NOT_AVAILABLE', () => {
+    const result = classifyGoogleHttpError(404, '', {
+      status: 'NOT_FOUND',
+      safeMessage: 'Model not found',
+    });
+    expect(result.code).toBe('MODEL_NOT_AVAILABLE');
+  });
+
+  it('a bare resource_exhausted status (transient model capacity, no quota wording) -> RATE_LIMITED', () => {
+    // OMP's parseRateLimitReason treats the bare gRPC status name
+    // ("resource_exhausted") as transient MODEL_CAPACITY_EXHAUSTED, distinct
+    // from explicit quota/balance wording — see rate-limit.ts's
+    // RESOURCE_EXHAUSTED_PATTERN stripping. classifyGenericHttpError maps
+    // anything short of QUOTA_EXHAUSTED evidence to the safe RATE_LIMITED
+    // default rather than guessing QUOTA_EXHAUSTED.
+    const result = classifyGoogleHttpError(429, '', {
+      status: 'RESOURCE_EXHAUSTED',
+      safeMessage: 'resource_exhausted',
+    });
+    expect(result.code).toBe('RATE_LIMITED');
+  });
+
+  it('RESOURCE_EXHAUSTED with quota-exhaustion evidence -> QUOTA_EXHAUSTED', () => {
+    const result = classifyGoogleHttpError(429, '', {
+      status: 'RESOURCE_EXHAUSTED',
+      safeMessage:
+        'You have exhausted your capacity on this model. Your quota will reset after 24h.',
+    });
+    expect(result.code).toBe('QUOTA_EXHAUSTED');
+  });
+
+  it('DEADLINE_EXCEEDED -> TIMEOUT', () => {
+    const result = classifyGoogleHttpError(504, '', {
+      status: 'DEADLINE_EXCEEDED',
+      safeMessage: 'Deadline exceeded',
+    });
+    expect(result.code).toBe('TIMEOUT');
+  });
+
+  it('falls back to generic HTTP-status classification with no structured status', () => {
+    const result = classifyGoogleHttpError(500, '', {});
+    expect(result.code).toBe('UPSTREAM_ERROR');
+  });
+
+  it('falls back to generic HTTP-status classification for an unrecognized status value', () => {
+    const result = classifyGoogleHttpError(400, '', {
+      status: 'SOME_FUTURE_GOOGLE_STATUS',
+    });
+    expect(result.code).toBe('INVALID_REQUEST');
+  });
+});
+
+describe('classifyAnthropicHttpError', () => {
+  it('authentication_error -> AUTH_REQUIRED', () => {
+    const result = classifyAnthropicHttpError(
+      401,
+      JSON.stringify({
+        error: { type: 'authentication_error', message: 'invalid x-api-key' },
+      }),
+    );
+    expect(result.code).toBe('AUTH_REQUIRED');
+    expect(result.message).toBe('invalid x-api-key');
+  });
+
+  it('permission_error -> ACCOUNT_RESTRICTED', () => {
+    const result = classifyAnthropicHttpError(
+      403,
+      JSON.stringify({
+        error: { type: 'permission_error', message: 'no access to this model' },
+      }),
+    );
+    expect(result.code).toBe('ACCOUNT_RESTRICTED');
+  });
+
+  it('not_found_error -> MODEL_NOT_AVAILABLE', () => {
+    const result = classifyAnthropicHttpError(
+      404,
+      JSON.stringify({
+        error: { type: 'not_found_error', message: 'model not found' },
+      }),
+    );
+    expect(result.code).toBe('MODEL_NOT_AVAILABLE');
+  });
+
+  it('invalid_request_error -> INVALID_REQUEST', () => {
+    const result = classifyAnthropicHttpError(
+      400,
+      JSON.stringify({
+        error: {
+          type: 'invalid_request_error',
+          message: 'messages: at least one message is required',
+        },
+      }),
+    );
+    expect(result.code).toBe('INVALID_REQUEST');
+  });
+
+  it('rate_limit_error without quota evidence -> RATE_LIMITED', () => {
+    const result = classifyAnthropicHttpError(
+      429,
+      JSON.stringify({
+        error: {
+          type: 'rate_limit_error',
+          message: 'Number of requests has exceeded your per-minute rate limit',
+        },
+      }),
+    );
+    expect(result.code).toBe('RATE_LIMITED');
+  });
+
+  it('overloaded_error -> UPSTREAM_ERROR', () => {
+    const result = classifyAnthropicHttpError(
+      529,
+      JSON.stringify({
+        error: { type: 'overloaded_error', message: 'Overloaded' },
+      }),
+    );
+    expect(result.code).toBe('UPSTREAM_ERROR');
+  });
+
+  it('falls back to generic HTTP-status classification for a non-Anthropic-shaped body (e.g. a proxy 502)', () => {
+    const result = classifyAnthropicHttpError(
+      502,
+      '<html><body>Bad Gateway</body></html>',
+    );
+    expect(result.code).toBe('UPSTREAM_ERROR');
+    expect(result.message).not.toContain('<html');
+  });
+});
+
+describe('classifyAnthropicSseErrorType', () => {
+  it('maps documented SSE error types to canonical codes', () => {
+    expect(classifyAnthropicSseErrorType('authentication_error', '')).toBe(
+      'AUTH_REQUIRED',
+    );
+    expect(classifyAnthropicSseErrorType('overloaded_error', '')).toBe(
+      'UPSTREAM_ERROR',
+    );
+  });
+
+  it('returns undefined for an unrecognized type (caller keeps its own fallback)', () => {
+    expect(
+      classifyAnthropicSseErrorType('some_future_error_type', ''),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a missing type', () => {
+    expect(classifyAnthropicSseErrorType(undefined, '')).toBeUndefined();
+  });
+});
+
+describe('sanitizeErrorBodyMessage', () => {
+  it('returns the fallback for an empty body', () => {
+    expect(sanitizeErrorBodyMessage('', 'HTTP 500')).toBe('HTTP 500');
+  });
+
+  it('returns the fallback for an HTML body', () => {
+    expect(
+      sanitizeErrorBodyMessage('<html><body>oops</body></html>', 'HTTP 502'),
+    ).toBe('HTTP 502');
+  });
+
+  it('prefers error.message over top-level message when both are present', () => {
+    expect(
+      sanitizeErrorBodyMessage(
+        JSON.stringify({ message: 'outer', error: { message: 'inner' } }),
+        'fallback',
+      ),
+    ).toBe('inner');
+  });
+});
