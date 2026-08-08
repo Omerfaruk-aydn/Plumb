@@ -134,4 +134,32 @@ describe('claude-subscription routing (production-shaped, no mocking of streamin
     ];
     expect(callArgs.options?.model).toBe(target.id);
   });
+
+  it('surfaces an explicit AGENT_SDK_UNAVAILABLE error and never silently falls back to a raw HTTP request when the SDK throws on query() construction', async () => {
+    // The old raw Claude Code OAuth flow (provider id 'anthropic') is
+    // permanently blocked (BLOCKED_UPSTREAM_POLICY, catalog/providers.ts).
+    // This proves the failure mode when the Agent SDK itself is broken:
+    // an explicit, typed error event — never a silent fetch() fallback to
+    // any HTTP-based transport (which is the only way a "legacy OAuth"
+    // style request could leave the process for this provider).
+    mockQuery.mockImplementation(() => {
+      throw new Error('spawn ENOENT');
+    });
+
+    const [model] = getCatalogModels('claude-subscription');
+    const events = await drain(
+      plumbModelStream({
+        model: model!,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: '',
+      }),
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(events).toHaveLength(1);
+    expect(events[0]!.type).toBe('error');
+    expect((events[0] as { error: { code: string } }).error.code).toBe(
+      'AGENT_SDK_UNAVAILABLE',
+    );
+  });
 });
