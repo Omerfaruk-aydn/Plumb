@@ -56,6 +56,9 @@ import { WatsonXAI } from '@ibm-cloud/watsonx-ai';
 import { IamAuthenticator } from 'ibm-cloud-sdk-core';
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';
 import { buildOpenAIMessages } from './streaming.js';
+import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
+
+const WATSONX_PROVIDER_ID = 'watsonx';
 
 /** Official watsonx.ai API version query parameter used in IBM's own examples. */
 const API_VERSION = '2024-05-31';
@@ -72,7 +75,13 @@ const REGION_HOSTS: Readonly<Record<string, string>> = {
 const DEFAULT_REGION = 'us-south';
 
 export function resolveWatsonxServiceUrl(): string {
-  const region = process.env['WATSONX_REGION']?.trim() || DEFAULT_REGION;
+  const region =
+    resolveProviderConfigValue(
+      WATSONX_PROVIDER_ID,
+      'region',
+      'WATSONX_REGION',
+      DEFAULT_REGION,
+    ) ?? DEFAULT_REGION;
   return REGION_HOSTS[region] ?? REGION_HOSTS[DEFAULT_REGION]!;
 }
 
@@ -89,8 +98,16 @@ export interface WatsonxContext {
  * used for deployed/production assets.
  */
 export function resolveWatsonxContext(): WatsonxContext {
-  const projectId = process.env['WATSONX_PROJECT_ID']?.trim();
-  const spaceId = process.env['WATSONX_SPACE_ID']?.trim();
+  const projectId = resolveProviderConfigValue(
+    WATSONX_PROVIDER_ID,
+    'projectId',
+    'WATSONX_PROJECT_ID',
+  );
+  const spaceId = resolveProviderConfigValue(
+    WATSONX_PROVIDER_ID,
+    'spaceId',
+    'WATSONX_SPACE_ID',
+  );
   return {
     projectId: projectId || undefined,
     spaceId: !projectId && spaceId ? spaceId : undefined,

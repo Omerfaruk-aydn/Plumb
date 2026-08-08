@@ -28,6 +28,7 @@ import type {
 } from '../types.js';
 import { resolveProviderAlias } from './providers.js';
 import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
+import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
 
 // ─── OMP → PLUMB projection ────────────────────────────────────────────
 
@@ -226,10 +227,24 @@ const OCI_GENAI_STATIC_MODELS: readonly OciGenaiStaticModel[] = [
 ];
 
 function ociGenaiCatalogModels(): PlumbModel[] {
-  const region = process.env['OCI_REGION']?.trim() || OCI_DEFAULT_REGION;
+  const region =
+    resolveProviderConfigValue(
+      OCI_GENAI_PROVIDER_ID,
+      'region',
+      'OCI_REGION',
+      OCI_DEFAULT_REGION,
+    ) ?? OCI_DEFAULT_REGION;
   const baseUrl = `https://inference.generativeai.${region}.oci.oraclecloud.com/openai/v1`;
-  const compartmentId = process.env['OCI_COMPARTMENT_ID']?.trim();
-  const projectId = process.env['OCI_GENAI_PROJECT_ID']?.trim();
+  const compartmentId = resolveProviderConfigValue(
+    OCI_GENAI_PROVIDER_ID,
+    'compartmentId',
+    'OCI_COMPARTMENT_ID',
+  );
+  const projectId = resolveProviderConfigValue(
+    OCI_GENAI_PROVIDER_ID,
+    'projectId',
+    'OCI_GENAI_PROJECT_ID',
+  );
   const headers: Record<string, string> = {};
   if (compartmentId) headers['opc-compartment-id'] = compartmentId;
   if (projectId) headers['OpenAI-Project'] = projectId;

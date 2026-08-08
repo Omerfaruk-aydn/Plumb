@@ -137,6 +137,15 @@ export {
 // Bundled model catalog initialization
 export { initBundledModels } from './catalog/models.js';
 
+// Provider safe (non-secret) cloud configuration resolution seam
+export {
+  setProviderConfigResolver,
+  resolveProviderSafeConfig,
+  resolveProviderConfigValue,
+  type ProviderSafeConfig,
+  type ProviderConfigResolver,
+} from './config/providerConfigResolver.js';
+
 // OMP catalog (directly adapted from upstream)
 export {
   getBundledModel,
