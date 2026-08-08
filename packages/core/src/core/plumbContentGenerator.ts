@@ -9,7 +9,7 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
- 
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type ContentGenerator } from './contentGenerator.js';
@@ -26,6 +26,7 @@ import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import { debugLogger } from '../utils/debugLogger.js';
 
 export class PlumbContentGenerator implements ContentGenerator {
+  readonly #instanceId = `cg-${Math.random().toString(36).slice(2, 10)}`;
   readonly #providerId: string;
   readonly #modelId: string;
   readonly #apiKey: string;
@@ -138,6 +139,14 @@ export class PlumbContentGenerator implements ContentGenerator {
         apiKey: this.#apiKey,
         signal: (request as any).config?.abortSignal as AbortSignal | undefined,
         systemPrompt,
+        traceSource: 'NORMAL_CHAT',
+        generatorInstance: {
+          instanceId: this.#instanceId,
+          providerAtConstruction: this.#providerId,
+          modelAtConstruction: this.#modelId,
+          currentProvider: this.#providerId,
+          currentModel: this.#modelId,
+        },
       });
 
       for await (const event of stream) {
@@ -185,7 +194,7 @@ export class PlumbContentGenerator implements ContentGenerator {
               candidates: [
                 {
                   content: { parts: [], role: 'model' },
-                  finishReason: (event.finishReason ?? 'STOP'),
+                  finishReason: event.finishReason ?? 'STOP',
                   index: 0,
                 },
               ],
@@ -271,9 +280,7 @@ export class PlumbContentGenerator implements ContentGenerator {
     return result;
   }
 
-  #convertTools(
-    tools: any[],
-  ): Array<{
+  #convertTools(tools: any[]): Array<{
     type: string;
     function: { name: string; description: string; parameters: unknown };
   }> {

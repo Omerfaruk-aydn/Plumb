@@ -32,7 +32,7 @@ const packageName = basename(process.cwd());
 if (packageName === 'provider') {
   const distDir = join(process.cwd(), 'dist');
   if (existsSync(distDir)) {
-    rmSync(distDir, { recursive: true, force: true });
+    rmSync(distDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
 

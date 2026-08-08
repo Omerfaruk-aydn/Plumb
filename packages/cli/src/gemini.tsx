@@ -440,6 +440,7 @@ export async function main() {
     argv.testProviderNext ||
     argv.diagnoseAntigravityRoute ||
     argv.testAntigravityRoute ||
+    argv.diffAntigravityTrace ||
     argv.diagnoseCredentialScope
   ) {
     // PLUMB: diagnostics must run through the exact same provider-runtime
@@ -470,6 +471,7 @@ export async function main() {
       printAntigravityRouteDiagnostics,
       runAntigravityRouteTest,
       printCredentialScopeDiagnostics,
+      runDiffAntigravityTrace,
     } = await import('./runtimeDiagnostics.js');
     let exitCode: number;
     if (argv.runtimeIdentity) {
@@ -507,6 +509,8 @@ export async function main() {
       exitCode = await printAntigravityRouteDiagnostics();
     } else if (argv.testAntigravityRoute) {
       exitCode = await runAntigravityRouteTest(argv.testAntigravityRoute);
+    } else if (argv.diffAntigravityTrace) {
+      exitCode = await runDiffAntigravityTrace(argv.diffAntigravityTrace);
     } else if (argv.diagnoseCredentialScope) {
       exitCode = await printCredentialScopeDiagnostics(
         argv.diagnoseCredentialScope,

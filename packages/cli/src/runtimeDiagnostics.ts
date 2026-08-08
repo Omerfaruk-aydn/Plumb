@@ -1902,11 +1902,19 @@ export async function runAntigravityRouteTest(
     }
     process.stdout.write(`wire.model: ${model.requestModelId ?? model.id}\n`);
 
-    const result = await providerModule.buildAntigravityRequest({
-      model,
-      messages: [{ role: 'user', content: 'ping' }],
-      apiKey: '',
-    });
+    const probeTraceId = providerModule.antigravityTraceEnabled?.()
+      ? providerModule.makeAntigravityTraceId?.()
+      : undefined;
+
+    const result = await providerModule.buildAntigravityRequest(
+      {
+        model,
+        messages: [{ role: 'user', content: 'ping' }],
+        apiKey: '',
+        traceSource: 'LIVE_PROBE',
+      },
+      probeTraceId,
+    );
     if (!result.ok) {
       process.stdout.write('request.attempted: false\n');
       process.stdout.write('http.status: NOT_SENT\n');
@@ -1933,6 +1941,25 @@ export async function runAntigravityRouteTest(
       : {};
     process.stdout.write(`project.present: ${'project' in bodyRecord}\n`);
 
+    if (
+      probeTraceId &&
+      typeof providerModule.traceAntigravityFinalHttpRequest === 'function'
+    ) {
+      providerModule.traceAntigravityFinalHttpRequest({
+        traceId: probeTraceId,
+        source: 'LIVE_PROBE',
+        model,
+        descriptor: result.descriptor,
+        options: {
+          model,
+          messages: [{ role: 'user', content: 'ping' }],
+          apiKey: '',
+          traceSource: 'LIVE_PROBE',
+        },
+        resolvedCredential: resolved,
+      });
+    }
+
     let response: Response;
     process.stdout.write('request.attempted: true\n');
     try {
@@ -1941,7 +1968,30 @@ export async function runAntigravityRouteTest(
         headers: result.descriptor.headers,
         body: JSON.stringify(result.descriptor.body),
       });
+      if (
+        probeTraceId &&
+        typeof providerModule.traceAntigravityHttpResponse === 'function'
+      ) {
+        providerModule.traceAntigravityHttpResponse({
+          traceId: probeTraceId,
+          source: 'LIVE_PROBE',
+          response,
+        });
+      }
     } catch (err) {
+      if (
+        probeTraceId &&
+        typeof providerModule.traceAntigravityError === 'function'
+      ) {
+        providerModule.traceAntigravityError({
+          traceId: probeTraceId,
+          source: 'LIVE_PROBE',
+          error: {
+            code: 'REQUEST_FAILED',
+            message: err instanceof Error ? err.message : String(err),
+          },
+        });
+      }
       process.stdout.write('http.status: NOT_SENT\n');
       process.stdout.write('safe.error.classification: REQUEST_FAILED\n');
       process.stderr.write(
@@ -1982,4 +2032,235 @@ export async function runAntigravityRouteTest(
     );
     return 1;
   }
+}
+
+/**
+ * `plumb --diff-antigravity-trace <file>` — loads the latest completed
+ * NORMAL_CHAT and LIVE_PROBE trace events from a safe JSONL trace file,
+ * compares safe structural fields, and reports the differences.
+ */
+export async function runDiffAntigravityTrace(
+  filePath: string,
+): Promise<number> {
+  process.stdout.write('PLUMB Antigravity trace diff tool\n');
+  process.stdout.write(`file: ${filePath}\n`);
+
+  if (!fs.existsSync(filePath)) {
+    process.stderr.write(
+      `diff-antigravity-trace: FAIL: trace file not found: ${filePath}\n`,
+    );
+    return 1;
+  }
+
+  let lines: string[] = [];
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    lines = content
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+  } catch (err) {
+    process.stderr.write(
+      `diff-antigravity-trace: FAIL: cannot read trace file: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return 1;
+  }
+
+  const eventsByTraceId = new Map<string, Array<Record<string, unknown>>>();
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+      const traceId = String(parsed['traceId'] ?? '');
+      if (traceId) {
+        if (!eventsByTraceId.has(traceId)) {
+          eventsByTraceId.set(traceId, []);
+        }
+        eventsByTraceId.get(traceId)!.push(parsed);
+      }
+    } catch {
+      // Ignore malformed lines safely
+    }
+  }
+
+  interface CompletedTrace {
+    traceId: string;
+    source: string;
+    requestEvent: Record<string, unknown>;
+    responseEvent: Record<string, unknown>;
+  }
+
+  let latestNormalChat: CompletedTrace | null = null;
+  let latestLiveProbe: CompletedTrace | null = null;
+
+  for (const [traceId, events] of eventsByTraceId.entries()) {
+    const reqEvt = events.find((e) => e['phase'] === 'FINAL_HTTP_REQUEST');
+    const respEvt = events.find(
+      (e) => e['phase'] === 'HTTP_RESPONSE' || e['phase'] === 'ERROR',
+    );
+    if (reqEvt && respEvt) {
+      const source = String(reqEvt['source'] ?? respEvt['source'] ?? '');
+      const completed: CompletedTrace = {
+        traceId,
+        source,
+        requestEvent: reqEvt,
+        responseEvent: respEvt,
+      };
+      if (source === 'NORMAL_CHAT') {
+        latestNormalChat = completed;
+      } else if (source === 'LIVE_PROBE') {
+        latestLiveProbe = completed;
+      }
+    }
+  }
+
+  if (!latestNormalChat) {
+    process.stderr.write(
+      'diff-antigravity-trace: FAIL: missing completed NORMAL_CHAT trace in file\n',
+    );
+    return 1;
+  }
+  if (!latestLiveProbe) {
+    process.stderr.write(
+      'diff-antigravity-trace: FAIL: missing completed LIVE_PROBE trace in file\n',
+    );
+    return 1;
+  }
+
+  function getSubField(
+    e: Record<string, unknown>,
+    parent: string,
+    child: string,
+  ): string {
+    const p = e[parent];
+    if (p && typeof p === 'object') {
+      const val = (p as Record<string, unknown>)[child];
+      if (val !== undefined && val !== null) {
+        return String(val);
+      }
+    }
+    return '';
+  }
+
+  function getSubArrayJoin(
+    e: Record<string, unknown>,
+    parent: string,
+    child: string,
+  ): string {
+    const p = e[parent];
+    if (p && typeof p === 'object') {
+      const arr = (p as Record<string, unknown>)[child];
+      if (Array.isArray(arr)) {
+        return arr.join(',');
+      }
+    }
+    return '';
+  }
+
+  function getSubObjectJson(
+    e: Record<string, unknown>,
+    parent: string,
+    child: string,
+  ): string {
+    const p = e[parent];
+    if (p && typeof p === 'object') {
+      const val = (p as Record<string, unknown>)[child];
+      if (val !== undefined && val !== null) {
+        return JSON.stringify(val);
+      }
+    }
+    return '{}';
+  }
+
+  const normalErr = latestNormalChat.responseEvent['error'];
+  const normalErrCode =
+    normalErr && typeof normalErr === 'object'
+      ? String((normalErr as Record<string, unknown>)['code'] ?? 'ERROR')
+      : 'ERROR';
+  const normalStatus =
+    latestNormalChat.responseEvent['status'] !== undefined
+      ? String(latestNormalChat.responseEvent['status'])
+      : normalErrCode;
+
+  const probeErr = latestLiveProbe.responseEvent['error'];
+  const probeErrCode =
+    probeErr && typeof probeErr === 'object'
+      ? String((probeErr as Record<string, unknown>)['code'] ?? 'ERROR')
+      : 'ERROR';
+  const probeStatus =
+    latestLiveProbe.responseEvent['status'] !== undefined
+      ? String(latestLiveProbe.responseEvent['status'])
+      : probeErrCode;
+
+  process.stdout.write(`NORMAL_CHAT_STATUS: ${normalStatus}\n`);
+  process.stdout.write(`LIVE_PROBE_STATUS: ${probeStatus}\n`);
+  process.stdout.write('\n');
+
+  const safeFieldsToCompare: Array<{
+    key: string;
+    get: (e: Record<string, unknown>) => string;
+  }> = [
+    { key: 'provider.plumbId', get: (e) => getSubField(e, 'provider', 'plumbId') },
+    { key: 'provider.catalogId', get: (e) => getSubField(e, 'provider', 'catalogId') },
+    { key: 'model.displayId', get: (e) => getSubField(e, 'model', 'displayId') },
+    { key: 'model.requestModelId', get: (e) => getSubField(e, 'model', 'requestModelId') },
+    { key: 'model.api', get: (e) => getSubField(e, 'model', 'api') },
+    { key: 'wireModel', get: (e) => getSubField(e, 'model', 'wireModel') },
+    { key: 'credential.scope', get: (e) => getSubField(e, 'credential', 'scope') },
+    { key: 'credential.classification', get: (e) => getSubField(e, 'credential', 'classification') },
+    { key: 'credential.runtimeUsable', get: (e) => getSubField(e, 'credential', 'runtimeUsable') },
+    { key: 'credential.projectIdPresent', get: (e) => getSubField(e, 'credential', 'projectIdPresent') },
+    { key: 'request.origin', get: (e) => getSubField(e, 'request', 'origin') },
+    { key: 'request.pathname', get: (e) => getSubField(e, 'request', 'pathname') },
+    { key: 'request.method', get: (e) => getSubField(e, 'request', 'method') },
+    { key: 'request.queryKeys', get: (e) => getSubArrayJoin(e, 'request', 'queryKeys') },
+    { key: 'request.headerNames', get: (e) => getSubArrayJoin(e, 'request', 'headerNames') },
+    { key: 'request.authorizationPresent', get: (e) => getSubField(e, 'request', 'authorizationPresent') },
+    { key: 'body.topLevelKeys', get: (e) => getSubArrayJoin(e, 'body', 'topLevelKeys') },
+    { key: 'body.projectPresent', get: (e) => getSubField(e, 'body', 'projectPresent') },
+    { key: 'body.model', get: (e) => getSubField(e, 'body', 'model') },
+    { key: 'body.requestPresent', get: (e) => getSubField(e, 'body', 'requestPresent') },
+    { key: 'body.requestIdPresent', get: (e) => getSubField(e, 'body', 'requestIdPresent') },
+    { key: 'body.sessionIdPresent', get: (e) => getSubField(e, 'body', 'sessionIdPresent') },
+    { key: 'body.labelsPresent', get: (e) => getSubField(e, 'body', 'labelsPresent') },
+    { key: 'body.userAgent', get: (e) => getSubField(e, 'body', 'userAgent') },
+    { key: 'body.requestType', get: (e) => getSubField(e, 'body', 'requestType') },
+    { key: 'contents.count', get: (e) => getSubField(e, 'contents', 'count') },
+    { key: 'contents.roles', get: (e) => getSubArrayJoin(e, 'contents', 'roles') },
+    { key: 'contents.partTypeCounts', get: (e) => getSubObjectJson(e, 'contents', 'partTypeCounts') },
+    { key: 'tools.count', get: (e) => getSubField(e, 'tools', 'count') },
+    { key: 'tools.typeNames', get: (e) => getSubArrayJoin(e, 'tools', 'typeNames') },
+    { key: 'systemInstruction.present', get: (e) => getSubField(e, 'systemInstruction', 'present') },
+    { key: 'request.structureHash', get: (e) => getSubField(e, 'request', 'structureHash') },
+    { key: 'body.structureHash', get: (e) => getSubField(e, 'body', 'structureHash') },
+    { key: 'endpoint.origin', get: (e) => getSubField(e, 'endpoint', 'origin') },
+    { key: 'endpoint.pathname', get: (e) => getSubField(e, 'endpoint', 'pathname') },
+    { key: 'endpoint.selector', get: (e) => getSubField(e, 'endpoint', 'selector') },
+    { key: 'endpoint.source', get: (e) => getSubField(e, 'endpoint', 'source') },
+  ];
+
+  const diffs: Array<{ field: string; normal: string; probe: string }> = [];
+
+  for (const field of safeFieldsToCompare) {
+    const normalVal = field.get(latestNormalChat.requestEvent);
+    const probeVal = field.get(latestLiveProbe.requestEvent);
+    if (normalVal !== probeVal) {
+      diffs.push({ field: field.key, normal: normalVal, probe: probeVal });
+    }
+  }
+
+  process.stdout.write(`DIFF_COUNT: ${diffs.length}\n`);
+  process.stdout.write('\n');
+
+  if (diffs.length === 0) {
+    process.stdout.write('FINAL_SAFE_DESCRIPTOR_DIFFERENCE:\n');
+    process.stdout.write('ZERO\n');
+  } else {
+    for (const d of diffs) {
+      process.stdout.write(`DIFF ${d.field}:\n`);
+      process.stdout.write(`  NORMAL_CHAT: ${d.normal}\n`);
+      process.stdout.write(`  LIVE_PROBE:  ${d.probe}\n`);
+    }
+  }
+
+  return 0;
 }

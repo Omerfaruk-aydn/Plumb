@@ -285,6 +285,14 @@ export interface PlumbStreamOptions {
   maxTokens?: number;
   temperature?: number;
   systemPrompt?: string;
+  traceSource?: 'NORMAL_CHAT' | 'LIVE_PROBE';
+  generatorInstance?: {
+    instanceId: string;
+    providerAtConstruction: string;
+    modelAtConstruction: string;
+    currentProvider: string;
+    currentModel: string;
+  } | null;
 }
 
 export interface PlumbMessage {

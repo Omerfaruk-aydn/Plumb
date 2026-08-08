@@ -125,6 +125,7 @@ export interface CliArgs {
   traceSafe: boolean | undefined;
   diagnoseAntigravityRoute: boolean | undefined;
   testAntigravityRoute: string | undefined;
+  diffAntigravityTrace?: string;
   diagnoseCredentialScope: string | undefined;
 }
 
@@ -585,6 +586,11 @@ export async function parseArguments(
           type: 'string',
           description:
             'Prove which literal string a provider credential is actually stored under in the real secure store (PLUMB presentation id vs. OMP catalog id), and classify it (no credential / expired-but-refreshable / valid / corrupted). Never modifies the store, never prints a token or project-id value. Usage: plumb --diagnose-credential-scope <provider-id>',
+        })
+        .option('diff-antigravity-trace', {
+          type: 'string',
+          description:
+            'Load a safe JSONL Antigravity trace file, compare the latest completed NORMAL_CHAT trace against the latest completed LIVE_PROBE trace, and output safe structural field differences. Usage: plumb --diff-antigravity-trace <file-path>',
         }),
     )
     .version(await getVersion()) // This will enable the --version flag based on package.json

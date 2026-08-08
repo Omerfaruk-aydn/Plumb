@@ -208,6 +208,21 @@ export {
   type AntigravityRequestDescriptor,
   type AntigravityRequestResult,
 } from './transports/streaming.js';
+export {
+  antigravityTraceEnabled,
+  makeAntigravityTraceId,
+  writeSafeTraceEvent,
+  computeCanonicalStructureHash,
+  computeRequestStructureHash,
+  computeBodyStructureHash,
+  traceAntigravityRequestConstruction,
+  traceAntigravityFinalHttpRequest,
+  traceAntigravityHttpResponse,
+  traceAntigravityError,
+  type AntigravityTraceSource,
+  type AntigravityTracePhase,
+  type ContentGeneratorInstanceTrace,
+} from './transports/antigravityTrace.js';
 
 // Coding plan implementations
 export {

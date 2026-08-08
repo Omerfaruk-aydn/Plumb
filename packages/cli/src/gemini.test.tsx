@@ -582,6 +582,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       traceSafe: undefined,
       diagnoseAntigravityRoute: undefined,
       testAntigravityRoute: undefined,
+      diffAntigravityTrace: undefined,
       diagnoseCredentialScope: undefined,
     });
 
@@ -657,6 +658,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       traceSafe: undefined,
       diagnoseAntigravityRoute: undefined,
       testAntigravityRoute: undefined,
+      diffAntigravityTrace: undefined,
       diagnoseCredentialScope: undefined,
     });
 

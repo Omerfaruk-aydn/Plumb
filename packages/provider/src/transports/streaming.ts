@@ -644,17 +644,28 @@ export async function buildAntigravityRequest(
   const { model, messages, tools, systemPrompt, maxTokens, temperature } =
     options;
 
+  const source = options.traceSource ?? 'NORMAL_CHAT';
   const traceId = antigravityTraceEnabled()
     ? (callerTraceId ?? makeAntigravityTraceId())
     : null;
   if (traceId) {
-    traceAntigravity(`traceId=${traceId} provider.plumbId=${model.provider}`);
-    traceAntigravity(
-      `traceId=${traceId} model.displayId=${model.id} model.requestModelId=${model.requestModelId ?? '(none)'} model.api=${model.api} model.baseUrl=${model.baseUrl ?? '(none, will use DEFAULT_ENDPOINT)'}`,
+    const { traceAntigravityRequestConstruction } = await import(
+      './antigravityTrace.js'
     );
-    traceAntigravity(
-      `traceId=${traceId} request.contents.count=${messages.length} request.tools.count=${tools?.length ?? 0} request.systemInstruction.present=${!!systemPrompt}`,
-    );
+    traceAntigravityRequestConstruction({
+      traceId,
+      source,
+      model,
+      options,
+      generatorInstance: options.generatorInstance,
+    });
+    for (const line of describeAntigravityRequestSafely({
+      url: model.baseUrl ?? 'https://daily-cloudcode-pa.googleapis.com',
+      headers: {},
+      body: null,
+    })) {
+      traceAntigravity(`traceId=${traceId} ${line}`);
+    }
   }
 
   const { resolvePlumbProviderId } = await import('../catalog/providers.js');
@@ -677,6 +688,17 @@ export async function buildAntigravityRequest(
   const credential = resolved.credential;
 
   if (!credential || !credential.access || !credential.projectId) {
+    if (traceId) {
+      const { traceAntigravityError } = await import('./antigravityTrace.js');
+      traceAntigravityError({
+        traceId,
+        source,
+        error: {
+          code: 'MISSING_CREDENTIAL',
+          message: `No credential available for provider: ${registryProviderId}`,
+        },
+      });
+    }
     return {
       ok: false,
       error: {
@@ -764,6 +786,17 @@ export async function buildAntigravityRequest(
       isAntigravity,
     );
   } catch (err) {
+    if (traceId) {
+      const { traceAntigravityError } = await import('./antigravityTrace.js');
+      traceAntigravityError({
+        traceId,
+        source,
+        error: {
+          code: 'REQUEST_BUILD_FAILED',
+          message: (err as Error).message,
+        },
+      });
+    }
     return {
       ok: false,
       error: {
@@ -789,25 +822,15 @@ export async function buildAntigravityRequest(
   }
 
   const descriptor = { url, headers, body: requestBody };
-  if (traceId) {
-    for (const line of describeAntigravityRequestSafely(descriptor)) {
-      traceAntigravity(`traceId=${traceId} ${line}`);
-    }
-  }
-
   return { ok: true, descriptor };
 }
 
 async function* googleCloudCodeAssistStream(
   options: PlumbStreamOptions,
 ): AsyncGenerator<PlumbStreamEvent> {
-  // This function is reached by BOTH normal PLUMB chat and
-  // `--test-antigravity-route` (via buildAntigravityRequest, which the CLI
-  // diagnostic also calls directly) — there is no separate "normal chat"
-  // vs "probe" code path to distinguish here; a trace line captured with
-  // PLUMB_ANTIGRAVITY_TRACE_SAFE=1 during real interactive chat IS the
-  // normal-chat descriptor, directly comparable to a probe run's trace.
+  const source = options.traceSource ?? 'NORMAL_CHAT';
   const traceId = antigravityTraceEnabled() ? makeAntigravityTraceId() : null;
+
   const result = await buildAntigravityRequest(options, traceId ?? undefined);
   if (!result.ok) {
     if (traceId) {
@@ -820,6 +843,23 @@ async function* googleCloudCodeAssistStream(
   }
   const { url, headers, body } = result.descriptor;
 
+  if (traceId) {
+    const { traceAntigravityFinalHttpRequest } = await import(
+      './antigravityTrace.js'
+    );
+    traceAntigravityFinalHttpRequest({
+      traceId,
+      source,
+      model: options.model,
+      descriptor: result.descriptor,
+      options,
+      generatorInstance: options.generatorInstance,
+    });
+    for (const line of describeAntigravityRequestSafely(result.descriptor)) {
+      traceAntigravity(`traceId=${traceId} ${line}`);
+    }
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
@@ -830,6 +870,15 @@ async function* googleCloudCodeAssistStream(
     });
   } catch (err) {
     if (traceId) {
+      const { traceAntigravityError } = await import('./antigravityTrace.js');
+      traceAntigravityError({
+        traceId,
+        source,
+        error: {
+          code: 'REQUEST_FAILED',
+          message: (err as Error).message,
+        },
+      });
       traceAntigravity(
         `traceId=${traceId} request.attempted=true fetch.threw=true`,
       );
@@ -846,6 +895,15 @@ async function* googleCloudCodeAssistStream(
   }
 
   if (traceId) {
+    const { traceAntigravityHttpResponse } = await import(
+      './antigravityTrace.js'
+    );
+    traceAntigravityHttpResponse({
+      traceId,
+      source,
+      response,
+    });
+
     const traceHeaderNames = ['x-goog-trace-id', 'x-request-id', 'server'];
     const safeHeaders = traceHeaderNames
       .map((h) => `${h}=${response.headers.get(h) ?? '(absent)'}`)
