@@ -32,14 +32,18 @@ const packageName = basename(process.cwd());
 if (packageName === 'provider') {
   const distDir = join(process.cwd(), 'dist');
   if (existsSync(distDir)) {
-    rmSync(distDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    try {
+      rmSync(distDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch {
+      // ignore EPERM lock on Windows
+    }
   }
 }
 
 // build typescript files
 // Use tsc without --build for provider package (uses bundler moduleResolution)
 if (packageName === 'provider') {
-  execSync('tsc', { stdio: 'inherit' });
+  execSync('npx --no-install tsc', { stdio: 'inherit' });
   // Copy non-TypeScript assets (.md, .md.js, .html, .json, extension-less
   // files) from the whole src/ tree into dist/ with layout preserved.
   // TypeScript emits neither the OMP dialect prompts (.md / .md.js) nor the
@@ -69,7 +73,7 @@ if (packageName === 'provider') {
 
   copyAssetsOnly(join(process.cwd(), 'src'), join(process.cwd(), 'dist'));
 } else {
-  execSync('tsc --build', { stdio: 'inherit' });
+  execSync('npx --no-install tsc --build', { stdio: 'inherit' });
 }
 
 // Run package-specific bundling if the script exists
