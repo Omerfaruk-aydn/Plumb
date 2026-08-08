@@ -169,6 +169,15 @@ export interface PlumbModel {
   readonly contextWindow: number;
   readonly maxTokens: number;
   readonly reasoning: boolean;
+  /**
+   * Whether this specific model is documented/discovered to support
+   * tool/function calling. `undefined` means unknown (no capability
+   * metadata available for this model — never treated as `false`).
+   * Populated from real provider/model metadata where a discovery adapter
+   * reports it (see registry/model-discovery.ts's `DiscoveredModel.toolsSupported`);
+   * never guessed from the model name.
+   */
+  readonly toolsSupported?: boolean;
   readonly input: 'text' | 'text+image' | 'text+image+audio';
   readonly pricing?: PlumbModelPricing;
   readonly thinking?: PlumbThinkingConfig;

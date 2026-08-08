@@ -37,6 +37,8 @@ export interface DiscoveredModel {
   contextWindow?: number;
   maxTokens?: number;
   reasoning?: boolean;
+  /** See `PlumbModel.toolsSupported` -- undefined means unknown, never guessed. */
+  toolsSupported?: boolean;
   /**
    * Wire dialect for this model (e.g. `google-vertex`, `anthropic-messages`).
    * Omitted by adapters that only ever produce OpenAI-compatible models
@@ -279,6 +281,14 @@ class WatsonxDiscovery implements ProviderModelDiscovery {
         id: m.model_id,
         name: m.label,
         api: 'watsonx-chat' as PlumbKnownApi,
+        // IBM's own foundation-model task taxonomy (`tasks[].id`) includes
+        // 'function_calling' for models that support tool/function calling
+        // -- this is real provider-reported metadata, never a guess from
+        // the model name. Absent `tasks` data means unknown (undefined),
+        // not `false`.
+        toolsSupported: m.tasks
+          ? m.tasks.some((t) => t.id === 'function_calling')
+          : undefined,
       }));
     } catch {
       return [];

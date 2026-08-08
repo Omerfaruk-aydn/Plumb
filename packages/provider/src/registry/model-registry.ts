@@ -195,6 +195,9 @@ export class PlumbModelRegistry {
           contextWindow: m.contextWindow ?? 131072,
           maxTokens: m.maxTokens ?? 32768,
           reasoning: m.reasoning ?? false,
+          ...(m.toolsSupported !== undefined
+            ? { toolsSupported: m.toolsSupported }
+            : undefined),
           input: 'text',
         };
         const key = `${providerId}:${m.id}`;
