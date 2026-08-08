@@ -48,17 +48,57 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
         const registry = providerPackage.getPlumbProviderRegistry();
         const modelRegistry = providerPackage.getPlumbModelRegistry();
 
-        const usableProviders = registry
-          .getActiveProviderStates()
-          .map((state) => ({
-            provider: state.provider,
-            authState: state.authState,
-            models: modelRegistry.getModelsForProvider(state.provider.id),
-          }))
-          .filter((entry) => entry.models.length > 0);
+        const activeStates = registry.getActiveProviderStates();
+        const buildUsableProviders = () =>
+          activeStates
+            .map((state) => ({
+              provider: state.provider,
+              authState: state.authState,
+              models: modelRegistry.getModelsForProvider(state.provider.id),
+            }))
+            .filter((entry) => entry.models.length > 0);
+
+        // Render immediately with whatever's already resolvable (bundled
+        // catalog + any previously-cached discovery), then refresh dynamic
+        // discovery for each authenticated provider in the background —
+        // this is what actually surfaces live models for the ~40+ providers
+        // that only have dynamic discovery (no bundled-catalog fallback
+        // isn't required, but a freshly-added upstream model won't be in
+        // the static snapshot). Never blocks the dialog on network calls;
+        // model-manager's own cache/TTL keeps repeat opens fast.
+        if (cancelled) return;
+        setData({ usableProviders: buildUsableProviders(), loading: false });
+
+        const refreshable = activeStates
+          .map((state) => {
+            const cred = state.credentials;
+            const apiKey = cred?.type === 'api_key' ? cred.key : undefined;
+            const oauthToken = cred?.type === 'oauth' ? cred.access : undefined;
+            return apiKey || oauthToken
+              ? { providerId: state.provider.id, apiKey, oauthToken }
+              : null;
+          })
+          .filter((entry) => entry !== null);
+        // Nothing to refresh (no active provider carries a credential, e.g.
+        // local/custom-endpoint-only sessions): skip the extra render entirely.
+        if (refreshable.length === 0) return;
+
+        await Promise.all(
+          refreshable.map(async ({ providerId, apiKey, oauthToken }) => {
+            try {
+              await modelRegistry.discoverProviderModels(
+                providerId,
+                apiKey,
+                oauthToken,
+              );
+            } catch {
+              // Best-effort refresh; a failed provider keeps its last-known models.
+            }
+          }),
+        );
 
         if (cancelled) return;
-        setData({ usableProviders, loading: false });
+        setData({ usableProviders: buildUsableProviders(), loading: false });
       } catch {
         if (!cancelled) setData({ usableProviders: [], loading: false });
       }
