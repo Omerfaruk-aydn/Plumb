@@ -45,25 +45,29 @@ if (packageName === 'provider') {
   // TypeScript emits neither the OMP dialect prompts (.md / .md.js) nor the
   // JSON modules (models.json, package.json) that the compiled JS imports
   // at runtime (`with { type: "json" }` is native on Node 24).
-  const srcDir = join(process.cwd(), 'src');
-  const distDir = join(process.cwd(), 'dist');
-  const isCopyableAsset = (src) => {
-    if (src === srcDir) return true;
-    if (statSync(src).isDirectory()) return true;
-    const base = basename(src);
-    return (
-      base.endsWith('.md') ||
-      base.endsWith('.md.js') ||
-      base.endsWith('.html') ||
-      base.endsWith('.json')
-    );
-  };
-  if (existsSync(srcDir) && existsSync(distDir)) {
-    cpSync(srcDir, distDir, {
-      recursive: true,
-      filter: (src) => isCopyableAsset(src),
-    });
+  function copyAssetsOnly(source, target) {
+    if (!existsSync(source)) return;
+    if (!existsSync(target)) mkdirSync(target, { recursive: true });
+    for (const item of readdirSync(source, { withFileTypes: true })) {
+      const srcPath = join(source, item.name);
+      const destPath = join(target, item.name);
+      if (item.isDirectory()) {
+        copyAssetsOnly(srcPath, destPath);
+      } else {
+        const base = item.name;
+        if (
+          base.endsWith('.md') ||
+          base.endsWith('.md.js') ||
+          base.endsWith('.html') ||
+          base.endsWith('.json')
+        ) {
+          copyFileSync(srcPath, destPath);
+        }
+      }
+    }
   }
+
+  copyAssetsOnly(join(process.cwd(), 'src'), join(process.cwd(), 'dist'));
 } else {
   execSync('tsc --build', { stdio: 'inherit' });
 }
