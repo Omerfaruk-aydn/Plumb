@@ -47,7 +47,11 @@ function isGeneratedProvider(id: string): id is GeneratedProvider {
 
 /** Resolve the catalog provider id for a PLUMB provider id. */
 function resolveCatalogProviderId(providerId: string): string {
-  return CATALOG_PROVIDER_FALLBACK[providerId] ?? resolveProviderAlias(providerId) ?? providerId;
+  return (
+    CATALOG_PROVIDER_FALLBACK[providerId] ??
+    resolveProviderAlias(providerId) ??
+    providerId
+  );
 }
 
 /** Map an OMP `Model` onto the PLUMB `PlumbModel` shape. */
@@ -88,8 +92,36 @@ export function getCatalogProviders(): string[] {
   return getBundledProviders() as string[];
 }
 
+/**
+ * `claude-subscription` is a PLUMB-only synthetic (transports/claudeSubscription.ts,
+ * Agent SDK-backed) with no OMP catalog descriptor, so it is never a
+ * `GeneratedProvider` key and `getBundledModels`/`isGeneratedProvider` never
+ * cover it. Without a static floor here, `getModelsForProvider` returns
+ * nothing until a live discovery call has run at least once in the current
+ * process (registry/model-discovery.ts's `ClaudeSubscriptionDiscovery`) —
+ * on a cold restart with a persisted `claude-subscription` selection, the
+ * very first chat turn would find no registry model and silently fall back
+ * to the wrong wire dialect (`openai-completions` instead of
+ * `claude-agent-sdk`), misrouting the request. The model family served is
+ * identical to `anthropic-api` (same bundled catalog data — id, pricing,
+ * context window); only `provider`/`api` are overridden here to route
+ * through the Agent SDK transport instead of a direct API-key request.
+ */
+const CLAUDE_SUBSCRIPTION_PROVIDER_ID = 'claude-subscription';
+
+function claudeSubscriptionCatalogModels(): PlumbModel[] {
+  return getBundledModels('anthropic').map((m) => ({
+    ...ompModelToPlumbModel(m),
+    provider: CLAUDE_SUBSCRIPTION_PROVIDER_ID as PlumbProviderId,
+    api: 'claude-agent-sdk' as PlumbKnownApi,
+  }));
+}
+
 /** Get all models for a provider from the bundled OMP catalog. */
 export function getCatalogModels(providerId: PlumbProviderId): PlumbModel[] {
+  if (providerId === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
+    return claudeSubscriptionCatalogModels();
+  }
   const resolvedId = resolveCatalogProviderId(providerId);
   if (!isGeneratedProvider(resolvedId)) return [];
   return getBundledModels(resolvedId).map(ompModelToPlumbModel);
@@ -100,6 +132,9 @@ export function getCatalogModel(
   providerId: PlumbProviderId,
   modelId: string,
 ): PlumbModel | undefined {
+  if (providerId === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
+    return claudeSubscriptionCatalogModels().find((m) => m.id === modelId);
+  }
   const resolvedId = resolveCatalogProviderId(providerId);
   if (!isGeneratedProvider(resolvedId)) return undefined;
   const model = getBundledModel<Api>(resolvedId, modelId);

@@ -59,6 +59,20 @@ describe('PlumbModelRegistry', () => {
     expect(model!.id).toBe('gpt-5.5');
   });
 
+  it('4b. findModel resolves claude-subscription on a freshly-constructed registry with no prior discovery call (cold-start restart scenario)', () => {
+    // Regression: claude-subscription has no OMP catalog descriptor, so
+    // without a static bundled floor (catalog/model-catalog.ts), a brand
+    // new PlumbModelRegistry instance (exactly what a fresh process gets on
+    // restart) would return undefined here — and plumbContentGenerator.ts
+    // falls back to `api: 'openai-completions'` when that happens, silently
+    // misrouting the first chat turn after restart to the wrong transport
+    // instead of the Claude Agent SDK.
+    const model = registry.findModel('claude-subscription', 'claude-opus-4-8');
+    expect(model).toBeDefined();
+    expect(model!.provider).toBe('claude-subscription');
+    expect(model!.api).toBe('claude-agent-sdk');
+  });
+
   it('5. addCustomModel adds to registry', () => {
     registry.addCustomModel(makeModel('custom-model', 'openai'));
     const model = registry.findModel('openai', 'custom-model');

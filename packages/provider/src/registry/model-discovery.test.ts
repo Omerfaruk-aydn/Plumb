@@ -36,6 +36,7 @@ const HAND_WRITTEN_ADAPTERS = [
   'novita',
   'venice',
   'perplexity',
+  'claude-subscription',
 ];
 
 // A sample of catalog providers that have no hand-written adapter and must
@@ -83,6 +84,29 @@ describe('Discovery Adapter Registry', () => {
     // Strictly more coverage than the hand-written set alone — the generic
     // fallback must actually be registering providers, not a no-op.
     expect(ids.length).toBeGreaterThan(HAND_WRITTEN_ADAPTERS.length + 20);
+  });
+});
+
+describe('Discovery Adapter Contract: Claude Subscription (Agent SDK)', () => {
+  it('discovers the bundled Anthropic model family tagged with the claude-agent-sdk dialect', async () => {
+    const models = await discoverProviderModels('claude-subscription', {
+      providerId: 'claude-subscription',
+    });
+
+    expect(models.length).toBeGreaterThan(0);
+    for (const model of models) {
+      expect(model.api).toBe('claude-agent-sdk');
+      expect(model.id).toMatch(/^claude-/);
+    }
+  });
+
+  it('does not require an apiKey/oauthToken (the Agent SDK owns its own auth)', async () => {
+    // No apiKey/oauthToken passed — the Agent SDK never receives PLUMB
+    // credentials directly, unlike every other discovery adapter.
+    const models = await discoverProviderModels('claude-subscription', {
+      providerId: 'claude-subscription',
+    });
+    expect(models.length).toBeGreaterThan(0);
   });
 });
 

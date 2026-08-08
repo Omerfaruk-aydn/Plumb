@@ -22,6 +22,7 @@ import { PROVIDER_DESCRIPTORS } from '../omp-catalog/provider-models/descriptors
 import type { ProviderDescriptor } from '../omp-catalog/provider-models/descriptor-types.js';
 import type { Api } from '../omp-catalog/types.js';
 import { resolvePlumbProviderId } from '../catalog/providers.js';
+import { getBundledModels } from '../omp-catalog/models.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -204,6 +205,35 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
   }
 }
 
+// ─── Claude Subscription (Agent SDK) discovery ─────────────────────────
+
+/**
+ * `claude-subscription` is a PLUMB-only synthetic (transports/claudeSubscription.ts,
+ * built on the official Claude Agent SDK) with no OMP catalog descriptor and
+ * therefore no `PROVIDER_DESCRIPTORS` entry — the generic
+ * `OmpModelManagerDiscovery` bridge below never covers it. The Agent SDK also
+ * has no live `/models` enumeration endpoint of its own (it accepts a model
+ * id string, not a discoverable list), so this reuses the same bundled
+ * Anthropic model catalog (`models.json`, sourced from models.dev) that
+ * `anthropic-api` uses — the model family served is identical between a
+ * Claude subscription and the Anthropic Developer Platform API; only the
+ * billing/auth path differs.
+ */
+class ClaudeSubscriptionDiscovery implements ProviderModelDiscovery {
+  readonly providerId = 'claude-subscription';
+
+  async discover(): Promise<DiscoveredModel[]> {
+    return getBundledModels('anthropic').map((m) => ({
+      id: m.id,
+      name: m.name,
+      contextWindow: m.contextWindow ?? undefined,
+      maxTokens: m.maxTokens ?? undefined,
+      reasoning: m.reasoning,
+      api: 'claude-agent-sdk' as PlumbKnownApi,
+    }));
+  }
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -232,6 +262,7 @@ register(
 register(new OpenAICompatDiscovery('novita', 'https://api.novita.ai'));
 register(new OpenAICompatDiscovery('venice', 'https://api.venice.ai'));
 register(new OpenAICompatDiscovery('perplexity', 'https://api.perplexity.ai'));
+register(new ClaudeSubscriptionDiscovery());
 
 // Fill every remaining catalog provider (one with a standard model-manager
 // factory) with the generic OMP-backed adapter. Hand-written adapters above
