@@ -41,6 +41,11 @@ vi.mock('@google/gemini-cli-provider', () => ({
   makeAntigravityTraceId: vi.fn(() => 'ag-trace-123'),
   traceAntigravityFinalHttpRequest: vi.fn(),
   traceAntigravityHttpResponse: vi.fn(),
+  extractSafeGoogleErrorDetails: (_bodyText: string) => ({
+    detailTypes: [],
+    fieldViolations: [],
+  }),
+  formatSafeGoogleErrorSummary: (_details: unknown) => [],
 }));
 
 vi.mock('@google/gemini-cli-provider/dist/auth/credential-resolver.js', () => ({
@@ -136,10 +141,54 @@ describe('printAntigravityRouteDiagnostics (--diagnose-antigravity-route)', () =
     mockInitialize.mockResolvedValue(undefined);
     mockGetProviderState.mockReturnValue({ credentials: validCredential });
     mockFindModel.mockReturnValue(antigravityModel);
-    mockBuildAntigravityRequest.mockResolvedValue({
-      ok: true,
-      descriptor: realDescriptor,
-    });
+    mockBuildAntigravityRequest.mockImplementation(
+      async (options: Record<string, unknown>) => {
+        const messages = Array.isArray(options['messages'])
+          ? (options['messages'] as Array<{ role: string }>)
+          : [];
+        const tools = Array.isArray(options['tools'])
+          ? (options['tools'] as Array<{
+              function?: { name: string };
+              name?: string;
+            }>)
+          : [];
+        return {
+          ok: true,
+          descriptor: {
+            ...realDescriptor,
+            body: {
+              ...realDescriptor.body,
+              request: {
+                ...realDescriptor.body.request,
+                contents: messages.map((m) => ({
+                  role: m.role,
+                  parts: [{ text: 'test' }],
+                })),
+                ...(tools.length > 0
+                  ? {
+                      tools: [
+                        {
+                          functionDeclarations: tools.map((t) => ({
+                            name: t.function?.name ?? t.name,
+                          })),
+                        },
+                      ],
+                    }
+                  : {}),
+                ...(options.systemPrompt
+                  ? {
+                      systemInstruction: {
+                        role: 'user',
+                        parts: [{ text: options.systemPrompt }],
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+        };
+      },
+    );
     // Raw secure-store view backing the truthful credential.* classification
     // — a single non-expired OAuth entry, matching validCredential.
     mockStoreGetCredentials.mockResolvedValue([
@@ -464,5 +513,92 @@ describe('runAntigravityRouteTest (--test-antigravity-route)', () => {
     expect(output).toContain('refresh.attempted: false');
     expect(output).not.toContain('refresh.result:');
     expect(code).toBe(0);
+  });
+
+  describe('runAntigravityClaudeMatrixTest (--test-antigravity-claude-matrix)', () => {
+    it('executes sequential matrix cases A through G and reports structural fields without leaking secrets', async () => {
+      mockBuildAntigravityRequest.mockImplementation(
+        async (options: Record<string, unknown>) => {
+          const messages = Array.isArray(options['messages'])
+            ? (options['messages'] as Array<{ role: string }>)
+            : [];
+          const tools = Array.isArray(options['tools'])
+            ? (options['tools'] as Array<{
+                function?: { name: string };
+                name?: string;
+              }>)
+            : [];
+          return {
+            ok: true,
+            descriptor: {
+              ...realDescriptor,
+              body: {
+                ...realDescriptor.body,
+                request: {
+                  ...realDescriptor.body.request,
+                  contents: messages.map((m) => ({
+                    role: m.role,
+                    parts: [{ text: 'test' }],
+                  })),
+                  ...(tools.length > 0
+                    ? {
+                        tools: [
+                          {
+                            functionDeclarations: tools.map((t) => ({
+                              name: t.function?.name ?? t.name,
+                            })),
+                          },
+                        ],
+                      }
+                    : {}),
+                  ...(options.systemPrompt
+                    ? {
+                        systemInstruction: {
+                          role: 'user',
+                          parts: [{ text: options.systemPrompt }],
+                        },
+                      }
+                    : {}),
+                },
+              },
+            },
+          };
+        },
+      );
+      globalThis.fetch = (async () =>
+        new Response(null, { status: 200 })) as typeof fetch;
+      const { runAntigravityClaudeMatrixTest } = await import(
+        './runtimeDiagnostics.js'
+      );
+      const code = await runAntigravityClaudeMatrixTest('claude-sonnet-4-6');
+      const output = logs.join('') + errs.join('');
+
+      expect(output).toContain(
+        'PLUMB Antigravity Claude real network matrix test',
+      );
+      expect(output).toContain('--- CASE A: one user content, zero tools ---');
+      expect(output).toContain(
+        '--- CASE B: two source user messages after canonical normalization, zero tools ---',
+      );
+      expect(output).toContain(
+        '--- CASE C: one user, one known minimal tool ---',
+      );
+      expect(output).toContain('--- CASE D: one user, full 16 PLUMB tools ---');
+      expect(output).toContain(
+        '--- CASE E: normalized production history, zero tools ---',
+      );
+      expect(output).toContain(
+        '--- CASE F: normalized production history, full 16 tools ---',
+      );
+      expect(output).toContain(
+        '--- CASE G: full normal PLUMB request shape ---',
+      );
+
+      expect(output).toContain('contents.roles: user');
+      expect(output).toContain('tools.count: 16');
+      expect(output).not.toContain('ya29.');
+      expect(output).not.toContain('Bearer');
+      expect(code).toBe(0);
+    });
   });
 });

@@ -125,6 +125,7 @@ export interface CliArgs {
   traceSafe: boolean | undefined;
   diagnoseAntigravityRoute: boolean | undefined;
   testAntigravityRoute: string | undefined;
+  testAntigravityClaudeMatrix?: string;
   diffAntigravityTrace?: string;
   diagnoseCredentialScope: string | undefined;
 }
@@ -581,6 +582,11 @@ export async function parseArguments(
           type: 'string',
           description:
             'Send one real, minimal request to Google Antigravity using the already-stored credential and the exact production transport, then print safe HTTP-result metadata (status, content-type, safe error classification). Never modifies credentials or persists state. Usage: plumb --test-antigravity-route <model-id>',
+        })
+        .option('test-antigravity-claude-matrix', {
+          type: 'string',
+          description:
+            'Run sequential real HTTP probe cases A-G for a Claude model against Google Antigravity to isolate schema or request component issues. Never modifies credentials or persists state. Usage: plumb --test-antigravity-claude-matrix <model-id>',
         })
         .option('diagnose-credential-scope', {
           type: 'string',

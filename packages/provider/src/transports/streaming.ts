@@ -825,6 +825,134 @@ export async function buildAntigravityRequest(
   return { ok: true, descriptor };
 }
 
+export interface SafeFieldViolation {
+  field: string;
+  description?: string;
+}
+
+export interface SafeGoogleErrorDetails {
+  code?: number;
+  status?: string;
+  reason?: string;
+  domain?: string;
+  detailTypes: string[];
+  fieldViolations: SafeFieldViolation[];
+  safeMessage?: string;
+}
+
+function sanitizeSafeText(str: string, maxLen = 200): string {
+  if (!str) return '';
+  return str
+    .replace(/ya29\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, '[REDACTED_BEARER]')
+    .replace(/projects\/[A-Za-z0-9._-]+/g, 'projects/[REDACTED]')
+    .slice(0, maxLen);
+}
+
+function sanitizeSafeDescription(str: string): string {
+  if (!str) return '';
+  const sanitized = str
+    .replace(/ya29\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, '[REDACTED_BEARER]')
+    .replace(/projects\/[A-Za-z0-9._-]+/g, 'projects/[REDACTED]');
+  return sanitized.length > 300 ? `${sanitized.slice(0, 300)}...` : sanitized;
+}
+
+export function extractSafeGoogleErrorDetails(
+  bodyText: string,
+): SafeGoogleErrorDetails {
+  const result: SafeGoogleErrorDetails = {
+    detailTypes: [],
+    fieldViolations: [],
+  };
+
+  if (!bodyText || bodyText.trim().length === 0) return result;
+
+  try {
+    const parsed = JSON.parse(bodyText);
+    const errObj = parsed?.error ?? parsed;
+    if (!errObj || typeof errObj !== 'object') return result;
+
+    if (typeof errObj.code === 'number') {
+      result.code = errObj.code;
+    }
+    if (typeof errObj.status === 'string') {
+      result.status = sanitizeSafeText(errObj.status, 100);
+    }
+    if (typeof errObj.message === 'string') {
+      result.safeMessage = sanitizeSafeDescription(errObj.message);
+    }
+
+    if (Array.isArray(errObj.details)) {
+      for (const d of errObj.details) {
+        if (!d || typeof d !== 'object') continue;
+
+        if (typeof d['@type'] === 'string') {
+          const typeName = d['@type'].split('.').pop() ?? d['@type'];
+          if (!result.detailTypes.includes(typeName)) {
+            result.detailTypes.push(typeName);
+          }
+        }
+
+        if (typeof d.reason === 'string') {
+          result.reason = sanitizeSafeText(d.reason, 100);
+        }
+        if (typeof d.domain === 'string') {
+          result.domain = sanitizeSafeText(d.domain, 100);
+        }
+
+        if (Array.isArray(d.fieldViolations)) {
+          for (const fv of d.fieldViolations) {
+            if (typeof fv?.field === 'string' && fv.field.length < 250) {
+              const cleanField = sanitizeSafeText(fv.field, 250);
+              const cleanDesc =
+                typeof fv.description === 'string'
+                  ? sanitizeSafeDescription(fv.description)
+                  : undefined;
+              result.fieldViolations.push({
+                field: cleanField,
+                ...(cleanDesc ? { description: cleanDesc } : {}),
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Non-JSON response
+  }
+
+  return result;
+}
+
+export function formatSafeGoogleErrorSummary(
+  details: SafeGoogleErrorDetails,
+): string[] {
+  const lines: string[] = [];
+  if (details.status) {
+    lines.push(`HTTP_ERROR_STATUS: ${details.status}`);
+  }
+  if (details.reason) {
+    lines.push(`HTTP_ERROR_REASON: ${details.reason}`);
+  }
+  if (details.domain) {
+    lines.push(`HTTP_ERROR_DOMAIN: ${details.domain}`);
+  }
+  if (details.fieldViolations.length > 0) {
+    lines.push(`FIELD_VIOLATION_COUNT: ${details.fieldViolations.length}`);
+    details.fieldViolations.forEach((fv, i) => {
+      const descPart = fv.description ? `: ${fv.description}` : '';
+      lines.push(`FIELD_VIOLATION_${i + 1}: ${fv.field}${descPart}`);
+    });
+  } else if (details.detailTypes.length > 0) {
+    lines.push(`DETAIL_TYPES: ${details.detailTypes.join(', ')}`);
+  }
+  if (details.safeMessage) {
+    lines.push(`HTTP_ERROR_MESSAGE: ${details.safeMessage}`);
+  }
+  return lines;
+}
+
 async function* googleCloudCodeAssistStream(
   options: PlumbStreamOptions,
 ): AsyncGenerator<PlumbStreamEvent> {
@@ -914,39 +1042,23 @@ async function* googleCloudCodeAssistStream(
   }
 
   if (!response.ok) {
-    let safeStatus: string | undefined;
-    let safeField: string | undefined;
-    let safeReason: string | undefined;
+    let safeDetails: SafeGoogleErrorDetails | undefined;
 
     if (response.status >= 400 && response.status < 500) {
       try {
         const bodyText = await response.text();
-        if (bodyText) {
-          const parsed = JSON.parse(bodyText);
-          const errObj = parsed?.error ?? parsed;
-          if (typeof errObj?.status === 'string') {
-            safeStatus = errObj.status;
-          }
-          if (typeof errObj?.reason === 'string') {
-            safeReason = errObj.reason;
-          }
-          if (Array.isArray(errObj?.details)) {
-            for (const d of errObj.details) {
-              if (Array.isArray(d?.fieldViolations)) {
-                for (const fv of d.fieldViolations) {
-                  if (typeof fv?.field === 'string' && fv.field.length < 200) {
-                    safeField = fv.field;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        }
+        safeDetails = extractSafeGoogleErrorDetails(bodyText);
       } catch {
         // Ignored — non-JSON or unparseable 4xx response
       }
     }
+
+    const safeStatus = safeDetails?.status;
+    const safeReason = safeDetails?.reason;
+    const firstViolation = safeDetails?.fieldViolations[0];
+    const safeField = firstViolation
+      ? `${firstViolation.field}${firstViolation.description ? `: ${firstViolation.description}` : ''}`
+      : undefined;
 
     const code =
       response.status === 404
@@ -961,7 +1073,9 @@ async function* googleCloudCodeAssistStream(
       );
     }
 
-    const extraDetail = [safeStatus, safeField].filter(Boolean).join(': ');
+    const extraDetail = [safeStatus, safeReason, safeField]
+      .filter(Boolean)
+      .join(' - ');
     yield {
       type: 'error',
       error: {

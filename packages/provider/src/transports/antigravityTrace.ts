@@ -300,6 +300,15 @@ export function traceAntigravityFinalHttpRequest(params: {
   const toolsMeta = extractToolsMetadata(options.tools);
   const systemInstructionPresent = !!options.systemPrompt;
 
+  const bodyContents = Array.isArray(innerRec['contents'])
+    ? (innerRec['contents'] as Array<{ role?: string }>)
+    : [];
+  const finalRoles = bodyContents.map((c) => c.role ?? 'unknown');
+  const finalContentsMeta = {
+    count: bodyContents.length,
+    roles: finalRoles,
+  };
+
   const reqStructHash = computeRequestStructureHash(descriptor);
   const bodyStructHash = computeBodyStructureHash(
     descriptor,
@@ -367,6 +376,7 @@ export function traceAntigravityFinalHttpRequest(params: {
       structureHash: bodyStructHash,
     },
     contents: contentsMeta,
+    finalContents: finalContentsMeta,
     tools: toolsMeta,
     systemInstruction: {
       present: systemInstructionPresent,

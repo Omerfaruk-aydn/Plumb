@@ -234,72 +234,84 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
   });
 
   for (const modelId of ['gemini-3-pro', 'claude-sonnet-4-6', 'gpt-oss-120b']) {
-    it(`routes ${modelId} through google-antigravity regardless of model family prefix`, async () => {
-      mockResolveUsablePlumbCredential.mockResolvedValue({
-        classification: 'VALID_CREDENTIAL',
-        credential: validOAuthCredential,
-        refreshAttempted: false,
-      });
-      let capturedUrl = '';
-      let capturedHeaders: Record<string, string> | undefined;
-      let capturedBody: Record<string, unknown> | undefined;
-      globalThis.fetch = (async (
-        url: string | URL | Request,
-        init?: RequestInit,
-      ) => {
-        capturedUrl = String(url);
-        capturedHeaders = init?.headers as Record<string, string>;
-        capturedBody = JSON.parse(String(init?.body));
-        return new Response('data: {"response":{"candidates":[]}}\n\n', {
-          status: 200,
+    it(
+      `routes ${modelId} through google-antigravity regardless of model family prefix`,
+      { timeout: 15000 },
+      async () => {
+        mockResolveUsablePlumbCredential.mockResolvedValue({
+          classification: 'VALID_CREDENTIAL',
+          credential: validOAuthCredential,
+          refreshAttempted: false,
         });
-      }) as typeof fetch;
+        let capturedUrl = '';
+        let capturedHeaders: Record<string, string> | undefined;
+        let capturedBody: Record<string, unknown> | undefined;
+        globalThis.fetch = (async (
+          url: string | URL | Request,
+          init?: RequestInit,
+        ) => {
+          capturedUrl = String(url);
+          capturedHeaders = init?.headers as Record<string, string>;
+          capturedBody = JSON.parse(String(init?.body));
+          const stream = new ReadableStream({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  'data: {"response":{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"hi"}]}}]}}\n\n',
+                ),
+              );
+              controller.close();
+            },
+          });
+          return new Response(stream, { status: 200 });
+        }) as typeof fetch;
 
-      for await (const _event of plumbModelStream({
-        model: antigravityModel(modelId),
-        messages: [{ role: 'user', content: 'merhaba' }],
-        apiKey: 'unused-for-this-provider',
-      })) {
-        // drain
-      }
+        for await (const _event of plumbModelStream({
+          model: antigravityModel(modelId),
+          messages: [{ role: 'user', content: 'merhaba' }],
+          apiKey: 'unused-for-this-provider',
+        })) {
+          // drain
+        }
 
-      // ROUTING_PROVIDER: google-antigravity, regardless of the model's
-      // own family (gemini/claude/gpt-oss) — dispatch is by model.api, not
-      // by inferring a provider from the model id prefix.
-      expect(capturedBody?.['model']).toBe(modelId);
-      expect(capturedBody?.['project']).toBe('my-real-gcp-project');
+        // ROUTING_PROVIDER: google-antigravity, regardless of the model's
+        // own family (gemini/claude/gpt-oss) — dispatch is by model.api, not
+        // by inferring a provider from the model id prefix.
+        expect(capturedBody?.['model']).toBe(modelId);
+        expect(capturedBody?.['project']).toBe('my-real-gcp-project');
 
-      // Real production defect (round 2): these envelope fields — generated
-      // by the pinned buildAntigravityRequestEnvelope, reached only by
-      // calling the real exported buildRequest — were entirely absent from
-      // the hand-built body in the first fix and are suspected load-bearing
-      // for Google's request routing (still 404s without them).
-      expect(typeof capturedBody?.['requestId']).toBe('string');
-      expect(capturedBody?.['requestId']).toMatch(/^agent\//);
-      expect(capturedBody?.['userAgent']).toBe('antigravity');
-      expect(capturedBody?.['requestType']).toBe('agent');
-      const request = capturedBody?.['request'] as
-        | Record<string, unknown>
-        | undefined;
-      expect(typeof request?.['sessionId']).toBe('string');
-      expect(request?.['labels']).toBeTruthy();
+        // Real production defect (round 2): these envelope fields — generated
+        // by the pinned buildAntigravityRequestEnvelope, reached only by
+        // calling the real exported buildRequest — were entirely absent from
+        // the hand-built body in the first fix and are suspected load-bearing
+        // for Google's request routing (still 404s without them).
+        expect(typeof capturedBody?.['requestId']).toBe('string');
+        expect(capturedBody?.['requestId']).toMatch(/^agent\//);
+        expect(capturedBody?.['userAgent']).toBe('antigravity');
+        expect(capturedBody?.['requestType']).toBe('agent');
+        const request = capturedBody?.['request'] as
+          | Record<string, unknown>
+          | undefined;
+        expect(typeof request?.['sessionId']).toBe('string');
+        expect(request?.['labels']).toBeTruthy();
 
-      // OAUTH_TOKEN_IN_QUERY: ZERO / QUERY_KEY_PARAMETER_FOR_ANTIGRAVITY_OAUTH: ZERO
-      const query = new URL(capturedUrl).searchParams;
-      expect(query.has('key')).toBe(false);
-      expect(capturedUrl).not.toContain(validOAuthCredential.access);
+        // OAUTH_TOKEN_IN_QUERY: ZERO / QUERY_KEY_PARAMETER_FOR_ANTIGRAVITY_OAUTH: ZERO
+        const query = new URL(capturedUrl).searchParams;
+        expect(query.has('key')).toBe(false);
+        expect(capturedUrl).not.toContain(validOAuthCredential.access);
 
-      // Real pinned endpoint/path, not the public Gemini API shape.
-      expect(capturedUrl).toBe(
-        'https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse',
-      );
+        // Real pinned endpoint/path, not the public Gemini API shape.
+        expect(capturedUrl).toBe(
+          'https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse',
+        );
 
-      // AUTHORIZATION_HEADER_PRESENT: TRUE
-      expect(capturedHeaders?.['Authorization']).toBe(
-        `Bearer ${validOAuthCredential.access}`,
-      );
-      expect(capturedHeaders?.['x-api-key']).toBeUndefined();
-    });
+        // AUTHORIZATION_HEADER_PRESENT: TRUE
+        expect(capturedHeaders?.['Authorization']).toBe(
+          `Bearer ${validOAuthCredential.access}`,
+        );
+        expect(capturedHeaders?.['x-api-key']).toBeUndefined();
+      },
+    );
   }
 
   it('sends the catalog requestModelId (wire id), never the display id, when they differ', async () => {

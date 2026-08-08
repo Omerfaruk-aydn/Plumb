@@ -20,7 +20,11 @@ import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import { BRAND_CONSTANTS } from '@google/gemini-cli-core';
-import { installBunGlobal } from '@google/gemini-cli-provider';
+import {
+  installBunGlobal,
+  type PlumbMessage,
+  type PlumbTool,
+} from '@google/gemini-cli-provider';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import type { MergedSettings } from './config/settings.js';
 
@@ -2035,6 +2039,298 @@ export async function runAntigravityRouteTest(
 }
 
 /**
+ * `plumb --test-antigravity-claude-matrix <model>` — sends real sequential
+ * HTTP probe cases A through G to Google Antigravity for a Claude model using
+ * the canonical request builder and stored credentials. Reports safe structural
+ * field metadata, HTTP status, and safe error details (status, reason, field
+ * violations). Never modifies stored credentials, never persists state, never
+ * prints prompt text or secrets.
+ */
+export async function runAntigravityClaudeMatrixTest(
+  modelId: string,
+): Promise<number> {
+  process.stdout.write('PLUMB Antigravity Claude real network matrix test\n');
+  process.stdout.write(`git.head.embedded: ${BUILD_IDENTITY.gitHead}\n`);
+  process.stdout.write(`provider: google-antigravity\n`);
+  process.stdout.write(`display.model: ${modelId}\n\n`);
+
+  try {
+    installBunGlobal();
+    const providerModule = await import('@google/gemini-cli-provider');
+
+    const runtimeInitialized = await bootstrapProductionProviderRuntime();
+    if (!runtimeInitialized) {
+      process.stderr.write(
+        'test-antigravity-claude-matrix: FAIL: failed to initialize provider runtime.\n',
+      );
+      return 1;
+    }
+
+    const registry = providerModule.getPlumbProviderRegistry();
+    try {
+      await registry.initialize();
+    } catch (err) {
+      process.stderr.write(
+        `test-antigravity-claude-matrix: FAIL: credential store unavailable: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      return 1;
+    }
+
+    const registryProviderId = providerModule.resolvePlumbProviderId(
+      ANTIGRAVITY_CANONICAL_ID,
+    );
+
+    const resolved =
+      await providerModule.resolveUsablePlumbCredential(registryProviderId);
+
+    if (
+      !resolved.credential ||
+      resolved.classification !== 'VALID_CREDENTIAL'
+    ) {
+      process.stderr.write(
+        resolved.classification === 'NO_CREDENTIAL'
+          ? 'test-antigravity-claude-matrix: FAIL: no stored google-antigravity OAuth credential. Sign in via /login google-antigravity first.\n'
+          : `test-antigravity-claude-matrix: FAIL: credential unusable (${resolved.classification}: ${resolved.refreshFailureReason ?? 'no further detail'}).\n`,
+      );
+      return 1;
+    }
+
+    const modelRegistry = providerModule.getPlumbModelRegistry();
+    const model = modelRegistry.findModel(ANTIGRAVITY_CANONICAL_ID, modelId);
+    if (!model) {
+      process.stderr.write(
+        `test-antigravity-claude-matrix: FAIL: model ${modelId} not found in the google-antigravity catalog.\n`,
+      );
+      return 1;
+    }
+
+    const ALL_16_PLUMB_TOOLS: PlumbTool[] = [
+      'update_topic',
+      'list_directory',
+      'read_file',
+      'grep_search',
+      'glob',
+      'replace',
+      'write_file',
+      'web_fetch',
+      'run_shell_command',
+      'list_background_processes',
+      'read_background_output',
+      'google_web_search',
+      'ask_user',
+      'enter_plan_mode',
+      'invoke_agent',
+      'activate_skill',
+    ].map((name) => ({
+      type: 'function',
+      function: {
+        name,
+        description: `PLUMB tool ${name}`,
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            query: { type: 'string' },
+          },
+        },
+      },
+    }));
+
+    const MINIMAL_TOOL: PlumbTool[] = ALL_16_PLUMB_TOOLS.slice(0, 1);
+
+    const cases: Array<{
+      id: string;
+      title: string;
+      messages: PlumbMessage[];
+      tools?: PlumbTool[];
+      systemPrompt?: string;
+    }> = [
+      {
+        id: 'A',
+        title: 'one user content, zero tools',
+        messages: [{ role: 'user', content: 'hello probe' }],
+        tools: undefined,
+        systemPrompt: undefined,
+      },
+      {
+        id: 'B',
+        title:
+          'two source user messages after canonical normalization, zero tools',
+        messages: [
+          { role: 'user', content: 'System context part' },
+          { role: 'user', content: 'User prompt part' },
+        ],
+        tools: undefined,
+        systemPrompt: undefined,
+      },
+      {
+        id: 'C',
+        title: 'one user, one known minimal tool',
+        messages: [{ role: 'user', content: 'hello probe' }],
+        tools: MINIMAL_TOOL,
+        systemPrompt: undefined,
+      },
+      {
+        id: 'D',
+        title: 'one user, full 16 PLUMB tools',
+        messages: [{ role: 'user', content: 'hello probe' }],
+        tools: ALL_16_PLUMB_TOOLS,
+        systemPrompt: undefined,
+      },
+      {
+        id: 'E',
+        title: 'normalized production history, zero tools',
+        messages: [
+          { role: 'user', content: 'Initial user turn' },
+          { role: 'assistant', content: 'Initial model response' },
+          { role: 'user', content: 'Followup user prompt' },
+        ],
+        tools: undefined,
+        systemPrompt: 'System prompt context',
+      },
+      {
+        id: 'F',
+        title: 'normalized production history, full 16 tools',
+        messages: [
+          { role: 'user', content: 'Initial user turn' },
+          { role: 'assistant', content: 'Initial model response' },
+          { role: 'user', content: 'Followup user prompt' },
+        ],
+        tools: ALL_16_PLUMB_TOOLS,
+        systemPrompt: 'System prompt context',
+      },
+      {
+        id: 'G',
+        title: 'full normal PLUMB request shape',
+        messages: [
+          { role: 'user', content: 'Synthetic system context part' },
+          { role: 'user', content: 'User prompt part' },
+        ],
+        tools: ALL_16_PLUMB_TOOLS,
+        systemPrompt: 'System prompt context',
+      },
+    ];
+
+    let anyFailed = false;
+
+    for (const c of cases) {
+      process.stdout.write(`--- CASE ${c.id}: ${c.title} ---\n`);
+
+      const probeOptions = {
+        model,
+        messages: c.messages,
+        tools: c.tools,
+        systemPrompt: c.systemPrompt,
+        apiKey: '',
+        traceSource: 'LIVE_PROBE' as const,
+      };
+
+      const result = await providerModule.buildAntigravityRequest(probeOptions);
+      if (!result.ok) {
+        process.stdout.write(`case: ${c.id}\n`);
+        process.stdout.write(`HTTP.status: NOT_SENT\n`);
+        process.stdout.write(
+          `safe.error.classification: ${result.error.error?.code ?? 'BUILD_FAILED'}\n\n`,
+        );
+        anyFailed = true;
+        continue;
+      }
+
+      const bodyRec = isPlainRecord(result.descriptor.body)
+        ? result.descriptor.body
+        : {};
+      const innerRec = isPlainRecord(bodyRec['request'])
+        ? bodyRec['request']
+        : {};
+
+      const bodyContents = Array.isArray(innerRec['contents'])
+        ? (innerRec['contents'] as Array<{ role?: string }>)
+        : [];
+      const roles = bodyContents.map((item) => item.role ?? 'unknown');
+
+      const bodyTools = Array.isArray(innerRec['tools'])
+        ? (innerRec['tools'] as Array<Record<string, unknown>>)
+        : [];
+      const firstTool = bodyTools[0];
+      const decls =
+        firstTool && Array.isArray(firstTool['functionDeclarations'])
+          ? (firstTool['functionDeclarations'] as unknown[])
+          : [];
+      const toolCount = decls.length;
+
+      const sysInstPresent = 'systemInstruction' in innerRec;
+      const genConfigKeys = isPlainRecord(innerRec['generationConfig'])
+        ? Object.keys(innerRec['generationConfig']).sort()
+        : [];
+      const toolConfigObj = isPlainRecord(innerRec['toolConfig'])
+        ? innerRec['toolConfig']
+        : undefined;
+      const toolConfigMode =
+        toolConfigObj && isPlainRecord(toolConfigObj['functionCallingConfig'])
+          ? String(toolConfigObj['functionCallingConfig']['mode'] ?? '(none)')
+          : undefined;
+
+      process.stdout.write(`case: ${c.id}\n`);
+      process.stdout.write(`contents.count: ${bodyContents.length}\n`);
+      process.stdout.write(`contents.roles: ${roles.join(',')}\n`);
+      process.stdout.write(`tools.count: ${toolCount}\n`);
+      process.stdout.write(`systemInstruction.present: ${sysInstPresent}\n`);
+      process.stdout.write(
+        `generationConfig.keys: ${genConfigKeys.join(',') || '(none)'}\n`,
+      );
+      process.stdout.write(`toolConfig.present: ${!!toolConfigObj}\n`);
+      if (toolConfigMode) {
+        process.stdout.write(`toolConfig.mode: ${toolConfigMode}\n`);
+      }
+
+      try {
+        const response = await fetch(result.descriptor.url, {
+          method: 'POST',
+          headers: result.descriptor.headers,
+          body: JSON.stringify(result.descriptor.body),
+        });
+
+        process.stdout.write(`HTTP.status: ${response.status}\n`);
+
+        if (response.ok) {
+          process.stdout.write('result: HTTP_OK\n\n');
+          await response.body?.cancel();
+        } else {
+          anyFailed = true;
+          const bodyText = await response.text().catch(() => '');
+          const errorDetails =
+            providerModule.extractSafeGoogleErrorDetails(bodyText);
+          const summaryLines =
+            providerModule.formatSafeGoogleErrorSummary(errorDetails);
+          for (const line of summaryLines) {
+            process.stdout.write(`${line}\n`);
+          }
+          if (summaryLines.length === 0) {
+            process.stdout.write(
+              `safe.error.classification: HTTP_${response.status}\n`,
+            );
+          }
+          process.stdout.write('\n');
+        }
+      } catch (err) {
+        anyFailed = true;
+        process.stdout.write('HTTP.status: FETCH_FAILED\n');
+        process.stdout.write(
+          `error: ${err instanceof Error ? err.message : String(err)}\n\n`,
+        );
+      }
+    }
+
+    return anyFailed ? 1 : 0;
+  } catch (err) {
+    process.stderr.write(
+      `test-antigravity-claude-matrix: FAIL: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    return 1;
+  }
+}
+
+/**
  * `plumb --diff-antigravity-trace <file>` — loads the latest completed
  * NORMAL_CHAT and LIVE_PROBE trace events from a safe JSONL trace file,
  * compares safe structural fields, and reports the differences.
@@ -2199,43 +2495,130 @@ export async function runDiffAntigravityTrace(
     key: string;
     get: (e: Record<string, unknown>) => string;
   }> = [
-    { key: 'provider.plumbId', get: (e) => getSubField(e, 'provider', 'plumbId') },
-    { key: 'provider.catalogId', get: (e) => getSubField(e, 'provider', 'catalogId') },
-    { key: 'model.displayId', get: (e) => getSubField(e, 'model', 'displayId') },
-    { key: 'model.requestModelId', get: (e) => getSubField(e, 'model', 'requestModelId') },
+    {
+      key: 'provider.plumbId',
+      get: (e) => getSubField(e, 'provider', 'plumbId'),
+    },
+    {
+      key: 'provider.catalogId',
+      get: (e) => getSubField(e, 'provider', 'catalogId'),
+    },
+    {
+      key: 'model.displayId',
+      get: (e) => getSubField(e, 'model', 'displayId'),
+    },
+    {
+      key: 'model.requestModelId',
+      get: (e) => getSubField(e, 'model', 'requestModelId'),
+    },
     { key: 'model.api', get: (e) => getSubField(e, 'model', 'api') },
     { key: 'wireModel', get: (e) => getSubField(e, 'model', 'wireModel') },
-    { key: 'credential.scope', get: (e) => getSubField(e, 'credential', 'scope') },
-    { key: 'credential.classification', get: (e) => getSubField(e, 'credential', 'classification') },
-    { key: 'credential.runtimeUsable', get: (e) => getSubField(e, 'credential', 'runtimeUsable') },
-    { key: 'credential.projectIdPresent', get: (e) => getSubField(e, 'credential', 'projectIdPresent') },
+    {
+      key: 'credential.scope',
+      get: (e) => getSubField(e, 'credential', 'scope'),
+    },
+    {
+      key: 'credential.classification',
+      get: (e) => getSubField(e, 'credential', 'classification'),
+    },
+    {
+      key: 'credential.runtimeUsable',
+      get: (e) => getSubField(e, 'credential', 'runtimeUsable'),
+    },
+    {
+      key: 'credential.projectIdPresent',
+      get: (e) => getSubField(e, 'credential', 'projectIdPresent'),
+    },
     { key: 'request.origin', get: (e) => getSubField(e, 'request', 'origin') },
-    { key: 'request.pathname', get: (e) => getSubField(e, 'request', 'pathname') },
+    {
+      key: 'request.pathname',
+      get: (e) => getSubField(e, 'request', 'pathname'),
+    },
     { key: 'request.method', get: (e) => getSubField(e, 'request', 'method') },
-    { key: 'request.queryKeys', get: (e) => getSubArrayJoin(e, 'request', 'queryKeys') },
-    { key: 'request.headerNames', get: (e) => getSubArrayJoin(e, 'request', 'headerNames') },
-    { key: 'request.authorizationPresent', get: (e) => getSubField(e, 'request', 'authorizationPresent') },
-    { key: 'body.topLevelKeys', get: (e) => getSubArrayJoin(e, 'body', 'topLevelKeys') },
-    { key: 'body.projectPresent', get: (e) => getSubField(e, 'body', 'projectPresent') },
+    {
+      key: 'request.queryKeys',
+      get: (e) => getSubArrayJoin(e, 'request', 'queryKeys'),
+    },
+    {
+      key: 'request.headerNames',
+      get: (e) => getSubArrayJoin(e, 'request', 'headerNames'),
+    },
+    {
+      key: 'request.authorizationPresent',
+      get: (e) => getSubField(e, 'request', 'authorizationPresent'),
+    },
+    {
+      key: 'body.topLevelKeys',
+      get: (e) => getSubArrayJoin(e, 'body', 'topLevelKeys'),
+    },
+    {
+      key: 'body.projectPresent',
+      get: (e) => getSubField(e, 'body', 'projectPresent'),
+    },
     { key: 'body.model', get: (e) => getSubField(e, 'body', 'model') },
-    { key: 'body.requestPresent', get: (e) => getSubField(e, 'body', 'requestPresent') },
-    { key: 'body.requestIdPresent', get: (e) => getSubField(e, 'body', 'requestIdPresent') },
-    { key: 'body.sessionIdPresent', get: (e) => getSubField(e, 'body', 'sessionIdPresent') },
-    { key: 'body.labelsPresent', get: (e) => getSubField(e, 'body', 'labelsPresent') },
+    {
+      key: 'body.requestPresent',
+      get: (e) => getSubField(e, 'body', 'requestPresent'),
+    },
+    {
+      key: 'body.requestIdPresent',
+      get: (e) => getSubField(e, 'body', 'requestIdPresent'),
+    },
+    {
+      key: 'body.sessionIdPresent',
+      get: (e) => getSubField(e, 'body', 'sessionIdPresent'),
+    },
+    {
+      key: 'body.labelsPresent',
+      get: (e) => getSubField(e, 'body', 'labelsPresent'),
+    },
     { key: 'body.userAgent', get: (e) => getSubField(e, 'body', 'userAgent') },
-    { key: 'body.requestType', get: (e) => getSubField(e, 'body', 'requestType') },
+    {
+      key: 'body.requestType',
+      get: (e) => getSubField(e, 'body', 'requestType'),
+    },
     { key: 'contents.count', get: (e) => getSubField(e, 'contents', 'count') },
-    { key: 'contents.roles', get: (e) => getSubArrayJoin(e, 'contents', 'roles') },
-    { key: 'contents.partTypeCounts', get: (e) => getSubObjectJson(e, 'contents', 'partTypeCounts') },
+    {
+      key: 'contents.roles',
+      get: (e) => getSubArrayJoin(e, 'contents', 'roles'),
+    },
+    {
+      key: 'contents.partTypeCounts',
+      get: (e) => getSubObjectJson(e, 'contents', 'partTypeCounts'),
+    },
     { key: 'tools.count', get: (e) => getSubField(e, 'tools', 'count') },
-    { key: 'tools.typeNames', get: (e) => getSubArrayJoin(e, 'tools', 'typeNames') },
-    { key: 'systemInstruction.present', get: (e) => getSubField(e, 'systemInstruction', 'present') },
-    { key: 'request.structureHash', get: (e) => getSubField(e, 'request', 'structureHash') },
-    { key: 'body.structureHash', get: (e) => getSubField(e, 'body', 'structureHash') },
-    { key: 'endpoint.origin', get: (e) => getSubField(e, 'endpoint', 'origin') },
-    { key: 'endpoint.pathname', get: (e) => getSubField(e, 'endpoint', 'pathname') },
-    { key: 'endpoint.selector', get: (e) => getSubField(e, 'endpoint', 'selector') },
-    { key: 'endpoint.source', get: (e) => getSubField(e, 'endpoint', 'source') },
+    {
+      key: 'tools.typeNames',
+      get: (e) => getSubArrayJoin(e, 'tools', 'typeNames'),
+    },
+    {
+      key: 'systemInstruction.present',
+      get: (e) => getSubField(e, 'systemInstruction', 'present'),
+    },
+    {
+      key: 'request.structureHash',
+      get: (e) => getSubField(e, 'request', 'structureHash'),
+    },
+    {
+      key: 'body.structureHash',
+      get: (e) => getSubField(e, 'body', 'structureHash'),
+    },
+    {
+      key: 'endpoint.origin',
+      get: (e) => getSubField(e, 'endpoint', 'origin'),
+    },
+    {
+      key: 'endpoint.pathname',
+      get: (e) => getSubField(e, 'endpoint', 'pathname'),
+    },
+    {
+      key: 'endpoint.selector',
+      get: (e) => getSubField(e, 'endpoint', 'selector'),
+    },
+    {
+      key: 'endpoint.source',
+      get: (e) => getSubField(e, 'endpoint', 'source'),
+    },
   ];
 
   const diffs: Array<{ field: string; normal: string; probe: string }> = [];

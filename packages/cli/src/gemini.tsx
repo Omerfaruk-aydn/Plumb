@@ -470,6 +470,7 @@ export async function main() {
       printCodingPlanLiveStatus,
       printAntigravityRouteDiagnostics,
       runAntigravityRouteTest,
+      runAntigravityClaudeMatrixTest,
       printCredentialScopeDiagnostics,
       runDiffAntigravityTrace,
     } = await import('./runtimeDiagnostics.js');
@@ -509,6 +510,10 @@ export async function main() {
       exitCode = await printAntigravityRouteDiagnostics();
     } else if (argv.testAntigravityRoute) {
       exitCode = await runAntigravityRouteTest(argv.testAntigravityRoute);
+    } else if (argv.testAntigravityClaudeMatrix) {
+      exitCode = await runAntigravityClaudeMatrixTest(
+        argv.testAntigravityClaudeMatrix,
+      );
     } else if (argv.diffAntigravityTrace) {
       exitCode = await runDiffAntigravityTrace(argv.diffAntigravityTrace);
     } else if (argv.diagnoseCredentialScope) {

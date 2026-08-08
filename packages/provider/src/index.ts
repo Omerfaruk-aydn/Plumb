@@ -205,6 +205,10 @@ export {
   registerPlumbTransport,
   hasPlumbTransport,
   buildAntigravityRequest,
+  extractSafeGoogleErrorDetails,
+  formatSafeGoogleErrorSummary,
+  type SafeGoogleErrorDetails,
+  type SafeFieldViolation,
   type AntigravityRequestDescriptor,
   type AntigravityRequestResult,
 } from './transports/streaming.js';
