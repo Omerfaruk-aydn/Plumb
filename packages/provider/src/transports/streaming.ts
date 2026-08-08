@@ -27,6 +27,7 @@ import {
   classifyGenericHttpError,
   classifyAnthropicHttpError,
   classifyAnthropicSseErrorType,
+  classifyGoogleHttpError,
 } from './errorClassification.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
@@ -1242,7 +1243,7 @@ async function* googleGenerativeAiStream(
     }
     yield {
       type: 'error',
-      error: { code: 'REQUEST_FAILED', message: (err as Error).message },
+      error: { code: 'NETWORK_ERROR', message: (err as Error).message },
     };
     return;
   }
@@ -1251,7 +1252,11 @@ async function* googleGenerativeAiStream(
     const errorText = await response.text().catch(() => 'Unknown error');
     yield {
       type: 'error',
-      error: { code: `HTTP_${response.status}`, message: errorText },
+      error: classifyGoogleHttpError(
+        response.status,
+        errorText,
+        extractSafeGoogleErrorDetails(errorText),
+      ),
     };
     return;
   }

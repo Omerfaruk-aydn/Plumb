@@ -386,6 +386,146 @@ describe('plumbModelStream — Anthropic Messages HTTP/SSE error classification 
   });
 });
 
+describe('plumbModelStream — Gemini Developer API HTTP error classification (GEMINI_GENERATE_CONTENT, also google-vertex)', () => {
+  const geminiModel: PlumbModel = {
+    id: 'gemini-3.1-pro-preview',
+    provider: 'google',
+    api: 'google-generative-ai',
+    contextWindow: 1_000_000,
+    maxTokens: 65_536,
+    reasoning: true,
+    input: 'text',
+  };
+
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function googleErrorBody(status: string, message: string): string {
+    return JSON.stringify({
+      error: { code: 400, message, status, details: [] },
+    });
+  }
+
+  async function runWithFetchResponse(
+    body: string,
+    status: number,
+  ): Promise<PlumbStreamEvent[]> {
+    globalThis.fetch = (async () =>
+      new Response(body, { status })) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: geminiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'AIza-test-key',
+    })) {
+      events.push(event);
+    }
+    return events;
+  }
+
+  it('PERMISSION_DENIED -> ACCOUNT_RESTRICTED', async () => {
+    const events = await runWithFetchResponse(
+      googleErrorBody('PERMISSION_DENIED', 'Caller does not have permission'),
+      403,
+    );
+    expect(events[0]).toMatchObject({
+      error: {
+        code: 'ACCOUNT_RESTRICTED',
+        message: 'Caller does not have permission',
+      },
+    });
+  });
+
+  it('UNAUTHENTICATED -> AUTH_REQUIRED', async () => {
+    const events = await runWithFetchResponse(
+      googleErrorBody('UNAUTHENTICATED', 'API key not valid'),
+      401,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'AUTH_REQUIRED' },
+    });
+  });
+
+  it('INVALID_ARGUMENT -> INVALID_REQUEST', async () => {
+    const events = await runWithFetchResponse(
+      googleErrorBody('INVALID_ARGUMENT', 'Invalid value at contents'),
+      400,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'INVALID_REQUEST' },
+    });
+  });
+
+  it('NOT_FOUND -> MODEL_NOT_AVAILABLE', async () => {
+    const events = await runWithFetchResponse(
+      googleErrorBody('NOT_FOUND', 'models/does-not-exist is not found'),
+      404,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'MODEL_NOT_AVAILABLE' },
+    });
+  });
+
+  it('RESOURCE_EXHAUSTED with quota wording -> QUOTA_EXHAUSTED', async () => {
+    const events = await runWithFetchResponse(
+      googleErrorBody(
+        'RESOURCE_EXHAUSTED',
+        'Quota exceeded for quota metric requests per day',
+      ),
+      429,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'QUOTA_EXHAUSTED' },
+    });
+  });
+
+  it('a 5xx with no structured Google status falls back to UPSTREAM_ERROR', async () => {
+    const events = await runWithFetchResponse('Internal error occurred', 503);
+    expect(events[0]).toMatchObject({
+      error: { code: 'UPSTREAM_ERROR' },
+    });
+  });
+
+  it('a network failure (fetch throws) -> NETWORK_ERROR', async () => {
+    globalThis.fetch = (async () => {
+      throw new Error(
+        'getaddrinfo ENOTFOUND generativelanguage.googleapis.com',
+      );
+    }) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: geminiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'AIza-test-key',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'NETWORK_ERROR' },
+    });
+  });
+
+  it('cancellation (AbortError) yields a done/cancelled event, never an error', async () => {
+    globalThis.fetch = (async () => {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    }) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: geminiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'AIza-test-key',
+    })) {
+      events.push(event);
+    }
+    expect(events).toEqual([{ type: 'done', finishReason: 'cancelled' }]);
+  });
+});
+
 describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport', () => {
   // Real production defect: an Antigravity request leaked the OAuth access
   // token into `?key=<token>` and hit a public-Gemini-API-shaped path
