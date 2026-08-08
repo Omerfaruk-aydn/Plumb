@@ -86,6 +86,7 @@ export function resolvePlumbProviderId(ompOrPlumbId: string): string {
 const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
   'custom-openai-compat',
   'google-login',
+  'claude-subscription',
 ]);
 
 /**
@@ -97,6 +98,27 @@ const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
 const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
   'openai-codex',
 ]);
+
+/**
+ * Providers whose OMP-inherited OAuth flow is a real, technically-working
+ * client registration but is NOT (or is no longer) an Anthropic-sanctioned
+ * way for a third-party app to draw on a Claude subscription. Distinct from
+ * BLOCKED_CLIENT_REGISTRATIONS (a PLUMB-side registration mismatch): this is
+ * an upstream *policy* block — the flow works technically but its continued
+ * use would violate Anthropic's Consumer Terms of Service.
+ *
+ * `anthropic`: OMP's registry OAuth flow (omp-ai/registry/anthropic.ts,
+ * port 54545 paste-code) authenticates using Claude Code's own OAuth client
+ * id and then uses the resulting subscription-scoped token as a generic
+ * chat credential — not the Agent SDK. Per Anthropic's official policy
+ * (support.claude.com "Use the Claude Agent SDK with your Claude plan"),
+ * the Agent SDK is the currently-sanctioned third-party integration path;
+ * this raw flow is not it. The `claude-subscription` PLUMB-only synthetic
+ * (transports/claudeSubscription.ts) is the replacement, built on the
+ * official Agent SDK. `anthropic-api` (direct Anthropic Developer Platform
+ * API key) is unaffected and remains fully available.
+ */
+const BLOCKED_UPSTREAM_POLICY: ReadonlySet<string> = new Set(['anthropic']);
 
 /**
  * Providers with no OMP catalog descriptor and no OMP registry definition.
@@ -316,11 +338,24 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'OAuth Providers',
     order: 1,
     description:
-      'Anthropic Claude API via OAuth (Claude Pro or Max subscription)',
+      'Disabled: raw Claude Code OAuth is not an Anthropic-sanctioned third-party path. Use "Claude Subscription" (Agent SDK) or "Anthropic API".',
     authMethods: [
       { type: 'oauth', port: 54545, pasteCode: true },
       { type: 'api_key', envVar: 'ANTHROPIC_API_KEY' },
     ],
+  },
+  'claude-subscription': {
+    category: PlumbProviderCategory.OAUTH_ACCOUNT,
+    group: 'OAuth Providers',
+    order: 4,
+    description:
+      'Claude Pro/Max/Team/Enterprise subscription via the official Claude Agent SDK',
+    // No OMP registry/catalog backing (PLUMB_SYNTHETIC_IDS) — this is a
+    // distinct, PLUMB-native integration (transports/claudeSubscription.ts)
+    // over the official Agent SDK, not an OMP-derived OAuth/API-key flow.
+    // The Agent SDK itself owns login; there is no PLUMB-initiated OAuth
+    // exchange to describe here.
+    authMethods: [{ type: 'none' }],
   },
   'xai-oauth': {
     category: PlumbProviderCategory.OAUTH_ACCOUNT,
@@ -711,6 +746,9 @@ function isOmpAvailable(ompId: string, plumbId?: string): boolean {
   // Providers whose OAuth client registration is upstream-owned and invalid
   // for PLUMB must not be available as OAuth login flows.
   if (plumbId && BLOCKED_CLIENT_REGISTRATIONS.has(plumbId)) return false;
+  // Providers whose OAuth flow is real but not an Anthropic-sanctioned
+  // third-party integration path (see BLOCKED_UPSTREAM_POLICY doc comment).
+  if (plumbId && BLOCKED_UPSTREAM_POLICY.has(plumbId)) return false;
   // Providers with no OMP catalog descriptor and therefore no model source.
   if (plumbId && BLOCKED_NO_MODEL_SOURCE.has(plumbId)) return false;
   const def = getProviderDefinition(ompId);
@@ -760,6 +798,8 @@ function projectProvider(plumbId: string): PlumbProvider | undefined {
   if (!available) {
     if (plumbId && BLOCKED_CLIENT_REGISTRATIONS.has(plumbId)) {
       availabilityReason = 'BLOCKED_CLIENT_REGISTRATION';
+    } else if (plumbId && BLOCKED_UPSTREAM_POLICY.has(plumbId)) {
+      availabilityReason = 'BLOCKED_UPSTREAM_POLICY';
     } else if (plumbId && BLOCKED_NO_MODEL_SOURCE.has(plumbId)) {
       availabilityReason = 'PROVIDER_HAS_NO_MODEL_ENUMERATION';
     } else if (ompId === null) {

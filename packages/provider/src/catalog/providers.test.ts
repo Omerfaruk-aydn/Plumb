@@ -19,7 +19,11 @@ import { getProviderDefinition } from '../omp-ai/registry/registry.js';
 import { getCatalogProviderEntry } from '../omp-catalog/provider-models/descriptors.js';
 
 // PLUMB ids that legitimately have no OMP descriptor (PLUMB-only surfaces).
-const PLUMB_ONLY_IDS = new Set(['custom-openai-compat', 'google-login']);
+const PLUMB_ONLY_IDS = new Set([
+  'custom-openai-compat',
+  'google-login',
+  'claude-subscription',
+]);
 
 // PLUMB presentation id → OMP registry id (mirrors the facade alias map).
 const PLUMB_TO_OMP: Record<string, string> = {
@@ -91,5 +95,25 @@ describe('provider catalog projection', () => {
     expect(PRODUCTION_READY_PROVIDER_IDS.has('openai-codex')).toBe(false);
     // openai API key provider remains separately selectable.
     expect(PRODUCTION_READY_PROVIDER_IDS.has('openai')).toBe(true);
+  });
+
+  it('anthropic (raw Claude Code OAuth) is non-selectable (blocked upstream policy)', () => {
+    const anthropic = PLUMB_PROVIDERS.find((p) => p.id === 'anthropic');
+    expect(anthropic).toBeDefined();
+    expect(anthropic!.available).toBe(false);
+    expect(anthropic!.availabilityReason).toBe('BLOCKED_UPSTREAM_POLICY');
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('anthropic')).toBe(false);
+    // Direct Anthropic API key access is unaffected.
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('anthropic-api')).toBe(true);
+  });
+
+  it('claude-subscription is a PLUMB-only synthetic (no OMP backing, not in the OMP-derived selectable set)', () => {
+    const sub = PLUMB_PROVIDERS.find((p) => p.id === 'claude-subscription');
+    expect(sub).toBeDefined();
+    expect(sub!.available).toBe(false);
+    expect(sub!.availabilityReason).toBe('PLUMB_ONLY_SYNTHETIC');
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('claude-subscription')).toBe(
+      false,
+    );
   });
 });

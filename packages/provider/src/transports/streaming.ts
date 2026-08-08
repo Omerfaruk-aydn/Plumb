@@ -29,6 +29,7 @@ import {
   classifyAnthropicSseErrorType,
   classifyGoogleHttpError,
 } from './errorClassification.js';
+import { streamClaudeSubscription } from './claudeSubscription.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -1618,6 +1619,7 @@ registerPlumbTransport('openai-responses', openAICompatibleStream);
 
 // Anthropic
 registerPlumbTransport('anthropic-messages', anthropicMessagesStream);
+registerPlumbTransport('claude-agent-sdk', streamClaudeSubscription);
 
 // Google
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);

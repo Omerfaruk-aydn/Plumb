@@ -80,7 +80,8 @@ export type PlumbKnownApi =
   | 'cursor-agent'
   | 'devin-agent'
   | 'gitlab-duo-agent'
-  | 'openrouter';
+  | 'openrouter'
+  | 'claude-agent-sdk';
 
 // ─── Thinking control ─────────────────────────────────────────────────
 
