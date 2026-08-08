@@ -210,4 +210,105 @@ describe('PlumbSecureCredentialStore', () => {
       }
     });
   });
+
+  describe('safe cloud provider configuration (never secret material)', () => {
+    it('getProviderCloudConfig returns {} for a provider with no configuration', async () => {
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({});
+    });
+
+    it('setProviderCloudConfig merges partial updates without clobbering existing keys', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1..real',
+      });
+      await store.setProviderCloudConfig('oci-genai', {
+        compartmentId: 'ocid1.compartment.oc1..real',
+      });
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1..real',
+        compartmentId: 'ocid1.compartment.oc1..real',
+      });
+    });
+
+    it('setProviderCloudConfig with an undefined value removes that key -- used when switching auth mode/scope makes a field irrelevant', async () => {
+      await store.setProviderCloudConfig('watsonx', {
+        projectId: 'proj-1',
+        spaceId: undefined,
+      });
+      await store.setProviderCloudConfig('watsonx', {
+        projectId: undefined,
+        spaceId: 'space-1',
+      });
+      expect(await store.getProviderCloudConfig('watsonx')).toEqual({
+        spaceId: 'space-1',
+      });
+    });
+
+    it('replaceProviderCloudConfig atomically replaces the whole config -- no partial old+new mix', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+        projectId: 'old-project',
+        compartmentId: 'old-compartment',
+      });
+      await store.replaceProviderCloudConfig('oci-genai', {
+        region: 'eu-frankfurt-1',
+        projectId: 'new-project',
+      });
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'eu-frankfurt-1',
+        projectId: 'new-project',
+      });
+    });
+
+    it('clearProviderCloudConfig removes all safe config for a provider -- part of remove/logout', async () => {
+      await store.setProviderCloudConfig('azure', {
+        endpoint: 'https://my-resource.openai.azure.com',
+      });
+      await store.clearProviderCloudConfig('azure');
+      expect(await store.getProviderCloudConfig('azure')).toEqual({});
+    });
+
+    it('cloud config for one provider is independent of another (no cross-provider bleed)', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+      await store.setProviderCloudConfig('watsonx', { region: 'eu-de' });
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'us-chicago-1',
+      });
+      expect(await store.getProviderCloudConfig('watsonx')).toEqual({
+        region: 'eu-de',
+      });
+    });
+
+    it('survives a fresh store instance reading the same persisted file (cold-restart durability)', async () => {
+      await store.setProviderCloudConfig('amazon-bedrock', {
+        region: 'us-west-2',
+        profile: 'plumb-prod',
+      });
+
+      const restarted = new PlumbSecureCredentialStore();
+      expect(await restarted.getProviderCloudConfig('amazon-bedrock')).toEqual({
+        region: 'us-west-2',
+        profile: 'plumb-prod',
+      });
+    });
+
+    it('never appears in getCredentials/getApiKey -- safe config and secret material stay in separate stores', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'real-oci-genai-secret-key',
+      });
+      const config = await store.getProviderCloudConfig('oci-genai');
+      expect(JSON.stringify(config)).not.toContain('real-oci-genai-secret-key');
+      expect(await store.getApiKey('oci-genai')).toBe(
+        'real-oci-genai-secret-key',
+      );
+    });
+  });
 });

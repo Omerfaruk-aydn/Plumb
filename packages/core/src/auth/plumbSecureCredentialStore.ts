@@ -38,7 +38,7 @@ const KEYCHAIN_SERVICE_NAME = 'plumb-provider-credentials';
 const OAUTH_REFRESH_SKEW_MS = 60_000;
 
 interface NonSecretMetadata {
-  version: 3;
+  version: 3 | 4;
   providers: Record<
     string,
     {
@@ -48,6 +48,18 @@ interface NonSecretMetadata {
       disabled?: boolean;
       accountLabels: string[];
       credentialRefs: string[];
+      /**
+       * Safe (non-secret) provider configuration set via PLUMB's in-app
+       * setup UX -- AWS region/profile, Azure endpoint/deployment map,
+       * Vertex project/location, watsonx service URL/project/space, OCI
+       * region/project/compartment/auth mode, etc. Never secret material
+       * (API keys, private keys, session tokens) -- those go through
+       * storeApiKeyCredential/getApiKey instead. Added in metadata version
+       * 4; absent on files written by older PLUMB versions, which is why
+       * every reader treats it as optional rather than requiring a
+       * migration.
+       */
+      cloudConfig?: Record<string, string>;
     }
   >;
 }
@@ -363,6 +375,71 @@ export class PlumbSecureCredentialStore implements IPlumbCredentialStore {
       };
     }
     Object.assign(this.#metadata.providers[provider], updates);
+    this.#metadataDirty = true;
+    await this.#flushMetadata();
+  }
+
+  /**
+   * Merges `updates` into the provider's safe (non-secret) cloud
+   * configuration (region, profile, project, deployment map, auth mode,
+   * etc.) -- never secret material. A key set to `undefined` removes it
+   * (used when a user switches auth mode/scope and a field becomes
+   * irrelevant, e.g. clearing OCI's `project` when switching to
+   * `space`-scoped watsonx). Writes atomically via the same
+   * tmp-file-then-rename path every other metadata write uses.
+   */
+  async setProviderCloudConfig(
+    provider: string,
+    updates: Record<string, string | undefined>,
+  ): Promise<void> {
+    await this.#ensureLoaded();
+    if (!this.#metadata.providers[provider]) {
+      this.#metadata.providers[provider] = {
+        accountLabels: [],
+        credentialRefs: [],
+      };
+    }
+    const entry = this.#metadata.providers[provider];
+    const merged = { ...(entry.cloudConfig ?? {}) };
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === undefined) delete merged[key];
+      else merged[key] = value;
+    }
+    entry.cloudConfig = merged;
+    this.#metadataDirty = true;
+    await this.#flushMetadata();
+  }
+
+  /** Replaces the provider's entire safe cloud configuration -- used for atomic full-form saves. */
+  async replaceProviderCloudConfig(
+    provider: string,
+    config: Record<string, string>,
+  ): Promise<void> {
+    await this.#ensureLoaded();
+    if (!this.#metadata.providers[provider]) {
+      this.#metadata.providers[provider] = {
+        accountLabels: [],
+        credentialRefs: [],
+      };
+    }
+    this.#metadata.providers[provider].cloudConfig = { ...config };
+    this.#metadataDirty = true;
+    await this.#flushMetadata();
+  }
+
+  async getProviderCloudConfig(
+    provider: string,
+  ): Promise<Record<string, string>> {
+    await this.#ensureLoaded();
+    return { ...(this.#metadata.providers[provider]?.cloudConfig ?? {}) };
+  }
+
+  /** Clears the provider's safe cloud configuration -- part of remove/logout. Never touches external credential chains (AWS/ADC/OCI profiles). */
+  async clearProviderCloudConfig(provider: string): Promise<void> {
+    await this.#ensureLoaded();
+    const entry = this.#metadata.providers[provider];
+    if (!entry?.cloudConfig) return;
+    delete entry.cloudConfig;
     this.#metadataDirty = true;
     await this.#flushMetadata();
   }
