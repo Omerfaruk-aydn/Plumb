@@ -43,7 +43,10 @@ if (packageName === 'provider') {
 // build typescript files
 // Use tsc without --build for provider package (uses bundler moduleResolution)
 if (packageName === 'provider') {
-  execSync('npx --no-install tsc --force', { stdio: 'inherit' });
+  if (existsSync(join(process.cwd(), 'tsconfig.tsbuildinfo'))) {
+    rmSync(join(process.cwd(), 'tsconfig.tsbuildinfo'), { force: true });
+  }
+  execSync('npx --no-install tsc', { stdio: 'inherit' });
   // Copy non-TypeScript assets (.md, .md.js, .html, .json, extension-less
   // files) from the whole src/ tree into dist/ with layout preserved.
   // TypeScript emits neither the OMP dialect prompts (.md / .md.js) nor the
