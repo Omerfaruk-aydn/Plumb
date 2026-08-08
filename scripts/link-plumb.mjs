@@ -436,6 +436,7 @@ function stepUnlinkStale(plan) {
 
 function stepLinkWorkspace(plan) {
   runStep(plan, 'linkWorkspace', plan.npm, ['link'], { cwd: CLI_DIR });
+  runStep(plan, 'ensureProviderBuild', plan.npm, ['run', 'build', '-w', '@google/gemini-cli-provider']);
 }
 
 function stepResolveGlobal(plan) {
