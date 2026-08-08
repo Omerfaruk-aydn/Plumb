@@ -676,6 +676,23 @@ export const PlumbProviderSetupDialog: React.FC<
           void handleOAuthStart();
           return true;
         }
+        // Env-only providers (e.g. Amazon Bedrock, Azure OpenAI): the real
+        // credential is entirely ambient environment variables the user
+        // sets outside PLUMB — there is nothing to type or an OAuth flow to
+        // start. Without this branch, Enter here matched none of the
+        // branches above and was silently swallowed (return true at the
+        // bottom of this block) — a real dead-end identical to the one
+        // fixed for Claude Subscription, just triggered by a different
+        // authMethods shape (env-only, no oauth/api_key/device_code).
+        if (
+          keyMatchers[Command.RETURN](key) &&
+          apiKeyInput.length === 0 &&
+          provider?.authMethods.every((m) => m.type === 'env') &&
+          provider.authMethods.length > 0
+        ) {
+          setState((s) => ({ ...s, step: 'model-select' }));
+          return true;
+        }
         if (key.name === 'backspace') {
           if (apiKeyInput.length === 0) {
             setState((s) => ({
@@ -1132,7 +1149,9 @@ function AuthStep({
         <Text dimColor>
           {hasOAuth && onOAuthStart
             ? 'Enter to sign in • Type API key to use directly • Backspace to go back'
-            : 'Type API key and press Enter • Backspace to go back'}
+            : hasEnv && !hasApiKey && !hasOAuth && !hasDeviceCode
+              ? 'Press Enter once the environment variables above are set • Backspace to go back'
+              : 'Type API key and press Enter • Backspace to go back'}
         </Text>
       </Box>
     </Box>

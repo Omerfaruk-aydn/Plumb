@@ -586,7 +586,18 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 23,
     description: 'AWS Bedrock managed inference',
-    authMethods: [{ type: 'none' }],
+    // Real credential is the standard AWS credential chain (see
+    // omp-ai/providers/aws-credentials.ts): AWS_ACCESS_KEY_ID +
+    // AWS_SECRET_ACCESS_KEY (or AWS_PROFILE, or AWS_BEARER_TOKEN_BEDROCK),
+    // plus AWS_REGION for region routing. There is no PLUMB-collected API
+    // key -- these are ambient environment variables the user sets outside
+    // PLUMB, exactly like Azure OpenAI below.
+    authMethods: [
+      {
+        type: 'env',
+        envVars: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'],
+      },
+    ],
   },
   aimlapi: {
     category: PlumbProviderCategory.API_KEY,

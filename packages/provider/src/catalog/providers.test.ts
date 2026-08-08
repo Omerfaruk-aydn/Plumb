@@ -107,6 +107,28 @@ describe('provider catalog projection', () => {
     expect(PRODUCTION_READY_PROVIDER_IDS.has('anthropic-api')).toBe(true);
   });
 
+  it('amazon-bedrock declares its real ambient AWS credential env vars, not authMethods: [{type: "none"}]', () => {
+    // Regression: authMethods: [{type:'none'}] with allowUnauthenticated
+    // undefined/false is indistinguishable, in the setup dialog, from a
+    // provider with no working way to authenticate at all -- the
+    // AuthStep component renders an empty box and Enter does nothing (the
+    // same dead-end class of bug fixed for claude-subscription). Bedrock's
+    // real credential is the standard AWS credential chain
+    // (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, or AWS_PROFILE, or
+    // AWS_BEARER_TOKEN_BEDROCK -- see omp-ai/providers/aws-credentials.ts),
+    // which must be surfaced as a real 'env' auth method.
+    const bedrock = PLUMB_PROVIDERS.find((p) => p.id === 'amazon-bedrock');
+    expect(bedrock).toBeDefined();
+    expect(bedrock!.authMethods.some((m) => m.type === 'env')).toBe(true);
+    expect(bedrock!.authMethods.every((m) => m.type !== 'none')).toBe(true);
+    const envMethod = bedrock!.authMethods.find((m) => m.type === 'env') as {
+      type: 'env';
+      envVars: string[];
+    };
+    expect(envMethod.envVars).toContain('AWS_ACCESS_KEY_ID');
+    expect(envMethod.envVars).toContain('AWS_SECRET_ACCESS_KEY');
+  });
+
   it('claude-subscription is a PLUMB-only synthetic (no OMP backing, not in the OMP-derived selectable set)', () => {
     const sub = PLUMB_PROVIDERS.find((p) => p.id === 'claude-subscription');
     expect(sub).toBeDefined();
