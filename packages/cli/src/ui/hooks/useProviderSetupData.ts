@@ -44,9 +44,33 @@ export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
           provider: model.provider,
         }));
         if (cancelled) return;
+
+        // `claude-subscription` is a PLUMB-only synthetic (Agent SDK-backed,
+        // transports/claudeSubscription.ts) with no OMP catalog descriptor.
+        // SELECTABLE_PROVIDERS / getProviderSetupGroups() derive availability
+        // from the OMP authority, which by design excludes every PLUMB-only
+        // synthetic (see catalog/providers.ts PLUMB_SYNTHETIC_IDS) -- that
+        // invariant is intentional and covered by a dedicated test
+        // (catalog/providers.test.ts), so it must not be relaxed here.
+        // Instead, inject this one bespoke provider directly: it is
+        // resolvable via getPlumbProvider() (ALL_PROVIDERS), just never
+        // auto-included in the OMP-derived selectable set.
+        const claudeSubscription = providerPackage.getPlumbProvider(
+          'claude-subscription',
+        );
+        const providers = claudeSubscription
+          ? [...providerPackage.SELECTABLE_PROVIDERS, claudeSubscription]
+          : [...providerPackage.SELECTABLE_PROVIDERS];
+        const categoryGroups = providerPackage.getProviderSetupGroups();
+        if (claudeSubscription) {
+          const group = claudeSubscription.group ?? 'Other';
+          const existing = categoryGroups.get(group) ?? [];
+          categoryGroups.set(group, [...existing, claudeSubscription]);
+        }
+
         setData({
-          providers: [...providerPackage.SELECTABLE_PROVIDERS],
-          categoryGroups: providerPackage.getProviderSetupGroups(),
+          providers,
+          categoryGroups,
           models,
           fullModels,
         });

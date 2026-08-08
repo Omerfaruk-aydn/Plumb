@@ -12,8 +12,10 @@ import {
   type PlumbProvider,
   type PlumbModel,
   type PlumbProviderAuthState,
+  type ClaudeSubscriptionStatusResult,
   getCatalogModels,
   getCodingPlan,
+  getClaudeSubscriptionStatus,
   getPlumbProviderRegistry,
   validateCodingPlanApiKey,
 } from '@google/gemini-cli-provider';
@@ -55,6 +57,55 @@ interface SetupState {
   // so the dialog can offer Continue/Re-authenticate/Logout instead of
   // silently restarting device-code login on an already-connected provider.
   connectionAuthState: PlumbProviderAuthState | null;
+}
+
+const CLAUDE_SUBSCRIPTION_PROVIDER_ID = 'claude-subscription';
+
+/**
+ * Real, actionable per-status text for the Claude Agent SDK connection
+ * probe (getClaudeSubscriptionStatus) — never a generic "Something went
+ * wrong". Each status maps to what the user should actually do next.
+ */
+function describeClaudeSubscriptionStatus(
+  result: ClaudeSubscriptionStatusResult,
+): string {
+  switch (result.status) {
+    case 'NOT_INSTALLED':
+      return (
+        'The Claude Agent SDK is not installed. This should be bundled ' +
+        'with PLUMB — try reinstalling, or report this as a bug.' +
+        (result.detail ? ` (${result.detail})` : '')
+      );
+    case 'NOT_LOGGED_IN':
+      return (
+        'Not signed in to a Claude subscription. Run "claude login" in ' +
+        'your terminal (from the Claude Code CLI / Agent SDK), then press ' +
+        'Enter here to retry.'
+      );
+    case 'SESSION_EXPIRED':
+      return (
+        'Your Claude session has expired. Run "claude login" again, then ' +
+        'press Enter here to retry.'
+      );
+    case 'PLAN_UNSUPPORTED':
+      return (
+        "Your Claude plan doesn't support the Agent SDK integration. Use " +
+        '"Anthropic API" (direct API key) instead.'
+      );
+    case 'UPSTREAM_POLICY_CHANGED':
+      return (
+        "Anthropic's policy for third-party Agent SDK usage has changed " +
+        'since this integration was built. This provider is temporarily ' +
+        'unavailable until PLUMB is updated.'
+      );
+    case 'AGENT_SDK_UNAVAILABLE':
+    default:
+      return (
+        'Could not reach the Claude Agent SDK. Check your network ' +
+        'connection and press Enter here to retry.' +
+        (result.detail ? ` (${result.detail})` : '')
+      );
+  }
 }
 
 export interface PlumbProviderSetupDialogProps {
@@ -254,45 +305,102 @@ export const PlumbProviderSetupDialog: React.FC<
     [],
   );
 
-  const handleProviderSelect = useCallback((provider: PlumbProvider) => {
-    setApiKeyInput('');
-
-    // Read the real connection state from the canonical registry before
-    // deciding where to route — never restart device-code/OAuth login for a
-    // provider that already has a usable credential (that state is derived
-    // fresh here, not cached, so it reflects logins/logouts that happened
-    // earlier in this same running process).
-    if (!provider.allowUnauthenticated) {
-      const providerState = getPlumbProviderRegistry().getProviderState(
-        provider.id,
-      );
-      if (
-        providerState?.authState === 'authenticated' ||
-        providerState?.authState === 'expired'
-      ) {
-        setState((s) => ({
-          ...s,
-          step: 'connected',
-          selectedProvider: provider,
-          connectionAuthState: providerState.authState,
-          error: null,
-          loading: false,
-          oauthStatus: null,
-        }));
-        return;
-      }
-    }
-
+  // Claude Subscription (Agent SDK) has no PLUMB-initiated OAuth/API-key
+  // flow — the Agent SDK owns login (`claude login`, external to PLUMB).
+  // Instead of the generic authenticate step, this probes the real
+  // connection status and routes straight to model-select when connected,
+  // or shows the actual reason (with a real remediation step) when not.
+  // Also used as the Enter-to-retry handler from the authenticate step.
+  const probeClaudeSubscription = useCallback((provider: PlumbProvider) => {
     setState((s) => ({
       ...s,
-      step: provider.allowUnauthenticated ? 'model-select' : 'authenticate',
+      step: 'authenticate',
       selectedProvider: provider,
       connectionAuthState: null,
       error: null,
-      loading: false,
+      loading: true,
       oauthStatus: null,
     }));
+    void (async () => {
+      try {
+        const result = await getClaudeSubscriptionStatus();
+        if (result.status === 'CONNECTED_SUBSCRIPTION') {
+          setState((s) => ({
+            ...s,
+            step: 'model-select',
+            connectionAuthState: 'authenticated',
+            loading: false,
+            error: null,
+          }));
+        } else {
+          setState((s) => ({
+            ...s,
+            step: 'authenticate',
+            loading: false,
+            error: describeClaudeSubscriptionStatus(result),
+          }));
+        }
+      } catch (err) {
+        setState((s) => ({
+          ...s,
+          step: 'authenticate',
+          loading: false,
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Failed to check Claude subscription status.',
+        }));
+      }
+    })();
   }, []);
+
+  const handleProviderSelect = useCallback(
+    (provider: PlumbProvider) => {
+      setApiKeyInput('');
+
+      if (provider.id === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
+        probeClaudeSubscription(provider);
+        return;
+      }
+
+      // Read the real connection state from the canonical registry before
+      // deciding where to route — never restart device-code/OAuth login for a
+      // provider that already has a usable credential (that state is derived
+      // fresh here, not cached, so it reflects logins/logouts that happened
+      // earlier in this same running process).
+      if (!provider.allowUnauthenticated) {
+        const providerState = getPlumbProviderRegistry().getProviderState(
+          provider.id,
+        );
+        if (
+          providerState?.authState === 'authenticated' ||
+          providerState?.authState === 'expired'
+        ) {
+          setState((s) => ({
+            ...s,
+            step: 'connected',
+            selectedProvider: provider,
+            connectionAuthState: providerState.authState,
+            error: null,
+            loading: false,
+            oauthStatus: null,
+          }));
+          return;
+        }
+      }
+
+      setState((s) => ({
+        ...s,
+        step: provider.allowUnauthenticated ? 'model-select' : 'authenticate',
+        selectedProvider: provider,
+        connectionAuthState: null,
+        error: null,
+        loading: false,
+        oauthStatus: null,
+      }));
+    },
+    [probeClaudeSubscription],
+  );
 
   const handleConnectedAction = useCallback(
     (action: 'continue' | 'reauth' | 'logout') => {
@@ -532,6 +640,16 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'authenticate') {
+        // Claude Subscription has no PLUMB-initiated login — Enter re-runs
+        // the connection probe (e.g. after the user has run `claude login`
+        // in another terminal per the remediation text shown above).
+        if (
+          provider?.id === CLAUDE_SUBSCRIPTION_PROVIDER_ID &&
+          keyMatchers[Command.RETURN](key)
+        ) {
+          probeClaudeSubscription(provider);
+          return true;
+        }
         // API-key takes priority when the user has typed a key — never start
         // OAuth waiting for an api_key completion path.
         if (keyMatchers[Command.RETURN](key) && apiKeyInput.length > 0) {
@@ -918,6 +1036,29 @@ function AuthStep({
   // guessed URL.
   const apiKeyAuthUrl =
     getCodingPlan(provider.id)?.authUrl ?? provider.description;
+
+  // Claude Subscription has no PLUMB-initiated auth method at all
+  // (authMethods: [{type: 'none'}]) — the generic hasOAuth/hasApiKey/
+  // hasDeviceCode/hasEnv branches below would render an empty box with a
+  // misleading "Type API key and press Enter" footer. The real status
+  // (with a real remediation step) is already surfaced via the error
+  // banner above this component; this just explains what Enter does here.
+  if (provider.id === 'claude-subscription') {
+    return (
+      <Box flexDirection="column">
+        <Text bold>Authenticate: {provider.name}</Text>
+        <Box flexDirection="column" marginY={1}>
+          <Text>
+            This provider is connected through the official Claude Agent SDK,
+            which manages its own sign-in outside of PLUMB.
+          </Text>
+        </Box>
+        <Box>
+          <Text dimColor>Press Enter to retry • Backspace to go back</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column">

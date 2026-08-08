@@ -259,3 +259,10 @@ export type {
   CodingPlanLoginResult,
   ApiKeyValidationResult,
 } from './plans/coding-plans.js';
+
+// Claude Subscription (Agent SDK)
+export { getClaudeSubscriptionStatus } from './transports/claudeSubscription.js';
+export type {
+  ClaudeSubscriptionAuthStatus,
+  ClaudeSubscriptionStatusResult,
+} from './transports/claudeSubscription.js';
