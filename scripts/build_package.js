@@ -48,9 +48,9 @@ if (packageName === 'provider') {
   const srcDir = join(process.cwd(), 'src');
   const distDir = join(process.cwd(), 'dist');
   const isCopyableAsset = (src) => {
+    if (src === srcDir) return true;
     if (statSync(src).isDirectory()) return true;
     const base = basename(src);
-    if (base.endsWith('.ts')) return false;
     return (
       base.endsWith('.md') ||
       base.endsWith('.md.js') ||
