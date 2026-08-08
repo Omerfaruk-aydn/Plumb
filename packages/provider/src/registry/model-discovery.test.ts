@@ -49,6 +49,9 @@ const OMP_BACKED_SAMPLE = [
   'anthropic-api',
   'sambanova',
   'nebius',
+  'cohere',
+  'byteplus-modelark',
+  'volcengine-ark',
 ];
 
 describe('Discovery Adapter Registry', () => {

@@ -482,7 +482,8 @@
     "packages/provider/src/omp-ai/registry/oauth/response-parser.test.ts",
     "packages/provider/src/omp-catalog/discovery/vertex.ts",
     "packages/provider/src/omp-catalog/discovery/vertex.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.sambanova-nebius.test.ts"
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.sambanova-nebius.test.ts",
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.cohere-ark.test.ts"
   ],
   "adaptationDiffs": [
     {
@@ -563,12 +564,12 @@
     {
       "path": "packages/provider/src/omp-catalog/provider-models/openai-compat.ts",
       "upstream": "packages/catalog/src/provider-models/openai-compat.ts",
-      "reason": "PLUMB feature: added sambaNovaModelManagerOptions and nebiusModelManagerOptions (SambaNova Cloud, Nebius AI Studio — both real OpenAI-compatible providers absent from upstream/the bundled catalog, verified against their official docs). Both reuse the existing createSimpleOpenAICompletionsOptions helper unmodified; the provider id is cast at the call site since getBundledModels(unknownId) safely returns [] and the model list is entirely dynamic-discovery-driven for these two (dynamicModelsAuthoritative: true in descriptors.ts)"
+      "reason": "PLUMB feature: added sambaNovaModelManagerOptions, nebiusModelManagerOptions, cohereModelManagerOptions, byteplusModelArkModelManagerOptions, and volcengineArkModelManagerOptions (SambaNova Cloud, Nebius AI Studio, Cohere's OpenAI Compatibility API, BytePlus ModelArk, Volcengine Ark — all real OpenAI-compatible providers absent from upstream/the bundled catalog, each verified against official docs before implementation). All reuse the existing createSimpleOpenAICompletionsOptions helper unmodified; the provider id is cast at the call site since getBundledModels(unknownId) safely returns [] and the model list is entirely dynamic-discovery-driven for these five (dynamicModelsAuthoritative: true in descriptors.ts)"
     },
     {
       "path": "packages/provider/src/omp-catalog/provider-models/descriptors.ts",
       "upstream": "packages/catalog/src/provider-models/descriptors.ts",
-      "reason": "PLUMB feature: added CATALOG_PROVIDERS entries for sambanova and nebius (see openai-compat.ts adaptationDiffs entry above)"
+      "reason": "PLUMB feature: added CATALOG_PROVIDERS entries for sambanova, nebius, cohere, byteplus-modelark, and volcengine-ark (see openai-compat.ts adaptationDiffs entry above)"
     },
     {
       "path": "packages/provider/src/omp-ai/providers/google-shared.ts",

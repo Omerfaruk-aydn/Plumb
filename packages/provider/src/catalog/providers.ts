@@ -503,6 +503,27 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     description: 'Nebius AI Studio inference platform',
     authMethods: [{ type: 'api_key', envVar: 'NEBIUS_API_KEY' }],
   },
+  cohere: {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 41,
+    description: 'Cohere (OpenAI-compatible Compatibility API)',
+    authMethods: [{ type: 'api_key', envVar: 'COHERE_API_KEY' }],
+  },
+  'byteplus-modelark': {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 42,
+    description: 'BytePlus ModelArk (Doubao models, international)',
+    authMethods: [{ type: 'api_key', envVar: 'BYTEPLUS_API_KEY' }],
+  },
+  'volcengine-ark': {
+    category: PlumbProviderCategory.API_KEY,
+    group: 'API Providers',
+    order: 43,
+    description: 'Volcengine Ark (Doubao models, China mainland)',
+    authMethods: [{ type: 'api_key', envVar: 'VOLCENGINE_API_KEY' }],
+  },
   azure: {
     category: PlumbProviderCategory.API_KEY,
     group: 'API Providers',

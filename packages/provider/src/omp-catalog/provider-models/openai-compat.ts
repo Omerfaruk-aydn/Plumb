@@ -1020,6 +1020,84 @@ export function nebiusModelManagerOptions(
 }
 
 // ---------------------------------------------------------------------------
+// 4d. Cohere (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface CohereModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * Cohere — official OpenAI-compatible "Compatibility API"
+ * (https://docs.cohere.com/docs/compatibility-api), distinct from Cohere's
+ * native v2/chat API (different request/response shape, not used here).
+ * No upstream/bundled-catalog entry, same as SambaNova/Nebius above.
+ */
+export function cohereModelManagerOptions(
+	config?: CohereModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"cohere" as Parameters<typeof getBundledModels>[0],
+		"https://api.cohere.ai/compatibility/v1",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
+// 4e. BytePlus ModelArk (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface ByteplusModelArkModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * BytePlus ModelArk (international) — OpenAI-compatible
+ * (https://docs.byteplus.com/api/docs/ModelArk/1330626). Separate account/
+ * credential authority from Volcengine Ark below — same underlying Doubao
+ * model family, different region/billing entity, per BytePlus's own docs.
+ */
+export function byteplusModelArkModelManagerOptions(
+	config?: ByteplusModelArkModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"byteplus-modelark" as Parameters<typeof getBundledModels>[0],
+		"https://ark.ap-southeast.bytepluses.com/api/v3",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
+// 4f. Volcengine Ark (PLUMB addition — no upstream/bundled-catalog entry)
+// ---------------------------------------------------------------------------
+
+export interface VolcengineArkModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+/**
+ * Volcengine Ark (China mainland) — OpenAI-compatible
+ * (https://ark.cn-beijing.volces.com/api/v3). See byteplusModelArkModelManagerOptions
+ * above for why this is a separate provider id/credential scope rather than
+ * an alias.
+ */
+export function volcengineArkModelManagerOptions(
+	config?: VolcengineArkModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions(
+		"volcengine-ark" as Parameters<typeof getBundledModels>[0],
+		"https://ark.cn-beijing.volces.com/api/v3",
+		config,
+	);
+}
+
+// ---------------------------------------------------------------------------
 // 5. NVIDIA
 // ---------------------------------------------------------------------------
 
