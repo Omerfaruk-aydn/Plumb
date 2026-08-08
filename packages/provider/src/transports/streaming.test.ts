@@ -11,7 +11,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
 import { createNormalizationStream, plumbModelStream } from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
-import type { PlumbModel, PlumbStreamEvent } from '../types.js';
+import type {
+  PlumbModel,
+  PlumbStreamEvent,
+  PlumbStreamOptions,
+} from '../types.js';
 
 installBunGlobal();
 
@@ -1165,5 +1169,206 @@ describe('plumbModelStream — OpenAI-compatible HTTP error classification (open
       type: 'error',
       error: { code: 'MISSING_CREDENTIAL' },
     });
+  });
+});
+
+describe('multi-turn tool-call/tool-result wire shape (regression: previously flattened to placeholder text, breaking every real multi-turn tool continuation)', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const historyWithToolTurn: PlumbStreamOptions['messages'] = [
+    { role: 'user', content: 'What files are in this repo?' },
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'Let me check.' },
+        {
+          type: 'tool_call',
+          id: 'call_abc123',
+          name: 'list_files',
+          arguments: '{"path":"."}',
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      toolCallId: 'call_abc123',
+      name: 'list_files',
+      content: [
+        {
+          type: 'tool_result',
+          id: 'call_abc123',
+          name: 'list_files',
+          result: '["README.md","package.json"]',
+        },
+      ],
+    },
+    { role: 'user', content: 'Summarize them.' },
+  ];
+
+  const openaiToolModel: PlumbModel = {
+    id: 'gpt-5.5',
+    provider: 'openai',
+    api: 'openai-completions',
+    contextWindow: 128_000,
+    maxTokens: 8_192,
+    reasoning: false,
+    input: 'text',
+  };
+
+  it('OpenAI-compatible: assistant tool_calls[] + a tool message with the matching tool_call_id', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    for await (const _e of plumbModelStream({
+      model: openaiToolModel,
+      messages: historyWithToolTurn,
+      apiKey: 'sk-test',
+    })) {
+      // drain
+    }
+
+    const messages = capturedBody?.['messages'] as Array<
+      Record<string, unknown>
+    >;
+    const assistantMsg = messages.find((m) => m['role'] === 'assistant');
+    const toolMsg = messages.find((m) => m['role'] === 'tool');
+
+    // The bug: previously `content: '[Tool: list_files]'` with no tool_calls
+    // array, and a `tool` message with `tool_call_id: undefined` — a real
+    // OpenAI-compatible endpoint rejects that outright (orphaned tool
+    // message, no matching preceding tool_calls[].id).
+    expect(assistantMsg?.['content']).not.toContain('[Tool:');
+    expect(assistantMsg?.['tool_calls']).toEqual([
+      {
+        id: 'call_abc123',
+        type: 'function',
+        function: { name: 'list_files', arguments: '{"path":"."}' },
+      },
+    ]);
+    expect(toolMsg?.['tool_call_id']).toBe('call_abc123');
+    expect(toolMsg?.['content']).toBe('["README.md","package.json"]');
+  });
+
+  it('Anthropic: assistant tool_use block + a user message carrying a tool_result block (Anthropic has no tool role)', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    const anthropicToolModel: PlumbModel = {
+      id: 'claude-sonnet-5',
+      provider: 'anthropic-api',
+      api: 'anthropic-messages',
+      contextWindow: 200_000,
+      maxTokens: 8_192,
+      reasoning: false,
+      input: 'text',
+    };
+
+    for await (const _e of plumbModelStream({
+      model: anthropicToolModel,
+      messages: historyWithToolTurn,
+      apiKey: 'sk-ant-test',
+    })) {
+      // drain
+    }
+
+    const messages = capturedBody?.['messages'] as Array<
+      Record<string, unknown>
+    >;
+    const assistantMsg = messages.find((m) => m['role'] === 'assistant');
+    const assistantBlocks = assistantMsg?.['content'] as Array<
+      Record<string, unknown>
+    >;
+    const toolUseBlock = assistantBlocks.find((b) => b['type'] === 'tool_use');
+    expect(toolUseBlock).toEqual({
+      type: 'tool_use',
+      id: 'call_abc123',
+      name: 'list_files',
+      input: { path: '.' },
+    });
+
+    // The tool result must be a `tool_result` block inside a *user* message
+    // immediately following — Anthropic rejects a `tool`-role message.
+    const toolResultMsg = messages.find(
+      (m) =>
+        m['role'] === 'user' &&
+        Array.isArray(m['content']) &&
+        (m['content'] as Array<Record<string, unknown>>).some(
+          (b) => b['type'] === 'tool_result',
+        ),
+    );
+    expect(toolResultMsg).toBeDefined();
+    const toolResultBlock = (
+      toolResultMsg!['content'] as Array<Record<string, unknown>>
+    ).find((b) => b['type'] === 'tool_result');
+    expect(toolResultBlock).toEqual({
+      type: 'tool_result',
+      tool_use_id: 'call_abc123',
+      content: '["README.md","package.json"]',
+    });
+  });
+
+  it('Gemini: functionCall/functionResponse parts with the matching id, never an empty Content', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    const geminiToolModel: PlumbModel = {
+      id: 'gemini-3.1-pro-preview',
+      provider: 'google',
+      api: 'google-generative-ai',
+      contextWindow: 1_000_000,
+      maxTokens: 65_536,
+      reasoning: true,
+      input: 'text',
+    };
+
+    for await (const _e of plumbModelStream({
+      model: geminiToolModel,
+      messages: historyWithToolTurn,
+      apiKey: 'AIza-test',
+    })) {
+      // drain
+    }
+
+    const contents = capturedBody?.['contents'] as Array<
+      Record<string, unknown>
+    >;
+    for (const c of contents) {
+      expect((c['parts'] as unknown[]).length).toBeGreaterThan(0);
+    }
+    const modelTurn = contents.find((c) => c['role'] === 'model');
+    const functionCallPart = (
+      modelTurn?.['parts'] as Array<Record<string, unknown>>
+    ).find((p) => 'functionCall' in p);
+    expect(functionCallPart?.['functionCall']).toEqual({
+      id: 'call_abc123',
+      name: 'list_files',
+      args: { path: '.' },
+    });
+
+    const functionResponseTurn = contents.find((c) =>
+      (c['parts'] as Array<Record<string, unknown>>).some(
+        (p) => 'functionResponse' in p,
+      ),
+    );
+    const functionResponsePart = (
+      functionResponseTurn?.['parts'] as Array<Record<string, unknown>>
+    ).find((p) => 'functionResponse' in p);
+    expect(
+      (functionResponsePart?.['functionResponse'] as Record<string, unknown>)[
+        'id'
+      ],
+    ).toBe('call_abc123');
   });
 });

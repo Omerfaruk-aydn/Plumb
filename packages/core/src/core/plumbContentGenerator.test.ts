@@ -123,4 +123,207 @@ describe('PlumbContentGenerator', () => {
     const { model } = mockPlumbModelStream.mock.calls[0][0];
     expect(model.provider).toBe('nvidia');
   });
+
+  describe('#convertMessages — tool-call/tool-result history (regression: previously flattened to "[Tool: name]" placeholder text with no id, breaking every multi-turn tool continuation)', () => {
+    beforeEach(() => {
+      mockFindModel.mockReturnValue({
+        id: 'gpt-5.5',
+        provider: 'openai',
+        api: 'openai-completions',
+      });
+    });
+
+    it('preserves the functionCall id and structured args as a tool_call content part on the assistant turn', async () => {
+      const generator = new PlumbContentGenerator(
+        'openai',
+        'gpt-5.5',
+        'sk-test',
+      );
+      const request: GenerateContentParameters = {
+        model: 'unused',
+        contents: [
+          { role: 'user', parts: [{ text: 'What files are here?' }] },
+          {
+            role: 'model',
+            parts: [
+              { text: 'Let me check.' },
+              {
+                functionCall: {
+                  id: 'call_abc123',
+                  name: 'list_files',
+                  args: { path: '.' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [
+              {
+                functionResponse: {
+                  id: 'call_abc123',
+                  name: 'list_files',
+                  response: { files: ['README.md'] },
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      const { messages } = mockPlumbModelStream.mock.calls[0][0] as unknown as {
+        messages: Array<{
+          role: string;
+          content: unknown;
+          toolCallId?: string;
+        }>;
+      };
+
+      const assistantMsg = messages.find((m) => m.role === 'assistant');
+      expect(Array.isArray(assistantMsg?.content)).toBe(true);
+      const content = assistantMsg!.content as Array<Record<string, unknown>>;
+      expect(content).toContainEqual({ type: 'text', text: 'Let me check.' });
+      expect(content).toContainEqual({
+        type: 'tool_call',
+        id: 'call_abc123',
+        name: 'list_files',
+        arguments: JSON.stringify({ path: '.' }),
+      });
+      // The old bug: no assistant message ever carried a real tool_call —
+      // just a fake text placeholder like "[Tool: list_files]".
+      expect(
+        content.some(
+          (p) => p['type'] === 'text' && String(p['text']).includes('[Tool:'),
+        ),
+      ).toBe(false);
+
+      const toolMsg = messages.find((m) => m.role === 'tool');
+      expect(toolMsg?.toolCallId).toBe('call_abc123');
+      const toolContent = toolMsg!.content as Array<Record<string, unknown>>;
+      expect(toolContent[0]).toMatchObject({
+        type: 'tool_result',
+        id: 'call_abc123',
+        result: JSON.stringify({ files: ['README.md'] }),
+      });
+    });
+
+    it('splits parallel tool calls into one tool-result PlumbMessage per functionResponse, each with its own toolCallId', async () => {
+      const generator = new PlumbContentGenerator(
+        'openai',
+        'gpt-5.5',
+        'sk-test',
+      );
+      const request: GenerateContentParameters = {
+        model: 'unused',
+        contents: [
+          { role: 'user', parts: [{ text: 'go' }] },
+          {
+            role: 'model',
+            parts: [
+              { functionCall: { id: 'call_1', name: 'a', args: {} } },
+              { functionCall: { id: 'call_2', name: 'b', args: {} } },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [
+              {
+                functionResponse: {
+                  id: 'call_1',
+                  name: 'a',
+                  response: { ok: true },
+                },
+              },
+              {
+                functionResponse: {
+                  id: 'call_2',
+                  name: 'b',
+                  response: { ok: false },
+                },
+              },
+            ],
+          },
+        ],
+      };
+
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      const { messages } = mockPlumbModelStream.mock.calls[0][0] as unknown as {
+        messages: Array<{ role: string; toolCallId?: string }>;
+      };
+      const toolMsgs = messages.filter((m) => m.role === 'tool');
+      expect(toolMsgs.map((m) => m.toolCallId).sort()).toEqual([
+        'call_1',
+        'call_2',
+      ]);
+    });
+
+    it('yields a functionCall chunk carrying the real tool-call id (not just name/args)', async () => {
+      (
+        mockPlumbModelStream as unknown as {
+          mockImplementationOnce: (fn: () => AsyncGenerator<unknown>) => void;
+        }
+      ).mockImplementationOnce(async function* () {
+        yield {
+          type: 'tool_call',
+          toolCall: {
+            id: 'call_xyz',
+            name: 'read_file',
+            arguments: '{"path":"a.ts"}',
+          },
+        };
+        yield { type: 'done', finishReason: 'stop' };
+      });
+
+      const generator = new PlumbContentGenerator(
+        'openai',
+        'gpt-5.5',
+        'sk-test',
+      );
+      const stream = await generator.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      );
+      interface FunctionCallChunk {
+        candidates: Array<{
+          content: {
+            parts: Array<{
+              functionCall?: { id: string; name: string; args: unknown };
+            }>;
+          };
+        }>;
+      }
+      const chunks: unknown[] = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+      const fnCallChunk = chunks.find(
+        (c) =>
+          (c as FunctionCallChunk).candidates?.[0]?.content?.parts?.[0]
+            ?.functionCall,
+      ) as FunctionCallChunk;
+      expect(fnCallChunk.candidates[0].content.parts[0].functionCall).toEqual({
+        id: 'call_xyz',
+        name: 'read_file',
+        args: { path: 'a.ts' },
+      });
+    });
+  });
 });

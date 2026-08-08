@@ -1501,6 +1501,82 @@ async function* ollamaCompatibleStream(
 }
 
 // ─── Message builders ──────────────────────────────────────────────────
+//
+// PlumbMessage.content is `string | PlumbContentPart[]` — the array form
+// carries structured `tool_call`/`tool_result`/`image`/`thinking` parts
+// (see types.ts). Every dialect below MUST reconstruct its own real wire
+// shape for a tool-call/tool-result turn (OpenAI: assistant.tool_calls[] +
+// a separate `tool` message keyed by tool_call_id; Anthropic: assistant
+// tool_use content blocks + a user message carrying tool_result blocks;
+// Gemini: functionCall/functionResponse parts) — flattening these into
+// plain text (the previous behavior) silently breaks multi-turn tool use:
+// an OpenAI-compatible endpoint rejects a `tool` role message whose
+// `tool_call_id` doesn't reference a real preceding `tool_calls[].id`.
+
+interface AssistantContentSplit {
+  /** `undefined` when the assistant turn had no text (tool-call-only). */
+  text: string | undefined;
+  toolCalls: Array<{ id: string; name: string; arguments: string }>;
+}
+
+function splitAssistantContent(
+  content: PlumbStreamOptions['messages'][number]['content'],
+): AssistantContentSplit {
+  if (typeof content === 'string') {
+    return { text: content || undefined, toolCalls: [] };
+  }
+  const textParts: string[] = [];
+  const toolCalls: AssistantContentSplit['toolCalls'] = [];
+  for (const part of content) {
+    if (part.type === 'text' && part.text) {
+      textParts.push(part.text);
+    } else if (part.type === 'tool_call') {
+      toolCalls.push({
+        id: part.id,
+        name: part.name,
+        arguments: part.arguments,
+      });
+    }
+    // 'thinking'/'image' parts are not resent as assistant history today —
+    // no dialect here expects a prior turn's reasoning trace or an
+    // assistant-authored image back on the wire.
+  }
+  return {
+    text: textParts.length > 0 ? textParts.join('\n') : undefined,
+    toolCalls,
+  };
+}
+
+/** Text-only projection of a message's content (system/tool-role turns). */
+function contentToText(
+  content: PlumbStreamOptions['messages'][number]['content'],
+): string {
+  if (typeof content === 'string') return content;
+  const pieces: string[] = [];
+  for (const part of content) {
+    if (part.type === 'text') pieces.push(part.text);
+    else if (part.type === 'tool_result') pieces.push(part.result);
+  }
+  return pieces.join('\n');
+}
+
+/** OpenAI-shaped multimodal user content (falls back to a plain string). */
+function buildOpenAIUserContent(
+  content: PlumbStreamOptions['messages'][number]['content'],
+): unknown {
+  if (typeof content === 'string') return content;
+  const hasImage = content.some((p) => p.type === 'image');
+  if (!hasImage) return contentToText(content);
+  const parts: unknown[] = [];
+  for (const part of content) {
+    if (part.type === 'text') {
+      parts.push({ type: 'text', text: part.text });
+    } else if (part.type === 'image') {
+      parts.push({ type: 'image_url', image_url: { url: part.imageUrl } });
+    }
+  }
+  return parts;
+}
 
 function buildOpenAIMessages(
   messages: PlumbStreamOptions['messages'],
@@ -1512,15 +1588,30 @@ function buildOpenAIMessages(
   }
   for (const msg of messages) {
     if (msg.role === 'system') {
-      result.push({ role: 'system', content: msg.content });
+      result.push({ role: 'system', content: contentToText(msg.content) });
     } else if (msg.role === 'assistant') {
-      result.push({ role: 'assistant', content: msg.content });
+      const { text, toolCalls } = splitAssistantContent(msg.content);
+      const entry: Record<string, unknown> = {
+        role: 'assistant',
+        content: text ?? null,
+      };
+      if (toolCalls.length > 0) {
+        entry['tool_calls'] = toolCalls.map((tc) => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: tc.arguments },
+        }));
+      }
+      result.push(entry);
     } else if (msg.role === 'user') {
-      result.push({ role: 'user', content: msg.content });
+      result.push({
+        role: 'user',
+        content: buildOpenAIUserContent(msg.content),
+      });
     } else if (msg.role === 'tool') {
       result.push({
         role: 'tool',
-        content: msg.content,
+        content: contentToText(msg.content),
         tool_call_id: msg.toolCallId,
       });
     }
@@ -1535,12 +1626,50 @@ function buildAnthropicMessage(
     return { role: 'user', content: msg.content };
   }
   if (msg.role === 'assistant') {
-    return { role: 'assistant', content: msg.content };
+    if (typeof msg.content === 'string') {
+      return { role: 'assistant', content: msg.content };
+    }
+    const blocks: unknown[] = [];
+    for (const part of msg.content) {
+      if (part.type === 'text' && part.text) {
+        blocks.push({ type: 'text', text: part.text });
+      } else if (part.type === 'tool_call') {
+        blocks.push({
+          type: 'tool_use',
+          id: part.id,
+          name: part.name,
+          input: safeParseToolArguments(part.arguments),
+        });
+      }
+    }
+    return { role: 'assistant', content: blocks };
+  }
+  // Anthropic has no `tool` role — a tool result travels as a
+  // `tool_result` content block inside a `user`-role message.
+  if (msg.role === 'tool') {
+    return {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: msg.toolCallId,
+          content: contentToText(msg.content),
+        },
+      ],
+    };
   }
   return {
     role: 'user',
     content: typeof msg.content === 'string' ? msg.content : '',
   };
+}
+
+function safeParseToolArguments(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
 }
 
 function buildGeminiContents(
@@ -1549,11 +1678,52 @@ function buildGeminiContents(
   const contents: Record<string, unknown>[] = [];
   for (const msg of messages) {
     if (msg.role === 'system') continue; // Handled by systemInstruction
+
+    if (msg.role === 'tool') {
+      // Gemini returns tool results as functionResponse parts inside a
+      // `user`-role Content, not a distinct role.
+      contents.push({
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              id: msg.toolCallId,
+              name: msg.name ?? '',
+              response: { result: contentToText(msg.content) },
+            },
+          },
+        ],
+      });
+      continue;
+    }
+
     const role = msg.role === 'assistant' ? 'model' : 'user';
     const parts: unknown[] = [];
     if (typeof msg.content === 'string') {
-      parts.push({ text: msg.content });
+      if (msg.content) parts.push({ text: msg.content });
+    } else {
+      for (const part of msg.content) {
+        if (part.type === 'text' && part.text) {
+          parts.push({ text: part.text });
+        } else if (part.type === 'tool_call') {
+          parts.push({
+            functionCall: {
+              id: part.id,
+              name: part.name,
+              args: safeParseToolArguments(part.arguments),
+            },
+          });
+        } else if (part.type === 'image') {
+          parts.push({
+            inlineData: {
+              mimeType: part.mimeType ?? 'image/png',
+              data: part.imageUrl,
+            },
+          });
+        }
+      }
     }
+    if (parts.length === 0) continue; // Never send an empty Content.
     contents.push({ role, parts });
   }
   return contents;

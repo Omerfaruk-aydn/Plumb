@@ -173,6 +173,7 @@ export class PlumbContentGenerator implements ContentGenerator {
             if (event.toolCall) {
               yield this.#chunk({
                 functionCall: {
+                  id: event.toolCall.id,
                   name: event.toolCall.name,
                   args: safeParseJson(event.toolCall.arguments),
                 },
@@ -266,28 +267,100 @@ export class PlumbContentGenerator implements ContentGenerator {
     } as unknown as GenerateContentResponse;
   }
 
-  #convertMessages(contents: any[]): Array<{ role: string; content: unknown }> {
-    const result: Array<{ role: string; content: unknown }> = [];
+  /**
+   * Converts Gemini-shaped history (`request.contents`, the SDK type
+   * PlumbContentGenerator implements ContentGenerator against) into
+   * PlumbMessage[] for the provider transport.
+   *
+   * A tool-call/tool-result turn MUST preserve the real functionCall.id /
+   * functionResponse.id correlation (see turn.ts's handlePendingFunctionCall,
+   * which assigns a synthetic id when the model omits one and mutates it
+   * back onto the same object the app's history stores) and MUST NOT
+   * collapse a functionCall into placeholder text — every dialect's own
+   * message builder (transports/streaming.ts) reconstructs its real wire
+   * shape (OpenAI tool_calls[]/tool role, Anthropic tool_use/tool_result
+   * blocks, Gemini functionCall/functionResponse parts) from these
+   * structured PlumbContentPart entries; flattening here silently breaks
+   * multi-turn tool use for every one of them.
+   */
+  #convertMessages(contents: any[]): Array<{
+    role: string;
+    content: unknown;
+    name?: string;
+    toolCallId?: string;
+  }> {
+    const result: Array<{
+      role: string;
+      content: unknown;
+      name?: string;
+      toolCallId?: string;
+    }> = [];
     if (!Array.isArray(contents)) return result;
     for (const content of contents) {
       if (!content.parts) continue;
-      for (const part of content.parts) {
-        const role =
-          content.role === 'model' ? 'assistant' : (content.role ?? 'user');
-        if (part.text) {
-          result.push({ role, content: part.text });
-        } else if (part.functionCall) {
-          result.push({
-            role: 'assistant',
-            content: `[Tool: ${part.functionCall.name ?? 'unknown'}]`,
-          });
-        } else if (part.functionResponse) {
+      const role =
+        content.role === 'model' ? 'assistant' : (content.role ?? 'user');
+
+      // One Gemini Content entry can carry multiple functionResponse parts
+      // (parallel tool calls) — each becomes its own PlumbMessage (the
+      // 'tool' role is inherently one-result-per-message across every
+      // dialect this app supports).
+      const functionResponseParts = content.parts.filter((p: any) =>
+        Boolean(p.functionResponse),
+      );
+      if (functionResponseParts.length > 0) {
+        for (const part of functionResponseParts) {
+          const fr = part.functionResponse;
+          const id = fr.id ?? fr.name;
           result.push({
             role: 'tool',
-            content: JSON.stringify(part.functionResponse.response ?? {}),
+            toolCallId: id,
+            name: fr.name,
+            content: [
+              {
+                type: 'tool_result',
+                id,
+                name: fr.name ?? '',
+                result: JSON.stringify(fr.response ?? {}),
+              },
+            ],
+          });
+        }
+        continue;
+      }
+
+      // Text + functionCall parts share one turn (a real assistant message
+      // can say "Let me check that." and then call a tool in the same
+      // turn) — merge them into one PlumbMessage's structured content
+      // array rather than splitting into separate messages.
+      const structuredParts: unknown[] = [];
+      for (const part of content.parts) {
+        if (part.text) {
+          structuredParts.push({ type: 'text', text: part.text });
+        } else if (part.functionCall) {
+          const fc = part.functionCall;
+          structuredParts.push({
+            type: 'tool_call',
+            id: fc.id ?? fc.name,
+            name: fc.name ?? 'unknown',
+            arguments: JSON.stringify(fc.args ?? {}),
           });
         }
       }
+      if (structuredParts.length === 0) continue;
+
+      // Plain single-text turns stay a bare string — every builder accepts
+      // both shapes, and this keeps existing non-tool conversations
+      // byte-identical to before this fix.
+      const onlyText =
+        structuredParts.length === 1 &&
+        (structuredParts[0] as { type: string }).type === 'text';
+      result.push({
+        role,
+        content: onlyText
+          ? (structuredParts[0] as { text: string }).text
+          : structuredParts,
+      });
     }
     return result;
   }
