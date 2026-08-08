@@ -125,6 +125,10 @@ describe('Discovery Adapter Contract: OMP model-manager-backed fallback', () => 
       id: 'gemini-3.1-pro-preview',
       contextWindow: 1000000,
       maxTokens: 65536,
+      // Regression guard: the OMP-backed adapter must report the model's
+      // real wire dialect, not silently default to 'openai-completions'
+      // (google-vertex speaks a completely different request shape).
+      api: 'google-vertex',
     });
   });
 

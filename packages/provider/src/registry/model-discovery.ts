@@ -14,7 +14,7 @@
  * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { PlumbProviderId } from '../types.js';
+import type { PlumbProviderId, PlumbKnownApi } from '../types.js';
 import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
 import { createModelManager } from '../omp-catalog/model-manager.js';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
@@ -36,6 +36,16 @@ export interface DiscoveredModel {
   contextWindow?: number;
   maxTokens?: number;
   reasoning?: boolean;
+  /**
+   * Wire dialect for this model (e.g. `google-vertex`, `anthropic-messages`).
+   * Omitted by adapters that only ever produce OpenAI-compatible models
+   * (every hand-written adapter above); callers must fall back to
+   * `'openai-completions'` only in that case, never unconditionally — a
+   * model discovered through the generic OMP-backed adapter can be any
+   * dialect its provider's transport actually uses.
+   */
+  api?: PlumbKnownApi;
+  baseUrl?: string;
 }
 
 export interface ProviderModelDiscovery {
@@ -182,6 +192,11 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
         contextWindow: m.contextWindow ?? undefined,
         maxTokens: m.maxTokens ?? undefined,
         reasoning: m.reasoning,
+        // The real wire dialect, NOT a hardcoded 'openai-completions' — this
+        // provider may be anthropic-messages, google-vertex, etc. Callers
+        // must use this instead of assuming OpenAI-compat.
+        api: m.api as PlumbKnownApi,
+        baseUrl: m.baseUrl,
       }));
     } catch {
       return [];

@@ -186,7 +186,12 @@ export class PlumbModelRegistry {
           id: m.id,
           name: m.name ?? m.id,
           provider: providerId,
-          api: 'openai-completions',
+          // Use the adapter-reported wire dialect when present (the generic
+          // OMP-backed adapter reports the model's real dialect — Anthropic
+          // Messages, Vertex, etc.); only the hand-written adapters, which
+          // are genuinely all OpenAI-compatible, rely on the fallback.
+          api: m.api ?? 'openai-completions',
+          ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
           contextWindow: m.contextWindow ?? 131072,
           maxTokens: m.maxTokens ?? 32768,
           reasoning: m.reasoning ?? false,
