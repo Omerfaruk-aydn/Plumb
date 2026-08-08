@@ -18,7 +18,7 @@
 // limitations under the License.
 
 import { execSync } from 'node:child_process';
-import { writeFileSync, existsSync, cpSync, rmSync } from 'node:fs';
+import { writeFileSync, existsSync, cpSync, rmSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 if (!process.cwd().includes('packages')) {
@@ -47,7 +47,8 @@ if (packageName === 'provider') {
   // at runtime (`with { type: "json" }` is native on Node 24).
   const srcDir = join(process.cwd(), 'src');
   const distDir = join(process.cwd(), 'dist');
-  const isCopyableAsset = (base) =>
+  const isCopyableAsset = (src, base) =>
+    statSync(src).isDirectory() ||
     base.endsWith('.md') ||
     base.endsWith('.md.js') ||
     base.endsWith('.html') ||
@@ -56,7 +57,7 @@ if (packageName === 'provider') {
   if (existsSync(srcDir) && existsSync(distDir)) {
     cpSync(srcDir, distDir, {
       recursive: true,
-      filter: (src) => isCopyableAsset(basename(src)),
+      filter: (src) => isCopyableAsset(src, basename(src)),
     });
   }
 } else {
