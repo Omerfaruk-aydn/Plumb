@@ -603,3 +603,176 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     });
   });
 });
+
+describe('plumbModelStream — OpenAI-compatible HTTP error classification (openai-completions, openai-responses, openrouter, github-copilot)', () => {
+  const openaiModel: PlumbModel = {
+    id: 'gpt-5.5',
+    provider: 'openai',
+    api: 'openai-completions',
+    contextWindow: 128_000,
+    maxTokens: 8_192,
+    reasoning: false,
+    input: 'text',
+  };
+
+  async function runWithFetchResponse(
+    body: string,
+    status: number,
+  ): Promise<PlumbStreamEvent[]> {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(body, { status })) as typeof fetch;
+    try {
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: openaiModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'sk-test',
+      })) {
+        events.push(event);
+      }
+      return events;
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  it('401 -> AUTH_REQUIRED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({ error: { message: 'Incorrect API key provided' } }),
+      401,
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'AUTH_REQUIRED', message: 'Incorrect API key provided' },
+    });
+  });
+
+  it('403 -> ACCOUNT_RESTRICTED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({ error: { message: 'Country not supported' } }),
+      403,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'ACCOUNT_RESTRICTED' },
+    });
+  });
+
+  it('404 -> MODEL_NOT_AVAILABLE', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({ error: { message: 'The model does not exist' } }),
+      404,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'MODEL_NOT_AVAILABLE' },
+    });
+  });
+
+  it('429 with quota wording -> QUOTA_EXHAUSTED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({
+        error: { message: 'You exceeded your current quota' },
+      }),
+      429,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'QUOTA_EXHAUSTED' },
+    });
+  });
+
+  it('429 without quota wording -> RATE_LIMITED', async () => {
+    const events = await runWithFetchResponse(
+      JSON.stringify({ error: { message: 'Rate limit reached for requests' } }),
+      429,
+    );
+    expect(events[0]).toMatchObject({
+      error: { code: 'RATE_LIMITED' },
+    });
+  });
+
+  it('500 -> UPSTREAM_ERROR', async () => {
+    const events = await runWithFetchResponse('Internal Server Error', 500);
+    expect(events[0]).toMatchObject({
+      error: { code: 'UPSTREAM_ERROR' },
+    });
+  });
+
+  it('a raw HTML 502 gateway page never leaks into the error message', async () => {
+    const events = await runWithFetchResponse(
+      '<!DOCTYPE html><html><body>502 Bad Gateway</body></html>',
+      502,
+    );
+    expect(events[0]).toMatchObject({ error: { code: 'UPSTREAM_ERROR' } });
+    const message = (events[0] as { error?: { message?: string } }).error
+      ?.message;
+    expect(message).not.toContain('<html');
+    expect(message).not.toContain('<body');
+  });
+
+  it('a network failure (fetch throws) -> NETWORK_ERROR', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      throw new Error('getaddrinfo ENOTFOUND api.openai.com');
+    }) as typeof fetch;
+    try {
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: openaiModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'sk-test',
+      })) {
+        events.push(event);
+      }
+      expect(events[0]).toMatchObject({
+        type: 'error',
+        error: { code: 'NETWORK_ERROR' },
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('cancellation (AbortError) yields a done/cancelled event, never an error', async () => {
+    const controller = new AbortController();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    }) as typeof fetch;
+    try {
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: openaiModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'sk-test',
+        signal: controller.signal,
+      })) {
+        events.push(event);
+      }
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'done',
+        finishReason: 'cancelled',
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('MISSING_CREDENTIAL is unaffected by the new classification (still checked before any fetch)', async () => {
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: openaiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({
+      type: 'error',
+      error: { code: 'MISSING_CREDENTIAL' },
+    });
+  });
+});

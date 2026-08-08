@@ -23,6 +23,7 @@ import {
   type PlumbKnownApi,
 } from '../types.js';
 import { EventStream } from '../omp-ai/utils/event-stream.js';
+import { classifyGenericHttpError } from './errorClassification.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -223,16 +224,17 @@ async function* openAICompatibleStream(
     }
     yield {
       type: 'error',
-      error: { code: 'REQUEST_FAILED', message: (err as Error).message },
+      error: { code: 'NETWORK_ERROR', message: (err as Error).message },
     };
     return;
   }
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
+    const classified = classifyGenericHttpError(response.status, errorText);
     yield {
       type: 'error',
-      error: { code: `HTTP_${response.status}`, message: errorText },
+      error: classified,
     };
     return;
   }
