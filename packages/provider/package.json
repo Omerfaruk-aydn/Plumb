@@ -19,6 +19,9 @@
   "dependencies": {
     "zod": "3.25.76"
   },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.1.77"
+  },
   "devDependencies": {
     "@types/node": "20.11.24",
     "arktype": "^2.2.3",
