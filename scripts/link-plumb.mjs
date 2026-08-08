@@ -416,6 +416,19 @@ function stepUnlinkStale(plan) {
     info(`step unlinkStale: removing global ${entry.packageName} (bins: ${entry.binNames.join(', ') || 'none'})`);
     runStep(plan, 'unlinkStale', plan.npm, ['unlink', '-g', entry.packageName]);
   }
+  if (IS_WINDOWS) {
+    const staleShims = [
+      'C:\\npm-global\\plumb',
+      'C:\\npm-global\\plumb.cmd',
+      'C:\\npm-global\\plumb.ps1',
+      'C:\\npm-global\\node_modules\\plumb-cli',
+    ];
+    for (const shim of staleShims) {
+      if (fs.existsSync(shim)) {
+        try { fs.rmSync(shim, { recursive: true, force: true }); } catch {}
+      }
+    }
+  }
   if (stale.length === 0) {
     info('step unlinkStale: no stale global entries');
   }
