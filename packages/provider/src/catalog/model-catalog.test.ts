@@ -11,6 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { getCatalogModels, getCatalogModel } from './model-catalog.js';
+import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
 
 describe('claude-subscription static catalog floor', () => {
   it('getCatalogModels returns real Anthropic models tagged with the claude-agent-sdk dialect and provider', () => {
@@ -48,6 +49,29 @@ describe('claude-subscription static catalog floor', () => {
     for (const model of models) {
       expect(model.provider).not.toBe('anthropic');
       expect(model.api).not.toBe('anthropic-messages');
+    }
+  });
+
+  it('exposes exactly the pinned Agent SDK model aliases — not the full Anthropic API catalog', () => {
+    // The Agent SDK's query() only accepts a small, pinned set of model
+    // aliases (CLAUDE_SUBSCRIPTION_MODELS), not arbitrary Anthropic
+    // Developer Platform model ids. Regression: an earlier version of this
+    // fix reused getBundledModels('anthropic') directly (the full API
+    // catalog — dozens of model ids), which would let a user pick a model
+    // id the SDK does not accept and misrepresented the source's real
+    // provenance (a fixed static list, not a proper catalog).
+    const models = getCatalogModels('claude-subscription');
+    expect(models.length).toBe(CLAUDE_SUBSCRIPTION_MODELS.length);
+    const expectedIds = new Set(CLAUDE_SUBSCRIPTION_MODELS.map((m) => m.id));
+    for (const model of models) {
+      expect(expectedIds.has(model.id)).toBe(true);
+    }
+  });
+
+  it('omits per-token pricing (subscription usage is not metered the way API billing is)', () => {
+    const models = getCatalogModels('claude-subscription');
+    for (const model of models) {
+      expect(model.pricing).toBeUndefined();
     }
   });
 

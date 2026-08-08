@@ -212,22 +212,30 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
  * built on the official Claude Agent SDK) with no OMP catalog descriptor and
  * therefore no `PROVIDER_DESCRIPTORS` entry — the generic
  * `OmpModelManagerDiscovery` bridge below never covers it. The Agent SDK also
- * has no live `/models` enumeration endpoint of its own (it accepts a model
- * id string, not a discoverable list), so this reuses the same bundled
- * Anthropic model catalog (`models.json`, sourced from models.dev) that
- * `anthropic-api` uses — the model family served is identical between a
- * Claude subscription and the Anthropic Developer Platform API; only the
- * billing/auth path differs.
+ * has no live `/models` enumeration endpoint of its own — it does not expose
+ * account-level dynamic discovery, only a fixed set of pinned model aliases
+ * (`CLAUDE_SUBSCRIPTION_MODELS`) that `options.model` on `query()` accepts.
+ *
+ * This deliberately does NOT reuse the full bundled Anthropic Developer
+ * Platform catalog: that catalog lists every Anthropic API model id, most
+ * of which the Agent SDK does not accept as a subscription model alias.
+ * Presenting it here would misrepresent this source as broader/more
+ * dynamic than it actually is (source: OFFICIAL_STATIC_METADATA, never
+ * ACCOUNT_DYNAMIC or PROVIDER_DYNAMIC) and could let a user pick a model
+ * id the SDK rejects.
  */
 class ClaudeSubscriptionDiscovery implements ProviderModelDiscovery {
   readonly providerId = 'claude-subscription';
 
   async discover(): Promise<DiscoveredModel[]> {
-    return getBundledModels('anthropic').map((m) => ({
+    const { CLAUDE_SUBSCRIPTION_MODELS } = await import(
+      '../transports/claudeSubscription.js'
+    );
+    return CLAUDE_SUBSCRIPTION_MODELS.map((m) => ({
       id: m.id,
       name: m.name,
-      contextWindow: m.contextWindow ?? undefined,
-      maxTokens: m.maxTokens ?? undefined,
+      contextWindow: m.contextWindow,
+      maxTokens: m.maxTokens,
       reasoning: m.reasoning,
       api: 'claude-agent-sdk' as PlumbKnownApi,
     }));

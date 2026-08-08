@@ -27,6 +27,7 @@ import type {
   PlumbModelPricing,
 } from '../types.js';
 import { resolveProviderAlias } from './providers.js';
+import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
 
 // ─── OMP → PLUMB projection ────────────────────────────────────────────
 
@@ -98,22 +99,38 @@ export function getCatalogProviders(): string[] {
  * `GeneratedProvider` key and `getBundledModels`/`isGeneratedProvider` never
  * cover it. Without a static floor here, `getModelsForProvider` returns
  * nothing until a live discovery call has run at least once in the current
- * process (registry/model-discovery.ts's `ClaudeSubscriptionDiscovery`) —
- * on a cold restart with a persisted `claude-subscription` selection, the
- * very first chat turn would find no registry model and silently fall back
- * to the wrong wire dialect (`openai-completions` instead of
- * `claude-agent-sdk`), misrouting the request. The model family served is
- * identical to `anthropic-api` (same bundled catalog data — id, pricing,
- * context window); only `provider`/`api` are overridden here to route
- * through the Agent SDK transport instead of a direct API-key request.
+ * process — on a cold restart with a persisted `claude-subscription`
+ * selection, the very first chat turn would find no registry model and
+ * silently fall back to the wrong wire dialect (`openai-completions`
+ * instead of `claude-agent-sdk`), misrouting the request.
+ *
+ * IMPORTANT — model source honesty: this deliberately does NOT reuse the
+ * full bundled Anthropic Developer Platform catalog (`getBundledModels
+ * ('anthropic')`). That catalog lists every Anthropic API model id;
+ * `options.model` for the Agent SDK's `query()` only accepts the small,
+ * pinned set of model aliases in `CLAUDE_SUBSCRIPTION_MODELS`
+ * (transports/claudeSubscription.ts) — Anthropic exposes no live
+ * model-list endpoint for Claude subscription sessions the way the
+ * Developer Platform API does. Offering the full API catalog here would
+ * both misrepresent the model source's real provenance
+ * (OFFICIAL_STATIC_METADATA, not a proper catalog) and let a user pick a
+ * model id the Agent SDK may reject. Pricing is intentionally omitted —
+ * subscription usage is not metered per-token the way direct API billing
+ * is, so carrying over the API catalog's per-token cost figures here would
+ * misrepresent how usage is actually billed.
  */
 const CLAUDE_SUBSCRIPTION_PROVIDER_ID = 'claude-subscription';
 
 function claudeSubscriptionCatalogModels(): PlumbModel[] {
-  return getBundledModels('anthropic').map((m) => ({
-    ...ompModelToPlumbModel(m),
+  return CLAUDE_SUBSCRIPTION_MODELS.map((m) => ({
+    id: m.id,
+    name: m.name,
     provider: CLAUDE_SUBSCRIPTION_PROVIDER_ID as PlumbProviderId,
     api: 'claude-agent-sdk' as PlumbKnownApi,
+    contextWindow: m.contextWindow,
+    maxTokens: m.maxTokens,
+    reasoning: m.reasoning,
+    input: 'text' as const,
   }));
 }
 
