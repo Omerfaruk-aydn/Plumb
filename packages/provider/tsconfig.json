@@ -10,7 +10,7 @@
     "noUnusedParameters": false,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "composite": false,
+    "composite": true,
     "incremental": false,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
