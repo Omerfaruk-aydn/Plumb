@@ -296,6 +296,82 @@ class WatsonxDiscovery implements ProviderModelDiscovery {
   }
 }
 
+/**
+ * Amazon Bedrock live model discovery via the real `ListFoundationModels`
+ * control-plane API (`GET https://bedrock.{region}.amazonaws.com/foundation-models`
+ * -- a distinct host/API from `bedrock-runtime.{region}.amazonaws.com`,
+ * which only handles inference, not catalog listing). Reuses the existing,
+ * real, governance-owned AWS credential chain
+ * (omp-ai/providers/aws-credentials.ts: env -> profile static/SSO/
+ * credential_process -> EC2 IMDSv2) and SigV4 signer
+ * (omp-ai/providers/aws-sigv4.ts) -- no second AWS credential resolution
+ * path, no hand-rolled request signing.
+ *
+ * PROVENANCE HONESTY: `ListFoundationModels` returns the region-wide
+ * foundation-model catalog, not this account's actual model-access grants
+ * (Bedrock model access is a separate per-account opt-in the API does not
+ * expose here) -- classified as `PROVIDER_DYNAMIC`, never `ACCOUNT_DYNAMIC`.
+ * Filters `byOutputModality=TEXT` since PLUMB only offers chat models.
+ */
+class BedrockDiscovery implements ProviderModelDiscovery {
+  readonly providerId = 'amazon-bedrock';
+
+  async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
+    try {
+      const [{ resolveAwsCredentials }, { signRequest }] = await Promise.all([
+        import('../omp-ai/providers/aws-credentials.js'),
+        import('../omp-ai/providers/aws-sigv4.js'),
+      ]);
+      const region =
+        context.baseUrl?.trim() ||
+        process.env['AWS_REGION']?.trim() ||
+        process.env['AWS_DEFAULT_REGION']?.trim() ||
+        'us-east-1';
+      const credentials = await resolveAwsCredentials({ region });
+
+      const host = `bedrock.${region}.amazonaws.com`;
+      const path = '/foundation-models';
+      const query = 'byOutputModality=TEXT';
+      const body = new Uint8Array(0);
+      const signed = await signRequest({
+        method: 'GET',
+        host,
+        path,
+        query,
+        body,
+        region,
+        service: 'bedrock',
+        credentials,
+      });
+
+      const response = await fetch(`https://${host}${path}?${query}`, {
+        method: 'GET',
+        headers: { ...signed },
+      });
+      if (!response.ok) return [];
+
+      const json = (await response.json()) as {
+        modelSummaries?: Array<{
+          modelId: string;
+          modelName?: string;
+          responseStreamingSupported?: boolean;
+          modelLifecycle?: { status?: string };
+        }>;
+      };
+      const summaries = json.modelSummaries ?? [];
+      return summaries
+        .filter((m) => m.modelLifecycle?.status !== 'EOL')
+        .map((m) => ({
+          id: m.modelId,
+          name: m.modelName ?? m.modelId,
+          api: 'bedrock-converse-stream' as PlumbKnownApi,
+        }));
+    } catch {
+      return [];
+    }
+  }
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -305,6 +381,7 @@ function register(discovery: ProviderModelDiscovery): void {
 }
 
 // Register all known discovery adapters
+register(new BedrockDiscovery());
 register(new OllamaDiscovery());
 register(new OpenAICompatLocalDiscovery('lm-studio', 'http://127.0.0.1:1234'));
 register(new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080'));
