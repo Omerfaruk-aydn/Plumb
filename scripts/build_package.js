@@ -43,9 +43,10 @@ if (packageName === 'provider') {
 // build typescript files
 // Use tsc without --build for provider package (uses bundler moduleResolution)
 if (packageName === 'provider') {
-  if (existsSync(join(process.cwd(), 'tsconfig.tsbuildinfo'))) {
-    rmSync(join(process.cwd(), 'tsconfig.tsbuildinfo'), { force: true });
-  }
+  const tsbuild1 = join(process.cwd(), 'tsconfig.tsbuildinfo');
+  const tsbuild2 = join(process.cwd(), 'dist', 'tsconfig.tsbuildinfo');
+  if (existsSync(tsbuild1)) try { rmSync(tsbuild1, { force: true }); } catch {}
+  if (existsSync(tsbuild2)) try { rmSync(tsbuild2, { force: true }); } catch {}
   execSync('npx --no-install tsc', { stdio: 'inherit' });
   // Copy non-TypeScript assets (.md, .md.js, .html, .json, extension-less
   // files) from the whole src/ tree into dist/ with layout preserved.
