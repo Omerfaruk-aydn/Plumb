@@ -30,6 +30,16 @@ import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSel
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
 import { PlumbCloudProviderConfigForm } from './PlumbCloudProviderConfigForm.js';
+import { PlumbGenericCloudConfigForm } from './PlumbGenericCloudConfigForm.js';
+import { PlumbAzureCloudConfigForm } from './PlumbAzureCloudConfigForm.js';
+import {
+  BEDROCK_CONFIG_SCHEMA,
+  VERTEX_CONFIG_SCHEMA,
+  WATSONX_CONFIG_SCHEMA,
+} from '@google/gemini-cli-provider';
+import { bedrockCloudConfigActions } from '../utils/bedrockCloudConfigActions.js';
+import { vertexCloudConfigActions } from '../utils/vertexCloudConfigActions.js';
+import { watsonxCloudConfigActions } from '../utils/watsonxCloudConfigActions.js';
 
 type SetupStep =
   | 'connection-type'
@@ -64,14 +74,18 @@ interface SetupState {
 const CLAUDE_SUBSCRIPTION_PROVIDER_ID = 'claude-subscription';
 
 /**
- * Providers whose setup goes through the rich cloud-configuration form
- * (PlumbCloudProviderConfigForm) instead of the generic single-secret
- * 'authenticate' step. Only 'oci-genai' has a real schema/form today;
- * the other four cloud providers join this set as their own domain
- * schema + form land.
+ * Providers whose setup goes through a rich cloud-configuration form
+ * instead of the generic single-secret 'authenticate' step. OCI keeps its
+ * own bespoke form (IAM-subtype nested select, OCID validation); Bedrock/
+ * Vertex/watsonx share PlumbGenericCloudConfigForm (flat schema-driven);
+ * Azure gets its own form (first-class deployment-list management).
  */
 const CLOUD_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
   'oci-genai',
+  'amazon-bedrock',
+  'google-vertex',
+  'watsonx',
+  'azure',
 ]);
 
 /**
@@ -966,6 +980,75 @@ export const PlumbProviderSetupDialog: React.FC<
 
       {step === 'cloud-config' && provider?.id === 'oci-genai' && (
         <PlumbCloudProviderConfigForm
+          onContinue={() => {
+            setState((s) => ({ ...s, step: 'model-select' }));
+          }}
+          onCancel={() => {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+          }}
+        />
+      )}
+
+      {step === 'cloud-config' && provider?.id === 'amazon-bedrock' && (
+        <PlumbGenericCloudConfigForm
+          title="Amazon Bedrock"
+          schema={BEDROCK_CONFIG_SCHEMA}
+          actions={bedrockCloudConfigActions}
+          onContinue={() => {
+            setState((s) => ({ ...s, step: 'model-select' }));
+          }}
+          onCancel={() => {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+          }}
+        />
+      )}
+
+      {step === 'cloud-config' && provider?.id === 'google-vertex' && (
+        <PlumbGenericCloudConfigForm
+          title="Google Vertex AI"
+          schema={VERTEX_CONFIG_SCHEMA}
+          actions={vertexCloudConfigActions}
+          onContinue={() => {
+            setState((s) => ({ ...s, step: 'model-select' }));
+          }}
+          onCancel={() => {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+          }}
+        />
+      )}
+
+      {step === 'cloud-config' && provider?.id === 'watsonx' && (
+        <PlumbGenericCloudConfigForm
+          title="IBM watsonx.ai"
+          schema={WATSONX_CONFIG_SCHEMA}
+          actions={watsonxCloudConfigActions}
+          onContinue={() => {
+            setState((s) => ({ ...s, step: 'model-select' }));
+          }}
+          onCancel={() => {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+          }}
+        />
+      )}
+
+      {step === 'cloud-config' && provider?.id === 'azure' && (
+        <PlumbAzureCloudConfigForm
           onContinue={() => {
             setState((s) => ({ ...s, step: 'model-select' }));
           }}

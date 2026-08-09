@@ -4,15 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Regression: providers whose real credential is entirely ambient
- * environment variables (e.g. Amazon Bedrock -- AWS_ACCESS_KEY_ID/
- * AWS_SECRET_ACCESS_KEY/AWS_REGION, no PLUMB-collected API key, no OAuth)
+ * environment variables (no PLUMB-collected API key, no OAuth)
  * previously had authMethods that fell into none of AuthStep's
  * hasOAuth/hasApiKey/hasDeviceCode branches, AND the authenticate-step
  * Enter handler had no branch for "env-only, nothing to type" either --
  * so pressing Enter with an empty input was silently swallowed
  * (the same class of dead-end fixed for claude-subscription, but
- * triggered by a plain data shape any real provider could have, not a
- * synthetic-provider special case).
+ * triggered by a plain data shape any real provider could have).
+ *
+ * Uses a synthetic provider id/env-var shape (not 'amazon-bedrock' --
+ * Bedrock now has its own rich cloud-configuration screen, see
+ * PlumbCloudProviderConfigForm.tsx/CLOUD_CONFIGURATION_PROVIDER_IDS) so
+ * this keeps exercising the generic env-only 'authenticate' step
+ * regardless of which real providers later grow a cloud-config screen.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
@@ -25,12 +29,16 @@ const ENTER = String.fromCharCode(13);
 const DOWN_ARROW = String.fromCharCode(27) + '[B';
 
 const envOnlyProvider: PlumbProvider = {
-  id: 'amazon-bedrock',
-  name: 'Amazon Bedrock',
+  id: 'test-env-only-provider',
+  name: 'Test Env-Only Provider',
   category: PlumbProviderCategory.API_KEY,
-  description: 'AWS Bedrock managed inference',
+  description:
+    'Synthetic provider whose credential is entirely ambient env vars',
   authMethods: [
-    { type: 'env', envVars: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'] },
+    {
+      type: 'env',
+      envVars: ['TEST_ENV_ONLY_ACCESS_KEY', 'TEST_ENV_ONLY_SECRET'],
+    },
   ],
   available: true,
   allowUnauthenticated: false,
@@ -46,7 +54,7 @@ async function pressKey(stdin: { write: (data: string) => void }, key: string) {
   });
 }
 
-describe('PlumbProviderSetupDialog — env-only auth methods (e.g. Amazon Bedrock)', () => {
+describe('PlumbProviderSetupDialog — env-only auth methods', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -74,12 +82,12 @@ describe('PlumbProviderSetupDialog — env-only auth methods (e.g. Amazon Bedroc
     await waitUntilReady();
     await pressKey(stdin, ENTER);
     await waitUntilReady();
-    // provider-select -> amazon-bedrock (only entry)
+    // provider-select -> test-env-only-provider (only entry)
     await pressKey(stdin, ENTER);
     await waitUntilReady();
 
     const authFrame = lastFrame();
-    expect(authFrame).toContain('AWS_ACCESS_KEY_ID');
+    expect(authFrame).toContain('TEST_ENV_ONLY_ACCESS_KEY');
     expect(authFrame).not.toContain('Type API key and press Enter');
 
     // The actual regression: Enter here previously did nothing at all.
