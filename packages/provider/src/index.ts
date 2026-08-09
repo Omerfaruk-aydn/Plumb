@@ -146,6 +146,23 @@ export {
   type ProviderConfigResolver,
 } from './config/providerConfigResolver.js';
 
+// OCI Generative AI configuration domain schema/validator (canonical --
+// the Ink UI renders from and validates through this, never a parallel
+// implementation)
+export {
+  OCI_GENAI_CONFIG_SCHEMA,
+  getVisibleOciFields,
+  validateOciConfig,
+  buildOciSaveOperation,
+  type CloudConfigFieldType,
+  type CloudConfigFieldOption,
+  type CloudConfigFieldDef,
+  type CloudAuthModeDef,
+  type CloudProviderConfigSchema,
+  type OciConfigFormValues,
+  type OciConfigValidationErrors,
+} from './config/ociGenaiConfigSchema.js';
+
 // OMP catalog (directly adapted from upstream)
 export {
   getBundledModel,
