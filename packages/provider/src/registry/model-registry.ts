@@ -32,6 +32,11 @@ import {
   isGatewayConfigProviderId,
   resolveGatewayProviderBaseUrl,
 } from '../config/gatewayProviderConfig.js';
+import {
+  customDefinitionToModels,
+  isCustomProviderId,
+  listCustomProviderDefinitions,
+} from '../config/customProviderDefinitions.js';
 
 // ─── Model registry ───────────────────────────────────────────────────
 
@@ -137,6 +142,20 @@ export class PlumbModelRegistry {
     const result = this.#customModels.delete(key);
     if (result) this.#notifyListeners();
     return result;
+  }
+
+  /** Replace the in-memory manual model snapshot from persisted definitions. */
+  hydrateCustomProviderModels(): void {
+    for (const key of this.#customModels.keys()) {
+      const providerId = key.slice(0, key.indexOf(':', 'custom:'.length));
+      if (isCustomProviderId(providerId)) this.#customModels.delete(key);
+    }
+    for (const definition of listCustomProviderDefinitions()) {
+      for (const model of customDefinitionToModels(definition)) {
+        this.#customModels.set(`${model.provider}:${model.id}`, model);
+      }
+    }
+    this.#notifyListeners();
   }
 
   // ── Discovery ─────────────────────────────────────────────────────

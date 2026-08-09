@@ -63,7 +63,10 @@ export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
         }));
         if (cancelled) return;
 
-        const providers = [...providerPackage.SELECTABLE_PROVIDERS];
+        const providers = [
+          ...providerPackage.SELECTABLE_PROVIDERS,
+          ...providerPackage.listCustomPlumbProviders(),
+        ];
         const categoryGroups = providerPackage.getProviderSetupGroups();
         for (const id of SYNTHETIC_PROVIDER_IDS_TO_INJECT) {
           const provider = providerPackage.getPlumbProvider(id);

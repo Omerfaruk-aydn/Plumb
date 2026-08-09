@@ -10,6 +10,7 @@ import { debugLogger } from '../utils/debugLogger.js';
 import { getPlumbCredentialStore as getCoreCredentialStore } from '../auth/plumbSecureCredentialStore.js';
 import { getPlumbProviderAuthService } from '../auth/plumbProviderAuthService.js';
 import { initializeProviderCloudConfigCache } from './providerCloudConfigCache.js';
+import { getCustomProviderDefinitionStore } from './customProviderDefinitionStore.js';
 // Type-only import: erased at compile time, so this does not create a
 // runtime load-order cycle with the dynamic `import()` below — it only
 // gives the dynamically-imported module a real static shape to check
@@ -58,6 +59,14 @@ export async function initializePlumbProviders(): Promise<void> {
 
     // Register all bundled OMP-derived models
     mod.initBundledModels();
+
+    // Dynamic provider definitions and their manual model descriptors must
+    // exist before credential hydration. Otherwise the provider registry
+    // discards stored custom credentials whose IDs are not in the static
+    // catalog, and request #1 cannot resolve its model safely.
+    const customDefinitions = await getCustomProviderDefinitionStore().load();
+    mod.setCustomProviderDefinitions(customDefinitions);
+    mod.getPlumbModelRegistry().hydrateCustomProviderModels();
 
     // Load PLUMB-saved safe cloud provider configuration (region/project/
     // deployment map/auth mode/etc.) into the synchronous resolver every

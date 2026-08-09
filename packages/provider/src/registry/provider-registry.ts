@@ -23,6 +23,7 @@ import {
   ensurePlumbCredentialStore,
 } from '../auth/credential-store.js';
 import { invalidateModelCache } from './model-cache.js';
+import { listCustomPlumbProviders } from '../config/customProviderDefinitions.js';
 
 // ─── Auth state ────────────────────────────────────────────────────────
 
@@ -87,7 +88,10 @@ export class PlumbProviderRegistry {
       });
     }
 
-    for (const provider of SELECTABLE_PROVIDERS) {
+    for (const provider of [
+      ...SELECTABLE_PROVIDERS,
+      ...listCustomPlumbProviders(),
+    ]) {
       if (
         provider.allowUnauthenticated &&
         !this.#activeProviders.has(provider.id)
@@ -114,7 +118,7 @@ export class PlumbProviderRegistry {
   // ── Provider access ───────────────────────────────────────────────
 
   getAllProviders(): readonly PlumbProvider[] {
-    return SELECTABLE_PROVIDERS;
+    return [...SELECTABLE_PROVIDERS, ...listCustomPlumbProviders()];
   }
 
   getProviderSetupGroups(): Map<string, PlumbProvider[]> {

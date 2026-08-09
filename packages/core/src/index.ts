@@ -54,6 +54,11 @@ export * from './core/recordingContentGenerator.js';
 // PLUMB multi-provider adapter
 export * from './core/plumbContentGenerator.js';
 export { initializePlumbProviders } from './config/plumbInit.js';
+export {
+  CustomProviderDefinitionStore,
+  getCustomProviderDefinitionStore,
+  __resetCustomProviderDefinitionStoreForTests,
+} from './config/customProviderDefinitionStore.js';
 
 // PLUMB OS-protected credential storage
 export {

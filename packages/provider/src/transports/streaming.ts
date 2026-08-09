@@ -37,6 +37,7 @@ import { streamAzureResponses } from './azure.js';
 import { prepareVertexModel } from './googleVertex.js';
 import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
 import { resolveProviderSafeConfig } from '../config/providerConfigResolver.js';
+import { getCustomProviderDefinition } from '../config/customProviderDefinitions.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -162,6 +163,34 @@ function deleteHeaderCaseInsensitive(
   }
 }
 
+function clearCredentialHeaders(headers: Record<string, string>): void {
+  for (const name of [
+    'Authorization',
+    'Proxy-Authorization',
+    'x-api-key',
+    'api-key',
+    'x-goog-api-key',
+  ]) {
+    deleteHeaderCaseInsensitive(headers, name);
+  }
+}
+
+function applyCustomCredentialHeader(
+  headers: Record<string, string>,
+  placement: string,
+  apiKey: string,
+): void {
+  clearCredentialHeaders(headers);
+  if (!apiKey || placement === 'none' || placement === 'query-key') return;
+  if (placement === 'bearer') {
+    setHeaderCaseInsensitive(headers, 'Authorization', `Bearer ${apiKey}`);
+  } else if (placement === 'x-api-key') {
+    setHeaderCaseInsensitive(headers, 'x-api-key', apiKey);
+  } else if (placement === 'api-key') {
+    setHeaderCaseInsensitive(headers, 'api-key', apiKey);
+  }
+}
+
 function normalizePlumbFinishReason(reason: unknown): string | undefined {
   if (typeof reason !== 'string' || !reason) return undefined;
   switch (reason.toLowerCase()) {
@@ -257,7 +286,9 @@ async function* openAICompatibleStream(
   const isUnauthenticatedProvider = UNAUTHENTICATED_PROVIDERS.some(
     (p) => p.id === model.provider,
   );
-  if (!apiKey && !isUnauthenticatedProvider) {
+  const customDefinition = getCustomProviderDefinition(model.provider);
+  const isKeylessCustom = customDefinition?.credentialPlacement === 'none';
+  if (!apiKey && !isUnauthenticatedProvider && !isKeylessCustom) {
     yield {
       type: 'error',
       error: {
@@ -294,7 +325,13 @@ async function* openAICompatibleStream(
   const isAzure =
     model.provider === 'azure' ||
     (model.baseUrl ?? '').includes('.openai.azure.com');
-  if (apiKey) {
+  if (customDefinition) {
+    applyCustomCredentialHeader(
+      authHeaders,
+      customDefinition.credentialPlacement,
+      apiKey,
+    );
+  } else if (apiKey) {
     if (isAzure) {
       setHeaderCaseInsensitive(authHeaders, 'api-key', apiKey);
     } else if (model.provider === 'portkey') {
@@ -588,7 +625,9 @@ async function* anthropicMessagesStream(
   // model.headers.Authorization -- apiKey here is only PLUMB's generic
   // credential-plumbing sentinel, never a real Vertex secret.
   const isVertex = model.provider === 'google-vertex';
-  if (!apiKey && !isVertex) {
+  const customDefinition = getCustomProviderDefinition(model.provider);
+  const isKeylessCustom = customDefinition?.credentialPlacement === 'none';
+  if (!apiKey && !isVertex && !isKeylessCustom) {
     yield {
       type: 'error',
       error: {
@@ -610,7 +649,13 @@ async function* anthropicMessagesStream(
   // The model.headers field can carry provider-specific headers
   // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
   const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
-  if (model.provider === 'cloudflare-ai-gateway') {
+  if (customDefinition) {
+    applyCustomCredentialHeader(
+      authHeaders,
+      customDefinition.credentialPlacement,
+      apiKey,
+    );
+  } else if (model.provider === 'cloudflare-ai-gateway') {
     setHeaderCaseInsensitive(
       authHeaders,
       'cf-aig-authorization',
@@ -1455,14 +1500,30 @@ async function* googleGenerativeAiStream(
   const { model, messages, tools, apiKey, signal, systemPrompt } = options;
 
   const isVertex = model.provider === 'google-vertex';
+  const customDefinition = getCustomProviderDefinition(model.provider);
+  const isKeylessCustom = customDefinition?.credentialPlacement === 'none';
+  if (!apiKey && !isVertex && !isKeylessCustom) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'MISSING_CREDENTIAL',
+        message: `No credential available for provider: ${model.provider}. Sign in again via /login ${model.provider}.`,
+      },
+    };
+    return;
+  }
   const baseUrl =
     model.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta';
   // Vertex authenticates via the Google OAuth Bearer token
   // plumbModelStream's Vertex prep step already put in model.headers --
   // never the direct Gemini API's `?key=` query-param scheme.
-  const url = isVertex
-    ? `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse`
-    : `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const directUrl = `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse`;
+  const useQueryKey =
+    !isVertex &&
+    (!customDefinition || customDefinition.credentialPlacement === 'query-key');
+  const url = useQueryKey
+    ? `${directUrl}&key=${encodeURIComponent(apiKey)}`
+    : directUrl;
 
   const contents = buildGeminiContents(messages);
   const body: Record<string, unknown> = {
@@ -1490,9 +1551,17 @@ async function* googleGenerativeAiStream(
 
   let response: Response;
   try {
+    const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
+    if (customDefinition) {
+      applyCustomCredentialHeader(
+        authHeaders,
+        customDefinition.credentialPlacement,
+        apiKey,
+      );
+    }
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(model.headers ?? {}) },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(body),
       signal,
     });

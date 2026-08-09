@@ -12,6 +12,10 @@ import { installBunGlobal } from '../omp-shims/bun-runtime.js';
 import { createNormalizationStream, plumbModelStream } from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
+import {
+  __resetCustomProviderDefinitionsForTests,
+  setCustomProviderDefinitions,
+} from '../config/customProviderDefinitions.js';
 import type {
   PlumbModel,
   PlumbStreamEvent,
@@ -51,6 +55,133 @@ describe('transport/stream activation', () => {
     );
     expect(stream).toBeInstanceOf(OmpEventStream);
     expect(stream.done).toBe(false);
+  });
+});
+
+describe('custom provider credential placement', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    __resetCustomProviderDefinitionsForTests();
+  });
+
+  it('applies OpenAI-compatible x-api-key auth last and clears Bearer headers', async () => {
+    const providerId = 'custom:123e4567-e89b-42d3-a456-426614174000';
+    setCustomProviderDefinitions([
+      {
+        id: providerId,
+        displayName: 'OpenAI proxy',
+        dialect: 'openai-completions',
+        baseUrl: 'https://openai.example.test/v1',
+        credentialPlacement: 'x-api-key',
+        manualModels: [{ id: 'private-model' }],
+      },
+    ]);
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response('data: [DONE]\n\n', { status: 200 });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'private-model',
+        provider: providerId,
+        api: 'openai-completions',
+        baseUrl: 'https://openai.example.test/v1',
+        headers: { Authorization: 'Bearer wrong-authority' },
+        contextWindow: 4096,
+        maxTokens: 256,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'custom-key-canary',
+    })) {
+      // drain
+    }
+
+    expect(capturedHeaders?.['x-api-key']).toBe('custom-key-canary');
+    expect(capturedHeaders?.['Authorization']).toBeUndefined();
+  });
+
+  it('supports Anthropic-compatible Bearer auth without x-api-key bleed', async () => {
+    const providerId = 'custom:223e4567-e89b-42d3-a456-426614174000';
+    setCustomProviderDefinitions([
+      {
+        id: providerId,
+        displayName: 'Anthropic proxy',
+        dialect: 'anthropic-messages',
+        baseUrl: 'https://anthropic.example.test',
+        credentialPlacement: 'bearer',
+        manualModels: [{ id: 'claude-private' }],
+      },
+    ]);
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response(null, { status: 200 });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'claude-private',
+        provider: providerId,
+        api: 'anthropic-messages',
+        baseUrl: 'https://anthropic.example.test',
+        contextWindow: 4096,
+        maxTokens: 256,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'custom-anthropic-canary',
+    })) {
+      // drain
+    }
+
+    expect(capturedHeaders?.['Authorization']).toBe(
+      'Bearer custom-anthropic-canary',
+    );
+    expect(capturedHeaders?.['x-api-key']).toBeUndefined();
+  });
+
+  it('encodes Gemini-compatible query credentials and keeps them out of headers', async () => {
+    const providerId = 'custom:323e4567-e89b-42d3-a456-426614174000';
+    setCustomProviderDefinitions([
+      {
+        id: providerId,
+        displayName: 'Gemini proxy',
+        dialect: 'google-generative-ai',
+        baseUrl: 'https://gemini.example.test/v1beta',
+        credentialPlacement: 'query-key',
+        manualModels: [{ id: 'gemini-private' }],
+      },
+    ]);
+    let capturedUrl: string | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (url, init) => {
+      capturedUrl = String(url);
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response('', { status: 200 });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'gemini-private',
+        provider: providerId,
+        api: 'google-generative-ai',
+        baseUrl: 'https://gemini.example.test/v1beta',
+        contextWindow: 4096,
+        maxTokens: 256,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'query key/+',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toContain('&key=query%20key%2F%2B');
+    expect(JSON.stringify(capturedHeaders)).not.toContain('query key');
   });
 });
 

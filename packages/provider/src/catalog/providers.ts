@@ -37,6 +37,11 @@ import {
 } from '../omp-ai/registry/registry.js';
 import type { ProviderDefinition } from '../omp-ai/registry/types.js';
 import { getCatalogProviderEntry } from '../omp-catalog/provider-models/descriptors.js';
+import {
+  customDefinitionToProvider,
+  getCustomProviderDefinition,
+  listCustomPlumbProviders,
+} from '../config/customProviderDefinitions.js';
 
 // ─── PLUMB → OMP id resolution ─────────────────────────────────────────
 
@@ -1090,22 +1095,26 @@ const PROVIDER_BY_ID = new Map<string, PlumbProvider>(
 
 /** Look up a provider by its ID (selectable or not). */
 export function getPlumbProvider(id: string): PlumbProvider | undefined {
-  return PROVIDER_BY_ID.get(id);
+  const custom = getCustomProviderDefinition(id);
+  return custom ? customDefinitionToProvider(custom) : PROVIDER_BY_ID.get(id);
 }
 
 /** Get all providers in a given category (selectable only). */
 export function getProvidersByCategory(
   category: PlumbProviderCategory,
 ): PlumbProvider[] {
-  return SELECTABLE_PROVIDERS.filter((p) => p.category === category).sort(
-    (a, b) => (a.order ?? 99) - (b.order ?? 99),
-  );
+  return [...SELECTABLE_PROVIDERS, ...listCustomPlumbProviders()]
+    .filter((p) => p.category === category)
+    .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
 }
 
 /** Get all providers grouped by category for first-run setup display. */
 export function getProviderSetupGroups(): Map<string, PlumbProvider[]> {
   const groups = new Map<string, PlumbProvider[]>();
-  for (const provider of SELECTABLE_PROVIDERS) {
+  for (const provider of [
+    ...SELECTABLE_PROVIDERS,
+    ...listCustomPlumbProviders(),
+  ]) {
     const group = provider.group ?? 'Other';
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group)!.push(provider);

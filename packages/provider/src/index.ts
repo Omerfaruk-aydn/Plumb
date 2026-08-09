@@ -172,6 +172,28 @@ export {
   buildGatewayProviderSaveOperation,
   type GatewayConfigProviderId,
 } from './config/gatewayProviderConfig.js';
+export {
+  CUSTOM_PROVIDER_DEFINITION_VERSION,
+  createCustomProviderId,
+  isCustomProviderId,
+  validateCustomProviderDefinition,
+  normalizeCustomProviderDefinition,
+  setCustomProviderDefinitions,
+  upsertCustomProviderDefinition,
+  removeCustomProviderDefinition,
+  getCustomProviderDefinition,
+  listCustomProviderDefinitions,
+  customDefinitionToProvider,
+  listCustomPlumbProviders,
+  customDefinitionToModels,
+  __resetCustomProviderDefinitionsForTests,
+  type CustomProviderDialect,
+  type CustomCredentialPlacement,
+  type CustomProviderManualModel,
+  type CustomProviderDefinition,
+  type CustomProviderDefinitionInput,
+  type CustomProviderValidationErrors,
+} from './config/customProviderDefinitions.js';
 
 // OCI Generative AI configuration domain schema/validator (canonical --
 // the Ink UI renders from and validates through this, never a parallel
