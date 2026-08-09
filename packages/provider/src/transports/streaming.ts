@@ -1825,7 +1825,16 @@ export async function* plumbModelStream(
     return;
   }
 
-  // Fall back based on API type
+  // Fall back based on API type. Every PlumbKnownApi member must have an
+  // explicit case here (either a real transport or a deliberate,
+  // documented OpenAI-compatible alias) -- the generic passthrough is never
+  // a silent default. This is the direct fix for the class of bug the
+  // Bedrock/Azure incidents exposed: an unregistered/misrouted dialect
+  // silently sending one provider's credential to a generic
+  // `{baseUrl}/chat/completions` endpoint that was never that provider's
+  // real API. `_exhaustiveApiCheck` fails the TypeScript build (not just a
+  // runtime error) the moment a new PlumbKnownApi member is added without
+  // a case here.
   switch (api) {
     case 'anthropic-messages':
       yield* anthropicMessagesStream(options);
@@ -1843,17 +1852,44 @@ export async function* plumbModelStream(
     case 'ollama-chat':
       yield* ollamaCompatibleStream(options);
       break;
+    // Deliberate, tested OpenAI-Chat-Completions-compatible aliases --
+    // never an unexamined default.
     case 'openai-completions':
     case 'openai-responses':
     case 'openrouter':
     case 'openai-codex-responses':
-    case 'azure-openai-responses':
     case 'cursor-agent':
     case 'devin-agent':
     case 'gitlab-duo-agent':
-    default:
       yield* openAICompatibleStream(options);
       break;
+    case 'claude-agent-sdk':
+    case 'watsonx-chat':
+    case 'oci-openai-responses':
+    case 'bedrock-converse-stream':
+    case 'azure-openai-responses':
+      // Always caught by the registered-transport check above; listed here
+      // only so the exhaustiveness check below covers every PlumbKnownApi
+      // member even if a registration were ever accidentally removed.
+      yield {
+        type: 'error',
+        error: {
+          code: 'TRANSPORT_NOT_REGISTERED',
+          message: `Provider dialect '${api}' has no registered transport and is not a safe OpenAI-compatible alias. Refusing to send credentials to a generic endpoint.`,
+        },
+      };
+      break;
+    default: {
+      const _exhaustiveApiCheck: never = api;
+      yield {
+        type: 'error',
+        error: {
+          code: 'TRANSPORT_NOT_REGISTERED',
+          message: `Unknown provider dialect '${String(_exhaustiveApiCheck)}' has no registered transport and is not a safe OpenAI-compatible alias. Refusing to send credentials to a generic endpoint.`,
+        },
+      };
+      break;
+    }
   }
 }
 
