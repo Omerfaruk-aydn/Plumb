@@ -152,6 +152,32 @@ describe('providerCloudConfigCache', () => {
     });
   });
 
+  it('all five Phase 4 cloud providers stay isolated from each other in the same cache (zero cross-provider bleed)', async () => {
+    await initializeProviderCloudConfigCache(store);
+    const perProvider: Record<string, Record<string, string>> = {
+      'amazon-bedrock': { region: 'us-west-2' },
+      azure: { endpoint: 'https://bleed-check.openai.azure.com' },
+      'google-vertex': {
+        projectId: 'bleed-check-project',
+        location: 'us-central1',
+      },
+      watsonx: { region: 'eu-de', projectId: 'watsonx-bleed-check' },
+      'oci-genai': {
+        region: 'ap-mumbai-1',
+        compartmentId: 'ocid1.compartment.oc1..bleed',
+      },
+    };
+
+    for (const [providerId, config] of Object.entries(perProvider)) {
+      await saveProviderCloudConfig(providerId, config, store);
+    }
+
+    for (const [providerId, config] of Object.entries(perProvider)) {
+      expect(getCachedProviderCloudConfig(providerId)).toEqual(config);
+      expect(await store.getProviderCloudConfig(providerId)).toEqual(config);
+    }
+  });
+
   describe('cold-start production-shaped regression', () => {
     it('a fresh process that initializes the cache BEFORE the first catalog call resolves persisted OCI config on that very first call -- no second-request self-healing', async () => {
       // 1. Persist OCI config (as if a prior session's setup UX saved it).
