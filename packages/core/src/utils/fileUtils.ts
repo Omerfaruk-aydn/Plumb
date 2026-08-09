@@ -672,10 +672,16 @@ export function formatTruncatedToolOutput(
   const tail = contentStr.slice(-tailChars);
   const omittedChars = contentStr.length - headChars - tailChars;
 
-  return `Output too large. Showing first ${headChars.toLocaleString()} and last ${tailChars.toLocaleString()} characters. For full output see: ${outputFile}
+  // Pinned to 'en-US' rather than the bare no-arg toLocaleString(): this
+  // message is CLI output text, and the bare form silently follows the
+  // host OS/Node locale (e.g. "8.000" instead of "8,000" under a
+  // period-as-thousands-separator locale), making the same tool output
+  // read differently -- and inconsistently with the rest of the CLI's
+  // English UI text -- depending on which machine it runs on.
+  return `Output too large. Showing first ${headChars.toLocaleString('en-US')} and last ${tailChars.toLocaleString('en-US')} characters. For full output see: ${outputFile}
 ${head}
 
-... [${omittedChars.toLocaleString()} characters omitted] ...
+... [${omittedChars.toLocaleString('en-US')} characters omitted] ...
 
 ${tail}`;
 }
