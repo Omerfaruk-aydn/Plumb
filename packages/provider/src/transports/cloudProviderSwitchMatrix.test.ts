@@ -119,7 +119,17 @@ describe('Phase 4 cloud provider-switch matrix (zero cross-provider bleed)', () 
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    process.env = { ...ORIGINAL_ENV };
+    // Mutate process.env in place rather than reassigning the object:
+    // installBunGlobal() (idempotent, only installs once per worker
+    // process) captures a live reference to *this* process.env object for
+    // Bun.env -- a later `process.env = {...}` reassignment here would
+    // silently detach Bun.env from the real environment for the rest of
+    // the worker process, breaking anything reading env vars through the
+    // Bun shim afterward (e.g. Vertex's ADC token resolution).
+    for (const key of Object.keys(process.env)) {
+      if (!(key in ORIGINAL_ENV)) delete process.env[key];
+    }
+    Object.assign(process.env, ORIGINAL_ENV);
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
   });
