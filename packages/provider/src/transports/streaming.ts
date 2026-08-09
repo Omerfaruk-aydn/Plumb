@@ -34,6 +34,7 @@ import { streamWatsonx } from './watsonx.js';
 import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 import { streamBedrockConverse } from './bedrock.js';
 import { streamAzureResponses } from './azure.js';
+import { prepareVertexModel } from './googleVertex.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -363,7 +364,16 @@ async function* anthropicMessagesStream(
   } = options;
 
   const baseUrl = model.baseUrl ?? 'https://api.anthropic.com';
-  const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`;
+  // Claude-on-Vertex's baseUrl (already resolved by plumbModelStream's
+  // Vertex prep step) is the complete `:streamRawPredict` request URL --
+  // appending `/v1/messages` like the direct Anthropic API would produce
+  // `...:streamRawPredict/v1/messages`, so it is stripped back off here.
+  // Mirrors the upstream OMP dispatcher's own proven
+  // `resolveVertexRequest`/`rewriteUrl` fixup (omp-ai/stream.ts).
+  const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`.replace(
+    ':streamRawPredict/v1/messages',
+    ':streamRawPredict',
+  );
 
   const systemMessages: unknown[] = [];
   const chatMessages: unknown[] = [];
@@ -417,7 +427,12 @@ async function* anthropicMessagesStream(
   // with no auth header at all just produces a less specific upstream error
   // ("missing required Authorization header") for the same underlying
   // problem (no resolved credential for this provider).
-  if (!apiKey) {
+  // Claude-on-Vertex authenticates via the Google OAuth Bearer token
+  // plumbModelStream's Vertex prep step already injected into
+  // model.headers.Authorization -- apiKey here is only PLUMB's generic
+  // credential-plumbing sentinel, never a real Vertex secret.
+  const isVertex = model.provider === 'google-vertex';
+  if (!apiKey && !isVertex) {
     yield {
       type: 'error',
       error: {
@@ -432,13 +447,16 @@ async function* anthropicMessagesStream(
   // Bearer regardless of credential kind — it does not accept x-api-key
   // (confirmed: sending x-api-key alone produces "missing required
   // Authorization header" from Copilot's endpoint). Native Anthropic API
-  // endpoints accept both; x-api-key remains the default there.
+  // endpoints accept both; x-api-key remains the default there. Vertex
+  // requires Authorization: Bearer <Google OAuth token> (already present in
+  // model.headers) and must never also send x-api-key with the sentinel
+  // apiKey value.
   // The model.headers field can carry provider-specific headers
   // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
   const authHeaders: Record<string, string> = {};
   if (model.provider === 'github-copilot') {
     authHeaders['Authorization'] = `Bearer ${apiKey}`;
-  } else {
+  } else if (!isVertex) {
     authHeaders['x-api-key'] = apiKey;
   }
 
@@ -446,6 +464,16 @@ async function* anthropicMessagesStream(
   // or by PlumbContentGenerator when it resolves the full model from registry).
   if (model.headers) {
     Object.assign(authHeaders, model.headers);
+  }
+
+  // Vertex Claude rejects the standard Anthropic body shape: `model` is
+  // encoded in the URL path (never the body), and `anthropic_version:
+  // "vertex-2023-10-16"` is required in the JSON body instead of the
+  // `anthropic-version` HTTP header. Mirrors the upstream OMP dispatcher's
+  // own proven `transformVertexAnthropicBody` (omp-ai/stream.ts).
+  if (isVertex) {
+    delete body.model;
+    body.anthropic_version = 'vertex-2023-10-16';
   }
 
   let response: Response;
@@ -1205,9 +1233,15 @@ async function* googleGenerativeAiStream(
 ): AsyncGenerator<PlumbStreamEvent> {
   const { model, messages, tools, apiKey, signal, systemPrompt } = options;
 
+  const isVertex = model.provider === 'google-vertex';
   const baseUrl =
     model.baseUrl ?? 'https://generativelanguage.googleapis.com/v1beta';
-  const url = `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  // Vertex authenticates via the Google OAuth Bearer token
+  // plumbModelStream's Vertex prep step already put in model.headers --
+  // never the direct Gemini API's `?key=` query-param scheme.
+  const url = isVertex
+    ? `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse`
+    : `${baseUrl.replace(/\/+$/, '')}/models/${model.requestModelId ?? model.id}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const contents = buildGeminiContents(messages);
   const body: Record<string, unknown> = {
@@ -1237,7 +1271,7 @@ async function* googleGenerativeAiStream(
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(model.headers ?? {}) },
       body: JSON.stringify(body),
       signal,
     });
@@ -1764,8 +1798,25 @@ function buildGeminiContents(
 export async function* plumbModelStream(
   options: PlumbStreamOptions,
 ): AsyncGenerator<PlumbStreamEvent> {
-  const { model } = options;
+  let { model } = options;
   const api = model.api;
+
+  // Every google-vertex catalog model (across all three dialects it uses --
+  // google-vertex/anthropic-messages/openai-completions) carries a template
+  // baseUrl with literal {project}/{location} placeholders and requires
+  // Google OAuth Bearer auth, never the direct-API x-api-key/?key= schemes
+  // the same dialects use elsewhere. Resolve that once here, before any
+  // dialect-specific transport runs, so every one of them (unmodified)
+  // receives an already-real, already-resolvable model descriptor.
+  if (model.provider === 'google-vertex') {
+    const prep = await prepareVertexModel(model, options.signal);
+    if (prep.error) {
+      yield prep.error;
+      return;
+    }
+    model = prep.model;
+    options = { ...options, model };
+  }
 
   // Try registered transport first
   const factory = transportFactories.get(api);
