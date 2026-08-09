@@ -508,6 +508,7 @@ describe('PlumbProviderSetupDialog', () => {
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledWith({
+      kind: 'api-credential',
       providerId: 'nvidia',
       modelId: expect.any(String),
       apiKey: 'nvapi-test-key',
@@ -706,6 +707,7 @@ describe('PlumbProviderSetupDialog', () => {
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledWith({
+      kind: 'api-credential',
       providerId: 'nvidia',
       modelId: expect.any(String),
       apiKey: 'nvapi-test',

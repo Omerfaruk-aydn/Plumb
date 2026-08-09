@@ -62,6 +62,17 @@ interface SetupState {
 const CLAUDE_SUBSCRIPTION_PROVIDER_ID = 'claude-subscription';
 
 /**
+ * Providers whose setup goes through the rich cloud-configuration form
+ * (PlumbCloudProviderConfigForm) instead of the generic single-secret
+ * 'authenticate' step. Only 'oci-genai' has a real schema/form today;
+ * the other four cloud providers join this set as their own domain
+ * schema + form land.
+ */
+const CLOUD_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'oci-genai',
+]);
+
+/**
  * Real, actionable per-status text for the Claude Agent SDK connection
  * probe (getClaudeSubscriptionStatus) — never a generic "Something went
  * wrong". Each status maps to what the user should actually do next.
@@ -126,13 +137,39 @@ export interface PlumbProviderSetupDialogProps {
   completionStage?: string;
 }
 
-export interface PlumbProviderSetupResult {
-  providerId: string;
-  modelId: string;
-  apiKey?: string;
-  smolModel?: string;
-  planningModel?: string;
-}
+/**
+ * Discriminated by `kind`, not a flat bag every provider overloads.
+ *
+ * `api-credential`: the pre-existing flow (OAuth/API-key/device-code/local/
+ * external-authority providers) -- AppContainer commits `apiKey` (if any)
+ * through the canonical credential store exactly as before. Unchanged
+ * shape/behavior; every existing provider construction site keeps working.
+ *
+ * `cloud-configuration`: rich multi-field cloud providers (OCI/Bedrock/
+ * Azure/Vertex/watsonx). The setup screen itself has ALREADY persisted the
+ * validated safe config + credential through the canonical domain
+ * save operation (validateXConfig -> buildXSaveOperation -> credential
+ * store + saveProviderCloudConfig) by the time this fires -- this result
+ * only communicates that success and which model to select next. No
+ * secret/cloud field is transported through this object, through
+ * AppContainer, or through any further React layer.
+ */
+export type PlumbProviderSetupResult =
+  | {
+      kind: 'api-credential';
+      providerId: string;
+      modelId: string;
+      apiKey?: string;
+      smolModel?: string;
+      planningModel?: string;
+    }
+  | {
+      kind: 'cloud-configuration';
+      providerId: string;
+      modelId: string;
+      smolModel?: string;
+      planningModel?: string;
+    };
 
 const CONNECTION_TYPES = [
   {
@@ -542,13 +579,24 @@ export const PlumbProviderSetupDialog: React.FC<
     setConfirmPending(true);
     setState((s) => ({ ...s, error: null }));
     try {
-      onComplete({
-        providerId: state.selectedProvider.id,
-        modelId: state.selectedModel,
-        apiKey: state.apiKey || undefined,
-        smolModel: state.smolModel ?? undefined,
-        planningModel: state.planningModel ?? undefined,
-      });
+      if (CLOUD_CONFIGURATION_PROVIDER_IDS.has(state.selectedProvider.id)) {
+        onComplete({
+          kind: 'cloud-configuration',
+          providerId: state.selectedProvider.id,
+          modelId: state.selectedModel,
+          smolModel: state.smolModel ?? undefined,
+          planningModel: state.planningModel ?? undefined,
+        });
+      } else {
+        onComplete({
+          kind: 'api-credential',
+          providerId: state.selectedProvider.id,
+          modelId: state.selectedModel,
+          apiKey: state.apiKey || undefined,
+          smolModel: state.smolModel ?? undefined,
+          planningModel: state.planningModel ?? undefined,
+        });
+      }
     } catch (err) {
       setState((s) => ({
         ...s,

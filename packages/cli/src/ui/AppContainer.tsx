@@ -916,7 +916,13 @@ Logging in with Google... Restarting PLUMB to continue.
         }
       };
 
-      const { providerId, modelId, apiKey } = result;
+      const { providerId, modelId } = result;
+      // Cloud-configuration providers (OCI/Bedrock/Azure/Vertex/watsonx)
+      // already persisted their credential (if any) through the canonical
+      // domain save operation by the time this fires -- never re-derive or
+      // re-transport it here.
+      const apiKey =
+        result.kind === 'api-credential' ? result.apiKey : undefined;
       if (!providerId || !modelId) {
         traceStage('failed: missing provider or model in selection');
         setSetupCompletionStage(
