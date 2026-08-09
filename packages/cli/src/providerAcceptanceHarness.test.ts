@@ -39,6 +39,92 @@ import {
 } from './providerAcceptanceHarness.js';
 import { recordAcceptance } from './providerAcceptance.js';
 
+// Cloud (Phase 4) provider fixtures mirror the real, incomplete-on-purpose
+// shape: the OMP catalog entry has no envVars/api for amazon-bedrock and
+// google-vertex, and no entry at all for watsonx/oci-genai -- credential
+// detection and transport dialect selection must come from
+// getPlumbProvider(id).envVars and the selected bundled model, never from a
+// generic fallback (see providerAcceptanceHarness.ts's API-key branch).
+const CLOUD_PROVIDER_FIXTURES: Record<
+  string,
+  {
+    envVars: string[];
+    catalogEntry: Record<string, unknown> | undefined;
+    models: Array<Record<string, unknown>>;
+  }
+> = {
+  'amazon-bedrock': {
+    envVars: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'],
+    catalogEntry: { defaultModel: 'us.anthropic.claude-opus-4-8' },
+    models: [
+      {
+        id: 'us.anthropic.claude-opus-4-8',
+        api: 'anthropic-messages',
+        baseUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        contextWindow: 200000,
+      },
+    ],
+  },
+  azure: {
+    envVars: ['AZURE_OPENAI_API_KEY', 'AZURE_OPENAI_ENDPOINT'],
+    catalogEntry: { defaultModel: 'gpt-5.5' },
+    models: [
+      {
+        id: 'gpt-5.5',
+        api: 'azure-openai-responses',
+        baseUrl: 'https://plumb-test.openai.azure.com',
+        contextWindow: 128000,
+      },
+    ],
+  },
+  'google-vertex': {
+    envVars: [
+      'GOOGLE_CLOUD_PROJECT',
+      'GOOGLE_CLOUD_LOCATION',
+      'GOOGLE_API_KEY',
+    ],
+    catalogEntry: { defaultModel: 'gemini-3.1-pro-preview' },
+    models: [
+      {
+        id: 'gemini-3.1-pro-preview',
+        api: 'google-generative-ai',
+        baseUrl: 'https://us-central1-aiplatform.googleapis.com',
+        contextWindow: 1000000,
+      },
+    ],
+  },
+  watsonx: {
+    envVars: [
+      'WATSONX_PROJECT_ID',
+      'WATSONX_SPACE_ID',
+      'WATSONX_REGION',
+      'IBM_CLOUD_API_KEY',
+    ],
+    catalogEntry: undefined,
+    models: [
+      {
+        id: 'ibm/granite-4-8-instruct',
+        api: 'watsonx-chat',
+        baseUrl: 'https://us-south.ml.cloud.ibm.com',
+        contextWindow: 128000,
+      },
+    ],
+  },
+  'oci-genai': {
+    envVars: ['OCI_GENAI_API_KEY'],
+    catalogEntry: undefined,
+    models: [
+      {
+        id: 'cohere.command-r-plus',
+        api: 'oci-openai-responses',
+        baseUrl:
+          'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com',
+        contextWindow: 131072,
+      },
+    ],
+  },
+};
+
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
@@ -57,6 +143,9 @@ vi.mock('@google/gemini-cli-provider', () => ({
     if (id === 'github-copilot') {
       return { api: 'openai-completions', envVars: [] };
     }
+    if (id in CLOUD_PROVIDER_FIXTURES) {
+      return CLOUD_PROVIDER_FIXTURES[id].catalogEntry;
+    }
     return undefined;
   },
   getPlumbProvider: (id: string) => {
@@ -68,6 +157,17 @@ vi.mock('@google/gemini-cli-provider', () => ({
         name: 'GitHub Copilot',
       };
     }
+    if (id in CLOUD_PROVIDER_FIXTURES) {
+      return {
+        id,
+        category: 'api_key',
+        authMethods: [
+          { type: 'env', envVars: CLOUD_PROVIDER_FIXTURES[id].envVars },
+        ],
+        name: id,
+        envVars: CLOUD_PROVIDER_FIXTURES[id].envVars,
+      };
+    }
     return undefined;
   },
   getCatalogModels: (id: string) => {
@@ -77,7 +177,14 @@ vi.mock('@google/gemini-cli-provider', () => ({
         { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
       ];
     }
+    if (id in CLOUD_PROVIDER_FIXTURES) {
+      return CLOUD_PROVIDER_FIXTURES[id].models;
+    }
     return [];
+  },
+  async *plumbModelStream() {
+    yield { type: 'text', text: 'PLUMB_TEST_OK' };
+    yield { type: 'done' };
   },
   SELECTABLE_PROVIDERS: [{ id: 'github-copilot', category: 'coding_plan' }],
   getPlumbProviderRegistry: () => ({
@@ -229,6 +336,133 @@ describe('provider acceptance harness', () => {
       });
       expect(exitCode).toBe(0);
     }
+  });
+});
+
+// Phase 4: amazon-bedrock, azure, google-vertex, watsonx, oci-genai.
+//
+// These providers previously fell through the generic API-key branch with
+// two silent defects: (1) credential detection relied only on the OMP
+// catalog's `envVars`, which is empty for amazon-bedrock/google-vertex and
+// absent entirely for watsonx/oci-genai, so a real AWS/GCP credential could
+// never be detected; (2) the stream request always used a hardcoded
+// 'openai-completions' dialect and a fabricated 'none'/'default' model id
+// instead of the selected bundled model's real api/baseUrl/id, so even a
+// detected credential would dispatch through the wrong transport.
+describe('Phase 4 cloud provider acceptance (bedrock/azure/vertex/watsonx/oci)', () => {
+  const CLOUD_PROVIDER_IDS = [
+    'amazon-bedrock',
+    'azure',
+    'google-vertex',
+    'watsonx',
+    'oci-genai',
+  ] as const;
+
+  let originalIsTTY: boolean | undefined;
+  const savedEnv: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    originalIsTTY = process.stdin.isTTY;
+    process.stdin.isTTY = true;
+  });
+
+  afterEach(() => {
+    if (originalIsTTY !== undefined) {
+      process.stdin.isTTY = originalIsTTY;
+    } else {
+      process.stdin.isTTY = undefined as unknown as boolean;
+    }
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  function setEnv(key: string, value: string): void {
+    if (!(key in savedEnv)) savedEnv[key] = process.env[key];
+    process.env[key] = value;
+  }
+
+  it('detects real credentials via getPlumbProvider(id).envVars for every cloud provider', async () => {
+    for (const id of CLOUD_PROVIDER_IDS) {
+      const t = capture();
+      const exitCode = await runProviderAcceptanceTest(id, {
+        report: t.report,
+      });
+      expect(exitCode).toBe(1);
+      const joined = t.reportLines.join('\n');
+      expect(joined).toContain('auth.result: no_credential');
+    }
+  });
+
+  it('amazon-bedrock: AWS credential env vars are recognized and route through anthropic-messages', async () => {
+    setEnv('AWS_ACCESS_KEY_ID', 'AKIA_TEST');
+    setEnv('AWS_SECRET_ACCESS_KEY', 'secret');
+    setEnv('AWS_REGION', 'us-east-1');
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('amazon-bedrock', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: env_key_present');
+    expect(joined).toContain('transport.dialect: anthropic-messages');
+    expect(joined).toContain('selected.model: us.anthropic.claude-opus-4-8');
+    expect(joined).toContain('result: LIVE_VERIFIED');
+    expect(exitCode).toBe(0);
+  });
+
+  it('azure: AZURE_OPENAI_* env vars are recognized and route through azure-openai-responses', async () => {
+    setEnv('AZURE_OPENAI_API_KEY', 'azure-test-key');
+    setEnv('AZURE_OPENAI_ENDPOINT', 'https://plumb-test.openai.azure.com');
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('azure', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: env_key_present');
+    expect(joined).toContain('transport.dialect: azure-openai-responses');
+    expect(joined).toContain('selected.model: gpt-5.5');
+    expect(exitCode).toBe(0);
+  });
+
+  it('google-vertex: GOOGLE_CLOUD_* env vars are recognized (previously undetectable)', async () => {
+    setEnv('GOOGLE_CLOUD_PROJECT', 'plumb-test-project');
+    setEnv('GOOGLE_CLOUD_LOCATION', 'us-central1');
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('google-vertex', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: env_key_present');
+    expect(joined).toContain('transport.dialect: google-generative-ai');
+    expect(joined).toContain('selected.model: gemini-3.1-pro-preview');
+    expect(exitCode).toBe(0);
+  });
+
+  it('watsonx: IBM_CLOUD_API_KEY is recognized despite no OMP catalog entry', async () => {
+    setEnv('IBM_CLOUD_API_KEY', 'ibm-test-key');
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('watsonx', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: env_key_present');
+    expect(joined).toContain('transport.dialect: watsonx-chat');
+    expect(joined).toContain('selected.model: ibm/granite-4-8-instruct');
+    expect(exitCode).toBe(0);
+  });
+
+  it('oci-genai: OCI_GENAI_API_KEY is recognized despite no OMP catalog entry', async () => {
+    setEnv('OCI_GENAI_API_KEY', 'oci-test-key');
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('oci-genai', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: env_key_present');
+    expect(joined).toContain('transport.dialect: oci-openai-responses');
+    expect(joined).toContain('selected.model: cohere.command-r-plus');
+    expect(exitCode).toBe(0);
   });
 });
 

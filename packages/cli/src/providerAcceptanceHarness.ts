@@ -1523,13 +1523,28 @@ export async function runProviderAcceptanceTest(
     }
 
     // API-key path: check credential availability.
-    const envVars: string[] = (catalogEntry?.['envVars'] as string[]) ?? [];
+    //
+    // The OMP catalog entry's `envVars` field is incomplete/absent for
+    // PLUMB-specific cloud providers (amazon-bedrock and google-vertex list
+    // none there at all; azure omits AZURE_OPENAI_ENDPOINT; watsonx/oci-genai
+    // have no OMP catalog entry to begin with). `plumbProvider.envVars` is
+    // the already-correct, complete union PLUMB computes from its own
+    // authMethods (see catalog/providers.ts plumbEnvVars/buildProvider) and
+    // is what setup/status screens use, so credential detection here must
+    // agree with it rather than re-deriving a narrower OMP-only list.
+    const envVars: string[] =
+      plumbProvider?.envVars ?? (catalogEntry?.['envVars'] as string[]) ?? [];
     const hasEnvKey = envVars.some((v) => {
       const val = process.env[v];
       return typeof val === 'string' && val.trim().length > 0;
     });
 
     const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
+    const defaultModelId = catalogEntry?.['defaultModel'] as string | undefined;
+    const selectedModel =
+      (defaultModelId
+        ? bundledModels.find((m) => m.id === defaultModelId)
+        : undefined) ?? bundledModels[0];
 
     const registry = providerModule.getPlumbProviderRegistry?.();
     let authState = 'unauthenticated';
@@ -1543,8 +1558,14 @@ export async function runProviderAcceptanceTest(
       }
     }
 
-    const api = (catalogEntry?.['api'] as string) ?? 'openai-completions';
-    const baseUrl = (catalogEntry?.['baseUrl'] as string) ?? 'from-omp-factory';
+    // Transport dialect/endpoint come from the selected bundled model, not a
+    // generic openai-completions fallback: each cloud provider (azure,
+    // amazon-bedrock, google-vertex, watsonx, oci-genai) is dispatched
+    // through its own registered transport (see transports/streaming.ts),
+    // keyed by model.api, and a wrong dialect here would silently route the
+    // acceptance stream through the wrong signer/transport.
+    const api = selectedModel?.api ?? 'openai-completions';
+    const baseUrl = selectedModel?.baseUrl ?? 'from-omp-factory';
 
     const result = buildTestResult(providerId, classification, {
       authResult: hasEnvKey
@@ -1555,12 +1576,14 @@ export async function runProviderAcceptanceTest(
       credentialStorage: hasEnvKey ? 'env' : 'keychain',
       modelsBundledCount: bundledModels.length,
       modelsFinalCount: bundledModels.length,
+      selectedModel: selectedModel?.id ?? 'none',
+      transportDialect: api,
       requestEndpoint: baseUrl,
       authorizationHeaderPresent: hasEnvKey || authState === 'authenticated',
       result: 'IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED',
     });
 
-    if (hasEnvKey || authState === 'authenticated') {
+    if ((hasEnvKey || authState === 'authenticated') && selectedModel) {
       try {
         const apiKey = hasEnvKey
           ? (process.env[envVars.find((v) => process.env[v]) ?? ''] ?? '')
@@ -1570,14 +1593,15 @@ export async function runProviderAcceptanceTest(
           result.streamStarted = true;
           const stream = providerModule.plumbModelStream({
             model: {
-              id: result.selectedModel ?? 'default',
+              id: selectedModel.id,
               provider: providerId,
               api: api as 'openai-completions',
-              contextWindow: 4096,
+              contextWindow: selectedModel.contextWindow ?? 4096,
               maxTokens: 32,
               reasoning: false,
               input: 'text' as const,
               baseUrl: baseUrl !== 'from-omp-factory' ? baseUrl : undefined,
+              headers: selectedModel.headers,
             },
             messages: [{ role: 'user', content: 'Say exactly: PLUMB_TEST_OK' }],
             apiKey,
