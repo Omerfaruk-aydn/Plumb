@@ -125,6 +125,16 @@ const CLOUD_PROVIDER_FIXTURES: Record<
   },
 };
 
+// Mutable per-test keychain/registry state, set via vi.hoisted so the
+// vi.mock factory below (which vitest hoists above this file's other
+// module-level code) can close over it.
+const { mockRegistryState } = vi.hoisted(() => ({
+  mockRegistryState: {} as Record<
+    string,
+    { authState: string; credentials?: { type: 'api_key'; key: string } }
+  >,
+}));
+
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
@@ -189,7 +199,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
   SELECTABLE_PROVIDERS: [{ id: 'github-copilot', category: 'coding_plan' }],
   getPlumbProviderRegistry: () => ({
     initialize: vi.fn(),
-    getProviderState: vi.fn(),
+    getProviderState: (id: string) => mockRegistryState[id],
   }),
 }));
 
@@ -376,6 +386,9 @@ describe('Phase 4 cloud provider acceptance (bedrock/azure/vertex/watsonx/oci)',
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
+    for (const key of Object.keys(mockRegistryState)) {
+      delete mockRegistryState[key];
+    }
   });
 
   function setEnv(key: string, value: string): void {
@@ -463,6 +476,41 @@ describe('Phase 4 cloud provider acceptance (bedrock/azure/vertex/watsonx/oci)',
     expect(joined).toContain('transport.dialect: oci-openai-responses');
     expect(joined).toContain('selected.model: cohere.command-r-plus');
     expect(exitCode).toBe(0);
+  });
+
+  it('watsonx: a keychain-stored (non-env) credential still reaches the real stream test', async () => {
+    // watsonx's real credential authority is PLUMB's own credential store,
+    // not an env var (see catalog/providers.ts comment on the 'watsonx'
+    // entry) -- no env vars are set here, only registry/keychain state.
+    mockRegistryState['watsonx'] = {
+      authState: 'authenticated',
+      credentials: { type: 'api_key', key: 'keychain-ibm-key' },
+    };
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('watsonx', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: keychain_authenticated');
+    expect(joined).toContain('credential.storage: keychain');
+    expect(joined).toContain('stream.started: true');
+    expect(joined).toContain('result: LIVE_VERIFIED');
+    expect(exitCode).toBe(0);
+  });
+
+  it('watsonx: keychain state without a usable credential stays CONFIGURATION_REQUIRED and never fakes success', async () => {
+    mockRegistryState['watsonx'] = { authState: 'expired' };
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('watsonx', {
+      report: t.report,
+    });
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: no_credential');
+    expect(joined).toContain(
+      'result: IMPLEMENTATION_COMPLETE_EXTERNAL_CREDENTIAL_REQUIRED',
+    );
+    expect(joined).not.toContain('result: LIVE_VERIFIED');
+    expect(exitCode).toBe(1);
   });
 });
 

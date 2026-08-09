@@ -1548,11 +1548,22 @@ export async function runProviderAcceptanceTest(
 
     const registry = providerModule.getPlumbProviderRegistry?.();
     let authState = 'unauthenticated';
+    let keychainApiKey: string | undefined;
     if (registry) {
       try {
         await registry.initialize();
         const state = registry.getProviderState(providerId);
         authState = state?.authState ?? 'unauthenticated';
+        // The registry already holds the decrypted credential for keychain
+        // ('PLUMB-owned, stored via the canonical credential store' -- the
+        // primary auth path for watsonx/oci-genai/azure/etc., see
+        // catalog/providers.ts) -- discarding it here (keeping only
+        // authState) would make the real stream test unreachable for every
+        // provider whose credential lives in the keychain instead of env.
+        const cred = state?.credentials;
+        if (cred?.type === 'api_key' && cred.key) {
+          keychainApiKey = cred.key;
+        }
       } catch {
         // Registry not available
       }
@@ -1587,7 +1598,7 @@ export async function runProviderAcceptanceTest(
       try {
         const apiKey = hasEnvKey
           ? (process.env[envVars.find((v) => process.env[v]) ?? ''] ?? '')
-          : '';
+          : (keychainApiKey ?? '');
 
         if (apiKey && providerModule.plumbModelStream) {
           result.streamStarted = true;
