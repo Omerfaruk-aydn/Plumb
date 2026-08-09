@@ -29,6 +29,7 @@ import {
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
+import { PlumbCloudProviderConfigForm } from './PlumbCloudProviderConfigForm.js';
 
 type SetupStep =
   | 'connection-type'
@@ -36,6 +37,7 @@ type SetupStep =
   | 'connected'
   | 'authenticate'
   | 'oauth-waiting'
+  | 'cloud-config'
   | 'model-select'
   | 'confirm'
   | 'done';
@@ -400,6 +402,24 @@ export const PlumbProviderSetupDialog: React.FC<
         return;
       }
 
+      // Cloud-configuration providers (OCI/Bedrock/Azure/Vertex/watsonx) own
+      // their own configured-vs-unconfigured detection internally (safe
+      // config + credential presence, not the OAuth-oriented registry
+      // authState below) -- route straight to the rich form, which renders
+      // its own "Configured" summary/actions when applicable.
+      if (CLOUD_CONFIGURATION_PROVIDER_IDS.has(provider.id)) {
+        setState((s) => ({
+          ...s,
+          step: 'cloud-config',
+          selectedProvider: provider,
+          connectionAuthState: null,
+          error: null,
+          loading: false,
+          oauthStatus: null,
+        }));
+        return;
+      }
+
       // Read the real connection state from the canonical registry before
       // deciding where to route — never restart device-code/OAuth login for a
       // provider that already has a usable credential (that state is derived
@@ -612,6 +632,14 @@ export const PlumbProviderSetupDialog: React.FC<
 
   useKeypress(
     (key) => {
+      // PlumbCloudProviderConfigForm owns its own useKeypress subscription
+      // for this step (navigation/select/edit/save/back all handled
+      // internally against the OCI domain schema) -- this outer handler
+      // must not also process/consume events here, or Escape/Enter would
+      // double-fire (once here with generic 'authenticate'-shaped
+      // semantics, once inside the form with the real cloud-config
+      // semantics).
+      if (step === 'cloud-config') return;
       if (key.name === 'escape') {
         // Explicit cancellation destinations — never leave the PLUMB setup
         // graph for the legacy Gemini AuthDialog.
@@ -934,6 +962,21 @@ export const PlumbProviderSetupDialog: React.FC<
             <Text dimColor>Backspace: back to provider list</Text>
           </Box>
         </Box>
+      )}
+
+      {step === 'cloud-config' && provider?.id === 'oci-genai' && (
+        <PlumbCloudProviderConfigForm
+          onContinue={() => {
+            setState((s) => ({ ...s, step: 'model-select' }));
+          }}
+          onCancel={() => {
+            setState((s) => ({
+              ...s,
+              step: 'provider-select',
+              selectedProvider: null,
+            }));
+          }}
+        />
       )}
 
       {step === 'authenticate' && provider && (
