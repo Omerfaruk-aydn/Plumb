@@ -352,6 +352,7 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
     interface InnerAntigravityRequest {
       contents: Array<{ role: string; parts: Array<{ text?: string }> }>;
       tools?: Array<{ functionDeclarations: Array<{ name: string }> }>;
+      toolConfig?: { functionCallingConfig?: { mode?: string } };
     }
 
     it('Variant A: 1 user, 0 tools (Claude Sonnet 4.6)', async () => {
@@ -443,9 +444,13 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
         captured.body as unknown as { request: InnerAntigravityRequest }
       ).request;
       expect(inner.contents).toHaveLength(1);
-      expect(inner.tools).toBeTruthy();
-      expect(inner.tools![0].functionDeclarations).toHaveLength(1);
-      expect(inner.tools![0].functionDeclarations[0].name).toBe('update_topic');
+      // The Cloud Code Assist Stream endpoint does not support top-level
+      // request.tools for Claude models on Antigravity (see
+      // buildRequest in omp-ai/providers/google-gemini-cli.ts -- sending it
+      // produced a real HTTP 400). Tool availability is instead signaled
+      // only through toolConfig.functionCallingConfig.mode: 'VALIDATED'.
+      expect(inner.tools).toBeUndefined();
+      expect(inner.toolConfig?.functionCallingConfig?.mode).toBe('VALIDATED');
     });
 
     it('Variant D: 1 user, all 16 PLUMB tools (Claude Sonnet 4.6)', async () => {
@@ -475,8 +480,10 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
         captured.body as unknown as { request: InnerAntigravityRequest }
       ).request;
       expect(inner.contents).toHaveLength(1);
-      expect(inner.tools).toBeTruthy();
-      expect(inner.tools![0].functionDeclarations).toHaveLength(16);
+      // See Variant C: top-level request.tools is never sent for Claude
+      // models on Antigravity, regardless of how many tools were offered.
+      expect(inner.tools).toBeUndefined();
+      expect(inner.toolConfig?.functionCallingConfig?.mode).toBe('VALIDATED');
     });
 
     it('Variant E: 2 adjacent user, 1 minimal valid tool (Claude Sonnet 4.6)', async () => {
@@ -510,7 +517,10 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
       ).request;
       expect(inner.contents).toHaveLength(1);
       expect(inner.contents[0].parts).toHaveLength(2);
-      expect(inner.tools).toBeTruthy();
+      // See Variant C: top-level request.tools is never sent for Claude
+      // models on Antigravity.
+      expect(inner.tools).toBeUndefined();
+      expect(inner.toolConfig?.functionCallingConfig?.mode).toBe('VALIDATED');
     });
 
     it('Variant F: 2 adjacent user, all 16 tools (Claude Sonnet 4.6)', async () => {
@@ -544,8 +554,10 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
       ).request;
       expect(inner.contents).toHaveLength(1);
       expect(inner.contents[0].parts).toHaveLength(2);
-      expect(inner.tools).toBeTruthy();
-      expect(inner.tools![0].functionDeclarations).toHaveLength(16);
+      // See Variant C: top-level request.tools is never sent for Claude
+      // models on Antigravity, regardless of how many tools were offered.
+      expect(inner.tools).toBeUndefined();
+      expect(inner.toolConfig?.functionCallingConfig?.mode).toBe('VALIDATED');
     });
 
     it('GPT & Gemini regression suite: ZERO regression for adjacent roles & tools', async () => {
