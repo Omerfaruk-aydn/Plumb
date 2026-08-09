@@ -108,6 +108,70 @@ export function createCustomProviderId(): string {
   return `custom:${randomUUID()}`;
 }
 
+/**
+ * Every header name that can carry a credential on PLUMB's wire. A custom
+ * provider clears all of them before applying its own, so no definition can
+ * ever inherit another provider's authority -- this is the single list both
+ * the production transport and discovery consult.
+ */
+export const CUSTOM_CREDENTIAL_HEADER_NAMES: readonly string[] = [
+  'Authorization',
+  'Proxy-Authorization',
+  'x-api-key',
+  'api-key',
+  'x-goog-api-key',
+  'cf-aig-authorization',
+  'x-portkey-api-key',
+];
+
+/**
+ * The one header a given placement puts on the wire, or undefined when the
+ * credential does not travel in a header (`none`, `query-key`, or no key).
+ */
+export function resolveCustomCredentialHeader(
+  placement: CustomCredentialPlacement,
+  apiKey: string | undefined,
+): { name: string; value: string } | undefined {
+  if (!apiKey) return undefined;
+  switch (placement) {
+    case 'bearer':
+      return { name: 'Authorization', value: `Bearer ${apiKey}` };
+    case 'x-api-key':
+      return { name: 'x-api-key', value: apiKey };
+    case 'api-key':
+      return { name: 'api-key', value: apiKey };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Full request headers for a custom provider: its safe headers, then its own
+ * credential applied last so a safe header can never shadow or replace the
+ * credential authority.
+ */
+export function buildCustomProviderHeaders(
+  definition: CustomProviderDefinition,
+  apiKey: string | undefined,
+  extra: Readonly<Record<string, string>> = {},
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    ...definition.safeHeaders,
+    ...extra,
+  };
+  for (const name of CUSTOM_CREDENTIAL_HEADER_NAMES) {
+    for (const present of Object.keys(headers)) {
+      if (present.toLowerCase() === name.toLowerCase()) delete headers[present];
+    }
+  }
+  const credential = resolveCustomCredentialHeader(
+    definition.credentialPlacement,
+    apiKey,
+  );
+  if (credential) headers[credential.name] = credential.value;
+  return headers;
+}
+
 export function isCustomProviderId(providerId: string): boolean {
   return CUSTOM_ID_PATTERN.test(providerId);
 }

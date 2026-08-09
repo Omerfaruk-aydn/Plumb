@@ -37,7 +37,12 @@ import { streamAzureResponses } from './azure.js';
 import { prepareVertexModel } from './googleVertex.js';
 import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
 import { resolveProviderSafeConfig } from '../config/providerConfigResolver.js';
-import { getCustomProviderDefinition } from '../config/customProviderDefinitions.js';
+import {
+  CUSTOM_CREDENTIAL_HEADER_NAMES,
+  getCustomProviderDefinition,
+  resolveCustomCredentialHeader,
+  type CustomCredentialPlacement,
+} from '../config/customProviderDefinitions.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -163,31 +168,24 @@ function deleteHeaderCaseInsensitive(
   }
 }
 
-function clearCredentialHeaders(headers: Record<string, string>): void {
-  for (const name of [
-    'Authorization',
-    'Proxy-Authorization',
-    'x-api-key',
-    'api-key',
-    'x-goog-api-key',
-  ]) {
-    deleteHeaderCaseInsensitive(headers, name);
-  }
-}
-
+/**
+ * Rebuild a custom provider's auth headers from its definition alone. Every
+ * credential-bearing header inherited from `model.headers` is cleared first,
+ * so a custom endpoint can never be handed another provider's authority --
+ * the header inventory and placement rules live in the definition module,
+ * which is the single authority both this transport and discovery consult.
+ */
 function applyCustomCredentialHeader(
   headers: Record<string, string>,
-  placement: string,
+  placement: CustomCredentialPlacement,
   apiKey: string,
 ): void {
-  clearCredentialHeaders(headers);
-  if (!apiKey || placement === 'none' || placement === 'query-key') return;
-  if (placement === 'bearer') {
-    setHeaderCaseInsensitive(headers, 'Authorization', `Bearer ${apiKey}`);
-  } else if (placement === 'x-api-key') {
-    setHeaderCaseInsensitive(headers, 'x-api-key', apiKey);
-  } else if (placement === 'api-key') {
-    setHeaderCaseInsensitive(headers, 'api-key', apiKey);
+  for (const name of CUSTOM_CREDENTIAL_HEADER_NAMES) {
+    deleteHeaderCaseInsensitive(headers, name);
+  }
+  const credential = resolveCustomCredentialHeader(placement, apiKey);
+  if (credential) {
+    setHeaderCaseInsensitive(headers, credential.name, credential.value);
   }
 }
 

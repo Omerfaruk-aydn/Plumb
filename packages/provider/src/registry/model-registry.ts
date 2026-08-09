@@ -34,6 +34,7 @@ import {
 } from '../config/gatewayProviderConfig.js';
 import {
   customDefinitionToModels,
+  getCustomProviderDefinition,
   isCustomProviderId,
   listCustomProviderDefinitions,
 } from '../config/customProviderDefinitions.js';
@@ -88,7 +89,10 @@ export class PlumbModelRegistry {
 
   /** Get all models including unauthenticated providers. */
   getAllModels(): PlumbModel[] {
-    const providers = getCatalogProviders();
+    const providers = [
+      ...getCatalogProviders(),
+      ...listCustomProviderDefinitions().map((definition) => definition.id),
+    ];
     const models: PlumbModel[] = [];
     for (const providerId of providers) {
       models.push(...this.getModelsForProvider(providerId));
@@ -327,11 +331,13 @@ export class PlumbModelRegistry {
     // without provenance as well as entries from a different base URL.
     if (
       isLocalProviderId(providerId) ||
-      isGatewayConfigProviderId(providerId)
+      isGatewayConfigProviderId(providerId) ||
+      isCustomProviderId(providerId)
     ) {
       const currentBaseUrl =
         resolveLocalProviderBaseUrl(providerId) ??
-        resolveGatewayProviderBaseUrl(providerId);
+        resolveGatewayProviderBaseUrl(providerId) ??
+        getCustomProviderDefinition(providerId)?.baseUrl;
       const matchesCurrentEndpoint =
         currentBaseUrl !== undefined &&
         entry.models.every(

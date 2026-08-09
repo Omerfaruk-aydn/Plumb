@@ -28,6 +28,11 @@ import {
   resolveOllamaNativeBaseUrl,
 } from '../config/localProviderConfig.js';
 import { resolveGatewayProviderBaseUrl } from '../config/gatewayProviderConfig.js';
+import {
+  buildCustomProviderHeaders,
+  getCustomProviderDefinition,
+  type CustomProviderDefinition,
+} from '../config/customProviderDefinitions.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -622,6 +627,121 @@ class AzureDeploymentDiscovery implements ProviderModelDiscovery {
   }
 }
 
+// ─── Custom provider discovery (real listing endpoints only) ──────────
+
+/**
+ * Model listing for user-defined custom endpoints.
+ *
+ * All three supported dialects define a real listing endpoint, so PLUMB asks
+ * for it -- but a private endpoint is free not to implement it. When the
+ * listing is missing or unreadable the honest classification is surfaced and
+ * NO models are invented; the definition's manually declared models remain
+ * available separately and keep their `USER_CONFIGURED` provenance. Only
+ * models the server itself reported are marked `SERVER_DYNAMIC`.
+ */
+class CustomProviderDiscovery implements ProviderModelDiscovery {
+  constructor(private readonly definition: CustomProviderDefinition) {}
+
+  get providerId(): string {
+    return this.definition.id;
+  }
+
+  /** The dialect's real listing URL, plus any credential it carries. */
+  #listingUrl(apiKey: string | undefined): string {
+    const baseUrl = this.definition.baseUrl.replace(/\/+$/, '');
+    if (this.definition.dialect === 'anthropic-messages') {
+      return `${baseUrl}/v1/models`;
+    }
+    if (
+      this.definition.dialect === 'google-generative-ai' &&
+      this.definition.credentialPlacement === 'query-key' &&
+      apiKey
+    ) {
+      return `${baseUrl}/models?key=${encodeURIComponent(apiKey)}`;
+    }
+    return `${baseUrl}/models`;
+  }
+
+  async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
+    const apiKey = context.apiKey ?? context.oauthToken;
+    const headers = buildCustomProviderHeaders(this.definition, apiKey, {
+      Accept: 'application/json',
+      ...(this.definition.dialect === 'anthropic-messages'
+        ? { 'anthropic-version': '2023-06-01' }
+        : {}),
+    });
+
+    let response: Response;
+    try {
+      response = await fetch(this.#listingUrl(apiKey), {
+        headers,
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new ModelDiscoveryError('SERVER_UNAVAILABLE');
+    }
+    if (!response.ok) {
+      throw new ModelDiscoveryError(
+        response.status === 401 || response.status === 403
+          ? 'DISCOVERY_AUTH_FAILED'
+          : response.status >= 500
+            ? 'SERVER_UNAVAILABLE'
+            : 'DISCOVERY_HTTP_ERROR',
+      );
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new ModelDiscoveryError('DISCOVERY_PROTOCOL_ERROR');
+    }
+    const ids = extractCustomModelIds(payload);
+    if (ids === undefined) {
+      throw new ModelDiscoveryError('DISCOVERY_PROTOCOL_ERROR');
+    }
+
+    return ids.map((id) => ({
+      id,
+      name: id,
+      api: this.definition.dialect as PlumbKnownApi,
+      baseUrl: this.definition.baseUrl,
+      source: 'SERVER_DYNAMIC' as const,
+    }));
+  }
+}
+
+/**
+ * Model IDs from any of the three listing shapes PLUMB's supported dialects
+ * use: OpenAI/Anthropic `{data: [{id}]}` and Gemini `{models: [{name}]}`.
+ * Returns undefined when the body is not a recognizable listing at all, so
+ * the caller can report a protocol error instead of a silent empty result.
+ */
+function extractCustomModelIds(payload: unknown): string[] | undefined {
+  if (typeof payload !== 'object' || payload === null) return undefined;
+  const entries =
+    'data' in payload && Array.isArray(payload.data)
+      ? payload.data
+      : 'models' in payload && Array.isArray(payload.models)
+        ? payload.models
+        : undefined;
+  if (entries === undefined) return undefined;
+
+  const ids: string[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    // Gemini reports `models/<id>`; the wire id PLUMB sends is the suffix.
+    const raw =
+      'id' in entry && typeof entry.id === 'string'
+        ? entry.id
+        : 'name' in entry && typeof entry.name === 'string'
+          ? entry.name.replace(/^models\//, '')
+          : undefined;
+    if (raw && !ids.includes(raw)) ids.push(raw);
+  }
+  return ids;
+}
+
 // ─── Discovery registry ────────────────────────────────────────────────
 
 const DISCOVERIES = new Map<string, ProviderModelDiscovery>();
@@ -676,10 +796,19 @@ for (const descriptor of PROVIDER_DESCRIPTORS) {
   }
 }
 
-/** Get the discovery adapter for a provider. */
+/**
+ * Get the discovery adapter for a provider.
+ *
+ * Custom providers are created at runtime, so they cannot live in the static
+ * table -- their adapter is built from the current definition on every call,
+ * which is also what keeps an edited base URL/dialect from being served by a
+ * stale adapter.
+ */
 export function getDiscovery(
   providerId: string,
 ): ProviderModelDiscovery | undefined {
+  const custom = getCustomProviderDefinition(providerId);
+  if (custom) return new CustomProviderDiscovery(custom);
   return DISCOVERIES.get(providerId);
 }
 
@@ -696,7 +825,7 @@ export async function discoverProviderModelsDetailed(
   providerId: string,
   context: DiscoveryContext,
 ): Promise<ModelDiscoveryResult> {
-  const discovery = DISCOVERIES.get(providerId);
+  const discovery = getDiscovery(providerId);
   if (!discovery) return { models: [], status: 'not_supported' };
   try {
     const models = await discovery.discover(context);
