@@ -151,6 +151,17 @@ function setHeaderCaseInsensitive(
   headers[name] = value;
 }
 
+function deleteHeaderCaseInsensitive(
+  headers: Record<string, string>,
+  name: string,
+): void {
+  for (const existing of Object.keys(headers)) {
+    if (existing.toLowerCase() === name.toLowerCase()) {
+      delete headers[existing];
+    }
+  }
+}
+
 function normalizePlumbFinishReason(reason: unknown): string | undefined {
   if (typeof reason !== 'string' || !reason) return undefined;
   switch (reason.toLowerCase()) {
@@ -494,6 +505,20 @@ async function* anthropicMessagesStream(
   } = options;
 
   const baseUrl = model.baseUrl ?? 'https://api.anthropic.com';
+  if (
+    model.provider === 'cloudflare-ai-gateway' &&
+    /<(?:account|gateway)>/i.test(baseUrl)
+  ) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'ENDPOINT_NOT_CONFIGURED',
+        message:
+          'Cloudflare AI Gateway requires an account ID and gateway ID. Configure the provider via /login cloudflare-ai-gateway.',
+      },
+    };
+    return;
+  }
   const requestSignal = createBoundedRequestSignal(signal);
   // Claude-on-Vertex's baseUrl (already resolved by plumbModelStream's
   // Vertex prep step) is the complete `:streamRawPredict` request URL --
@@ -585,7 +610,15 @@ async function* anthropicMessagesStream(
   // The model.headers field can carry provider-specific headers
   // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
   const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
-  if (model.provider === 'github-copilot') {
+  if (model.provider === 'cloudflare-ai-gateway') {
+    setHeaderCaseInsensitive(
+      authHeaders,
+      'cf-aig-authorization',
+      `Bearer ${apiKey}`,
+    );
+    deleteHeaderCaseInsensitive(authHeaders, 'Authorization');
+    deleteHeaderCaseInsensitive(authHeaders, 'x-api-key');
+  } else if (model.provider === 'github-copilot') {
     setHeaderCaseInsensitive(authHeaders, 'Authorization', `Bearer ${apiKey}`);
   } else if (!isVertex) {
     setHeaderCaseInsensitive(authHeaders, 'x-api-key', apiKey);

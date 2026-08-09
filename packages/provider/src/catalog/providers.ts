@@ -733,7 +733,7 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 30,
     description: 'Cloudflare AI Gateway (proxy)',
-    authMethods: [{ type: 'api_key', envVar: 'CLOUDFLARE_AI_GATEWAY_KEY' }],
+    authMethods: [{ type: 'api_key', envVar: 'CLOUDFLARE_AI_GATEWAY_API_KEY' }],
   },
   'vercel-ai-gateway': {
     category: PlumbProviderCategory.API_KEY,

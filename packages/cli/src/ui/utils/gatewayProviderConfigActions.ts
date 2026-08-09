@@ -39,7 +39,7 @@ export function getGatewayProviderConfigActions(
   if (cached) return cached;
   const schema = getGatewayProviderConfigSchema(providerId);
   const defaultBaseUrl = resolveGatewayProviderBaseUrl(providerId);
-  if (!schema || !defaultBaseUrl) return undefined;
+  if (!schema) return undefined;
 
   const base = createCloudConfigActions({
     providerId,
@@ -57,7 +57,7 @@ export function getGatewayProviderConfigActions(
       return {
         ...existing,
         safeConfig: {
-          baseUrl: existing.safeConfig['baseUrl'] ?? defaultBaseUrl,
+          ...(defaultBaseUrl ? { baseUrl: defaultBaseUrl } : {}),
           ...existing.safeConfig,
         },
       };

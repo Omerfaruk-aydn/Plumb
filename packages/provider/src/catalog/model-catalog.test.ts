@@ -12,6 +12,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { getCatalogModels, getCatalogModel } from './model-catalog.js';
 import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
+import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 
 describe('claude-subscription static catalog floor', () => {
   it('getCatalogModels returns real Anthropic models tagged with the claude-agent-sdk dialect and provider', () => {
@@ -166,5 +167,24 @@ describe('oci-genai static catalog floor', () => {
       'opc-compartment-id': 'ocid1.compartment.oc1..real',
       'OpenAI-Project': 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
     });
+  });
+});
+
+describe('Cloudflare AI Gateway configured endpoint', () => {
+  afterEach(() => setProviderConfigResolver(undefined));
+
+  it('replaces every placeholder catalog URL before first-request routing', () => {
+    const configured =
+      'https://gateway.ai.cloudflare.com/v1/0123456789abcdef0123456789abcdef/prod/anthropic';
+    setProviderConfigResolver(
+      (providerId): Readonly<Record<string, string>> =>
+        providerId === 'cloudflare-ai-gateway' ? { baseUrl: configured } : {},
+    );
+
+    const models = getCatalogModels('cloudflare-ai-gateway');
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((model) => model.baseUrl === configured)).toBe(true);
+    expect(JSON.stringify(models)).not.toContain('<account>');
+    expect(JSON.stringify(models)).not.toContain('<gateway>');
   });
 });

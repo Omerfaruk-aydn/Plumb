@@ -45,6 +45,7 @@ export const CLOUD_CONFIG_PROVIDER_IDS: readonly string[] = [
   'sglang',
   'portkey',
   'litellm',
+  'cloudflare-ai-gateway',
 ];
 
 const cache = new Map<string, Readonly<Record<string, string>>>();

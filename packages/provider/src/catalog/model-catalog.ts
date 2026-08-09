@@ -71,6 +71,16 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     ? 'text+image'
     : 'text';
 
+  const baseUrl =
+    model.provider === 'cloudflare-ai-gateway'
+      ? resolveProviderConfigValue(
+          'cloudflare-ai-gateway',
+          'baseUrl',
+          'CLOUDFLARE_AI_GATEWAY_BASE_URL',
+          model.baseUrl,
+        )
+      : model.baseUrl;
+
   return {
     id: model.id,
     provider: model.provider as PlumbProviderId,
@@ -82,7 +92,7 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     reasoning: model.reasoning,
     input,
     pricing,
-    baseUrl: model.baseUrl,
+    baseUrl,
     isOAuth: model.isOAuth,
   };
 }

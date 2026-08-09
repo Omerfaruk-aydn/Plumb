@@ -293,6 +293,74 @@ describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', (
     expect(capturedHeaders?.['Authorization']).toBeUndefined();
   });
 
+  it('keeps a Cloudflare gateway token out of upstream auth headers', async () => {
+    let capturedHeaders: Record<string, string> | undefined;
+    let capturedUrl: string | undefined;
+    globalThis.fetch = (async (
+      url: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      capturedUrl = String(url);
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        ...nativeAnthropicModel,
+        id: 'anthropic/claude-sonnet-4-6',
+        provider: 'cloudflare-ai-gateway',
+        baseUrl:
+          'https://gateway.ai.cloudflare.com/v1/account-id/gateway-id/anthropic',
+        headers: {
+          Authorization: 'Bearer upstream-canary',
+          'X-Api-Key': 'upstream-api-key-canary',
+        },
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'cloudflare-gateway-canary',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toBe(
+      'https://gateway.ai.cloudflare.com/v1/account-id/gateway-id/anthropic/v1/messages',
+    );
+    expect(capturedHeaders?.['cf-aig-authorization']).toBe(
+      'Bearer cloudflare-gateway-canary',
+    );
+    expect(capturedHeaders?.['Authorization']).toBeUndefined();
+    expect(capturedHeaders?.['X-Api-Key']).toBeUndefined();
+    expect(JSON.stringify(capturedHeaders)).not.toContain('upstream-canary');
+  });
+
+  it('fails closed before fetch when Cloudflare still has placeholder routing', async () => {
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+
+    for await (const event of plumbModelStream({
+      model: {
+        ...nativeAnthropicModel,
+        provider: 'cloudflare-ai-gateway',
+        baseUrl:
+          'https://gateway.ai.cloudflare.com/v1/<account>/<gateway>/anthropic',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'cloudflare-gateway-canary',
+    })) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([
+      {
+        type: 'error',
+        error: expect.objectContaining({ code: 'ENDPOINT_NOT_CONFIGURED' }),
+      },
+    ]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('yields MISSING_CREDENTIAL for an empty credential on the anthropic-messages path too', async () => {
     const events: PlumbStreamEvent[] = [];
     for await (const event of plumbModelStream({
