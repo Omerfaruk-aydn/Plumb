@@ -229,7 +229,7 @@ describe('PlumbProviderSetupDialog', () => {
     expect(frame).toContain('Step 2');
   });
 
-  it('6. Enter selects Local model category and auto-skips auth on provider select', async () => {
+  it('6. Enter selects Local model category and configures its endpoint before model selection', async () => {
     const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
       <PlumbProviderSetupDialog
         onComplete={vi.fn()}
@@ -259,8 +259,17 @@ describe('PlumbProviderSetupDialog', () => {
     await waitUntilReady();
 
     const frame2 = lastFrame();
-    expect(frame2).toContain('Step 4');
-    expect(frame2).toContain('Llama 3');
+    expect(frame2).toContain('Status: Configured');
+    expect(frame2).toContain('OpenAI-compatible base URL');
+    expect(frame2).toContain('http://127.0.0.1:11434/v1');
+    expect(frame2).not.toContain('Authenticate');
+
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    const frame3 = lastFrame();
+    expect(frame3).toContain('Step 4');
+    expect(frame3).toContain('Llama 3');
   });
 
   it('7. Enter selects Custom Endpoint category', async () => {
@@ -553,6 +562,10 @@ describe('PlumbProviderSetupDialog', () => {
     await pressKey(stdin, TerminalKeys.ENTER);
     await waitUntilReady();
 
+    // Continue from endpoint configuration
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
     // Select model
     await pressKey(stdin, TerminalKeys.ENTER);
     await waitUntilReady();
@@ -752,6 +765,10 @@ describe('PlumbProviderSetupDialog', () => {
     await waitUntilReady();
 
     // Select Ollama
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    // Continue from endpoint configuration
     await pressKey(stdin, TerminalKeys.ENTER);
     await waitUntilReady();
 

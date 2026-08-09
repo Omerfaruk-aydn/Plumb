@@ -198,6 +198,16 @@ export interface PlumbModel {
   readonly isDeprecated?: boolean;
   readonly description?: string;
   readonly tags?: string[];
+  /** Honest origin of this model record; omitted for legacy catalog entries. */
+  readonly source?:
+    | 'SERVER_DYNAMIC'
+    | 'PROVIDER_DYNAMIC'
+    | 'ACCOUNT_DYNAMIC'
+    | 'USER_CONFIGURED'
+    | 'USER_CONFIGURED_DEPLOYMENT'
+    | 'OFFICIAL_STATIC_METADATA'
+    | 'PINNED_CATALOG'
+    | 'BUNDLED_FALLBACK';
 }
 
 export interface PlumbModelSpec {

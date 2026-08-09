@@ -1406,6 +1406,7 @@ async function* ollamaCompatibleStream(
     model,
     messages,
     tools,
+    apiKey,
     signal,
     systemPrompt,
     maxTokens,
@@ -1434,7 +1435,10 @@ async function* ollamaCompatibleStream(
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      },
       body: JSON.stringify(body),
       signal,
     });

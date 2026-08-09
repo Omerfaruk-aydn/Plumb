@@ -94,12 +94,13 @@ describe('PlumbModelRegistry', () => {
       const ollamaModel = registry.findModel('ollama', 'llama3:8b');
       expect(ollamaModel).toBeDefined();
       expect(ollamaModel!.api).toBe('ollama-chat');
-      expect(ollamaModel!.baseUrl).toBe('http://127.0.0.1:11434');
+      expect(ollamaModel!.baseUrl).toBe('http://127.0.0.1:11434/v1');
+      expect(ollamaModel!.source).toBe('SERVER_DYNAMIC');
 
       const lmStudioModel = registry.findModel('lm-studio', 'local-lm');
       expect(lmStudioModel).toBeDefined();
       expect(lmStudioModel!.api).toBe('openai-completions');
-      expect(lmStudioModel!.baseUrl).toBe('http://127.0.0.1:1234');
+      expect(lmStudioModel!.baseUrl).toBe('http://127.0.0.1:1234/v1');
     } finally {
       vi.unstubAllGlobals();
     }

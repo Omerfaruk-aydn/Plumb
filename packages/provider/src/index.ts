@@ -146,6 +146,20 @@ export {
   type ProviderConfigResolver,
 } from './config/providerConfigResolver.js';
 
+export {
+  LOCAL_PROVIDER_IDS,
+  isLocalProviderId,
+  getLocalProviderEndpointDefinition,
+  resolveLocalProviderBaseUrl,
+  resolveOllamaNativeBaseUrl,
+  validateLocalProviderBaseUrl,
+  getLocalProviderConfigSchema,
+  validateLocalProviderConfig,
+  buildLocalProviderSaveOperation,
+  type LocalProviderId,
+  type LocalProviderEndpointDefinition,
+} from './config/localProviderConfig.js';
+
 // OCI Generative AI configuration domain schema/validator (canonical --
 // the Ink UI renders from and validates through this, never a parallel
 // implementation)

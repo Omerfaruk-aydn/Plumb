@@ -27,10 +27,10 @@ import { setProviderConfigResolver } from '@google/gemini-cli-provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 /**
- * The fixed set of PLUMB-native cloud providers that support in-app safe
- * configuration today. Not derived from the full provider registry --
- * loading every provider's (mostly nonexistent) cloud config at startup
- * would be wasted I/O; this list is the actual, current scope.
+ * The fixed set of PLUMB providers that support in-app safe configuration.
+ * The storage namespace predates local endpoint configuration and retains
+ * its `cloudConfig` name for compatibility, but its contents are simply
+ * provider-scoped non-secret configuration.
  */
 export const CLOUD_CONFIG_PROVIDER_IDS: readonly string[] = [
   'amazon-bedrock',
@@ -38,6 +38,11 @@ export const CLOUD_CONFIG_PROVIDER_IDS: readonly string[] = [
   'google-vertex',
   'watsonx',
   'oci-genai',
+  'ollama',
+  'lm-studio',
+  'llama-cpp',
+  'vllm',
+  'sglang',
 ];
 
 const cache = new Map<string, Readonly<Record<string, string>>>();

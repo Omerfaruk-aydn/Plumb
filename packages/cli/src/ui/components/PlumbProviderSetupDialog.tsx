@@ -17,6 +17,8 @@ import {
   getCodingPlan,
   getClaudeSubscriptionStatus,
   getPlumbProviderRegistry,
+  getLocalProviderConfigSchema,
+  LOCAL_PROVIDER_IDS,
   validateCodingPlanApiKey,
 } from '@google/gemini-cli-provider';
 import { useKeypress } from '../hooks/useKeypress.js';
@@ -40,6 +42,7 @@ import {
 import { bedrockCloudConfigActions } from '../utils/bedrockCloudConfigActions.js';
 import { vertexCloudConfigActions } from '../utils/vertexCloudConfigActions.js';
 import { watsonxCloudConfigActions } from '../utils/watsonxCloudConfigActions.js';
+import { getLocalProviderConfigActions } from '../utils/localProviderConfigActions.js';
 
 type SetupStep =
   | 'connection-type'
@@ -86,6 +89,15 @@ const CLOUD_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
   'google-vertex',
   'watsonx',
   'azure',
+]);
+
+const LOCAL_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set(
+  LOCAL_PROVIDER_IDS,
+);
+
+const CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  ...CLOUD_CONFIGURATION_PROVIDER_IDS,
+  ...LOCAL_CONFIGURATION_PROVIDER_IDS,
 ]);
 
 /**
@@ -255,6 +267,20 @@ export const PlumbProviderSetupDialog: React.FC<
     connectionAuthState: null,
   });
   const [confirmPending, setConfirmPending] = useState(false);
+  const localConfigSchema = useMemo(
+    () =>
+      state.selectedProvider
+        ? getLocalProviderConfigSchema(state.selectedProvider.id)
+        : undefined,
+    [state.selectedProvider],
+  );
+  const localConfigActions = useMemo(
+    () =>
+      state.selectedProvider
+        ? getLocalProviderConfigActions(state.selectedProvider.id)
+        : undefined,
+    [state.selectedProvider],
+  );
 
   // PLUMB_KEY_TRACE diagnostic state
   const keyTraceEnabled = !!process.env['PLUMB_KEY_TRACE'];
@@ -421,7 +447,7 @@ export const PlumbProviderSetupDialog: React.FC<
       // config + credential presence, not the OAuth-oriented registry
       // authState below) -- route straight to the rich form, which renders
       // its own "Configured" summary/actions when applicable.
-      if (CLOUD_CONFIGURATION_PROVIDER_IDS.has(provider.id)) {
+      if (CONFIGURATION_PROVIDER_IDS.has(provider.id)) {
         setState((s) => ({
           ...s,
           step: 'cloud-config',
@@ -613,7 +639,7 @@ export const PlumbProviderSetupDialog: React.FC<
     setConfirmPending(true);
     setState((s) => ({ ...s, error: null }));
     try {
-      if (CLOUD_CONFIGURATION_PROVIDER_IDS.has(state.selectedProvider.id)) {
+      if (CONFIGURATION_PROVIDER_IDS.has(state.selectedProvider.id)) {
         onComplete({
           kind: 'cloud-configuration',
           providerId: state.selectedProvider.id,
@@ -1062,6 +1088,57 @@ export const PlumbProviderSetupDialog: React.FC<
         />
       )}
 
+      {step === 'cloud-config' &&
+        provider &&
+        LOCAL_CONFIGURATION_PROVIDER_IDS.has(provider.id) &&
+        localConfigSchema &&
+        localConfigActions && (
+          <PlumbGenericCloudConfigForm
+            title={provider.name}
+            schema={localConfigSchema}
+            actions={localConfigActions}
+            onContinue={() => {
+              if (providerFullModels.length > 0) {
+                setState((s) => ({ ...s, step: 'model-select' }));
+                return;
+              }
+              setState((s) => ({ ...s, loading: true, error: null }));
+              void (async () => {
+                try {
+                  await localConfigActions.refresh();
+                  if (onRefreshModels) {
+                    setDynamicModels(await onRefreshModels());
+                  }
+                  if (onRefreshFullModels) {
+                    setDynamicFullModels(await onRefreshFullModels());
+                  }
+                  setState((s) => ({
+                    ...s,
+                    step: 'model-select',
+                    loading: false,
+                  }));
+                } catch (err) {
+                  setState((s) => ({
+                    ...s,
+                    loading: false,
+                    error:
+                      err instanceof Error
+                        ? err.message
+                        : 'SERVER_UNAVAILABLE: local server could not be reached.',
+                  }));
+                }
+              })();
+            }}
+            onCancel={() => {
+              setState((s) => ({
+                ...s,
+                step: 'provider-select',
+                selectedProvider: null,
+              }));
+            }}
+          />
+        )}
+
       {step === 'authenticate' && provider && (
         <AuthStep
           provider={provider}
@@ -1102,9 +1179,11 @@ export const PlumbProviderSetupDialog: React.FC<
               onCancel={() =>
                 setState((s) => ({
                   ...s,
-                  step: provider?.allowUnauthenticated
-                    ? 'provider-select'
-                    : 'authenticate',
+                  step: CONFIGURATION_PROVIDER_IDS.has(provider.id)
+                    ? 'cloud-config'
+                    : provider.allowUnauthenticated
+                      ? 'provider-select'
+                      : 'authenticate',
                 }))
               }
               onRefresh={
@@ -1131,7 +1210,11 @@ export const PlumbProviderSetupDialog: React.FC<
             </>
           ) : (
             <Box flexDirection="column">
-              <Text dimColor>No models available for this provider.</Text>
+              <Text dimColor>
+                {LOCAL_CONFIGURATION_PROVIDER_IDS.has(provider.id)
+                  ? 'SERVER_UNAVAILABLE: no models were returned by the configured local server.'
+                  : 'No models available for this provider.'}
+              </Text>
               <Text dimColor>Press Backspace to go back.</Text>
             </Box>
           )}

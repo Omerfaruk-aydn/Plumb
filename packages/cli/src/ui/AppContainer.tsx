@@ -945,11 +945,12 @@ Logging in with Google... Restarting PLUMB to continue.
       if (apiKey) {
         try {
           traceStage('saving-credential');
-          const { ensurePlumbCredentialStore } = await import(
+          const { getPlumbProviderRegistry } = await import(
             '@google/gemini-cli-provider'
           );
-          const store = await ensurePlumbCredentialStore();
-          await store.storeApiKeyCredential(providerId, {
+          const registry = getPlumbProviderRegistry();
+          await registry.initialize();
+          await registry.setAuthenticated(providerId, {
             type: 'api_key',
             provider: providerId,
             key: apiKey,

@@ -280,7 +280,8 @@ describe('Discovery Adapter Contract: Ollama', () => {
     });
 
     expect(models[0].api).toBe('ollama-chat');
-    expect(models[0].baseUrl).toBe('http://127.0.0.1:11434');
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:11434/v1');
+    expect(models[0].source).toBe('SERVER_DYNAMIC');
   });
 
   it('10. handles unavailable local endpoint', async () => {
@@ -314,7 +315,7 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
     expect(models.some((m) => m.id === 'llama-3-8b')).toBe(true);
     expect(
       mockFetch.mock.calls.some(
-        (call) => call[0] === 'http://127.0.0.1:1234/models',
+        (call) => call[0] === 'http://127.0.0.1:1234/v1/models',
       ),
     ).toBe(true);
   });
@@ -338,7 +339,8 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
     });
 
     expect(models[0].api).toBe('openai-completions');
-    expect(models[0].baseUrl).toBe('http://127.0.0.1:1234');
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:1234/v1');
+    expect(models[0].source).toBe('SERVER_DYNAMIC');
   });
 
   it('13. discovers SGLang models against its default port 30000', async () => {
@@ -352,10 +354,10 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
     });
 
     expect(models.some((m) => m.id === 'qwen2.5-7b-instruct')).toBe(true);
-    expect(models[0].baseUrl).toBe('http://127.0.0.1:30000');
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:30000/v1');
     expect(
       mockFetch.mock.calls.some(
-        (call) => call[0] === 'http://127.0.0.1:30000/models',
+        (call) => call[0] === 'http://127.0.0.1:30000/v1/models',
       ),
     ).toBe(true);
   });

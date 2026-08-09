@@ -24,6 +24,7 @@ import type { PlumbStreamEvent } from '../types.js';
 interface LocalProviderFixture {
   providerId: string;
   baseUrl: string;
+  discoveryBaseUrl?: string;
   modelId: string;
   /** Response shape for this provider's discovery endpoint. */
   discoveryPath: string;
@@ -34,7 +35,8 @@ interface LocalProviderFixture {
 const FIXTURES: LocalProviderFixture[] = [
   {
     providerId: 'ollama',
-    baseUrl: 'http://127.0.0.1:11434',
+    baseUrl: 'http://127.0.0.1:11434/v1',
+    discoveryBaseUrl: 'http://127.0.0.1:11434',
     modelId: 'llama3:8b',
     discoveryPath: '/api/tags',
     discoveryBody: { models: [{ name: 'llama3:8b' }] },
@@ -42,7 +44,7 @@ const FIXTURES: LocalProviderFixture[] = [
   },
   {
     providerId: 'lm-studio',
-    baseUrl: 'http://127.0.0.1:1234',
+    baseUrl: 'http://127.0.0.1:1234/v1',
     modelId: 'lmstudio-community/llama-3-8b',
     discoveryPath: '/models',
     discoveryBody: { data: [{ id: 'lmstudio-community/llama-3-8b' }] },
@@ -50,7 +52,7 @@ const FIXTURES: LocalProviderFixture[] = [
   },
   {
     providerId: 'llama-cpp',
-    baseUrl: 'http://127.0.0.1:8080',
+    baseUrl: 'http://127.0.0.1:8080/v1',
     modelId: 'gguf-model',
     discoveryPath: '/models',
     discoveryBody: { data: [{ id: 'gguf-model' }] },
@@ -58,7 +60,7 @@ const FIXTURES: LocalProviderFixture[] = [
   },
   {
     providerId: 'vllm',
-    baseUrl: 'http://127.0.0.1:8000',
+    baseUrl: 'http://127.0.0.1:8000/v1',
     modelId: 'gpt-oss-20b',
     discoveryPath: '/models',
     discoveryBody: { data: [{ id: 'gpt-oss-20b' }] },
@@ -66,7 +68,7 @@ const FIXTURES: LocalProviderFixture[] = [
   },
   {
     providerId: 'sglang',
-    baseUrl: 'http://127.0.0.1:30000',
+    baseUrl: 'http://127.0.0.1:30000/v1',
     modelId: 'qwen2.5-7b-instruct',
     discoveryPath: '/models',
     discoveryBody: { data: [{ id: 'qwen2.5-7b-instruct' }] },
@@ -88,17 +90,8 @@ function sseResponse(): Response {
   });
 }
 
-function ndjsonOllamaResponse(): Response {
-  const body =
-    JSON.stringify({ message: { content: 'hi' }, done: false }) +
-    '\n' +
-    JSON.stringify({ done: true, done_reason: 'stop' }) +
-    '\n';
-  return new Response(body, { status: 200 });
-}
-
 function findFixtureForUrl(url: string): LocalProviderFixture | undefined {
-  return FIXTURES.find((f) => url.startsWith(f.baseUrl));
+  return FIXTURES.find((f) => url.startsWith(f.discoveryBaseUrl ?? f.baseUrl));
 }
 
 /**
@@ -122,9 +115,7 @@ function createMultiServerFetch(): ReturnType<typeof vi.fn> {
       });
     }
     void init;
-    return fixture.providerId === 'ollama'
-      ? ndjsonOllamaResponse()
-      : sseResponse();
+    return sseResponse();
   });
 }
 
@@ -154,6 +145,7 @@ describe('Local provider chain: discovery -> registry -> selection -> production
       ).toBeDefined();
       expect(model!.api).toBe(fixture.expectedApi);
       expect(model!.baseUrl).toBe(fixture.baseUrl);
+      expect(model!.source).toBe('SERVER_DYNAMIC');
 
       // This mirrors exactly what packages/core/src/core/plumbContentGenerator.ts
       // does with the registry-resolved model before calling plumbModelStream.
@@ -175,6 +167,7 @@ describe('Local provider chain: discovery -> registry -> selection -> production
         `${fixture.providerId} never issued a chat request`,
       ).toBeDefined();
       expect(chatCall!.url.startsWith(fixture.baseUrl)).toBe(true);
+      expect(chatCall!.url).toBe(chatCompletionsUrl(fixture.baseUrl));
       const bodyStr = String(chatCall!.init?.body ?? '');
       expect(bodyStr).toContain(fixture.modelId);
       const headers = chatCall!.init?.headers as
@@ -226,6 +219,7 @@ describe('Local provider chain: discovery -> registry -> selection -> production
       const chatCall = requests[requests.length - 1];
       expect(requests.length).toBeGreaterThan(before);
       expect(chatCall.url.startsWith(fixture.baseUrl)).toBe(true);
+      expect(chatCall.url).toBe(chatCompletionsUrl(fixture.baseUrl));
       chatCallUrlsByStep.push(chatCall.url);
 
       const otherHosts = FIXTURES.filter(
@@ -246,5 +240,55 @@ describe('Local provider chain: discovery -> registry -> selection -> production
     // distinct hosts, not a stale endpoint carried over from the prior step.
     expect(chatCallUrlsByStep.at(-1)).toBe(chatCallUrlsByStep[0]);
     expect(chatCallUrlsByStep.at(-2)).not.toBe(chatCallUrlsByStep.at(-1));
+  });
+
+  it('optional local auth stays provider-scoped across authenticated Ollama -> keyless LM Studio -> authenticated Ollama', async () => {
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+    const baseFetch = createMultiServerFetch();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        requests.push({ url, init });
+        return baseFetch(url, init);
+      }),
+    );
+
+    const registry = new PlumbModelRegistry();
+    await registry.discoverLocalModels();
+    const ollama = registry.findModel('ollama', 'llama3:8b')!;
+    const lmStudio = registry.findModel(
+      'lm-studio',
+      'lmstudio-community/llama-3-8b',
+    )!;
+
+    for (const [model, apiKey] of [
+      [ollama, 'ollama-secret-canary'],
+      [lmStudio, ''],
+      [ollama, 'ollama-secret-canary'],
+    ] as const) {
+      for await (const _event of plumbModelStream({
+        model,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey,
+      })) {
+        // drain
+      }
+    }
+
+    const chats = requests.filter((request) =>
+      request.url.endsWith('/chat/completions'),
+    );
+    expect(chats).toHaveLength(3);
+    const auth = chats.map(
+      (request) =>
+        (request.init?.headers as Record<string, string> | undefined)?.[
+          'Authorization'
+        ],
+    );
+    expect(auth).toEqual([
+      'Bearer ollama-secret-canary',
+      undefined,
+      'Bearer ollama-secret-canary',
+    ]);
   });
 });

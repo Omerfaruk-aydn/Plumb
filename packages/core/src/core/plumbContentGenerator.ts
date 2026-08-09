@@ -121,9 +121,18 @@ export class PlumbContentGenerator implements ContentGenerator {
       const registry = plumbModule.getPlumbModelRegistry?.();
       if (registry) {
         registryModel = registry.findModel(this.#providerId, this.#modelId);
+        // Dynamic local models are persisted in the provider-scoped model
+        // cache. A fresh process has an empty in-memory registry, so hydrate
+        // that cache before request #1 instead of falling back to a bare
+        // OpenAI model pointed at api.openai.com.
+        if (!registryModel) {
+          registry.loadCache?.(this.#providerId);
+          registryModel = registry.findModel(this.#providerId, this.#modelId);
+        }
       }
     } catch {
-      // Non-fatal: fall through with bare model object
+      // Registry/cache lookup failure is handled by the fail-closed check
+      // below. Only configured local endpoints may be reconstructed safely.
     }
 
     // `this.#providerId` is the PLUMB presentation id (e.g. "antigravity");
@@ -138,6 +147,24 @@ export class PlumbContentGenerator implements ContentGenerator {
       plumbModule.resolveProviderAlias?.(this.#providerId) ??
       this.#providerId;
 
+    // If a local server is temporarily unavailable during cold start, its
+    // persisted provider endpoint still has enough information to route the
+    // selected wire model safely. This is deliberately local-only: unknown
+    // providers/dialects must continue to fail loudly in plumbModelStream.
+    const localDefinition = plumbModule.getLocalProviderEndpointDefinition?.(
+      this.#providerId,
+    );
+    const localBaseUrl = localDefinition
+      ? plumbModule.resolveLocalProviderBaseUrl?.(this.#providerId)
+      : undefined;
+
+    if (!registryModel && !localDefinition) {
+      yield this.#errorChunk(
+        `MODEL_NOT_REGISTERED: '${this.#providerId}/${this.#modelId}' has no hydrated model descriptor. Reconfigure the provider or refresh its models before retrying.`,
+      );
+      return;
+    }
+
     const model: Record<string, any> = {
       // Start with registry model if available (carries baseUrl, api, contextWindow, etc.)
       ...(registryModel ?? {}),
@@ -145,7 +172,10 @@ export class PlumbContentGenerator implements ContentGenerator {
       // inference from replacing the routing provider.
       id: this.#modelId,
       provider: resolvedProviderId,
-      api: (registryModel as any)?.api ?? 'openai-completions',
+      api: (registryModel as any)?.api ?? localDefinition?.api,
+      ...((registryModel as any)?.baseUrl || localBaseUrl
+        ? { baseUrl: (registryModel as any)?.baseUrl ?? localBaseUrl }
+        : {}),
       contextWindow: (registryModel as any)?.contextWindow ?? 200000,
       maxTokens: (registryModel as any)?.maxTokens ?? 65536,
       reasoning: (registryModel as any)?.reasoning ?? true,

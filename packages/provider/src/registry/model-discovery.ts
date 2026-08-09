@@ -14,7 +14,7 @@
  * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { PlumbProviderId, PlumbKnownApi } from '../types.js';
+import type { PlumbModel, PlumbProviderId, PlumbKnownApi } from '../types.js';
 import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
 import { createModelManager } from '../omp-catalog/model-manager.js';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
@@ -23,6 +23,10 @@ import type { ProviderDescriptor } from '../omp-catalog/provider-models/descript
 import type { Api } from '../omp-catalog/types.js';
 import { resolvePlumbProviderId } from '../catalog/providers.js';
 import { getBundledModels } from '../omp-catalog/models.js';
+import {
+  resolveLocalProviderBaseUrl,
+  resolveOllamaNativeBaseUrl,
+} from '../config/localProviderConfig.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -49,6 +53,7 @@ export interface DiscoveredModel {
    */
   api?: PlumbKnownApi;
   baseUrl?: string;
+  source?: PlumbModel['source'];
 }
 
 export interface ProviderModelDiscovery {
@@ -90,11 +95,17 @@ class OllamaDiscovery implements ProviderModelDiscovery {
   readonly providerId = 'ollama';
 
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
-    const baseUrl = context.baseUrl ?? 'http://127.0.0.1:11434';
+    const nativeBaseUrl = context.baseUrl
+      ? context.baseUrl.replace(/\/+$/, '').replace(/\/v1$/i, '')
+      : resolveOllamaNativeBaseUrl();
+    const transportBaseUrl = `${nativeBaseUrl}/v1`;
 
     try {
-      const response = await fetch(`${baseUrl}/api/tags`, {
+      const response = await fetch(`${nativeBaseUrl}/api/tags`, {
         signal: AbortSignal.timeout(5_000),
+        ...(context.apiKey
+          ? { headers: { Authorization: `Bearer ${context.apiKey}` } }
+          : {}),
       });
 
       if (!response.ok) return [];
@@ -109,7 +120,8 @@ class OllamaDiscovery implements ProviderModelDiscovery {
         contextWindow: 131072,
         maxTokens: 16384,
         api: 'ollama-chat' as PlumbKnownApi,
-        baseUrl,
+        baseUrl: transportBaseUrl,
+        source: 'SERVER_DYNAMIC',
       }));
     } catch {
       return [];
@@ -126,12 +138,16 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
   ) {}
 
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
-    const baseUrl = context.baseUrl ?? this.defaultBaseUrl;
+    const baseUrl =
+      context.baseUrl ??
+      resolveLocalProviderBaseUrl(this.providerId) ??
+      this.defaultBaseUrl;
 
     const models = await ompFetchModels<Api>({
       api: 'openai-completions',
       provider: this.providerId as Api,
       baseUrl,
+      apiKey: context.apiKey,
       timeoutMs: 5_000,
     });
     if (!models) return [];
@@ -142,6 +158,7 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
       maxTokens: 32768,
       api: 'openai-completions' as PlumbKnownApi,
       baseUrl,
+      source: 'SERVER_DYNAMIC',
     }));
   }
 }
@@ -433,10 +450,14 @@ function register(discovery: ProviderModelDiscovery): void {
 register(new BedrockDiscovery());
 register(new AzureDeploymentDiscovery());
 register(new OllamaDiscovery());
-register(new OpenAICompatLocalDiscovery('lm-studio', 'http://127.0.0.1:1234'));
-register(new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080'));
-register(new OpenAICompatLocalDiscovery('vllm', 'http://127.0.0.1:8000'));
-register(new OpenAICompatLocalDiscovery('sglang', 'http://127.0.0.1:30000'));
+register(
+  new OpenAICompatLocalDiscovery('lm-studio', 'http://127.0.0.1:1234/v1'),
+);
+register(
+  new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080/v1'),
+);
+register(new OpenAICompatLocalDiscovery('vllm', 'http://127.0.0.1:8000/v1'));
+register(new OpenAICompatLocalDiscovery('sglang', 'http://127.0.0.1:30000/v1'));
 register(new OpenAICompatDiscovery('openai', 'https://api.openai.com'));
 register(new OpenAICompatDiscovery('openrouter', 'https://openrouter.ai'));
 register(new OpenAICompatDiscovery('groq', 'https://api.groq.com'));

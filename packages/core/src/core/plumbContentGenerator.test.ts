@@ -20,6 +20,9 @@ const {
   mockPlumbModelStream,
   mockCreateClaudeSubscriptionToolExecutor,
   sentinelToolExecutor,
+  mockLoadCache,
+  mockGetLocalProviderEndpointDefinition,
+  mockResolveLocalProviderBaseUrl,
 } = vi.hoisted(() => {
   const sentinelToolExecutor = vi.fn();
   return {
@@ -36,12 +39,20 @@ const {
       .fn()
       .mockReturnValue(sentinelToolExecutor),
     sentinelToolExecutor,
+    mockLoadCache: vi.fn(),
+    mockGetLocalProviderEndpointDefinition: vi.fn(),
+    mockResolveLocalProviderBaseUrl: vi.fn(),
   };
 });
 
 vi.mock('@google/gemini-cli-provider', () => ({
-  getPlumbModelRegistry: () => ({ findModel: mockFindModel }),
+  getPlumbModelRegistry: () => ({
+    findModel: mockFindModel,
+    loadCache: mockLoadCache,
+  }),
   resolveProviderAlias: mockResolveProviderAlias,
+  getLocalProviderEndpointDefinition: mockGetLocalProviderEndpointDefinition,
+  resolveLocalProviderBaseUrl: mockResolveLocalProviderBaseUrl,
   plumbModelStream: mockPlumbModelStream,
 }));
 
@@ -61,6 +72,9 @@ describe('PlumbContentGenerator', () => {
     mockCreateClaudeSubscriptionToolExecutor.mockReturnValue(
       sentinelToolExecutor,
     );
+    mockLoadCache.mockReset();
+    mockGetLocalProviderEndpointDefinition.mockReset();
+    mockResolveLocalProviderBaseUrl.mockReset();
   });
 
   it('routes the transport using the canonical OMP provider id from the registry lookup, not the raw PLUMB presentation id', async () => {
@@ -97,7 +111,7 @@ describe('PlumbContentGenerator', () => {
     expect(model.provider).toBe('google-antigravity');
   });
 
-  it('falls back to resolving the alias itself when the registry has no match', async () => {
+  it('fails closed without a hydrated descriptor instead of fabricating an OpenAI route', async () => {
     mockFindModel.mockReturnValue(undefined);
 
     const generator = new PlumbContentGenerator(
@@ -111,12 +125,17 @@ describe('PlumbContentGenerator', () => {
       'prompt-id',
       testRole,
     );
-    for await (const _ of stream) {
-      // drain
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
     }
 
-    const { model } = mockPlumbModelStream.mock.calls[0][0];
-    expect(model.provider).toBe('google-antigravity');
+    expect(mockLoadCache).toHaveBeenCalledWith('antigravity');
+    expect(mockPlumbModelStream).not.toHaveBeenCalled();
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].candidates?.[0]?.content?.parts?.[0]?.text).toContain(
+      'MODEL_NOT_REGISTERED',
+    );
   });
 
   it('preserves an unaliased provider id unchanged', async () => {
@@ -143,6 +162,61 @@ describe('PlumbContentGenerator', () => {
 
     const { model } = mockPlumbModelStream.mock.calls[0][0];
     expect(model.provider).toBe('nvidia');
+  });
+
+  it('hydrates a persisted dynamic model cache before cold-start request #1', async () => {
+    mockFindModel.mockReturnValueOnce(undefined).mockReturnValueOnce({
+      id: 'local-model',
+      provider: 'lm-studio',
+      api: 'openai-completions',
+      baseUrl: 'http://127.0.0.1:4321/v1',
+    });
+
+    const generator = new PlumbContentGenerator('lm-studio', 'local-model', '');
+    const stream = await generator.generateContentStream(
+      testRequest,
+      'prompt-id',
+      testRole,
+    );
+    for await (const _ of stream) {
+      // drain
+    }
+
+    expect(mockLoadCache).toHaveBeenCalledWith('lm-studio');
+    const { model } = mockPlumbModelStream.mock.calls[0][0];
+    expect(model).toMatchObject({
+      provider: 'lm-studio',
+      id: 'local-model',
+      api: 'openai-completions',
+      baseUrl: 'http://127.0.0.1:4321/v1',
+    });
+  });
+
+  it('routes an offline local model to its configured endpoint without generic-provider fallback', async () => {
+    mockFindModel.mockReturnValue(undefined);
+    mockGetLocalProviderEndpointDefinition.mockReturnValue({
+      providerId: 'sglang',
+      api: 'openai-completions',
+    });
+    mockResolveLocalProviderBaseUrl.mockReturnValue('http://10.0.0.8:30000/v1');
+
+    const generator = new PlumbContentGenerator('sglang', 'qwen-local', '');
+    const stream = await generator.generateContentStream(
+      testRequest,
+      'prompt-id',
+      testRole,
+    );
+    for await (const _ of stream) {
+      // drain
+    }
+
+    const { model } = mockPlumbModelStream.mock.calls[0][0];
+    expect(model).toMatchObject({
+      provider: 'sglang',
+      id: 'qwen-local',
+      api: 'openai-completions',
+      baseUrl: 'http://10.0.0.8:30000/v1',
+    });
   });
 
   describe('#convertMessages — tool-call/tool-result history (regression: previously flattened to "[Tool: name]" placeholder text with no id, breaking every multi-turn tool continuation)', () => {

@@ -24,6 +24,10 @@ import {
   discoverProviderModels,
   getDiscoveryProviderIds,
 } from './model-discovery.js';
+import {
+  isLocalProviderId,
+  resolveLocalProviderBaseUrl,
+} from '../config/localProviderConfig.js';
 
 // ─── Model registry ───────────────────────────────────────────────────
 
@@ -142,7 +146,17 @@ export class PlumbModelRegistry {
 
     for (const providerId of localProviders) {
       try {
-        const models = await discoverProviderModels(providerId, { providerId });
+        let apiKey: string | undefined;
+        try {
+          apiKey = await getPlumbProviderRegistry().getApiKey(providerId);
+        } catch {
+          // Keyless local providers are valid; an unavailable credential
+          // store must not prevent their discovery.
+        }
+        const models = await discoverProviderModels(providerId, {
+          providerId,
+          apiKey,
+        });
         const providerModels: PlumbModel[] = [];
         for (const m of models) {
           const plumbModel: PlumbModel = {
@@ -155,6 +169,7 @@ export class PlumbModelRegistry {
             maxTokens: m.maxTokens ?? 32768,
             reasoning: m.reasoning ?? false,
             input: 'text',
+            ...(m.source ? { source: m.source } : undefined),
           };
           const key = `${providerId}:${m.id}`;
           this.#discoveredModels.set(key, plumbModel);
@@ -204,6 +219,7 @@ export class PlumbModelRegistry {
             ? { toolsSupported: m.toolsSupported }
             : undefined),
           input: 'text',
+          ...(m.source ? { source: m.source } : undefined),
         };
         const key = `${providerId}:${m.id}`;
         this.#discoveredModels.set(key, plumbModel);
@@ -237,6 +253,25 @@ export class PlumbModelRegistry {
   loadCache(providerId: PlumbProviderId): PlumbModel[] {
     const entry = readModelCache(providerId);
     if (!entry) return [];
+
+    // A provider-only cache key is insufficient for configurable local
+    // servers: after an endpoint edit, models discovered from endpoint A
+    // must never be revived and sent to endpoint B. Reject legacy entries
+    // without provenance as well as entries from a different base URL.
+    if (isLocalProviderId(providerId)) {
+      const currentBaseUrl = resolveLocalProviderBaseUrl(providerId);
+      const matchesCurrentEndpoint =
+        currentBaseUrl !== undefined &&
+        entry.models.every(
+          (model) =>
+            model.baseUrl?.replace(/\/+$/, '') ===
+            currentBaseUrl.replace(/\/+$/, ''),
+        );
+      if (!matchesCurrentEndpoint) {
+        invalidateModelCache(providerId);
+        return [];
+      }
+    }
 
     // Add cached models to discovered
     for (const model of entry.models) {

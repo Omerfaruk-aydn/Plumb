@@ -13,6 +13,8 @@
  * nothing, with provenance for the source-provenance UI.
  */
 import {
+  ensurePlumbCredentialStore,
+  getPlumbProviderRegistry,
   resolveProviderSafeConfig,
   resolveProviderConfigValue,
   type CloudProviderConfigSchema,
@@ -96,11 +98,9 @@ export function createCloudConfigActions(opts: {
 
     if (credential) {
       try {
-        const { ensurePlumbCredentialStore } = await import(
-          '@google/gemini-cli-provider'
-        );
-        const store = await ensurePlumbCredentialStore();
-        await store.storeApiKeyCredential(providerId, {
+        const registry = getPlumbProviderRegistry();
+        await registry.initialize();
+        await registry.setAuthenticated(providerId, {
           type: 'api_key',
           provider: providerId,
           key: credential,
@@ -129,11 +129,9 @@ export function createCloudConfigActions(opts: {
   }
 
   async function load(): Promise<CloudExistingConfig> {
-    const [{ getCachedProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-      await Promise.all([
-        import('@google/gemini-cli-core'),
-        import('@google/gemini-cli-provider'),
-      ]);
+    const { getCachedProviderCloudConfig } = await import(
+      '@google/gemini-cli-core'
+    );
     const safeConfig = { ...getCachedProviderCloudConfig(providerId) };
     for (const [field, envVar] of Object.entries(overridableFields)) {
       const effective = resolveProviderConfigValue(providerId, field, envVar);
@@ -150,11 +148,9 @@ export function createCloudConfigActions(opts: {
   }
 
   async function remove(): Promise<void> {
-    const [{ clearProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-      await Promise.all([
-        import('@google/gemini-cli-core'),
-        import('@google/gemini-cli-provider'),
-      ]);
+    const { clearProviderCloudConfig } = await import(
+      '@google/gemini-cli-core'
+    );
     await clearProviderCloudConfig(providerId);
     try {
       const store = await ensurePlumbCredentialStore();
