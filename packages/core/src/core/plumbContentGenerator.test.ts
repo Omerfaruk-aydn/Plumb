@@ -294,33 +294,52 @@ describe('PlumbContentGenerator', () => {
     );
   });
 
-  it('hydrates a persisted dynamic model cache before cold-start request #1', async () => {
-    mockFindModel.mockReturnValueOnce(undefined).mockReturnValueOnce({
-      id: 'local-model',
-      provider: 'lm-studio',
-      api: 'openai-completions',
-      baseUrl: 'http://127.0.0.1:4321/v1',
-    });
+  it.each([
+    ['ollama', 'llama3:8b', 'ollama-chat', 'http://ollama-box:11434/v1'],
+    [
+      'lm-studio',
+      'local-lm',
+      'openai-completions',
+      'http://studio-box:1234/v1',
+    ],
+    [
+      'llama-cpp',
+      'gguf-model',
+      'openai-completions',
+      'http://llama-box:8080/v1',
+    ],
+    ['vllm', 'served-qwen', 'openai-completions', 'http://vllm-box:8000/v1'],
+    [
+      'sglang',
+      'sglang-qwen',
+      'openai-completions',
+      'http://sglang-box:30000/v1',
+    ],
+  ])(
+    'hydrates %s persisted model metadata before cold-start request #1',
+    async (provider, modelId, api, baseUrl) => {
+      mockFindModel.mockReturnValueOnce(undefined).mockReturnValueOnce({
+        id: modelId,
+        provider,
+        api,
+        baseUrl,
+      });
 
-    const generator = new PlumbContentGenerator('lm-studio', 'local-model', '');
-    const stream = await generator.generateContentStream(
-      testRequest,
-      'prompt-id',
-      testRole,
-    );
-    for await (const _ of stream) {
-      // drain
-    }
+      const generator = new PlumbContentGenerator(provider, modelId, '');
+      const stream = await generator.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
 
-    expect(mockLoadCache).toHaveBeenCalledWith('lm-studio');
-    const { model } = mockPlumbModelStream.mock.calls[0][0];
-    expect(model).toMatchObject({
-      provider: 'lm-studio',
-      id: 'local-model',
-      api: 'openai-completions',
-      baseUrl: 'http://127.0.0.1:4321/v1',
-    });
-  });
+      expect(mockLoadCache).toHaveBeenCalledWith(provider);
+      const { model } = mockPlumbModelStream.mock.calls[0][0];
+      expect(model).toMatchObject({ provider, id: modelId, api, baseUrl });
+    },
+  );
 
   it('routes an offline local model to its configured endpoint without generic-provider fallback', async () => {
     mockFindModel.mockReturnValue(undefined);
