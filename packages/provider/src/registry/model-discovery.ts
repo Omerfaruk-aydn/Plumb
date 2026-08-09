@@ -639,7 +639,6 @@ register(
 );
 register(new OpenAICompatLocalDiscovery('sglang', 'http://127.0.0.1:30000/v1'));
 register(new OpenAICompatDiscovery('openai', 'https://api.openai.com'));
-register(new OpenAICompatDiscovery('openrouter', 'https://openrouter.ai'));
 register(new OpenAICompatDiscovery('groq', 'https://api.groq.com'));
 register(new OpenAICompatDiscovery('mistral', 'https://api.mistral.ai'));
 register(new OpenAICompatDiscovery('together', 'https://api.together.xyz'));

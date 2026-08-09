@@ -11,10 +11,12 @@ describe("portkeyModelManagerOptions", () => {
 		expect(portkeyModelManagerOptions().fetchDynamicModels).toBeUndefined();
 	});
 
-	it("queries https://api.portkey.ai/v1/models with a Bearer token", async () => {
+	it("queries models with the Portkey gateway key, never upstream Authorization", async () => {
 		const fetchImpl = vi.fn(async (url: unknown, init?: RequestInit) => {
 			expect(String(url)).toBe("https://api.portkey.ai/v1/models");
-			expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer pk-key");
+			const headers = init?.headers as Record<string, string>;
+			expect(headers["x-portkey-api-key"]).toBe("pk-key");
+			expect(headers.Authorization).toBeUndefined();
 			return jsonResponse({ data: [{ id: "gpt-5.5", object: "model" }] });
 		});
 		const options = portkeyModelManagerOptions({ apiKey: "pk-key", fetch: fetchImpl as unknown as typeof fetch });

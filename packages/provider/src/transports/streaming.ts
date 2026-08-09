@@ -268,6 +268,9 @@ async function* openAICompatibleStream(
   if (apiKey) {
     if (isAzure) {
       setHeaderCaseInsensitive(authHeaders, 'api-key', apiKey);
+    } else if (model.provider === 'portkey') {
+      // Portkey gateway authority is not an upstream-provider bearer token.
+      setHeaderCaseInsensitive(authHeaders, 'x-portkey-api-key', apiKey);
     } else {
       setHeaderCaseInsensitive(
         authHeaders,

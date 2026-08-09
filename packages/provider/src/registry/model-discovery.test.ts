@@ -24,7 +24,6 @@ const HAND_WRITTEN_ADAPTERS = [
   'llama-cpp',
   'sglang',
   'openai',
-  'openrouter',
   'groq',
   'mistral',
   'together',
@@ -53,6 +52,7 @@ const OMP_BACKED_SAMPLE = [
   'cohere',
   'byteplus-modelark',
   'volcengine-ark',
+  'openrouter',
 ];
 
 describe('Discovery Adapter Registry', () => {
@@ -176,6 +176,19 @@ describe('Discovery Adapter Contract: OMP model-manager-backed fallback', () => 
     const ids = getDiscoveryProviderIds();
     expect(ids).toContain('anthropic');
     expect(ids).toContain('anthropic-api');
+  });
+
+  it('17. preserves OpenRouter official base URL and dialect', async () => {
+    const models = await discoverProviderModels('openrouter', {
+      providerId: 'openrouter',
+      apiKey: 'openrouter-key',
+    });
+
+    expect(models.length).toBeGreaterThan(0);
+    expect(models[0]).toMatchObject({
+      api: 'openrouter',
+      baseUrl: 'https://openrouter.ai/api/v1',
+    });
   });
 });
 

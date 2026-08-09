@@ -92,6 +92,8 @@ export interface FetchOpenAICompatibleModelsOptions<TApi extends Api> {
 	baseUrl: string;
 	/** Optional bearer token for Authorization header. */
 	apiKey?: string;
+	/** Credential header override. Non-Authorization headers receive the raw key. */
+	apiKeyHeader?: string;
 	/** Additional request headers. */
 	headers?: Record<string, string>;
 	/** Optional AbortSignal for request cancellation; caller owns its lifecycle. */
@@ -137,7 +139,9 @@ export async function fetchOpenAICompatibleModels<TApi extends Api>(
 		...options.headers,
 	};
 	if (options.apiKey) {
-		requestHeaders.Authorization = `Bearer ${options.apiKey}`;
+		const header = options.apiKeyHeader ?? "Authorization";
+		requestHeaders[header] =
+			header.toLowerCase() === "authorization" ? `Bearer ${options.apiKey}` : options.apiKey;
 	}
 
 	const fetchImpl = discoveryFetch(options.fetch);

@@ -158,9 +158,10 @@ export interface PlumbProviderSetupDialogProps {
     providerId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   onLogout?: (providerId: string) => Promise<void>;
-  onRefreshModels?: () => Promise<
-    Array<{ id: string; name?: string; provider: string }>
-  >;
+  onRefreshModels?: (
+    providerId?: string,
+    apiKey?: string,
+  ) => Promise<Array<{ id: string; name?: string; provider: string }>>;
   onRefreshFullModels?: () => Promise<PlumbModel[]>;
   completionStage?: string;
 }
@@ -547,7 +548,7 @@ export const PlumbProviderSetupDialog: React.FC<
         // Refresh models after successful auth
         if (onRefreshModels) {
           try {
-            const refreshed = await onRefreshModels();
+            const refreshed = await onRefreshModels(state.selectedProvider.id);
             setDynamicModels(refreshed);
           } catch {
             // Model refresh failure is non-fatal
@@ -582,12 +583,14 @@ export const PlumbProviderSetupDialog: React.FC<
   const handleApiKeySubmit = useCallback(
     async (key: string) => {
       const trimmed = key.trim();
+      const selectedProviderId = state.selectedProvider?.id;
+      if (!selectedProviderId) return;
       // Validate the API key against the OMP coding-plan endpoint BEFORE
       // accepting it. Plan id is the OMP id (or PLUMB presentation id) for
       // selected provider. The OMP validation normalizes errors to safe
       // PLUMB messages — no upstream body / URL / request ID is exposed.
       if (state.selectedProvider) {
-        const plan = getCodingPlan(state.selectedProvider.id);
+        const plan = getCodingPlan(selectedProviderId);
         if (plan) {
           setState((s) => ({ ...s, loading: true, error: null }));
           const result = await validateCodingPlanApiKey(plan, trimmed);
@@ -611,7 +614,7 @@ export const PlumbProviderSetupDialog: React.FC<
       // Refresh models after API key submission (like OAuth does)
       if (onRefreshModels) {
         try {
-          const refreshed = await onRefreshModels();
+          const refreshed = await onRefreshModels(selectedProviderId, trimmed);
           setDynamicModels(refreshed);
         } catch {
           // Model refresh failure is non-fatal
@@ -1189,6 +1192,13 @@ export const PlumbProviderSetupDialog: React.FC<
               onRefresh={
                 onRefreshFullModels
                   ? async () => {
+                      if (onRefreshModels) {
+                        const refreshed = await onRefreshModels(
+                          provider.id,
+                          state.apiKey,
+                        );
+                        setDynamicModels(refreshed);
+                      }
                       const refreshed = await onRefreshFullModels();
                       setDynamicFullModels(refreshed);
                     }

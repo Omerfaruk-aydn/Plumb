@@ -303,16 +303,32 @@ export const DialogManager = ({
   // screen whenever it is open — including the empty-state startup where it
   // replaces the legacy Google-first auth dialog.
   if (uiState.isProviderSetupDialogOpen) {
-    const refreshModels = async () => {
+    const refreshModels = async (providerId?: string, apiKey?: string) => {
       const providerPackage = await import('@google/gemini-cli-provider');
-      return providerPackage
-        .getPlumbModelRegistry()
-        .getAllAvailableModels()
-        .map((model) => ({
-          id: model.id,
-          name: model.name,
-          provider: model.provider,
-        }));
+      const modelRegistry = providerPackage.getPlumbModelRegistry();
+      if (providerId) {
+        const state = providerPackage
+          .getPlumbProviderRegistry()
+          .getProviderState(providerId);
+        const storedApiKey =
+          state?.credentials?.type === 'api_key'
+            ? state.credentials.key
+            : undefined;
+        const oauthToken =
+          state?.credentials?.type === 'oauth'
+            ? state.credentials.access
+            : undefined;
+        await modelRegistry.discoverProviderModels(
+          providerId,
+          apiKey ?? storedApiKey,
+          oauthToken,
+        );
+      }
+      return modelRegistry.getAllAvailableModels().map((model) => ({
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+      }));
     };
 
     const refreshFullModels = async () => {

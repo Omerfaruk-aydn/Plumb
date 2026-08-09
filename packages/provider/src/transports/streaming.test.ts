@@ -172,6 +172,35 @@ describe('plumbModelStream — missing-credential guard', () => {
       'Bearer trusted-local-token',
     );
   });
+
+  it('sends a Portkey gateway key only as x-portkey-api-key', async () => {
+    let capturedHeaders: Record<string, string> | undefined;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response('data: [DONE]\n\n', { status: 200 });
+    }) as typeof fetch;
+    try {
+      for await (const _event of plumbModelStream({
+        model: {
+          ...copilotModel,
+          provider: 'portkey',
+          baseUrl: 'https://api.portkey.ai/v1',
+        },
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'portkey-gateway-canary',
+      })) {
+        // drain
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(capturedHeaders?.['x-portkey-api-key']).toBe(
+      'portkey-gateway-canary',
+    );
+    expect(capturedHeaders?.['Authorization']).toBeUndefined();
+  });
 });
 
 describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', () => {

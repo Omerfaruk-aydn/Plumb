@@ -518,6 +518,7 @@ function isLikelyNanoGptTextModelId(id: string): boolean {
 type SimpleProviderDiscoveryHeaders = Record<string, string> | (() => Record<string, string> | undefined);
 type SimpleProviderConfig = {
 	apiKey?: string;
+	apiKeyHeader?: string;
 	baseUrl?: string;
 	fetch?: FetchImpl;
 	headers?: SimpleProviderDiscoveryHeaders;
@@ -546,6 +547,7 @@ export function createSimpleOpenAICompletionsOptions(
 					provider: providerId,
 					baseUrl,
 					apiKey,
+					apiKeyHeader: config?.apiKeyHeader,
 					headers: resolveSimpleProviderHeaders(config?.headers),
 					mapModel: (entry, defaults) => {
 						const reference = references.get(defaults.id);
@@ -1109,10 +1111,10 @@ export interface PortkeyModelManagerConfig {
 
 /**
  * Portkey AI Gateway — OpenAI-compatible (https://portkey.ai/docs/integrations/llms/openai,
- * base https://api.portkey.ai/v1). Portkey's own OpenAI-SDK integration
- * example authenticates by passing the Portkey key as the standard OpenAI
- * client `apiKey` (i.e. plain `Authorization: Bearer`), so no gateway-
- * specific header is needed here. This is the upstream vendor authority for
+ * base https://api.portkey.ai/v1). A Portkey gateway key belongs in
+ * `x-portkey-api-key`; `Authorization` represents a separate upstream-
+ * provider credential authority and must never receive the gateway key.
+ * This keeps gateway and upstream credentials separate for
  * whatever model a request is routed to — a distinct credential scope from
  * every model vendor it can proxy to, per the gateway-vs-upstream-vendor
  * separation this provider category requires.
@@ -1123,7 +1125,7 @@ export function portkeyModelManagerOptions(
 	return createSimpleOpenAICompletionsOptions(
 		"portkey" as Parameters<typeof getBundledModels>[0],
 		"https://api.portkey.ai/v1",
-		config,
+		{ ...config, apiKeyHeader: "x-portkey-api-key" },
 	);
 }
 
