@@ -93,6 +93,7 @@ export {
   resetPlumbProviderRegistry,
   type PlumbProviderState,
   type PlumbProviderAuthState,
+  type PlumbProviderHealthState,
 } from './registry/provider-registry.js';
 
 // Model registry
@@ -130,8 +131,11 @@ export {
 // Model discovery
 export {
   discoverProviderModels,
+  discoverProviderModelsDetailed,
   getDiscovery,
   getDiscoveryProviderIds,
+  type ModelDiscoveryResult,
+  type ModelDiscoveryStatus,
 } from './registry/model-discovery.js';
 
 // Bundled model catalog initialization

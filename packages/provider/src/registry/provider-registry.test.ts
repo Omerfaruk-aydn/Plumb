@@ -121,3 +121,35 @@ describe('PlumbProviderRegistry.setAuthenticated', () => {
     expect(mockInvalidateCache).toHaveBeenCalledWith('github-copilot');
   });
 });
+
+describe('PlumbProviderRegistry provider health', () => {
+  it('tracks reachability independently from authentication state', async () => {
+    const registry = new PlumbProviderRegistry();
+    await registry.initialize();
+    await registry.setAuthenticated('github-copilot', {
+      type: 'api_key',
+      provider: 'github-copilot',
+      key: 'stored-key',
+    });
+
+    registry.setProviderHealth(
+      'github-copilot',
+      'offline',
+      'SERVER_UNAVAILABLE',
+    );
+    expect(registry.getProviderState('github-copilot')).toMatchObject({
+      authState: 'authenticated',
+      healthState: 'offline',
+      healthErrorCode: 'SERVER_UNAVAILABLE',
+    });
+
+    registry.setProviderHealth('github-copilot', 'online');
+    expect(registry.getProviderState('github-copilot')).toMatchObject({
+      authState: 'authenticated',
+      healthState: 'online',
+    });
+    expect(
+      registry.getProviderState('github-copilot')?.healthErrorCode,
+    ).toBeUndefined();
+  });
+});

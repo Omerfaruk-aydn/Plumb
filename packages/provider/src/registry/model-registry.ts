@@ -21,7 +21,7 @@ import {
   invalidateAllModelCache,
 } from './model-cache.js';
 import {
-  discoverProviderModels,
+  discoverProviderModelsDetailed,
   getDiscoveryProviderIds,
 } from './model-discovery.js';
 import {
@@ -146,17 +146,29 @@ export class PlumbModelRegistry {
 
     for (const providerId of localProviders) {
       try {
+        const providerRegistry = getPlumbProviderRegistry();
+        providerRegistry.setProviderHealth(providerId, 'checking');
         let apiKey: string | undefined;
         try {
-          apiKey = await getPlumbProviderRegistry().getApiKey(providerId);
+          apiKey = await providerRegistry.getApiKey(providerId);
         } catch {
           // Keyless local providers are valid; an unavailable credential
           // store must not prevent their discovery.
         }
-        const models = await discoverProviderModels(providerId, {
+        const outcome = await discoverProviderModelsDetailed(providerId, {
           providerId,
           apiKey,
         });
+        providerRegistry.setProviderHealth(
+          providerId,
+          outcome.status === 'success' || outcome.status === 'empty'
+            ? 'online'
+            : outcome.status === 'unavailable'
+              ? 'offline'
+              : 'error',
+          outcome.errorCode,
+        );
+        const models = outcome.models;
         const providerModels: PlumbModel[] = [];
         for (const m of models) {
           const plumbModel: PlumbModel = {
@@ -181,6 +193,11 @@ export class PlumbModelRegistry {
         if (providerModels.length > 0)
           writeModelCache(providerId, providerModels, true);
       } catch {
+        getPlumbProviderRegistry().setProviderHealth(
+          providerId,
+          'error',
+          'DISCOVERY_FAILED',
+        );
         // Discovery failure for a single provider is non-fatal
       }
     }
@@ -196,11 +213,27 @@ export class PlumbModelRegistry {
     oauthToken?: string,
   ): Promise<PlumbModel[]> {
     try {
-      const discovered = await discoverProviderModels(providerId, {
+      const providerRegistry = getPlumbProviderRegistry();
+      if (isLocalProviderId(providerId)) {
+        providerRegistry.setProviderHealth(providerId, 'checking');
+      }
+      const outcome = await discoverProviderModelsDetailed(providerId, {
         providerId,
         apiKey,
         oauthToken,
       });
+      if (isLocalProviderId(providerId)) {
+        providerRegistry.setProviderHealth(
+          providerId,
+          outcome.status === 'success' || outcome.status === 'empty'
+            ? 'online'
+            : outcome.status === 'unavailable'
+              ? 'offline'
+              : 'error',
+          outcome.errorCode,
+        );
+      }
+      const discovered = outcome.models;
 
       const models: PlumbModel[] = [];
       for (const m of discovered) {
@@ -238,6 +271,13 @@ export class PlumbModelRegistry {
 
       return models;
     } catch {
+      if (isLocalProviderId(providerId)) {
+        getPlumbProviderRegistry().setProviderHealth(
+          providerId,
+          'error',
+          'DISCOVERY_FAILED',
+        );
+      }
       return [];
     }
   }

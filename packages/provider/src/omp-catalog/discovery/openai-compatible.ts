@@ -100,6 +100,8 @@ export interface FetchOpenAICompatibleModelsOptions<TApi extends Api> {
 	timeoutMs?: number;
 	/** Optional fetch implementation override for testing/custom runtimes. */
 	fetch?: FetchImpl;
+	/** Optional diagnostic hook; never receives URLs, headers, bodies, or credentials. */
+	onFailure?: (kind: "transport" | "http" | "protocol", status?: number) => void;
 	/**
 	 * Optional post-normalization filter.
 	 * Return false to skip a model.
@@ -148,16 +150,19 @@ export async function fetchOpenAICompatibleModels<TApi extends Api>(
 				signal,
 			});
 		} catch {
+			options.onFailure?.("transport");
 			return null;
 		}
 
 		if (!response.ok) {
+			options.onFailure?.("http", response.status);
 			return null;
 		}
 
 		try {
 			return await response.json();
 		} catch {
+			options.onFailure?.("protocol");
 			return null;
 		}
 	};
@@ -173,6 +178,7 @@ export async function fetchOpenAICompatibleModels<TApi extends Api>(
 
 	const entries = extractModelEntries(payload);
 	if (entries === null) {
+		options.onFailure?.("protocol");
 		return null;
 	}
 

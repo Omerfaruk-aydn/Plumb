@@ -62,6 +62,32 @@ export interface ProviderModelDiscovery {
   discover(context: DiscoveryContext): Promise<DiscoveredModel[]>;
 }
 
+export type ModelDiscoveryStatus =
+  | 'success'
+  | 'empty'
+  | 'unavailable'
+  | 'error'
+  | 'not_supported';
+
+export interface ModelDiscoveryResult {
+  models: DiscoveredModel[];
+  status: ModelDiscoveryStatus;
+  /** Safe classification only; never contains a URL, body, or credential. */
+  errorCode?:
+    | 'SERVER_UNAVAILABLE'
+    | 'DISCOVERY_AUTH_FAILED'
+    | 'DISCOVERY_HTTP_ERROR'
+    | 'DISCOVERY_PROTOCOL_ERROR'
+    | 'DISCOVERY_FAILED';
+}
+
+class ModelDiscoveryError extends Error {
+  constructor(readonly code: NonNullable<ModelDiscoveryResult['errorCode']>) {
+    super(code);
+    this.name = 'ModelDiscoveryError';
+  }
+}
+
 // ─── OpenAI-compatible /v1/models discovery (delegated to OMP) ─────────
 
 class OpenAICompatDiscovery implements ProviderModelDiscovery {
@@ -109,11 +135,27 @@ class OllamaDiscovery implements ProviderModelDiscovery {
           : {}),
       });
 
-      if (!response.ok) return [];
+      if (!response.ok) {
+        throw new ModelDiscoveryError(
+          response.status === 401 || response.status === 403
+            ? 'DISCOVERY_AUTH_FAILED'
+            : response.status >= 500
+              ? 'SERVER_UNAVAILABLE'
+              : 'DISCOVERY_HTTP_ERROR',
+        );
+      }
 
-      const data = (await response.json()) as {
+      let data: {
         models?: Array<{ name: string; details?: { parameter_size?: string } }>;
       };
+      try {
+        data = (await response.json()) as typeof data;
+      } catch {
+        throw new ModelDiscoveryError('DISCOVERY_PROTOCOL_ERROR');
+      }
+      if (data.models !== undefined && !Array.isArray(data.models)) {
+        throw new ModelDiscoveryError('DISCOVERY_PROTOCOL_ERROR');
+      }
 
       return await Promise.all(
         (data.models ?? []).map(async (m) => {
@@ -179,8 +221,9 @@ class OllamaDiscovery implements ProviderModelDiscovery {
           };
         }),
       );
-    } catch {
-      return [];
+    } catch (error) {
+      if (error instanceof ModelDiscoveryError) throw error;
+      throw new ModelDiscoveryError('SERVER_UNAVAILABLE');
     }
   }
 }
@@ -199,14 +242,34 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
       resolveLocalProviderBaseUrl(this.providerId) ??
       this.defaultBaseUrl;
 
+    let failure:
+      | { kind: 'transport' | 'http' | 'protocol'; status?: number }
+      | undefined;
     const models = await ompFetchModels<Api>({
       api: 'openai-completions',
       provider: this.providerId as Api,
       baseUrl,
       apiKey: context.apiKey,
       timeoutMs: 5_000,
+      onFailure: (kind, status) => {
+        failure = { kind, status };
+      },
     });
-    if (!models) return [];
+    if (!models) {
+      if (failure?.kind === 'protocol') {
+        throw new ModelDiscoveryError('DISCOVERY_PROTOCOL_ERROR');
+      }
+      if (failure?.kind === 'http') {
+        throw new ModelDiscoveryError(
+          failure.status === 401 || failure.status === 403
+            ? 'DISCOVERY_AUTH_FAILED'
+            : (failure.status ?? 0) >= 500
+              ? 'SERVER_UNAVAILABLE'
+              : 'DISCOVERY_HTTP_ERROR',
+        );
+      }
+      throw new ModelDiscoveryError('SERVER_UNAVAILABLE');
+    }
     const lmStudioMetadata = new Map<
       string,
       { contextWindow?: number; input: PlumbModel['input'] }
@@ -623,9 +686,31 @@ export async function discoverProviderModels(
   providerId: string,
   context: DiscoveryContext,
 ): Promise<DiscoveredModel[]> {
+  return (await discoverProviderModelsDetailed(providerId, context)).models;
+}
+
+/** Discover models while preserving reachability/protocol/empty outcomes. */
+export async function discoverProviderModelsDetailed(
+  providerId: string,
+  context: DiscoveryContext,
+): Promise<ModelDiscoveryResult> {
   const discovery = DISCOVERIES.get(providerId);
-  if (!discovery) return [];
-  return discovery.discover(context);
+  if (!discovery) return { models: [], status: 'not_supported' };
+  try {
+    const models = await discovery.discover(context);
+    return {
+      models,
+      status: models.length > 0 ? 'success' : 'empty',
+    };
+  } catch (error) {
+    const errorCode =
+      error instanceof ModelDiscoveryError ? error.code : 'DISCOVERY_FAILED';
+    return {
+      models: [],
+      status: errorCode === 'SERVER_UNAVAILABLE' ? 'unavailable' : 'error',
+      errorCode,
+    };
+  }
 }
 
 /** Get all registered discovery provider IDs. */

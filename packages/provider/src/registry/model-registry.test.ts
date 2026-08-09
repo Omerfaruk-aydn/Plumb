@@ -9,6 +9,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PlumbModelRegistry } from './model-registry.js';
 import type { PlumbModel } from '../types.js';
+import {
+  getPlumbProviderRegistry,
+  resetPlumbProviderRegistry,
+} from './provider-registry.js';
 
 function makeModel(
   id: string,
@@ -33,6 +37,11 @@ describe('PlumbModelRegistry', () => {
 
   beforeEach(() => {
     registry = new PlumbModelRegistry();
+  });
+
+  afterEach(() => {
+    resetPlumbProviderRegistry();
+    vi.unstubAllGlobals();
   });
 
   it('1. getModelsForProvider returns bundled catalog models', () => {
@@ -112,6 +121,43 @@ describe('PlumbModelRegistry', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('4d. records local server health without treating an offline server as an auth failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+    );
+
+    await registry.discoverProviderModels('sglang');
+
+    expect(getPlumbProviderRegistry().getProviderState('sglang')).toMatchObject(
+      {
+        authState: 'authenticated',
+        healthState: 'offline',
+        healthErrorCode: 'SERVER_UNAVAILABLE',
+      },
+    );
+  });
+
+  it('4e. treats a valid empty local catalog as online', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ data: [] }), { status: 200 }),
+        ),
+    );
+
+    await registry.discoverProviderModels('sglang');
+
+    expect(getPlumbProviderRegistry().getProviderState('sglang')).toMatchObject(
+      {
+        authState: 'authenticated',
+        healthState: 'online',
+      },
+    );
   });
 
   it('5. addCustomModel adds to registry', () => {

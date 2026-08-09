@@ -14,6 +14,7 @@ vi.stubGlobal('fetch', mockFetch);
 
 import {
   discoverProviderModels,
+  discoverProviderModelsDetailed,
   getDiscoveryProviderIds,
 } from './model-discovery.js';
 
@@ -292,6 +293,40 @@ describe('Discovery Adapter Contract: Ollama', () => {
     expect(models).toEqual([]);
   });
 
+  it('10a. distinguishes an unavailable server from a valid empty catalog', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(
+      discoverProviderModelsDetailed('ollama', { providerId: 'ollama' }),
+    ).resolves.toEqual({
+      models: [],
+      status: 'unavailable',
+      errorCode: 'SERVER_UNAVAILABLE',
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ models: [] }),
+    });
+    await expect(
+      discoverProviderModelsDetailed('ollama', { providerId: 'ollama' }),
+    ).resolves.toEqual({ models: [], status: 'empty' });
+  });
+
+  it('10c. classifies malformed discovery payloads without exposing response data', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ models: 'not-an-array' }),
+    });
+
+    await expect(
+      discoverProviderModelsDetailed('ollama', { providerId: 'ollama' }),
+    ).resolves.toEqual({
+      models: [],
+      status: 'error',
+      errorCode: 'DISCOVERY_PROTOCOL_ERROR',
+    });
+  });
+
   it('10b. enriches context, vision, reasoning, and tool capabilities from /api/show', async () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.endsWith('/api/tags')) {
@@ -370,6 +405,37 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
         (call) => call[0] === 'http://127.0.0.1:1234/v1/models',
       ),
     ).toBe(true);
+  });
+
+  it('11a. distinguishes auth, protocol, and successful-empty outcomes', async () => {
+    mockFetch.mockResolvedValueOnce({ status: 401, ok: false });
+    await expect(
+      discoverProviderModelsDetailed('sglang', { providerId: 'sglang' }),
+    ).resolves.toEqual({
+      models: [],
+      status: 'error',
+      errorCode: 'DISCOVERY_AUTH_FAILED',
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ unexpected: true }),
+    });
+    await expect(
+      discoverProviderModelsDetailed('sglang', { providerId: 'sglang' }),
+    ).resolves.toEqual({
+      models: [],
+      status: 'error',
+      errorCode: 'DISCOVERY_PROTOCOL_ERROR',
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
+    await expect(
+      discoverProviderModelsDetailed('sglang', { providerId: 'sglang' }),
+    ).resolves.toEqual({ models: [], status: 'empty' });
   });
 
   it('12. returns empty for provider without discovery', async () => {

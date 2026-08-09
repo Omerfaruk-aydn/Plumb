@@ -33,11 +33,20 @@ export type PlumbProviderAuthState =
   | 'expired'
   | 'error';
 
+export type PlumbProviderHealthState =
+  | 'unknown'
+  | 'checking'
+  | 'online'
+  | 'offline'
+  | 'error';
+
 export interface PlumbProviderState {
   provider: PlumbProvider;
   authState: PlumbProviderAuthState;
+  healthState: PlumbProviderHealthState;
   credentials: PlumbOAuthCredential | PlumbApiKeyCredential | null;
   error?: string;
+  healthErrorCode?: string;
 }
 
 // ─── Provider registry ────────────────────────────────────────────────
@@ -72,6 +81,7 @@ export class PlumbProviderRegistry {
       this.#activeProviders.set(providerId, {
         provider,
         authState: usable ? 'authenticated' : 'expired',
+        healthState: 'unknown',
         credentials: usable?.credential ?? null,
       });
     }
@@ -84,6 +94,7 @@ export class PlumbProviderRegistry {
         this.#activeProviders.set(provider.id, {
           provider,
           authState: 'authenticated',
+          healthState: 'unknown',
           credentials: null,
         });
       }
@@ -151,6 +162,7 @@ export class PlumbProviderRegistry {
     this.#activeProviders.set(providerId, {
       provider,
       authState: 'authenticating',
+      healthState: 'unknown',
       credentials: null,
     });
   }
@@ -181,6 +193,7 @@ export class PlumbProviderRegistry {
     this.#activeProviders.set(providerId, {
       provider,
       authState: 'authenticated',
+      healthState: 'unknown',
       credentials: credential,
     });
 
@@ -194,8 +207,29 @@ export class PlumbProviderRegistry {
     this.#activeProviders.set(providerId, {
       provider: existing?.provider ?? getPlumbProvider(providerId)!,
       authState: 'error',
+      healthState: existing?.healthState ?? 'unknown',
       credentials: existing?.credentials ?? null,
       error,
+    });
+  }
+
+  setProviderHealth(
+    providerId: PlumbProviderId,
+    healthState: PlumbProviderHealthState,
+    healthErrorCode?: string,
+  ): void {
+    const existing = this.#activeProviders.get(providerId);
+    const provider = existing?.provider ?? getPlumbProvider(providerId);
+    if (!provider) return;
+    this.#activeProviders.set(providerId, {
+      provider,
+      authState:
+        existing?.authState ??
+        (provider.allowUnauthenticated ? 'authenticated' : 'unauthenticated'),
+      healthState,
+      credentials: existing?.credentials ?? null,
+      ...(existing?.error ? { error: existing.error } : undefined),
+      ...(healthErrorCode ? { healthErrorCode } : undefined),
     });
   }
 
