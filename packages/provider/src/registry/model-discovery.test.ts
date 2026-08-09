@@ -20,9 +20,7 @@ import {
 // Hand-written adapters with bespoke HTTP-boundary parsing (tested below).
 const HAND_WRITTEN_ADAPTERS = [
   'ollama',
-  'lm-studio',
   'llama-cpp',
-  'vllm',
   'sglang',
   'openai',
   'openrouter',
@@ -266,7 +264,7 @@ describe('Discovery Adapter Contract: Ollama', () => {
 
     expect(models.length).toBe(2);
     expect(models[0].id).toBe('llama3:8b');
-    expect(models[0].contextWindow).toBe(131072);
+    expect(models[0].contextWindow).toBe(128000);
   });
 
   it('9b. tags the discovered model with baseUrl and the ollama-chat dialect (regression: a selected discovered model must carry enough to route to the real transport, not fall through to https://api.openai.com)', async () => {
@@ -293,6 +291,37 @@ describe('Discovery Adapter Contract: Ollama', () => {
 
     expect(models).toEqual([]);
   });
+
+  it('10b. enriches context, vision, reasoning, and tool capabilities from /api/show', async () => {
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/api/tags')) {
+        return {
+          ok: true,
+          json: async () => ({ models: [{ name: 'qwen-vl:latest' }] }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          capabilities: ['vision', 'thinking', 'tools'],
+          model_info: { 'qwen.context_length': 65536 },
+        }),
+      };
+    });
+
+    const models = await discoverProviderModels('ollama', {
+      providerId: 'ollama',
+    });
+
+    expect(models[0]).toMatchObject({
+      id: 'qwen-vl:latest',
+      contextWindow: 65536,
+      input: 'text+image',
+      reasoning: true,
+      toolsSupported: true,
+      source: 'SERVER_DYNAMIC',
+    });
+  });
 });
 
 describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
@@ -301,18 +330,41 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
   });
 
   it('11. discovers LM Studio models', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: [{ id: 'llama-3-8b' }],
-      }),
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/api/v0/models')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'lmstudio-community/llama-3-8b',
+                type: 'vlm',
+                state: 'loaded',
+                loaded_context_length: 32768,
+              },
+            ],
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [{ id: 'lmstudio-community/llama-3-8b' }],
+        }),
+      };
     });
 
     const models = await discoverProviderModels('lm-studio', {
       providerId: 'lm-studio',
     });
 
-    expect(models.some((m) => m.id === 'llama-3-8b')).toBe(true);
+    expect(
+      models.find((m) => m.id === 'lmstudio-community/llama-3-8b'),
+    ).toMatchObject({
+      contextWindow: 32768,
+      input: 'text+image',
+      source: 'SERVER_DYNAMIC',
+    });
     expect(
       mockFetch.mock.calls.some(
         (call) => call[0] === 'http://127.0.0.1:1234/v1/models',
@@ -329,18 +381,48 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
   });
 
   it('11b. tags LM Studio models with baseUrl and the openai-completions dialect (regression: same as Ollama, a selected discovered model must carry its baseUrl to route correctly)', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: [{ id: 'llama-3-8b' }] }),
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/api/v0/models')) {
+        return { ok: false, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [{ id: 'lmstudio-community/llama-3-8b' }],
+        }),
+      };
     });
 
     const models = await discoverProviderModels('lm-studio', {
       providerId: 'lm-studio',
     });
 
-    expect(models[0].api).toBe('openai-completions');
-    expect(models[0].baseUrl).toBe('http://127.0.0.1:1234/v1');
-    expect(models[0].source).toBe('SERVER_DYNAMIC');
+    const dynamic = models.find(
+      (model) => model.id === 'lmstudio-community/llama-3-8b',
+    );
+    expect(dynamic?.api).toBe('openai-completions');
+    expect(dynamic?.baseUrl).toBe('http://127.0.0.1:1234/v1');
+    expect(dynamic?.source).toBe('SERVER_DYNAMIC');
+  });
+
+  it('11c. preserves vLLM max_model_len metadata', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'served-qwen', max_model_len: 49152 }],
+      }),
+    });
+
+    const models = await discoverProviderModels('vllm', {
+      providerId: 'vllm',
+    });
+
+    expect(models.find((model) => model.id === 'served-qwen')).toMatchObject({
+      contextWindow: 49152,
+      api: 'openai-completions',
+      baseUrl: 'http://127.0.0.1:8000/v1',
+      source: 'SERVER_DYNAMIC',
+    });
   });
 
   it('13. discovers SGLang models against its default port 30000', async () => {

@@ -146,6 +146,32 @@ describe('plumbModelStream — missing-credential guard', () => {
     expect(fetchCalled).toBe(true);
     expect(sawEmptyBearer).toBe(false);
   });
+
+  it('applies the selected credential after model headers, case-insensitively', async () => {
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response('data: [DONE]\n\n', { status: 200 });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        ...copilotModel,
+        provider: 'vllm',
+        baseUrl: 'http://127.0.0.1:8000/v1',
+        headers: { authorization: 'Bearer attacker-value' },
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'trusted-local-token',
+    })) {
+      // drain
+    }
+
+    expect(capturedHeaders?.['authorization']).toBeUndefined();
+    expect(capturedHeaders?.['Authorization']).toBe(
+      'Bearer trusted-local-token',
+    );
+  });
 });
 
 describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', () => {
@@ -1169,10 +1195,42 @@ describe('plumbModelStream — OpenAI-compatible HTTP error classification (open
     }
   });
 
+  it('a transport timeout is classified separately from caller cancellation', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      const err = new Error('timed out with secret body that must not surface');
+      err.name = 'TimeoutError';
+      throw err;
+    }) as typeof fetch;
+    try {
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model: openaiModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'sk-test',
+      })) {
+        events.push(event);
+      }
+      expect(events).toEqual([
+        {
+          type: 'error',
+          error: {
+            code: 'REQUEST_TIMEOUT',
+            message: 'Provider request timed out.',
+            retryable: true,
+          },
+        },
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('cancellation (AbortError) yields a done/cancelled event, never an error', async () => {
     const controller = new AbortController();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () => {
+      controller.abort();
       const err = new Error('The operation was aborted');
       err.name = 'AbortError';
       throw err;
@@ -1210,6 +1268,317 @@ describe('plumbModelStream — OpenAI-compatible HTTP error classification (open
       type: 'error',
       error: { code: 'MISSING_CREDENTIAL' },
     });
+  });
+});
+
+describe('fragmented streaming tool-call normalization', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('assembles OpenAI tool-call deltas by index before emitting one canonical call', async () => {
+    const sse = [
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_weather","function":{"name":"get_","arguments":"{\\"path\\":"}}]}}]}',
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"weather","arguments":"\\".\\"}"}}]}}]}',
+      'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}',
+      'data: [DONE]',
+      '',
+    ].join('\n\n');
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(sse, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    ) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: {
+        id: 'local-tool-model',
+        provider: 'lm-studio',
+        api: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: false,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'inspect' }],
+      apiKey: '',
+    })) {
+      events.push(event);
+    }
+
+    expect(events.filter((event) => event.type === 'tool_call')).toEqual([
+      {
+        type: 'tool_call',
+        toolCall: {
+          id: 'call_weather',
+          name: 'get_weather',
+          arguments: '{"path":"."}',
+        },
+      },
+    ]);
+    expect(events.at(-1)).toEqual({
+      type: 'done',
+      finishReason: 'tool_calls',
+    });
+  });
+
+  it('assembles Anthropic input_json_delta fragments with their tool id and name', async () => {
+    const sse = [
+      'data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tool_123","name":"read_file","input":{}}}',
+      'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\":"}}',
+      'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"README.md\\"}"}}',
+      'data: {"type":"content_block_stop","index":1}',
+      'data: {"type":"message_delta","delta":{"stop_reason":"tool_use"}}',
+      '',
+    ].join('\n\n');
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(sse, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    ) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: {
+        id: 'claude-tool-model',
+        provider: 'anthropic-api',
+        api: 'anthropic-messages',
+        baseUrl: 'https://api.anthropic.com',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: false,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'inspect' }],
+      apiKey: 'anthropic-test-key',
+    })) {
+      events.push(event);
+    }
+
+    expect(events.filter((event) => event.type === 'tool_call')).toEqual([
+      {
+        type: 'tool_call',
+        toolCall: {
+          id: 'tool_123',
+          name: 'read_file',
+          arguments: '{"path":"README.md"}',
+        },
+      },
+    ]);
+    expect(events.at(-1)).toEqual({
+      type: 'done',
+      finishReason: 'tool_calls',
+    });
+  });
+
+  it('marks an AbortError raised by the response reader as cancelled', async () => {
+    const encoder = new TextEncoder();
+    const abortController = new AbortController();
+    let pullCount = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pullCount++ === 0) {
+          controller.enqueue(
+            encoder.encode(
+              'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+            ),
+          );
+          return;
+        }
+        abortController.abort();
+        const error = new Error('aborted');
+        error.name = 'AbortError';
+        controller.error(error);
+      },
+    });
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+    ) as typeof fetch;
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: {
+        id: 'local-model',
+        provider: 'vllm',
+        api: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:8000/v1',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: false,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+      signal: abortController.signal,
+    })) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([
+      { type: 'text', text: 'partial' },
+      { type: 'done', finishReason: 'cancelled' },
+    ]);
+  });
+
+  it('forwards explicit JSON-schema and reasoning controls without enabling unsupported tools', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return new Response('data: [DONE]\n\n', {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'local-json-model',
+        provider: 'vllm',
+        api: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:8000/v1',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: true,
+        toolsSupported: false,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'respond as JSON' }],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'should_not_send',
+            description: 'unsupported',
+            parameters: { type: 'object' },
+          },
+        },
+      ],
+      apiKey: '',
+      maxTokens: 123,
+      temperature: 0.2,
+      responseFormat: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: { ok: { type: 'boolean' } },
+            required: ['ok'],
+          },
+        },
+      },
+      reasoningEffort: 'high',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody).toMatchObject({
+      max_tokens: 123,
+      temperature: 0.2,
+      reasoning_effort: 'high',
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          strict: true,
+        },
+      },
+    });
+    expect(capturedBody).not.toHaveProperty('tools');
+  });
+
+  it('maps the same canonical image part to OpenAI and Anthropic wire formats', async () => {
+    const capturedBodies: Record<string, unknown>[] = [];
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      capturedBodies.push(JSON.parse(String(init?.body)));
+      return new Response('data: [DONE]\n\n', {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    }) as typeof fetch;
+    const messages: PlumbStreamOptions['messages'] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe' },
+          {
+            type: 'image',
+            imageUrl: 'data:image/png;base64,aW1hZ2U=',
+            mimeType: 'image/png',
+          },
+        ],
+      },
+    ];
+
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'openai-vision',
+        provider: 'lm-studio',
+        api: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: false,
+        input: 'text+image',
+      },
+      messages,
+      apiKey: '',
+    })) {
+      // drain
+    }
+    for await (const _event of plumbModelStream({
+      model: {
+        id: 'claude-vision',
+        provider: 'anthropic-api',
+        api: 'anthropic-messages',
+        baseUrl: 'https://api.anthropic.com',
+        contextWindow: 4096,
+        maxTokens: 256,
+        reasoning: false,
+        input: 'text+image',
+      },
+      messages,
+      apiKey: 'anthropic-test-key',
+    })) {
+      // drain
+    }
+
+    const openAiMessages = capturedBodies[0]?.['messages'] as Array<
+      Record<string, unknown>
+    >;
+    expect(openAiMessages[0]?.['content']).toEqual([
+      { type: 'text', text: 'describe' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,aW1hZ2U=' },
+      },
+    ]);
+    const anthropicMessages = capturedBodies[1]?.['messages'] as Array<
+      Record<string, unknown>
+    >;
+    expect(anthropicMessages[0]?.['content']).toEqual([
+      { type: 'text', text: 'describe' },
+      {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: 'image/png',
+          data: 'aW1hZ2U=',
+        },
+      },
+    ]);
   });
 });
 

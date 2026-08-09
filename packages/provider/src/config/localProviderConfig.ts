@@ -34,6 +34,7 @@ export interface LocalProviderEndpointDefinition {
   readonly providerId: LocalProviderId;
   readonly defaultBaseUrl: string;
   readonly envVar: string;
+  readonly credentialEnvVar: string;
   readonly api: PlumbKnownApi;
 }
 
@@ -44,30 +45,35 @@ const DEFINITIONS: Readonly<
     providerId: 'ollama',
     defaultBaseUrl: 'http://127.0.0.1:11434/v1',
     envVar: 'OLLAMA_BASE_URL',
+    credentialEnvVar: 'OLLAMA_API_KEY',
     api: 'ollama-chat',
   },
   'lm-studio': {
     providerId: 'lm-studio',
     defaultBaseUrl: 'http://127.0.0.1:1234/v1',
     envVar: 'LM_STUDIO_BASE_URL',
+    credentialEnvVar: 'LM_STUDIO_API_KEY',
     api: 'openai-completions',
   },
   'llama-cpp': {
     providerId: 'llama-cpp',
     defaultBaseUrl: 'http://127.0.0.1:8080/v1',
     envVar: 'LLAMA_CPP_BASE_URL',
+    credentialEnvVar: 'LLAMA_CPP_API_KEY',
     api: 'openai-completions',
   },
   vllm: {
     providerId: 'vllm',
     defaultBaseUrl: 'http://127.0.0.1:8000/v1',
     envVar: 'VLLM_BASE_URL',
+    credentialEnvVar: 'VLLM_API_KEY',
     api: 'openai-completions',
   },
   sglang: {
     providerId: 'sglang',
     defaultBaseUrl: 'http://127.0.0.1:30000/v1',
     envVar: 'SGLANG_BASE_URL',
+    credentialEnvVar: 'SGLANG_API_KEY',
     api: 'openai-completions',
   },
 };
@@ -184,6 +190,7 @@ export function getLocalProviderConfigSchema(
             type: 'secret',
             required: true,
             secret: true,
+            envVar: definition.credentialEnvVar,
           },
         ],
       },

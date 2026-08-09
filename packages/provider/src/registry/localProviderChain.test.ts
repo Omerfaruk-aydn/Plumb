@@ -61,9 +61,9 @@ const FIXTURES: LocalProviderFixture[] = [
   {
     providerId: 'vllm',
     baseUrl: 'http://127.0.0.1:8000/v1',
-    modelId: 'gpt-oss-20b',
+    modelId: 'served-qwen',
     discoveryPath: '/models',
-    discoveryBody: { data: [{ id: 'gpt-oss-20b' }] },
+    discoveryBody: { data: [{ id: 'served-qwen', max_model_len: 49152 }] },
     expectedApi: 'openai-completions',
   },
   {

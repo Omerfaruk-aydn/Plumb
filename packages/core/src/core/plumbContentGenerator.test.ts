@@ -164,6 +164,136 @@ describe('PlumbContentGenerator', () => {
     expect(model.provider).toBe('nvidia');
   });
 
+  it('preserves the normalized provider finish reason in non-streaming responses', async () => {
+    mockFindModel.mockReturnValue({
+      id: 'local-model',
+      provider: 'vllm',
+      api: 'openai-completions',
+    });
+    mockPlumbModelStream.mockImplementationOnce(async function* () {
+      yield { type: 'text', text: 'partial' };
+      yield { type: 'done', finishReason: 'max_tokens' };
+    } as never);
+    const generator = new PlumbContentGenerator('vllm', 'local-model', '');
+
+    const response = await generator.generateContent(
+      testRequest,
+      'prompt-id',
+      testRole,
+    );
+
+    expect(response.candidates?.[0]?.finishReason).toBe('MAX_TOKENS');
+    expect(response.candidates?.[0]?.content?.parts).toEqual([
+      { text: 'partial' },
+    ]);
+  });
+
+  it('forwards output, JSON-schema, temperature, and reasoning controls', async () => {
+    mockFindModel.mockReturnValue({
+      id: 'local-model',
+      provider: 'vllm',
+      api: 'openai-completions',
+    });
+    const generator = new PlumbContentGenerator('vllm', 'local-model', '');
+    const request = {
+      ...testRequest,
+      config: {
+        maxOutputTokens: 321,
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+        thinkingConfig: { thinkingLevel: 'HIGH' },
+      },
+    } as GenerateContentParameters;
+
+    const stream = await generator.generateContentStream(
+      request,
+      'prompt-id',
+      testRole,
+    );
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(mockPlumbModelStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxTokens: 321,
+        temperature: 0.3,
+        reasoningEffort: 'high',
+        responseFormat: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            strict: true,
+            schema: request.config?.responseSchema,
+          },
+        },
+      }),
+    );
+  });
+
+  it('preserves inline image parts for multimodal provider transports', async () => {
+    mockFindModel.mockReturnValue({
+      id: 'vision-model',
+      provider: 'lm-studio',
+      api: 'openai-completions',
+      input: ['text', 'image'],
+    });
+    const generator = new PlumbContentGenerator(
+      'lm-studio',
+      'vision-model',
+      '',
+    );
+    const request = {
+      ...testRequest,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Describe this image' },
+            {
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'aW1hZ2UtYnl0ZXM=',
+              },
+            },
+          ],
+        },
+      ],
+    } as GenerateContentParameters;
+
+    const stream = await generator.generateContentStream(
+      request,
+      'prompt-id',
+      testRole,
+    );
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(mockPlumbModelStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image' },
+              {
+                type: 'image',
+                imageUrl: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=',
+                mimeType: 'image/png',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
   it('hydrates a persisted dynamic model cache before cold-start request #1', async () => {
     mockFindModel.mockReturnValueOnce(undefined).mockReturnValueOnce({
       id: 'local-model',

@@ -167,8 +167,10 @@ export class PlumbModelRegistry {
             ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
             contextWindow: m.contextWindow ?? 131072,
             maxTokens: m.maxTokens ?? 32768,
-            reasoning: m.reasoning ?? false,
-            input: 'text',
+            ...(m.reasoning !== undefined
+              ? { reasoning: m.reasoning }
+              : undefined),
+            input: m.input ?? 'text',
             ...(m.source ? { source: m.source } : undefined),
           };
           const key = `${providerId}:${m.id}`;
@@ -214,11 +216,13 @@ export class PlumbModelRegistry {
           ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
           contextWindow: m.contextWindow ?? 131072,
           maxTokens: m.maxTokens ?? 32768,
-          reasoning: m.reasoning ?? false,
+          ...(m.reasoning !== undefined
+            ? { reasoning: m.reasoning }
+            : undefined),
           ...(m.toolsSupported !== undefined
             ? { toolsSupported: m.toolsSupported }
             : undefined),
-          input: 'text',
+          input: m.input ?? 'text',
           ...(m.source ? { source: m.source } : undefined),
         };
         const key = `${providerId}:${m.id}`;

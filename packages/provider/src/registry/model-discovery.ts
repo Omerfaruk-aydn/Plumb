@@ -43,6 +43,7 @@ export interface DiscoveredModel {
   reasoning?: boolean;
   /** See `PlumbModel.toolsSupported` -- undefined means unknown, never guessed. */
   toolsSupported?: boolean;
+  input?: PlumbModel['input'];
   /**
    * Wire dialect for this model (e.g. `google-vertex`, `anthropic-messages`).
    * Omitted by adapters that only ever produce OpenAI-compatible models
@@ -114,15 +115,70 @@ class OllamaDiscovery implements ProviderModelDiscovery {
         models?: Array<{ name: string; details?: { parameter_size?: string } }>;
       };
 
-      return (data.models ?? []).map((m) => ({
-        id: m.name,
-        name: m.name,
-        contextWindow: 131072,
-        maxTokens: 16384,
-        api: 'ollama-chat' as PlumbKnownApi,
-        baseUrl: transportBaseUrl,
-        source: 'SERVER_DYNAMIC',
-      }));
+      return await Promise.all(
+        (data.models ?? []).map(async (m) => {
+          let capabilities: string[] | undefined;
+          let contextWindow: number | undefined;
+          try {
+            const showResponse = await fetch(`${nativeBaseUrl}/api/show`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(context.apiKey
+                  ? { Authorization: `Bearer ${context.apiKey}` }
+                  : {}),
+              },
+              body: JSON.stringify({ model: m.name }),
+              signal: AbortSignal.timeout(5_000),
+            });
+            if (showResponse.ok) {
+              const show = (await showResponse.json()) as {
+                capabilities?: unknown;
+                model_info?: Record<string, unknown>;
+              };
+              capabilities = Array.isArray(show.capabilities)
+                ? show.capabilities.filter(
+                    (value): value is string => typeof value === 'string',
+                  )
+                : undefined;
+              for (const [key, value] of Object.entries(
+                show.model_info ?? {},
+              )) {
+                if (
+                  typeof value === 'number' &&
+                  value > 0 &&
+                  (key.endsWith('.context_length') ||
+                    key.endsWith('.num_ctx') ||
+                    key.endsWith('.context_window'))
+                ) {
+                  contextWindow = value;
+                  break;
+                }
+              }
+            }
+          } catch {
+            // `/api/show` enrichment is optional; the live tags result
+            // remains authoritative for model identity.
+          }
+
+          return {
+            id: m.name,
+            name: m.name,
+            contextWindow: contextWindow ?? 128000,
+            maxTokens: 8192,
+            reasoning: capabilities?.includes('thinking'),
+            toolsSupported: capabilities?.includes('tools'),
+            input: capabilities
+              ? capabilities.includes('vision')
+                ? ('text+image' as const)
+                : ('text' as const)
+              : undefined,
+            api: 'ollama-chat' as PlumbKnownApi,
+            baseUrl: transportBaseUrl,
+            source: 'SERVER_DYNAMIC' as const,
+          };
+        }),
+      );
     } catch {
       return [];
     }
@@ -151,15 +207,68 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
       timeoutMs: 5_000,
     });
     if (!models) return [];
-    return models.map((m) => ({
-      id: m.id,
-      name: m.id,
-      contextWindow: 131072,
-      maxTokens: 32768,
-      api: 'openai-completions' as PlumbKnownApi,
-      baseUrl,
-      source: 'SERVER_DYNAMIC',
-    }));
+    const lmStudioMetadata = new Map<
+      string,
+      { contextWindow?: number; input: PlumbModel['input'] }
+    >();
+    if (this.providerId === 'lm-studio') {
+      try {
+        const nativeBaseUrl = baseUrl.replace(/\/+$/, '').replace(/\/v1$/i, '');
+        const response = await fetch(`${nativeBaseUrl}/api/v0/models`, {
+          headers: {
+            Accept: 'application/json',
+            ...(context.apiKey
+              ? { Authorization: `Bearer ${context.apiKey}` }
+              : {}),
+          },
+          signal: AbortSignal.timeout(2_000),
+        });
+        if (response.ok) {
+          const payload = (await response.json()) as {
+            data?: Array<Record<string, unknown>>;
+          };
+          for (const entry of payload.data ?? []) {
+            if (typeof entry['id'] !== 'string') continue;
+            const capabilities = Array.isArray(entry['capabilities'])
+              ? entry['capabilities'].filter(
+                  (value): value is string => typeof value === 'string',
+                )
+              : [];
+            const isVision =
+              entry['type'] === 'vlm' ||
+              capabilities.some((value) =>
+                ['vision', 'image'].includes(value.toLowerCase()),
+              );
+            const numericContext =
+              entry['state'] === 'loaded'
+                ? entry['loaded_context_length']
+                : (entry['max_context_length'] ?? entry['context_length']);
+            lmStudioMetadata.set(entry['id'], {
+              ...(typeof numericContext === 'number' && numericContext > 0
+                ? { contextWindow: numericContext }
+                : undefined),
+              input: isVision ? 'text+image' : 'text',
+            });
+          }
+        }
+      } catch {
+        // Native metadata is optional; /v1/models remains authoritative.
+      }
+    }
+
+    return models.map((m) => {
+      const metadata = lmStudioMetadata.get(m.id);
+      return {
+        id: m.id,
+        name: m.id,
+        contextWindow: metadata?.contextWindow ?? 131072,
+        maxTokens: 32768,
+        input: metadata?.input,
+        api: 'openai-completions' as PlumbKnownApi,
+        baseUrl,
+        source: 'SERVER_DYNAMIC' as const,
+      };
+    });
   }
 }
 
@@ -190,11 +299,16 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
 
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
     const apiKey = context.oauthToken ?? context.apiKey;
+    // Descriptor factories themselves consult Bun.env and may build
+    // endpoint-scoped cache ids with Bun.hash, so the shim must exist before
+    // factory construction (not only before manager.refresh()).
+    installBunGlobal();
     let options: ReturnType<ProviderDescriptor['createModelManagerOptions']>;
     try {
       options = this.descriptor.createModelManagerOptions({
         apiKey,
-        baseUrl: context.baseUrl,
+        baseUrl:
+          context.baseUrl ?? resolveLocalProviderBaseUrl(this.providerId),
       });
     } catch {
       return [];
@@ -207,7 +321,6 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
       // OMP internals (fingerprintStatic, cache-provider-id) call Bun.hash;
       // installBunGlobal() is idempotent and must run before any OMP module
       // executes Bun-flavored code under Node (see omp-shims/bun-runtime.ts).
-      installBunGlobal();
       const manager = createModelManager<Api>(options);
       const result = await manager.refresh();
       return result.models.map((m) => ({
@@ -216,11 +329,16 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
         contextWindow: m.contextWindow ?? undefined,
         maxTokens: m.maxTokens ?? undefined,
         reasoning: m.reasoning,
+        toolsSupported: m.supportsTools,
+        input: m.input.includes('image') ? 'text+image' : 'text',
         // The real wire dialect, NOT a hardcoded 'openai-completions' — this
         // provider may be anthropic-messages, google-vertex, etc. Callers
         // must use this instead of assuming OpenAI-compat.
         api: m.api as PlumbKnownApi,
         baseUrl: m.baseUrl,
+        source: resolveLocalProviderBaseUrl(this.providerId)
+          ? 'SERVER_DYNAMIC'
+          : 'PROVIDER_DYNAMIC',
       }));
     } catch {
       return [];
@@ -456,7 +574,6 @@ register(
 register(
   new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080/v1'),
 );
-register(new OpenAICompatLocalDiscovery('vllm', 'http://127.0.0.1:8000/v1'));
 register(new OpenAICompatLocalDiscovery('sglang', 'http://127.0.0.1:30000/v1'));
 register(new OpenAICompatDiscovery('openai', 'https://api.openai.com'));
 register(new OpenAICompatDiscovery('openrouter', 'https://openrouter.ai'));

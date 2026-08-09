@@ -789,7 +789,10 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Local Models',
     order: 1,
     description: 'Local Ollama server (OpenAI-compatible)',
-    authMethods: [{ type: 'none' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'OLLAMA_API_KEY' },
+    ],
   },
   'ollama-cloud': {
     category: PlumbProviderCategory.LOCAL,
@@ -803,14 +806,20 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Local Models',
     order: 3,
     description: 'LM Studio local inference server (OpenAI-compatible)',
-    authMethods: [{ type: 'none' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'LM_STUDIO_API_KEY' },
+    ],
   },
   'llama-cpp': {
     category: PlumbProviderCategory.LOCAL,
     group: 'Local Models',
     order: 4,
     description: 'llama.cpp local server (OpenAI-compatible)',
-    authMethods: [{ type: 'none' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'LLAMA_CPP_API_KEY' },
+    ],
     // No OMP catalog descriptor exists for llama.cpp at all, so
     // allowUnauthenticated would otherwise resolve to undefined (falsy) —
     // a real local, keyless server, but routed to a dead-end 'authenticate'
@@ -822,7 +831,10 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Local Models',
     order: 5,
     description: 'vLLM local server (OpenAI-compatible)',
-    authMethods: [{ type: 'none' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'VLLM_API_KEY' },
+    ],
     // vLLM's OMP descriptor sets allowUnauthenticated: true nested inside
     // catalogDiscovery, not at the top level this projection reads —
     // without this override it resolves to false and hits the same
@@ -834,7 +846,10 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Local Models',
     order: 6,
     description: 'SGLang local server (OpenAI-compatible)',
-    authMethods: [{ type: 'none' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'SGLANG_API_KEY' },
+    ],
     // Same shape as llama-cpp above: no OMP catalog descriptor exists for
     // sglang, so allowUnauthenticated would otherwise resolve to undefined
     // (falsy) and route it to a dead-end 'authenticate' step.

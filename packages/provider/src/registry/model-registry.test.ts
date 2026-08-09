@@ -82,7 +82,12 @@ describe('PlumbModelRegistry', () => {
         };
       }
       if (url.includes('1234')) {
-        return { ok: true, json: async () => ({ data: [{ id: 'local-lm' }] }) };
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ id: 'lmstudio-community/local-lm' }],
+          }),
+        };
       }
       return { ok: false, json: async () => ({}) };
     });
@@ -97,7 +102,10 @@ describe('PlumbModelRegistry', () => {
       expect(ollamaModel!.baseUrl).toBe('http://127.0.0.1:11434/v1');
       expect(ollamaModel!.source).toBe('SERVER_DYNAMIC');
 
-      const lmStudioModel = registry.findModel('lm-studio', 'local-lm');
+      const lmStudioModel = registry.findModel(
+        'lm-studio',
+        'lmstudio-community/local-lm',
+      );
       expect(lmStudioModel).toBeDefined();
       expect(lmStudioModel!.api).toBe('openai-completions');
       expect(lmStudioModel!.baseUrl).toBe('http://127.0.0.1:1234/v1');

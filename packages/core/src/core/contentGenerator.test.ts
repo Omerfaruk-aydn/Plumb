@@ -34,9 +34,14 @@ vi.mock('./apiKeyCredentialStorage.js', () => ({
 
 vi.mock('./fakeContentGenerator.js');
 
-const mockGetApiKey =
-  vi.fn<(providerId: string) => Promise<string | undefined>>();
+const { mockGetApiKey, mockGetPlumbProvider } = vi.hoisted(() => ({
+  mockGetApiKey: vi.fn<(providerId: string) => Promise<string | undefined>>(),
+  mockGetPlumbProvider: vi.fn<
+    () => { authMethods: Array<{ type: string; envVar?: string }> }
+  >(() => ({ authMethods: [] })),
+}));
 vi.mock('@google/gemini-cli-provider', () => ({
+  getPlumbProvider: mockGetPlumbProvider,
   getPlumbProviderRegistry: () => ({
     getApiKey: mockGetApiKey,
   }),
@@ -1544,6 +1549,8 @@ describe('createContentGeneratorConfig', () => {
 
     beforeEach(() => {
       mockGetApiKey.mockReset();
+      mockGetPlumbProvider.mockReset();
+      mockGetPlumbProvider.mockReturnValue({ authMethods: [] });
     });
 
     it('resolves the stored credential from the canonical registry instead of the transient setup apiKey', async () => {
@@ -1571,6 +1578,31 @@ describe('createContentGeneratorConfig', () => {
       );
 
       expect(config.apiKey).toBe('literal-setup-key');
+    });
+
+    it("resolves only the active provider's declared credential environment variable", async () => {
+      mockGetApiKey.mockResolvedValue(undefined);
+      mockGetPlumbProvider.mockReturnValue({
+        authMethods: [
+          { type: 'none' },
+          { type: 'api_key', envVar: 'LM_STUDIO_API_KEY' },
+        ],
+      });
+      vi.stubEnv('LM_STUDIO_API_KEY', 'lm-studio-env-token');
+      vi.stubEnv('VLLM_API_KEY', 'must-not-bleed');
+      const localConfig = {
+        ...mockConfigPlain,
+        getPlumbProvider: vi.fn().mockReturnValue('lm-studio'),
+      } as unknown as Config;
+
+      const config = await createContentGeneratorConfig(
+        localConfig,
+        AuthType.PLUMB_PROVIDER,
+      );
+
+      expect(config.apiKey).toBe('lm-studio-env-token');
+      expect(config.apiKey).not.toBe('must-not-bleed');
+      vi.unstubAllEnvs();
     });
 
     it('never mixes providers — resolves strictly by the active provider id', async () => {

@@ -169,7 +169,8 @@ export interface PlumbModel {
   readonly requestModelId?: string;
   readonly contextWindow: number;
   readonly maxTokens: number;
-  readonly reasoning: boolean;
+  /** Undefined means the source did not report reasoning capability. */
+  readonly reasoning?: boolean;
   /**
    * Whether this specific model is documented/discovered to support
    * tool/function calling. `undefined` means unknown (no capability
@@ -344,6 +345,17 @@ export interface PlumbStreamOptions {
   maxTokens?: number;
   temperature?: number;
   systemPrompt?: string;
+  responseFormat?:
+    | { type: 'json_object' }
+    | {
+        type: 'json_schema';
+        json_schema: {
+          name: string;
+          strict: boolean;
+          schema: Record<string, unknown>;
+        };
+      };
+  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
   traceSource?: 'NORMAL_CHAT' | 'LIVE_PROBE';
   /**
    * The single execution authority for tool calls a transport's model

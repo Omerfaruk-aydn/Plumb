@@ -33,7 +33,10 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
 import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
 import { PlumbContentGenerator } from './plumbContentGenerator.js';
-import { getPlumbProviderRegistry } from '@google/gemini-cli-provider';
+import {
+  getPlumbProvider,
+  getPlumbProviderRegistry,
+} from '@google/gemini-cli-provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 /**
@@ -195,15 +198,26 @@ export async function createContentGeneratorConfig(
     const providerId = config?.getPlumbProvider?.() ?? undefined;
     let resolvedApiKey = apiKey;
     if (providerId) {
+      const provider = getPlumbProvider(providerId);
+      const credentialEnvVars =
+        provider?.authMethods.flatMap((method) =>
+          method.type === 'api_key' && method.envVar ? [method.envVar] : [],
+        ) ?? [];
+      const envCredential = credentialEnvVars
+        .map((envVar) => getEnv(envVar)?.trim())
+        .find((value): value is string => Boolean(value));
       try {
         resolvedApiKey =
-          (await getPlumbProviderRegistry().getApiKey(providerId)) ?? apiKey;
+          (await getPlumbProviderRegistry().getApiKey(providerId)) ??
+          envCredential ??
+          apiKey;
       } catch (err) {
         debugLogger.warn(
           `Failed to resolve stored credential for provider ${providerId}: ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
+        resolvedApiKey = envCredential ?? apiKey;
       }
     }
     contentGeneratorConfig.apiKey = resolvedApiKey ?? '';

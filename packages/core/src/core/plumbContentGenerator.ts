@@ -26,6 +26,34 @@ import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import type { Config } from '../config/config.js';
 import { debugLogger } from '../utils/debugLogger.js';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toGeminiFinishReason(reason: unknown): string {
+  if (typeof reason !== 'string') return 'STOP';
+  switch (reason.toLowerCase()) {
+    case 'stop':
+    case 'end_turn':
+    case 'stop_sequence':
+    case 'tool_calls':
+    case 'tool_use':
+      return 'STOP';
+    case 'length':
+    case 'max_tokens':
+      return 'MAX_TOKENS';
+    case 'content_filter':
+    case 'safety':
+      return 'SAFETY';
+    case 'cancelled':
+    case 'canceled':
+    case 'other':
+      return 'OTHER';
+    default:
+      return reason.toUpperCase();
+  }
+}
+
 export class PlumbContentGenerator implements ContentGenerator {
   readonly #instanceId = `cg-${Math.random().toString(36).slice(2, 10)}`;
   readonly #providerId: string;
@@ -56,6 +84,7 @@ export class PlumbContentGenerator implements ContentGenerator {
   ): Promise<GenerateContentResponse> {
     const parts: any[] = [];
     let usageMetadata: any;
+    let finishReason = 'STOP';
 
     const stream = await this.generateContentStream(
       request,
@@ -69,6 +98,9 @@ export class PlumbContentGenerator implements ContentGenerator {
           parts.push(part);
         }
       }
+      if (candidate?.finishReason) {
+        finishReason = toGeminiFinishReason(candidate.finishReason);
+      }
       if ((chunk as any).usageMetadata) {
         usageMetadata = (chunk as any).usageMetadata;
       }
@@ -78,7 +110,7 @@ export class PlumbContentGenerator implements ContentGenerator {
       candidates: [
         {
           content: { parts, role: 'model' },
-          finishReason: 'STOP' as any,
+          finishReason: finishReason as any,
           index: 0,
         },
       ],
@@ -111,6 +143,11 @@ export class PlumbContentGenerator implements ContentGenerator {
     const messages = this.#convertMessages(contents);
     const tools = this.#convertTools((request as any).config?.tools ?? []);
     const systemPrompt = this.#extractSystemPrompt(request);
+    const requestConfig = (request as any).config ?? {};
+    const responseFormat = this.#buildResponseFormat(requestConfig);
+    const reasoningEffort = this.#resolveReasoningEffort(
+      requestConfig.thinkingConfig?.thinkingLevel,
+    );
 
     // Look up the full model from the registry to get baseUrl and other metadata.
     // The registry's OMP catalog carries the provider-specific base URL
@@ -227,6 +264,10 @@ export class PlumbContentGenerator implements ContentGenerator {
         signal: abortSignal,
         toolExecutor,
         systemPrompt,
+        maxTokens: requestConfig.maxOutputTokens,
+        temperature: requestConfig.temperature,
+        responseFormat,
+        reasoningEffort,
         traceSource: 'NORMAL_CHAT',
         generatorInstance: {
           instanceId: this.#instanceId,
@@ -283,7 +324,7 @@ export class PlumbContentGenerator implements ContentGenerator {
               candidates: [
                 {
                   content: { parts: [], role: 'model' },
-                  finishReason: event.finishReason ?? 'STOP',
+                  finishReason: toGeminiFinishReason(event.finishReason),
                   index: 0,
                 },
               ],
@@ -341,6 +382,48 @@ export class PlumbContentGenerator implements ContentGenerator {
         },
       ],
     } as unknown as GenerateContentResponse;
+  }
+
+  #buildResponseFormat(config: Record<string, any>):
+    | { type: 'json_object' }
+    | {
+        type: 'json_schema';
+        json_schema: {
+          name: string;
+          strict: boolean;
+          schema: Record<string, unknown>;
+        };
+      }
+    | undefined {
+    if (config['responseMimeType'] !== 'application/json') return undefined;
+    const responseSchema = config['responseSchema'];
+    if (isRecord(responseSchema)) {
+      return {
+        type: 'json_schema',
+        json_schema: {
+          name: 'response',
+          strict: true,
+          schema: responseSchema,
+        },
+      };
+    }
+    return { type: 'json_object' };
+  }
+
+  #resolveReasoningEffort(
+    thinkingLevel: unknown,
+  ): 'minimal' | 'low' | 'medium' | 'high' | undefined {
+    if (typeof thinkingLevel !== 'string') return undefined;
+    const normalized = thinkingLevel.toLowerCase();
+    if (
+      normalized === 'minimal' ||
+      normalized === 'low' ||
+      normalized === 'medium' ||
+      normalized === 'high'
+    ) {
+      return normalized;
+    }
+    return undefined;
   }
 
   /**
@@ -413,6 +496,19 @@ export class PlumbContentGenerator implements ContentGenerator {
       for (const part of content.parts) {
         if (part.text) {
           structuredParts.push({ type: 'text', text: part.text });
+        } else if (part.inlineData?.data) {
+          const mimeType = part.inlineData.mimeType ?? 'image/png';
+          structuredParts.push({
+            type: 'image',
+            imageUrl: `data:${mimeType};base64,${part.inlineData.data}`,
+            mimeType,
+          });
+        } else if (part.fileData?.fileUri) {
+          structuredParts.push({
+            type: 'image',
+            imageUrl: part.fileData.fileUri,
+            mimeType: part.fileData.mimeType,
+          });
         } else if (part.functionCall) {
           const fc = part.functionCall;
           structuredParts.push({

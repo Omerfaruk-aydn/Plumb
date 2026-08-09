@@ -130,6 +130,49 @@ type PlumbTransportFactory = (
 ) => AsyncGenerator<PlumbStreamEvent>;
 
 const transportFactories = new Map<PlumbKnownApi, PlumbTransportFactory>();
+const PROVIDER_REQUEST_TIMEOUT_MS = 120_000;
+
+function createBoundedRequestSignal(parent?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(PROVIDER_REQUEST_TIMEOUT_MS);
+  return parent ? AbortSignal.any([parent, timeout]) : timeout;
+}
+
+function setHeaderCaseInsensitive(
+  headers: Record<string, string>,
+  name: string,
+  value: string,
+): void {
+  for (const existing of Object.keys(headers)) {
+    if (existing.toLowerCase() === name.toLowerCase()) {
+      delete headers[existing];
+    }
+  }
+  headers[name] = value;
+}
+
+function normalizePlumbFinishReason(reason: unknown): string | undefined {
+  if (typeof reason !== 'string' || !reason) return undefined;
+  switch (reason.toLowerCase()) {
+    case 'stop':
+    case 'end_turn':
+    case 'stop_sequence':
+      return 'stop';
+    case 'length':
+    case 'max_tokens':
+      return 'max_tokens';
+    case 'tool_calls':
+    case 'tool_use':
+      return 'tool_calls';
+    case 'content_filter':
+    case 'safety':
+      return 'safety';
+    case 'cancelled':
+    case 'canceled':
+      return 'cancelled';
+    default:
+      return 'other';
+  }
+}
 
 /** Register a streaming transport for an API type. */
 export function registerPlumbTransport(
@@ -164,10 +207,13 @@ async function* openAICompatibleStream(
     maxTokens,
     temperature,
     systemPrompt,
+    responseFormat,
+    reasoningEffort,
   } = options;
 
   const baseUrl = model.baseUrl ?? 'https://api.openai.com/v1';
   const url = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const requestSignal = createBoundedRequestSignal(signal);
 
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
@@ -176,7 +222,7 @@ async function* openAICompatibleStream(
     stream_options: { include_usage: true },
   };
 
-  if (tools && tools.length > 0) {
+  if (tools && tools.length > 0 && model.toolsSupported !== false) {
     body.tools = tools.map((t) => ({
       type: 'function',
       function: t.function,
@@ -185,6 +231,8 @@ async function* openAICompatibleStream(
   if (maxTokens) body.max_tokens = maxTokens;
   if (temperature !== undefined && temperature >= 0)
     body.temperature = temperature;
+  if (responseFormat) body.response_format = responseFormat;
+  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
 
   // A missing/empty credential must fail loudly here — falling through
   // silently produces `Authorization: Bearer ` (no token), which providers
@@ -210,21 +258,23 @@ async function* openAICompatibleStream(
 
   // Azure OpenAI uses api-key header; all others use Authorization: Bearer.
   // The model.headers field can carry provider-specific headers.
-  const authHeaders: Record<string, string> = {};
+  // Provider metadata headers are assembled first; credential authority is
+  // applied last so an accidental/malicious case-insensitive auth header in
+  // metadata cannot replace the credential selected for this provider.
+  const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
   const isAzure =
     model.provider === 'azure' ||
     (model.baseUrl ?? '').includes('.openai.azure.com');
   if (apiKey) {
     if (isAzure) {
-      authHeaders['api-key'] = apiKey;
+      setHeaderCaseInsensitive(authHeaders, 'api-key', apiKey);
     } else {
-      authHeaders['Authorization'] = `Bearer ${apiKey}`;
+      setHeaderCaseInsensitive(
+        authHeaders,
+        'Authorization',
+        `Bearer ${apiKey}`,
+      );
     }
-  }
-
-  // Merge any provider-specific headers from the model.
-  if (model.headers) {
-    Object.assign(authHeaders, model.headers);
   }
 
   let response: Response;
@@ -236,11 +286,25 @@ async function* openAICompatibleStream(
         ...authHeaders,
       },
       body: JSON.stringify(body),
-      signal,
+      signal: requestSignal,
     });
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
+    if ((err as Error).name === 'AbortError' && signal?.aborted) {
       yield { type: 'done', finishReason: 'cancelled' };
+      return;
+    }
+    if (
+      (err as Error).name === 'AbortError' ||
+      (err as Error).name === 'TimeoutError'
+    ) {
+      yield {
+        type: 'error',
+        error: {
+          code: 'REQUEST_TIMEOUT',
+          message: 'Provider request timed out.',
+          retryable: true,
+        },
+      };
       return;
     }
     yield {
@@ -272,6 +336,20 @@ async function* openAICompatibleStream(
   const decoder = new TextDecoder();
   let buffer = '';
   let finishReason: string | undefined;
+  let cancelled = false;
+  const pendingToolCalls = new Map<
+    number,
+    { id: string; name: string; arguments: string }
+  >();
+
+  const flushToolCalls = function* (): Generator<PlumbStreamEvent> {
+    for (const [, toolCall] of [...pendingToolCalls.entries()].sort(
+      ([a], [b]) => a - b,
+    )) {
+      yield { type: 'tool_call', toolCall };
+    }
+    pendingToolCalls.clear();
+  };
 
   try {
     while (true) {
@@ -307,20 +385,25 @@ async function* openAICompatibleStream(
           if (delta?.tool_calls) {
             for (const tc of delta.tool_calls) {
               if (tc.function) {
-                yield {
-                  type: 'tool_call',
-                  toolCall: {
-                    id: tc.id ?? `call_${tc.index ?? 0}`,
-                    name: tc.function.name ?? '',
-                    arguments: tc.function.arguments ?? '',
-                  },
+                const index = tc.index ?? 0;
+                const current = pendingToolCalls.get(index) ?? {
+                  id: tc.id ?? `call_${index}`,
+                  name: '',
+                  arguments: '',
                 };
+                if (tc.id) current.id = tc.id;
+                if (tc.function.name) current.name += tc.function.name;
+                if (tc.function.arguments) {
+                  current.arguments += tc.function.arguments;
+                }
+                pendingToolCalls.set(index, current);
               }
             }
           }
 
           if (choice?.finish_reason) {
-            finishReason = choice.finish_reason;
+            finishReason = normalizePlumbFinishReason(choice.finish_reason);
+            yield* flushToolCalls();
           }
 
           if (parsed.usage) {
@@ -342,7 +425,19 @@ async function* openAICompatibleStream(
     }
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
-      // Graceful cancellation
+      if (signal?.aborted) {
+        cancelled = true;
+      } else {
+        yield {
+          type: 'error',
+          error: {
+            code: 'REQUEST_TIMEOUT',
+            message: 'Provider request timed out.',
+            retryable: true,
+          },
+        };
+        return;
+      }
     } else {
       yield {
         type: 'error',
@@ -354,7 +449,11 @@ async function* openAICompatibleStream(
     reader.releaseLock();
   }
 
-  yield { type: 'done', finishReason };
+  yield* flushToolCalls();
+  yield {
+    type: 'done',
+    finishReason: cancelled ? 'cancelled' : finishReason,
+  };
 }
 
 // ─── Anthropic Messages streaming ──────────────────────────────────────
@@ -374,6 +473,7 @@ async function* anthropicMessagesStream(
   } = options;
 
   const baseUrl = model.baseUrl ?? 'https://api.anthropic.com';
+  const requestSignal = createBoundedRequestSignal(signal);
   // Claude-on-Vertex's baseUrl (already resolved by plumbModelStream's
   // Vertex prep step) is the complete `:streamRawPredict` request URL --
   // appending `/v1/messages` like the direct Anthropic API would produce
@@ -463,17 +563,11 @@ async function* anthropicMessagesStream(
   // apiKey value.
   // The model.headers field can carry provider-specific headers
   // (e.g. anthropic-beta, anthropic-dangerous-direct-browser-access).
-  const authHeaders: Record<string, string> = {};
+  const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
   if (model.provider === 'github-copilot') {
-    authHeaders['Authorization'] = `Bearer ${apiKey}`;
+    setHeaderCaseInsensitive(authHeaders, 'Authorization', `Bearer ${apiKey}`);
   } else if (!isVertex) {
-    authHeaders['x-api-key'] = apiKey;
-  }
-
-  // Merge any provider-specific headers from the model (set by OMP catalog
-  // or by PlumbContentGenerator when it resolves the full model from registry).
-  if (model.headers) {
-    Object.assign(authHeaders, model.headers);
+    setHeaderCaseInsensitive(authHeaders, 'x-api-key', apiKey);
   }
 
   // Vertex Claude rejects the standard Anthropic body shape: `model` is
@@ -496,11 +590,25 @@ async function* anthropicMessagesStream(
         ...authHeaders,
       },
       body: JSON.stringify(body),
-      signal,
+      signal: requestSignal,
     });
   } catch (err) {
-    if ((err as Error).name === 'AbortError') {
+    if ((err as Error).name === 'AbortError' && signal?.aborted) {
       yield { type: 'done', finishReason: 'cancelled' };
+      return;
+    }
+    if (
+      (err as Error).name === 'AbortError' ||
+      (err as Error).name === 'TimeoutError'
+    ) {
+      yield {
+        type: 'error',
+        error: {
+          code: 'REQUEST_TIMEOUT',
+          message: 'Provider request timed out.',
+          retryable: true,
+        },
+      };
       return;
     }
     yield {
@@ -533,6 +641,30 @@ async function* anthropicMessagesStream(
   let finishReason: string | undefined;
   let inputTokens = 0;
   let outputTokens = 0;
+  let cancelled = false;
+  const pendingToolCalls = new Map<
+    number,
+    {
+      id: string;
+      name: string;
+      arguments: string;
+      hasDelta: boolean;
+    }
+  >();
+
+  const flushToolCall = function* (index: number): Generator<PlumbStreamEvent> {
+    const pending = pendingToolCalls.get(index);
+    if (!pending) return;
+    pendingToolCalls.delete(index);
+    yield {
+      type: 'tool_call',
+      toolCall: {
+        id: pending.id,
+        name: pending.name,
+        arguments: pending.arguments,
+      },
+    };
+  };
 
   try {
     while (true) {
@@ -555,14 +687,16 @@ async function* anthropicMessagesStream(
             case 'content_block_start': {
               const block = parsed.content_block;
               if (block.type === 'tool_use') {
-                yield {
-                  type: 'tool_call',
-                  toolCall: {
-                    id: block.id,
-                    name: block.name,
-                    arguments: '',
-                  },
-                };
+                const initialInput = block.input;
+                pendingToolCalls.set(parsed.index ?? 0, {
+                  id: block.id,
+                  name: block.name,
+                  arguments:
+                    initialInput && Object.keys(initialInput).length > 0
+                      ? JSON.stringify(initialInput)
+                      : '',
+                  hasDelta: false,
+                });
               }
               break;
             }
@@ -571,14 +705,13 @@ async function* anthropicMessagesStream(
               if (delta.type === 'text_delta') {
                 yield { type: 'text', text: delta.text };
               } else if (delta.type === 'input_json_delta') {
-                yield {
-                  type: 'tool_call',
-                  toolCall: {
-                    id: '',
-                    name: '',
-                    arguments: delta.partial_json,
-                  },
-                };
+                const index = parsed.index ?? 0;
+                const pending = pendingToolCalls.get(index);
+                if (pending) {
+                  if (!pending.hasDelta) pending.arguments = '';
+                  pending.hasDelta = true;
+                  pending.arguments += delta.partial_json ?? '';
+                }
               } else if (delta.type === 'thinking_delta') {
                 yield { type: 'thinking', thinkingText: delta.thinking };
               } else if (delta.type === 'signature_delta') {
@@ -586,9 +719,15 @@ async function* anthropicMessagesStream(
               }
               break;
             }
+            case 'content_block_stop': {
+              yield* flushToolCall(parsed.index ?? 0);
+              break;
+            }
             case 'message_delta': {
               if (parsed.delta?.stop_reason) {
-                finishReason = parsed.delta.stop_reason;
+                finishReason = normalizePlumbFinishReason(
+                  parsed.delta.stop_reason,
+                );
               }
               if (parsed.usage) {
                 outputTokens = parsed.usage.output_tokens ?? outputTokens;
@@ -637,7 +776,19 @@ async function* anthropicMessagesStream(
     }
   } catch (err) {
     if ((err as Error).name === 'AbortError') {
-      // Graceful cancellation
+      if (signal?.aborted) {
+        cancelled = true;
+      } else {
+        yield {
+          type: 'error',
+          error: {
+            code: 'REQUEST_TIMEOUT',
+            message: 'Provider request timed out.',
+            retryable: true,
+          },
+        };
+        return;
+      }
     } else {
       yield {
         type: 'error',
@@ -649,7 +800,13 @@ async function* anthropicMessagesStream(
     reader.releaseLock();
   }
 
-  yield { type: 'done', finishReason };
+  for (const index of [...pendingToolCalls.keys()].sort((a, b) => a - b)) {
+    yield* flushToolCall(index);
+  }
+  yield {
+    type: 'done',
+    finishReason: cancelled ? 'cancelled' : finishReason,
+  };
 }
 
 // ─── Google Cloud Code Assist streaming (google-gemini-cli / google-antigravity) ──
@@ -1697,7 +1854,28 @@ function buildAnthropicMessage(
   msg: PlumbStreamOptions['messages'][number],
 ): Record<string, unknown> {
   if (msg.role === 'user') {
-    return { role: 'user', content: msg.content };
+    if (typeof msg.content === 'string') {
+      return { role: 'user', content: msg.content };
+    }
+    const blocks: unknown[] = [];
+    for (const part of msg.content) {
+      if (part.type === 'text' && part.text) {
+        blocks.push({ type: 'text', text: part.text });
+      } else if (part.type === 'image') {
+        const dataUrl = /^data:([^;]+);base64,(.*)$/s.exec(part.imageUrl);
+        blocks.push({
+          type: 'image',
+          source: dataUrl
+            ? {
+                type: 'base64',
+                media_type: dataUrl[1],
+                data: dataUrl[2],
+              }
+            : { type: 'url', url: part.imageUrl },
+        });
+      }
+    }
+    return { role: 'user', content: blocks };
   }
   if (msg.role === 'assistant') {
     if (typeof msg.content === 'string') {
@@ -1788,10 +1966,11 @@ function buildGeminiContents(
             },
           });
         } else if (part.type === 'image') {
+          const dataUrl = /^data:([^;]+);base64,(.*)$/s.exec(part.imageUrl);
           parts.push({
             inlineData: {
-              mimeType: part.mimeType ?? 'image/png',
-              data: part.imageUrl,
+              mimeType: dataUrl?.[1] ?? part.mimeType ?? 'image/png',
+              data: dataUrl?.[2] ?? part.imageUrl,
             },
           });
         }
@@ -1926,7 +2105,11 @@ registerPlumbTransport('azure-openai-responses', streamAzureResponses);
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);
 
 // Local
-registerPlumbTransport('ollama-chat', ollamaCompatibleStream);
+// Ollama's advertised OpenAI-compatible Chat Completions surface uses the
+// same SSE/tool/reasoning/usage contract as the generic parser. Keeping a
+// second parser here previously lost fragmented tools, thinking tokens,
+// structured-output controls, timeout classification, and mid-stream aborts.
+registerPlumbTransport('ollama-chat', openAICompatibleStream);
 
 // Passthrough for specialized APIs (handled by downstream code)
 registerPlumbTransport('openai-codex-responses', openAICompatibleStream);

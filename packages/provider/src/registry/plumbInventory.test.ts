@@ -70,6 +70,29 @@ describe('PLUMB reference-route regression', () => {
     }
   });
 
+  it('keeps each optional local credential bound to its own provider', () => {
+    const expected = new Map([
+      ['ollama', 'OLLAMA_API_KEY'],
+      ['lm-studio', 'LM_STUDIO_API_KEY'],
+      ['llama-cpp', 'LLAMA_CPP_API_KEY'],
+      ['vllm', 'VLLM_API_KEY'],
+      ['sglang', 'SGLANG_API_KEY'],
+    ]);
+
+    for (const [id, envVar] of expected) {
+      const apiKeyMethods = getPlumbProvider(id)?.authMethods.filter(
+        (method) => method.type === 'api_key',
+      );
+      expect(apiKeyMethods, `${id} API-key method`).toEqual([
+        { type: 'api_key', envVar },
+      ]);
+    }
+
+    expect(getPlumbProvider('claude-subscription')?.authMethods).toEqual([
+      { type: 'none' },
+    ]);
+  });
+
   it('custom-openai-compat is a PLUMB-only synthetic exposed via the dialog', () => {
     // The custom endpoint is not in SELECTABLE_PROVIDERS because it is a
     // PLUMB-only synthetic surfaced through the dialog's "Advanced" fallback
