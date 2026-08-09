@@ -33,6 +33,7 @@ import { streamClaudeSubscription } from './claudeSubscription.js';
 import { streamWatsonx } from './watsonx.js';
 import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 import { streamBedrockConverse } from './bedrock.js';
+import { streamAzureResponses } from './azure.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -1818,6 +1819,7 @@ registerPlumbTransport('claude-agent-sdk', streamClaudeSubscription);
 registerPlumbTransport('watsonx-chat', streamWatsonx);
 registerPlumbTransport('oci-openai-responses', streamOciGenaiResponses);
 registerPlumbTransport('bedrock-converse-stream', streamBedrockConverse);
+registerPlumbTransport('azure-openai-responses', streamAzureResponses);
 
 // Google
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);
@@ -1827,7 +1829,6 @@ registerPlumbTransport('ollama-chat', ollamaCompatibleStream);
 
 // Passthrough for specialized APIs (handled by downstream code)
 registerPlumbTransport('openai-codex-responses', openAICompatibleStream);
-registerPlumbTransport('azure-openai-responses', openAICompatibleStream);
 registerPlumbTransport('cursor-agent', openAICompatibleStream);
 registerPlumbTransport('devin-agent', openAICompatibleStream);
 registerPlumbTransport('gitlab-duo-agent', openAICompatibleStream);
