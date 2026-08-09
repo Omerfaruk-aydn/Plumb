@@ -311,4 +311,145 @@ describe('PlumbSecureCredentialStore', () => {
       );
     });
   });
+
+  describe('namespace isolation: CREDENTIAL ENTRY != SAFE PROVIDER CONFIG ENTRY', () => {
+    it('replacing a credential (remove then storeApiKeyCredential -- the real edit-mode "Replace credential" flow) leaves safe config untouched', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1..real',
+      });
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'old-key',
+      });
+
+      // The real "Replace credential" edit-mode flow: remove the old
+      // credential, then store the new one (api_key credentials are not
+      // deduped/pruned by storeCredential the way OAuth credentials are --
+      // that's existing, intentional multi-account behavior, out of scope
+      // here; this is the deterministic replace sequence the UI uses).
+      await store.removeCredentials('oci-genai');
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'new-key',
+      });
+
+      expect(await store.getApiKey('oci-genai')).toBe('new-key');
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1..real',
+      });
+    });
+
+    it('an expired OAuth credential (getApiKey returns undefined) leaves safe config untouched', async () => {
+      await store.setProviderCloudConfig('watsonx', { region: 'eu-de' });
+      await store.storeOAuthCredential('watsonx', {
+        type: 'oauth',
+        provider: 'watsonx',
+        access: 'expired-access-token',
+        refresh: 'refresh-token',
+        expires: Date.now() - 3600_000, // already expired
+      });
+
+      expect(await store.getApiKey('watsonx')).toBeUndefined();
+      expect(await store.getProviderCloudConfig('watsonx')).toEqual({
+        region: 'eu-de',
+      });
+    });
+
+    it('credential logout (removeCredentials) does not implicitly clear safe provider config -- these are separate, explicit operations', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'real-key',
+      });
+
+      await store.removeCredentials('oci-genai');
+
+      expect(await store.hasCredentials('oci-genai')).toBe(false);
+      // Safe config survives an explicit credential-only logout -- clearing
+      // it requires the separate, explicit clearProviderCloudConfig call
+      // (part of full provider removal), never implied by credential
+      // removal alone.
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'us-chicago-1',
+      });
+    });
+
+    it('removeCredential (single-type removal) does not touch safe provider config', async () => {
+      await store.setProviderCloudConfig('azure', {
+        endpoint: 'https://my-resource.openai.azure.com',
+      });
+      await store.storeApiKeyCredential('azure', {
+        type: 'api_key',
+        provider: 'azure',
+        key: 'azure-key',
+      });
+
+      await store.removeCredential('azure', 'api_key');
+
+      expect(await store.getProviderCloudConfig('azure')).toEqual({
+        endpoint: 'https://my-resource.openai.azure.com',
+      });
+    });
+
+    it('atomically replacing safe config (replaceProviderCloudConfig) leaves the secret credential untouched', async () => {
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'real-key',
+      });
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+
+      await store.replaceProviderCloudConfig('oci-genai', {
+        region: 'ap-mumbai-1',
+        projectId: 'ocid1.generativeaiproject.oc1..new',
+      });
+
+      expect(await store.getApiKey('oci-genai')).toBe('real-key');
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({
+        region: 'ap-mumbai-1',
+        projectId: 'ocid1.generativeaiproject.oc1..new',
+      });
+    });
+
+    it('clearProviderCloudConfig (explicit provider removal) leaves the secret credential untouched -- config and credential clearing are independent operations', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'real-key',
+      });
+
+      await store.clearProviderCloudConfig('oci-genai');
+
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({});
+      expect(await store.getApiKey('oci-genai')).toBe('real-key');
+    });
+
+    it('clearAll clears both namespaces together (the one operation that legitimately spans both)', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'us-chicago-1',
+      });
+      await store.storeApiKeyCredential('oci-genai', {
+        type: 'api_key',
+        provider: 'oci-genai',
+        key: 'real-key',
+      });
+
+      await store.clearAll();
+
+      expect(await store.getProviderCloudConfig('oci-genai')).toEqual({});
+      expect(await store.getApiKey('oci-genai')).toBeUndefined();
+    });
+  });
 });
