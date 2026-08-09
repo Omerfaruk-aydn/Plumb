@@ -146,6 +146,22 @@ const LOCAL_PROVIDER_IDS = [
   'sglang',
 ] as const;
 
+const GATEWAY_PROVIDER_FIXTURES: Record<
+  string,
+  { envVar: string; api: string; baseUrl: string }
+> = {
+  portkey: {
+    envVar: 'PORTKEY_API_KEY',
+    api: 'openai-completions',
+    baseUrl: 'https://api.portkey.ai/v1',
+  },
+  litellm: {
+    envVar: 'LITELLM_API_KEY',
+    api: 'openai-completions',
+    baseUrl: 'http://127.0.0.1:4000/v1',
+  },
+};
+
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
@@ -166,6 +182,12 @@ vi.mock('@google/gemini-cli-provider', () => ({
     }
     if (id in CLOUD_PROVIDER_FIXTURES) {
       return CLOUD_PROVIDER_FIXTURES[id].catalogEntry;
+    }
+    if (id in GATEWAY_PROVIDER_FIXTURES) {
+      return {
+        defaultModel: `${id}-dynamic-model`,
+        envVars: [GATEWAY_PROVIDER_FIXTURES[id].envVar],
+      };
     }
     return undefined;
   },
@@ -197,6 +219,17 @@ vi.mock('@google/gemini-cli-provider', () => ({
         allowUnauthenticated: true,
         name: id,
         envVars: [],
+      };
+    }
+    if (id in GATEWAY_PROVIDER_FIXTURES) {
+      return {
+        id,
+        category: 'api_key',
+        authMethods: [
+          { type: 'api_key', envVar: GATEWAY_PROVIDER_FIXTURES[id].envVar },
+        ],
+        name: id,
+        envVars: [GATEWAY_PROVIDER_FIXTURES[id].envVar],
       };
     }
     return undefined;
@@ -232,13 +265,16 @@ vi.mock('@google/gemini-cli-provider', () => ({
   getPlumbModelRegistry: () => ({
     refreshProvider: async (id: string) => {
       if (mockLocalUnavailable.has(id)) return [];
+      const gateway = GATEWAY_PROVIDER_FIXTURES[id];
       return [
         {
-          id: `${id}-model`,
+          id: gateway ? `${id}-dynamic-model` : `${id}-model`,
           name: `${id} model`,
           provider: id,
-          api: id === 'ollama' ? 'ollama-chat' : 'openai-completions',
-          baseUrl: `http://127.0.0.1/${id}/v1`,
+          api:
+            gateway?.api ??
+            (id === 'ollama' ? 'ollama-chat' : 'openai-completions'),
+          baseUrl: gateway?.baseUrl ?? `http://127.0.0.1/${id}/v1`,
           contextWindow: 4096,
           maxTokens: 32,
           reasoning: false,
@@ -464,6 +500,30 @@ describe('provider acceptance harness', () => {
     expect(joined).toContain('credential.storage: keychain');
     expect(joined).toContain('authorization.header.present: true');
     expect(joined).not.toContain('local-key-canary');
+  });
+
+  it('19. dynamic-only gateways discover with the resolved credential before streaming', async () => {
+    process.stdin.isTTY = true;
+    for (const [providerId, fixture] of Object.entries(
+      GATEWAY_PROVIDER_FIXTURES,
+    )) {
+      vi.stubEnv(fixture.envVar, `${providerId}-credential-canary`);
+      const t = capture();
+
+      const exitCode = await runProviderAcceptanceTest(providerId, {
+        report: t.report,
+      });
+
+      expect(exitCode).toBe(0);
+      const joined = t.reportLines.join('\n');
+      expect(joined).toContain('models.bundled.count: 0');
+      expect(joined).toContain('models.dynamic.count: 1');
+      expect(joined).toContain(`selected.model: ${providerId}-dynamic-model`);
+      expect(joined).toContain(`request.endpoint: ${fixture.baseUrl}`);
+      expect(joined).toContain('result: LIVE_VERIFIED');
+      expect(joined).not.toContain(`${providerId}-credential-canary`);
+      vi.unstubAllEnvs();
+    }
   });
 });
 

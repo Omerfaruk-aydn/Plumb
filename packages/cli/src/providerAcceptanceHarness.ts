@@ -28,6 +28,17 @@ const LOCAL_PROVIDER_ROUTES = new Set([
   'sglang',
 ]);
 
+const GATEWAY_PROVIDER_ROUTES = new Set([
+  'openrouter',
+  'portkey',
+  'litellm',
+  'vercel-ai-gateway',
+  'cloudflare-ai-gateway',
+  'kilo',
+  'nanogpt',
+  'zenmux',
+]);
+
 // Env var that switches the interactive acceptance test to a deterministic
 // stub provider boundary (used by the Windows ConPTY integration test).
 export const ACCEPTANCE_STUB_ENV = 'PLUMB_ACCEPTANCE_STUB';
@@ -1707,10 +1718,11 @@ export async function runProviderAcceptanceTest(
 
     const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
     const defaultModelId = catalogEntry?.['defaultModel'] as string | undefined;
-    const selectedModel =
+    let selectedModel =
       (defaultModelId
         ? bundledModels.find((m) => m.id === defaultModelId)
         : undefined) ?? bundledModels[0];
+    let dynamicModels: typeof bundledModels = [];
 
     const registry = providerModule.getPlumbProviderRegistry?.();
     let authState = 'unauthenticated';
@@ -1720,6 +1732,7 @@ export async function runProviderAcceptanceTest(
         await registry.initialize();
         const state = registry.getProviderState(providerId);
         authState = state?.authState ?? 'unauthenticated';
+        keychainApiKey = await registry.getApiKey?.(providerId);
         // The registry already holds the decrypted credential for keychain
         // ('PLUMB-owned, stored via the canonical credential store' -- the
         // primary auth path for watsonx/oci-genai/azure/etc., see
@@ -1727,11 +1740,34 @@ export async function runProviderAcceptanceTest(
         // authState) would make the real stream test unreachable for every
         // provider whose credential lives in the keychain instead of env.
         const cred = state?.credentials;
-        if (cred?.type === 'api_key' && cred.key) {
+        if (!keychainApiKey && cred?.type === 'api_key' && cred.key) {
           keychainApiKey = cred.key;
         }
       } catch {
         // Registry not available
+      }
+    }
+
+    const resolvedCredential = hasEnvKey
+      ? (process.env[envVars.find((v) => process.env[v]?.trim()) ?? ''] ?? '')
+      : (keychainApiKey ?? '');
+    if (
+      GATEWAY_PROVIDER_ROUTES.has(providerId) &&
+      (resolvedCredential || plumbProvider?.allowUnauthenticated)
+    ) {
+      try {
+        dynamicModels =
+          (await providerModule
+            .getPlumbModelRegistry?.()
+            ?.refreshProvider?.(providerId, resolvedCredential || undefined)) ??
+          [];
+        const dynamicDefault = defaultModelId
+          ? dynamicModels.find((model) => model.id === defaultModelId)
+          : undefined;
+        selectedModel = dynamicDefault ?? dynamicModels[0] ?? selectedModel;
+      } catch {
+        // A gateway may not expose model enumeration. Bundled models remain
+        // the honest fallback; a dynamic-only gateway stays unverified.
       }
     }
 
@@ -1752,7 +1788,8 @@ export async function runProviderAcceptanceTest(
           : 'no_credential',
       credentialStorage: hasEnvKey ? 'env' : 'keychain',
       modelsBundledCount: bundledModels.length,
-      modelsFinalCount: bundledModels.length,
+      modelsDynamicCount: dynamicModels.length,
+      modelsFinalCount: dynamicModels.length || bundledModels.length,
       selectedModel: selectedModel?.id ?? 'none',
       transportDialect: api,
       requestEndpoint: baseUrl,
@@ -1762,9 +1799,7 @@ export async function runProviderAcceptanceTest(
 
     if ((hasEnvKey || authState === 'authenticated') && selectedModel) {
       try {
-        const apiKey = hasEnvKey
-          ? (process.env[envVars.find((v) => process.env[v]) ?? ''] ?? '')
-          : (keychainApiKey ?? '');
+        const apiKey = resolvedCredential;
 
         if (apiKey && providerModule.plumbModelStream) {
           result.streamStarted = true;
@@ -1789,19 +1824,19 @@ export async function runProviderAcceptanceTest(
           for await (const event of stream) {
             if (event.type === 'text' && event.text) {
               receivedText = true;
-              result.streamCompleted = true;
-              break;
             }
             if (event.type === 'error') {
               result.safeError = event.error?.message ?? 'stream_error';
               break;
             }
-            if (event.type === 'done') break;
+            if (event.type === 'done') {
+              result.streamCompleted = true;
+              break;
+            }
           }
 
-          if (receivedText) {
+          if (receivedText && result.streamCompleted) {
             result.result = 'LIVE_VERIFIED';
-            result.cancellationVerified = true;
           }
         }
       } catch (err) {
