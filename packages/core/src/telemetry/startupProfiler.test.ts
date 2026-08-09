@@ -26,14 +26,22 @@ vi.mock('node:os', () => ({
   release: vi.fn(() => '22.6.0'),
 }));
 
-// Mock fs module
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(() => false),
-  createWriteStream: vi.fn(() => ({
-    write: vi.fn(),
-    on: vi.fn(),
-  })),
-}));
+// Mock fs module. Spreads the real fs in and overrides only
+// existsSync/createWriteStream (what StartupProfiler itself calls) --
+// modules transitively imported here (e.g. the provider package's OAuth
+// callback-server.ts, which reads a real bundled oauth.html template via
+// readFileSync at module-load time) still need genuine sync fs access.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    existsSync: vi.fn(() => false),
+    createWriteStream: vi.fn(() => ({
+      write: vi.fn(),
+      on: vi.fn(),
+    })),
+  };
+});
 
 describe('StartupProfiler', () => {
   let profiler: StartupProfiler;

@@ -23,24 +23,45 @@ import {
 } from './nextSpeakerChecker.js';
 import { GeminiChat } from '../core/geminiChat.js';
 
-// Mock fs module to prevent actual file system operations during tests
-const mockFileSystem = new Map<string, string>();
+// Mock fs module to prevent actual file system operations during tests.
+// Must be vi.hoisted(): vi.mock('node:fs', ...) is hoisted to the top of
+// the module, but its factory only actually RUNS when something first
+// imports 'node:fs' -- which can happen while this file's own top-level
+// imports are still resolving (e.g. a transitively-imported provider
+// module reading 'node:fs' at its own module-load time), i.e. before a
+// plain `const mockFileSystem = ...` below this point would have been
+// initialized. A bare const here hits the TDZ intermittently depending on
+// import order; vi.hoisted() guarantees this exists before any vi.mock
+// factory can run.
+const { mockFileSystem } = vi.hoisted(() => ({
+  mockFileSystem: new Map<string, string>(),
+}));
 
-vi.mock('node:fs', () => {
+vi.mock('node:fs', async (importOriginal) => {
+  // Falls through to the real fs for any path this test never wrote --
+  // this file only wants to fake ITS OWN writes, not intercept every
+  // 'node:fs' call in the whole import graph (e.g. the provider package's
+  // OAuth callback-server.ts reads a real bundled oauth.html template at
+  // module-load time; unconditionally throwing ENOENT for unknown paths
+  // broke that load with no relation to anything this file tests).
+  const actual = await importOriginal<typeof import('node:fs')>();
   const fsModule = {
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn((path: string, data: string) => {
       mockFileSystem.set(path, data);
     }),
-    readFileSync: vi.fn((path: string) => {
+    readFileSync: vi.fn((path: string, ...args: unknown[]) => {
       if (mockFileSystem.has(path)) {
         return mockFileSystem.get(path);
       }
-      throw Object.assign(new Error('ENOENT: no such file or directory'), {
-        code: 'ENOENT',
-      });
+      return (actual.readFileSync as (...a: unknown[]) => unknown)(
+        path,
+        ...args,
+      );
     }),
-    existsSync: vi.fn((path: string) => mockFileSystem.has(path)),
+    existsSync: vi.fn(
+      (path: string) => mockFileSystem.has(path) || actual.existsSync(path),
+    ),
     createWriteStream: vi.fn(() => ({
       write: vi.fn(),
       on: vi.fn(),

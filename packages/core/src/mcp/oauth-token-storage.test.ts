@@ -12,23 +12,41 @@ import { MCPOAuthTokenStorage } from './oauth-token-storage.js';
 import { FORCE_ENCRYPTED_FILE_ENV_VAR } from './token-storage/index.js';
 import type { OAuthCredentials, OAuthToken } from './token-storage/types.js';
 import { GEMINI_DIR } from '../utils/paths.js';
+import { Storage } from '../config/storage.js';
 
-// Mock dependencies
-vi.mock('node:fs', () => ({
-  promises: {
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-    mkdir: vi.fn(),
-    unlink: vi.fn(),
-  },
-}));
+// Mock dependencies. Spreads the real fs module in and overrides only
+// `promises` (what this file's own code under test actually calls) --
+// modules transitively imported here (e.g. the provider package's OAuth
+// callback-server.ts, which reads a real bundled oauth.html template via
+// the SYNC readFileSync at module-load time) still need genuine sync fs
+// access; a mock exposing only `promises` left every sync fn undefined.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    promises: {
+      readFile: vi.fn(),
+      writeFile: vi.fn(),
+      mkdir: vi.fn(),
+      unlink: vi.fn(),
+    },
+  };
+});
 
 vi.mock('node:path', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:path')>();
   return {
     ...actual,
-    dirname: vi.fn(),
-    join: vi.fn(),
+    // Spy-wrap the real implementations rather than bare vi.fn() stubs --
+    // this file's own tests build expected values by calling path.join/
+    // dirname directly (e.g. `expect(...).toHaveBeenCalledWith(path.join(...))`),
+    // so they still need real path-joining behavior; a bare vi.fn() (no
+    // implementation) also broke any transitively-imported real module
+    // that computes a real path at load time (e.g. the provider package's
+    // OAuth callback-server.ts, which joins its own dirname with
+    // "oauth.html" to load a real bundled template).
+    dirname: vi.fn(actual.dirname),
+    join: vi.fn(actual.join),
   };
 });
 
@@ -83,6 +101,13 @@ describe('MCPOAuthTokenStorage', () => {
       tokenStorage = new MCPOAuthTokenStorage();
 
       vi.clearAllMocks();
+      // Storage.getMcpOAuthTokensPath is mocked with no default return
+      // value, so it must be re-armed after every clearAllMocks() -- every
+      // test in this block relies on the token file living under the mock
+      // home directory the assertions build via path.join(...) directly.
+      vi.mocked(Storage.getMcpOAuthTokensPath).mockReturnValue(
+        path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+      );
     });
 
     afterEach(() => {
@@ -422,6 +447,13 @@ describe('MCPOAuthTokenStorage', () => {
       tokenStorage = new MCPOAuthTokenStorage();
 
       vi.clearAllMocks();
+      // saveToken/ensureConfigDir still call getTokenFilePath()
+      // unconditionally even when encrypted storage is delegated to
+      // HybridTokenStorage -- same re-arm requirement as the
+      // "encrypted flag false" block above.
+      vi.mocked(Storage.getMcpOAuthTokensPath).mockReturnValue(
+        path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+      );
     });
 
     afterEach(() => {

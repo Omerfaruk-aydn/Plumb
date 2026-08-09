@@ -20,14 +20,23 @@ import type { ContentGenerator } from './contentGenerator.js';
 import { RecordingContentGenerator } from './recordingContentGenerator.js';
 import { LlmRole } from '../telemetry/types.js';
 
-vi.mock('node:fs', () => ({
-  appendFileSync: vi.fn(),
-  createWriteStream: vi.fn(() => ({
-    on: vi.fn(),
-    write: vi.fn(),
-    end: vi.fn(),
-  })),
-}));
+// Falls through to the real fs via importOriginal for everything except
+// appendFileSync/createWriteStream (this test's own fake writes) --
+// modules transitively imported here (e.g. the provider package's OAuth
+// callback-server.ts, which reads a real bundled oauth.html template at
+// module-load time) still need genuine readFileSync/existsSync/etc.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    appendFileSync: vi.fn(),
+    createWriteStream: vi.fn(() => ({
+      on: vi.fn(),
+      write: vi.fn(),
+      end: vi.fn(),
+    })),
+  };
+});
 
 describe('RecordingContentGenerator', () => {
   let mockRealGenerator: ContentGenerator;

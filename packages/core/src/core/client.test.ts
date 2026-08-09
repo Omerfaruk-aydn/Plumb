@@ -54,10 +54,30 @@ import { partToString } from '../utils/partUtils.js';
 import { coreEvents, CoreEvent } from '../utils/events.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 
-// Mock fs module to prevent actual file system operations during tests
-const mockFileSystem = new Map<string, string>();
+// Mock fs module to prevent actual file system operations during tests.
+// Must be vi.hoisted(): vi.mock('node:fs', ...) is hoisted to the top of
+// the module, but its factory only actually RUNS when something first
+// imports 'node:fs' -- which can happen while this file's own top-level
+// imports are still resolving (e.g. a transitively-imported provider
+// module reading 'node:fs' at its own module-load time), i.e. before a
+// plain `const mockFileSystem = ...` below this point would have been
+// initialized. A bare const here hits the TDZ intermittently depending on
+// import order; vi.hoisted() guarantees this exists before any vi.mock
+// factory can run.
+const { mockFileSystem } = vi.hoisted(() => ({
+  mockFileSystem: new Map<string, string>(),
+}));
 
-vi.mock('node:fs', () => {
+vi.mock('node:fs', async (importOriginal) => {
+  // Falls through to the real fs for any path this test never wrote --
+  // client.test.ts only wants to fake ITS OWN writes (chat-recording
+  // logs), not intercept every 'node:fs' call in the whole import graph.
+  // Modules transitively imported by client.ts (e.g. the provider
+  // package's OAuth callback-server.ts, which reads a real bundled
+  // oauth.html template at module-load time) still need genuine
+  // filesystem access; unconditionally throwing ENOENT for unknown paths
+  // broke that load with no relation to anything this file tests.
+  const actual = await importOriginal<typeof import('node:fs')>();
   const fsModule = {
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn((path: string, data: string) => {
@@ -67,15 +87,18 @@ vi.mock('node:fs', () => {
       const current = mockFileSystem.get(path) || '';
       mockFileSystem.set(path, current + data);
     }),
-    readFileSync: vi.fn((path: string) => {
+    readFileSync: vi.fn((path: string, ...args: unknown[]) => {
       if (mockFileSystem.has(path)) {
         return mockFileSystem.get(path);
       }
-      throw Object.assign(new Error('ENOENT: no such file or directory'), {
-        code: 'ENOENT',
-      });
+      return (actual.readFileSync as (...a: unknown[]) => unknown)(
+        path,
+        ...args,
+      );
     }),
-    existsSync: vi.fn((path: string) => mockFileSystem.has(path)),
+    existsSync: vi.fn(
+      (path: string) => mockFileSystem.has(path) || actual.existsSync(path),
+    ),
     createWriteStream: vi.fn(() => ({
       write: vi.fn(),
       on: vi.fn(),
@@ -419,7 +442,7 @@ describe('Gemini Client (client.ts)', () => {
 
       // The first message should be the environment context
       expect(history[0].role).toBe('user');
-      expect(history[0].parts?.[0]?.text).toContain('This is the PLUMB');
+      expect(history[0].parts?.[0]?.text).toContain('This is PLUMB');
       expect(history[0].parts?.[0]?.text).toContain(
         "The project's temporary directory is:",
       );
