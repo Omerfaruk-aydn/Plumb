@@ -115,7 +115,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'dialect test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -149,7 +149,7 @@ describe('Task 11 — Dialect/Transport Coverage Matrix', () => {
     process.env['OCI_REGION'] = 'us-ashburn-1';
     process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..11';
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth-11',

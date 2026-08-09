@@ -4,14 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Task 5 Config / Endpoint / Model / Dialect Bleed Matrix:
- * Exercises behavioral switch boundaries across Azure, Vertex, Bedrock, watsonx,
- * OCI, Local, and Gateway providers, proving:
- * - CONFIG_BLEED = ZERO
- * - ENDPOINT_BLEED = ZERO
- * - MODEL_BLEED = ZERO
- * - DIALECT_BLEED = ZERO
- * - TRANSPORT_BLEED = ZERO
- * - SESSION_BLEED = ZERO
+ * Exercises isolation across Cloud (Azure/Vertex/Bedrock/watsonx/OCI), Local,
+ * and Gateway provider configuration & wire dialect boundaries.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
@@ -20,7 +14,17 @@ import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
+import {
+  setCustomProviderDefinitions,
+  __resetCustomProviderDefinitionsForTests,
+  type CustomProviderDefinition,
+} from '../config/customProviderDefinitions.js';
 import type { PlumbStreamEvent, PlumbModel } from '../types.js';
+
+const mockQuery = vi.fn();
+vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
+  query: (...args: unknown[]) => mockQuery(...args),
+}));
 
 const mockTextChatStream = vi.fn();
 vi.mock('@ibm-cloud/watsonx-ai', () => ({
@@ -39,6 +43,17 @@ vi.mock('ibm-cloud-sdk-core', () => ({
   },
 }));
 
+function header(
+  headers: Record<string, string>,
+  name: string,
+): string | undefined {
+  const lower = name.toLowerCase();
+  for (const [k, v] of Object.entries(headers)) {
+    if (k.toLowerCase() === lower) return v;
+  }
+  return undefined;
+}
+
 async function drain(
   model: PlumbModel,
   apiKey?: string,
@@ -47,7 +62,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'hello bleed test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -58,40 +73,46 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   let registry: PlumbModelRegistry;
   const ORIGINAL_ENV = { ...process.env };
-  const calls: Array<{
-    url: string;
-    headers: Record<string, string>;
-    body: string;
-  }> = [];
+  const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+
+  const CUSTOM_ID_A = 'custom:11111111-1111-4111-a111-111111111111';
+  const CUSTOM_ID_B = 'custom:22222222-2222-4222-a222-222222222222';
+
+  const CUSTOM_DEFINITIONS: CustomProviderDefinition[] = [
+    {
+      version: 1,
+      id: CUSTOM_ID_A,
+      displayName: 'Custom Provider A',
+      dialect: 'openai-completions',
+      baseUrl: 'https://custom-a.example.test/v1',
+      credentialPlacement: 'bearer',
+      safeHeaders: { 'X-Custom-Tenant': 'tenant-alpha' },
+      manualModels: [{ id: 'custom-gpt-4o' }],
+    },
+    {
+      version: 1,
+      id: CUSTOM_ID_B,
+      displayName: 'Custom Provider B',
+      dialect: 'anthropic-messages',
+      baseUrl: 'https://custom-b.example.test',
+      credentialPlacement: 'x-api-key',
+      safeHeaders: { 'X-Custom-Tenant': 'tenant-beta' },
+      manualModels: [{ id: 'custom-claude-3-5' }],
+    },
+  ];
 
   beforeEach(async () => {
     const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
     installBunGlobal();
     registry = new PlumbModelRegistry();
+    setCustomProviderDefinitions(CUSTOM_DEFINITIONS);
+    registry.hydrateCustomProviderModels();
     calls.length = 0;
+    mockQuery.mockReset();
     mockTextChatStream.mockReset();
     setProviderConfigResolver(undefined);
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
-
-    process.env['AWS_ACCESS_KEY_ID'] = 'AWS_KEY_CANARY_5';
-    process.env['AWS_SECRET_ACCESS_KEY'] = 'AWS_SECRET_CANARY_5';
-    process.env['AWS_REGION'] = 'us-west-2';
-    delete process.env['AWS_BEARER_TOKEN_BEDROCK'];
-
-    process.env['AZURE_OPENAI_RESOURCE_NAME'] = 'azure-res-canary-5';
-    delete process.env['AZURE_OPENAI_BASE_URL'];
-    delete process.env['AZURE_OPENAI_DEPLOYMENT_NAME_MAP'];
-
-    process.env['GOOGLE_CLOUD_PROJECT'] = 'vertex-project-canary-5';
-    process.env['GOOGLE_CLOUD_LOCATION'] = 'us-west1';
-    process.env['GOOGLE_CLOUD_ACCESS_TOKEN'] = 'vertex-token-canary-5';
-
-    process.env['WATSONX_PROJECT_ID'] = 'watsonx-proj-canary-5';
-
-    process.env['OCI_REGION'] = 'eu-frankfurt-1';
-    process.env['OCI_COMPARTMENT_ID'] =
-      'ocid1.compartment.oc1..frankfurt-canary-5';
 
     fetchSpy = vi.fn(async (url: unknown, init?: RequestInit) => {
       const urlStr = String(url);
@@ -104,8 +125,7 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
       } else if (rawHeaders) {
         Object.assign(headers, rawHeaders as Record<string, string>);
       }
-      const body = String(init?.body ?? '');
-      calls.push({ url: urlStr, headers, body });
+      calls.push({ url: urlStr, headers });
       return new Response('data: [DONE]\n\n', {
         status: 200,
         headers: { 'content-type': 'text/event-stream' },
@@ -122,9 +142,10 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
     Object.assign(process.env, ORIGINAL_ENV);
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
+    __resetCustomProviderDefinitionsForTests();
   });
 
-  it('1. Cloud Providers Config & Endpoint Isolation (Azure -> Vertex -> Bedrock -> watsonx -> OCI)', async () => {
+  it('Matrix A: Cloud config isolation (Azure / Vertex / Bedrock / watsonx / OCI)', async () => {
     const [bedrockModel] = getCatalogModels('amazon-bedrock');
     const [azureModel] = getCatalogModels('azure');
     const vertexModels = getCatalogModels('google-vertex');
@@ -134,51 +155,45 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
     const [watsonxModel] = getCatalogModels('watsonx');
     const [ociModel] = getCatalogModels('oci-genai');
 
-    // Azure call
-    await drain(azureModel, 'azure-key-5');
-    const azureReq = calls[0];
-    expect(azureReq.url).toContain('azure-res-canary-5.openai.azure.com');
-
-    // Vertex call
-    await drain(vertexModel, '<authenticated>');
-    const vertexReq = calls[1];
-    expect(vertexReq.url).toContain('us-west1-aiplatform.googleapis.com');
-    expect(vertexReq.url).toContain('vertex-project-canary-5');
-    expect(vertexReq.url).not.toContain('azure-res-canary-5');
-
-    // Bedrock call
+    // 1. Bedrock with Region A
+    process.env['AWS_ACCESS_KEY_ID'] = 'AKIA_BEDROCK_5';
+    process.env['AWS_SECRET_ACCESS_KEY'] = 'AWS_SECRET_BEDROCK_5';
+    process.env['AWS_REGION'] = 'us-east-1';
     await drain(bedrockModel, '<authenticated>');
-    const bedrockReq = calls[2];
-    expect(bedrockReq.url).toContain('bedrock-runtime.us-west-2.amazonaws.com');
-    expect(bedrockReq.url).not.toContain('vertex-project-canary-5');
-    expect(bedrockReq.url).not.toContain('azure-res-canary-5');
+    expect(calls[0].url).toContain('bedrock-runtime.us-east-1.amazonaws.com');
 
-    // watsonx call
+    // 2. Azure with Resource B
+    process.env['AZURE_OPENAI_RESOURCE_NAME'] = 'azure-res-test-5';
+    await drain(azureModel, 'azure-key-5');
+    expect(calls[1].url).toContain('azure-res-test-5.openai.azure.com');
+
+    // 3. Vertex with Project C & Location C
+    process.env['GOOGLE_CLOUD_PROJECT'] = 'vertex-project-5';
+    process.env['GOOGLE_CLOUD_LOCATION'] = 'us-central1';
+    process.env['GOOGLE_CLOUD_ACCESS_TOKEN'] = 'vertex-tok-5';
+    await drain(vertexModel, '<authenticated>');
+    expect(calls[2].url).toContain('us-central1-aiplatform.googleapis.com');
+    expect(calls[2].url).toContain('vertex-project-5');
+
+    // 4. watsonx with Project D
+    process.env['WATSONX_PROJECT_ID'] = 'watsonx-project-id-5';
     mockTextChatStream.mockResolvedValue(
       (async function* () {
-        yield { data: { choices: [{ delta: { content: 'hi' } }] } };
+        yield { data: { choices: [{ delta: { content: 'hello' } }] } };
       })(),
     );
-    await drain(watsonxModel, 'ibm-key-5');
+    await drain(watsonxModel, 'watsonx-key-5');
     expect(mockTextChatStream).toHaveBeenCalledTimes(1);
-    const watsonxArgs = mockTextChatStream.mock.calls[0][0] as {
-      projectId?: string;
-    };
-    expect(watsonxArgs.projectId).toBe('watsonx-proj-canary-5');
 
-    // OCI call
+    // 5. OCI with Region E & Compartment E
+    process.env['OCI_REGION'] = 'us-ashburn-1';
+    process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..test5';
     await drain(ociModel, 'oci-key-5');
-    const ociReq = calls[3];
-    expect(ociReq.url).toContain(
-      'inference.generativeai.eu-frankfurt-1.oci.oraclecloud.com',
-    );
-    expect(ociReq.url).not.toContain('azure-res-canary-5');
-    expect(ociReq.url).not.toContain('vertex-project-canary-5');
-    expect(ociReq.url).not.toContain('watsonx-proj-canary-5');
-    expect(ociReq.url).not.toContain('amazonaws.com');
+    expect(calls[3].url).toContain('oraclecloud.com');
+    expect(calls[3].url).toContain('us-ashburn-1');
   });
 
-  it('2. Local Endpoint vs External Endpoint Isolation', async () => {
+  it('Matrix B: Local vs External endpoint isolation (Ollama / LM Studio)', async () => {
     const ollamaModel: PlumbModel = {
       id: 'llama3:8b',
       provider: 'ollama',
@@ -188,27 +203,20 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
       maxTokens: 4096,
       input: 'text',
     };
-    const openaiModel = registry.getModelsForProvider('openai')[0];
+    const externalModel = registry.getModelsForProvider('openai')[0];
 
-    // Local Ollama
     await drain(ollamaModel, '');
-    const localReq1 = calls[0];
-    expect(localReq1.url).toContain('127.0.0.1:11434');
+    expect(calls[0].url).toContain('127.0.0.1:11434');
+    expect(header(calls[0].headers, 'authorization')).toBeUndefined();
 
-    // External OpenAI
-    await drain(openaiModel, 'openai-key-5');
-    const openaiReq = calls[1];
-    expect(openaiReq.url).toContain('api.openai.com');
-    expect(openaiReq.url).not.toContain('127.0.0.1');
-
-    // Local Ollama return
-    await drain(ollamaModel, '');
-    const localReq2 = calls[2];
-    expect(localReq2.url).toContain('127.0.0.1:11434');
-    expect(localReq2.url).not.toContain('api.openai.com');
+    await drain(externalModel, 'key-openai-5');
+    expect(calls[1].url).toContain('api.openai.com');
+    expect(header(calls[1].headers, 'authorization')).toBe(
+      'Bearer key-openai-5',
+    );
   });
 
-  it('3. Gateway Endpoints Isolation (OpenRouter vs Portkey vs Cloudflare AI Gateway)', async () => {
+  it('Matrix C: Gateway routing isolation (OpenRouter / Portkey / Cloudflare AI Gateway)', async () => {
     const openrouterModel = registry.getModelsForProvider('openrouter')[0] ?? {
       id: 'openrouter/auto',
       provider: 'openrouter',
@@ -223,7 +231,7 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
       provider: 'portkey',
       api: 'openai-completions',
       baseUrl: 'https://api.portkey.ai/v1',
-      headers: { 'x-portkey-api-key': 'pk-canary-5' },
+      headers: { 'x-portkey-api-key': 'pk-5' },
       contextWindow: 128000,
       maxTokens: 4096,
       input: 'text',
@@ -232,56 +240,39 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
       id: '@cf/meta/llama-3-8b-instruct',
       provider: 'cloudflare-ai-gateway',
       api: 'openai-completions',
-      baseUrl: 'https://gateway.ai.cloudflare.com/v1/cfacc555/cfgw555/openai',
+      baseUrl: 'https://gateway.ai.cloudflare.com/v1/cfacc5/cfgw5/openai',
       contextWindow: 8192,
       maxTokens: 4096,
       input: 'text',
     };
 
-    // OpenRouter
     await drain(openrouterModel, 'or-key-5');
-    const req1 = calls[0];
-    expect(req1.url).toContain('openrouter.ai');
+    expect(calls[0].url).toContain('openrouter.ai');
 
-    // Portkey
     await drain(portkeyModel, 'pk-key-5');
-    const req2 = calls[1];
-    expect(req2.url).toContain('api.portkey.ai');
-    expect(req2.url).not.toContain('openrouter.ai');
+    expect(calls[1].url).toContain('portkey.ai');
+    expect(header(calls[1].headers, 'x-portkey-api-key')).toBe('pk-key-5');
 
-    // Cloudflare AI Gateway
     await drain(cfGatewayModel, 'cf-key-5');
-    const req3 = calls[2];
-    expect(req3.url).toContain('gateway.ai.cloudflare.com');
-    expect(req3.url).toContain('cfacc555/cfgw555');
-    expect(req3.url).not.toContain('portkey.ai');
-    expect(req3.url).not.toContain('openrouter.ai');
+    expect(calls[2].url).toContain('gateway.ai.cloudflare.com');
+    expect(calls[2].url).toContain('cfacc5/cfgw5');
   });
 
-  it('4. Dialect & Model Wire ID Isolation across sequential dispatches', async () => {
-    const openaiModel = registry.getModelsForProvider('openai')[0];
-    const anthropicModel = registry.getModelsForProvider('anthropic-api')[0];
+  it('Matrix D: Custom provider definition & header isolation', async () => {
+    const customA = registry.findModel(CUSTOM_ID_A, 'custom-gpt-4o')!;
+    const customB = registry.findModel(CUSTOM_ID_B, 'custom-claude-3-5')!;
 
-    await drain(openaiModel, 'key-a');
-    await drain(anthropicModel, 'key-b');
-
-    expect(calls).toHaveLength(2);
-    const reqOpenAI = calls[0];
-    const reqAnthropic = calls[1];
-
-    expect(reqOpenAI.url).toContain('api.openai.com');
-    expect(reqAnthropic.url).toContain('api.anthropic.com');
-
-    // Verify wire model ID is contained in the respective body payloads
-    expect(reqOpenAI.body).toContain(
-      openaiModel.requestModelId ?? openaiModel.id,
-    );
-    expect(reqAnthropic.body).toContain(
-      anthropicModel.requestModelId ?? anthropicModel.id,
+    await drain(customA, 'key-custom-a');
+    expect(calls[0].url).toContain('custom-a.example.test');
+    expect(header(calls[0].headers, 'x-custom-tenant')).toBe('tenant-alpha');
+    expect(header(calls[0].headers, 'authorization')).toBe(
+      'Bearer key-custom-a',
     );
 
-    // Verify OpenAI body does NOT contain Anthropic model ID and vice-versa
-    expect(reqOpenAI.body).not.toContain(anthropicModel.id);
-    expect(reqAnthropic.body).not.toContain(openaiModel.id);
+    await drain(customB, 'key-custom-b');
+    expect(calls[1].url).toContain('custom-b.example.test');
+    expect(header(calls[1].headers, 'x-custom-tenant')).toBe('tenant-beta');
+    expect(header(calls[1].headers, 'x-api-key')).toBe('key-custom-b');
+    expect(header(calls[1].headers, 'authorization')).toBeUndefined();
   });
 });

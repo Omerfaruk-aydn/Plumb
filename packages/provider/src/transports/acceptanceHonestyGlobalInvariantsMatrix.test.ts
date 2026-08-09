@@ -30,7 +30,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'honesty test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -52,7 +52,7 @@ describe('Task 10 — Acceptance Honesty Global Invariants Matrix', () => {
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async () => [],
       getApiKey: async () => null,
       hasCredentials: async () => false,

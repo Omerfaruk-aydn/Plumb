@@ -72,8 +72,9 @@ async function drainWithTools(
     messages: [{ role: 'user', content: 'run tool test' }],
     tools: sampleTools,
     toolExecutor:
-      toolExecutor ?? (async () => ({ status: 'success', content: 'ok' })),
-    apiKey,
+      toolExecutor ??
+      (async () => ({ status: 'success', content: 'ok', isError: false })),
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
     if (e.type === 'tool_call') {
@@ -102,6 +103,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
       dialect: 'openai-completions',
       baseUrl: 'https://tool-custom.example.test/v1',
       credentialPlacement: 'bearer',
+      safeHeaders: { 'X-Tenant': 'tool-8' },
       manualModels: [{ id: 'custom-tool-model' }],
     },
   ];
@@ -120,7 +122,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
 
     process.env['AZURE_OPENAI_RESOURCE_NAME'] = 'tool-azure-res';
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth-8',
@@ -205,7 +207,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
 
     const executor = vi
       .fn()
-      .mockResolvedValue({ status: 'success', content: 'ok' });
+      .mockResolvedValue({ status: 'success', content: 'ok', isError: false });
     const { events } = await drainWithTools(model, '<authenticated>', executor);
     expect(events.some((e) => e.type === 'error')).toBe(false);
     expect(mockQuery).toHaveBeenCalledTimes(1);

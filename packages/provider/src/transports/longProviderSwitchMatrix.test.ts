@@ -85,7 +85,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'long switch test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -145,7 +145,7 @@ describe('Task 6 — Long Provider Switch Matrix', () => {
     setCustomProviderDefinitions(CUSTOM_DEFINITIONS);
     registry.hydrateCustomProviderModels();
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth',

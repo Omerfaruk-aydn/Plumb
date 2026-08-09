@@ -56,7 +56,7 @@ describe('Task 9 — Secret Canary & Trace Sanitization Matrix', () => {
     process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE'] = '1';
     process.env['PLUMB_ANTIGRAVITY_TRACE_SAFE_FILE'] = traceFilePath;
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth-9',

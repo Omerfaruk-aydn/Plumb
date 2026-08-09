@@ -54,7 +54,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'cold start test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -92,7 +92,7 @@ describe('Task 7 — Cross-Architecture Cold Start Matrix', () => {
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth-7',

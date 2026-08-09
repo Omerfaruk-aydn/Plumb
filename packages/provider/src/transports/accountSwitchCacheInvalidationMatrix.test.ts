@@ -66,7 +66,7 @@ async function drain(
   for await (const e of plumbModelStream({
     model,
     messages: [{ role: 'user', content: 'account switch test' }],
-    apiKey,
+    apiKey: apiKey ?? '',
   })) {
     events.push(e);
   }
@@ -93,7 +93,7 @@ describe('Task 12 — Account Switch & Cache Invalidation Matrix', () => {
     __resetVertexTokenCache();
     __resetWatsonxClientCacheForTests();
 
-    registerPlumbCredentialStoreFactory(() => ({
+    registerPlumbCredentialStoreFactory(async () => ({
       getCredentials: async (p: string) => [
         {
           id: 'test-oauth-12',
