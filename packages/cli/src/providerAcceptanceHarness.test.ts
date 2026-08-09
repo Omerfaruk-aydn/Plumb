@@ -128,12 +128,23 @@ const CLOUD_PROVIDER_FIXTURES: Record<
 // Mutable per-test keychain/registry state, set via vi.hoisted so the
 // vi.mock factory below (which vitest hoists above this file's other
 // module-level code) can close over it.
-const { mockRegistryState } = vi.hoisted(() => ({
-  mockRegistryState: {} as Record<
-    string,
-    { authState: string; credentials?: { type: 'api_key'; key: string } }
-  >,
-}));
+const { mockRegistryState, mockLocalUnavailable, mockLocalStreamErrors } =
+  vi.hoisted(() => ({
+    mockRegistryState: {} as Record<
+      string,
+      { authState: string; credentials?: { type: 'api_key'; key: string } }
+    >,
+    mockLocalUnavailable: new Set<string>(),
+    mockLocalStreamErrors: new Map<string, string>(),
+  }));
+
+const LOCAL_PROVIDER_IDS = [
+  'ollama',
+  'lm-studio',
+  'llama-cpp',
+  'vllm',
+  'sglang',
+] as const;
 
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
@@ -178,6 +189,16 @@ vi.mock('@google/gemini-cli-provider', () => ({
         envVars: CLOUD_PROVIDER_FIXTURES[id].envVars,
       };
     }
+    if ((LOCAL_PROVIDER_IDS as readonly string[]).includes(id)) {
+      return {
+        id,
+        category: 'local',
+        authMethods: [{ type: 'none' }],
+        allowUnauthenticated: true,
+        name: id,
+        envVars: [],
+      };
+    }
     return undefined;
   },
   getCatalogModels: (id: string) => {
@@ -192,7 +213,13 @@ vi.mock('@google/gemini-cli-provider', () => ({
     }
     return [];
   },
-  async *plumbModelStream() {
+  async *plumbModelStream(options: { model?: { provider?: string } }) {
+    const providerId = options.model?.provider ?? '';
+    const errorCode = mockLocalStreamErrors.get(providerId);
+    if (errorCode) {
+      yield { type: 'error', error: { code: errorCode } };
+      return;
+    }
     yield { type: 'text', text: 'PLUMB_TEST_OK' };
     yield { type: 'done' };
   },
@@ -200,6 +227,26 @@ vi.mock('@google/gemini-cli-provider', () => ({
   getPlumbProviderRegistry: () => ({
     initialize: vi.fn(),
     getProviderState: (id: string) => mockRegistryState[id],
+    getApiKey: async (id: string) => mockRegistryState[id]?.credentials?.key,
+  }),
+  getPlumbModelRegistry: () => ({
+    refreshProvider: async (id: string) => {
+      if (mockLocalUnavailable.has(id)) return [];
+      return [
+        {
+          id: `${id}-model`,
+          name: `${id} model`,
+          provider: id,
+          api: id === 'ollama' ? 'ollama-chat' : 'openai-completions',
+          baseUrl: `http://127.0.0.1/${id}/v1`,
+          contextWindow: 4096,
+          maxTokens: 32,
+          reasoning: false,
+          input: 'text',
+          source: 'SERVER_DYNAMIC',
+        },
+      ];
+    },
   }),
 }));
 
@@ -278,9 +325,16 @@ describe('provider acceptance harness', () => {
     originalIsTTY = process.stdin.isTTY;
     originalSetRawMode = process.stdin.setRawMode;
     delete process.env[ACCEPTANCE_STUB_ENV];
+    mockLocalUnavailable.clear();
+    mockLocalStreamErrors.clear();
   });
 
   afterEach(() => {
+    mockLocalUnavailable.clear();
+    mockLocalStreamErrors.clear();
+    for (const key of Object.keys(mockRegistryState)) {
+      delete mockRegistryState[key];
+    }
     if (originalIsTTY !== undefined) {
       process.stdin.isTTY = originalIsTTY;
     } else {
@@ -330,14 +384,14 @@ describe('provider acceptance harness', () => {
     expect(exitCode).toBe(0);
   });
 
-  it('15. NVIDIA/local/custom routes remain working', async () => {
+  it('15. local routes execute discovery and transport without requiring a TTY', async () => {
+    process.stdin.isTTY = false;
     const referenceRoutes = [
-      'nvidia',
       'ollama',
       'lm-studio',
       'llama-cpp',
       'vllm',
-      'custom-openai-compat',
+      'sglang',
     ];
     for (const route of referenceRoutes) {
       const t = capture();
@@ -345,7 +399,71 @@ describe('provider acceptance harness', () => {
         report: t.report,
       });
       expect(exitCode).toBe(0);
+      const joined = t.reportLines.join('\n');
+      expect(joined).toContain('models.dynamic.count: 1');
+      expect(joined).toContain('stream.completed: true');
+      expect(joined).toContain('cancellation.verified: false');
+      expect(joined).toContain('result: LIVE_VERIFIED');
     }
+  });
+
+  it('16. an unreachable local server fails safely and is never recorded as verified', async () => {
+    mockLocalUnavailable.add('vllm');
+    const t = capture();
+
+    const exitCode = await runProviderAcceptanceTest('vllm', {
+      report: t.report,
+    });
+
+    expect(exitCode).toBe(1);
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('result: SERVER_UNAVAILABLE');
+    expect(joined).toContain('safe.error: SERVER_UNAVAILABLE:');
+    expect(joined).not.toContain('result: LIVE_VERIFIED');
+    expect(recordAcceptance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: 'vllm',
+        safeResult: 'SERVER_UNAVAILABLE',
+        streamVerified: false,
+      }),
+    );
+  });
+
+  it('17. a local request network failure stays redacted and never claims completion', async () => {
+    mockLocalStreamErrors.set('ollama', 'NETWORK_ERROR');
+    const t = capture();
+
+    const exitCode = await runProviderAcceptanceTest('ollama', {
+      report: t.report,
+    });
+
+    expect(exitCode).toBe(1);
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('stream.started: true');
+    expect(joined).toContain('stream.completed: false');
+    expect(joined).toContain('result: SERVER_UNAVAILABLE');
+    expect(joined).toContain(
+      'safe.error: SERVER_UNAVAILABLE: the configured local server could not complete the request.',
+    );
+  });
+
+  it('18. an optional local credential is resolved from the canonical registry', async () => {
+    mockRegistryState['lm-studio'] = {
+      authState: 'authenticated',
+      credentials: { type: 'api_key', key: 'local-key-canary' },
+    };
+    const t = capture();
+
+    const exitCode = await runProviderAcceptanceTest('lm-studio', {
+      report: t.report,
+    });
+
+    expect(exitCode).toBe(0);
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('auth.result: keychain_authenticated');
+    expect(joined).toContain('credential.storage: keychain');
+    expect(joined).toContain('authorization.header.present: true');
+    expect(joined).not.toContain('local-key-canary');
   });
 });
 

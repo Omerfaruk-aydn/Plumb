@@ -18,13 +18,14 @@ import { recordAcceptance, getAllAcceptances } from './providerAcceptance.js';
 const OMP_SHA = '4df68d60438423b384b2b47fb3d6835641624757';
 
 // Reference routes that are already user-verified and must not be retested.
-const REFERENCE_ROUTES = new Set([
-  'nvidia',
+const REFERENCE_ROUTES = new Set(['nvidia', 'custom-openai-compat']);
+
+const LOCAL_PROVIDER_ROUTES = new Set([
   'ollama',
   'lm-studio',
   'llama-cpp',
   'vllm',
-  'custom-openai-compat',
+  'sglang',
 ]);
 
 // Env var that switches the interactive acceptance test to a deterministic
@@ -125,6 +126,7 @@ export interface ProviderTestResult {
     | 'BLOCKED_PROVIDER_POLICY'
     | 'BLOCKED_ACCOUNT_ENTITLEMENT'
     | 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE'
+    | 'SERVER_UNAVAILABLE'
     | 'LIVE_TEST_FAILED'
     | 'LIVE_TEST_CANCELLED';
 }
@@ -214,6 +216,161 @@ function buildTestResult(
     result: 'LIVE_TEST_FAILED',
     ...overrides,
   };
+}
+
+interface LocalAcceptanceModel {
+  id: string;
+  api?: string;
+  baseUrl?: string;
+}
+
+interface LocalAcceptanceProviderModule {
+  getPlumbProviderRegistry?: () => {
+    initialize(): Promise<void>;
+    getApiKey?(providerId: string): Promise<string | undefined>;
+    getProviderState?(providerId: string): {
+      credentials?: { type: string; key?: string };
+    } | null;
+  };
+  getPlumbModelRegistry?: () => {
+    refreshProvider(
+      providerId: string,
+      apiKey?: string,
+    ): Promise<LocalAcceptanceModel[]>;
+    findModel?(
+      providerId: string,
+      modelId: string,
+    ): LocalAcceptanceModel | undefined;
+  };
+  plumbModelStream?: (options: Record<string, unknown>) => AsyncIterable<{
+    type: string;
+    text?: string;
+    error?: { code: string };
+  }>;
+}
+
+async function runLocalProviderAcceptanceTest(
+  providerId: string,
+  providerModule: LocalAcceptanceProviderModule,
+  classification: { registration: string; category: string },
+  report: ReportEmitter,
+): Promise<number> {
+  const providerRegistry = providerModule.getPlumbProviderRegistry?.();
+  let apiKey: string | undefined;
+  if (providerRegistry) {
+    try {
+      await providerRegistry.initialize();
+      apiKey = await providerRegistry.getApiKey?.(providerId);
+      if (!apiKey) {
+        const credential =
+          providerRegistry.getProviderState?.(providerId)?.credentials;
+        if (credential?.type === 'api_key') apiKey = credential.key;
+      }
+    } catch {
+      // Keyless local endpoints are valid. Discovery below remains the
+      // authority for whether the configured server is actually reachable.
+    }
+  }
+
+  const modelRegistry = providerModule.getPlumbModelRegistry?.();
+  if (!modelRegistry?.refreshProvider || !providerModule.plumbModelStream) {
+    const result = buildTestResult(providerId, classification, {
+      authResult: apiKey ? 'keychain_authenticated' : 'not_required',
+      credentialStorage: apiKey ? 'keychain' : 'none',
+      result: 'IMPLEMENTATION_INCOMPLETE_NOT_SELECTABLE',
+      safeError: 'Local discovery or transport is not registered.',
+    });
+    emitResultReport(result, report);
+    void recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  let models: LocalAcceptanceModel[] = [];
+  try {
+    models = await modelRegistry.refreshProvider(providerId, apiKey);
+  } catch {
+    // Discovery adapters intentionally keep network errors provider-local.
+    // The safe result below exposes no URL, response body, or credential.
+  }
+
+  const discoveredModel = models[0];
+  const selectedModel = discoveredModel
+    ? (modelRegistry.findModel?.(providerId, discoveredModel.id) ??
+      discoveredModel)
+    : undefined;
+  const result = buildTestResult(providerId, classification, {
+    registrationClassification: 'LOCAL_RUNTIME_ENDPOINT',
+    authResult: apiKey ? 'keychain_authenticated' : 'not_required',
+    credentialStorage: apiKey ? 'keychain' : 'none',
+    modelsDynamicCount: models.length,
+    modelsFinalCount: models.length,
+    selectedModel: selectedModel?.id ?? 'none',
+    transportDialect: selectedModel?.api ?? 'none',
+    authorizationHeaderPresent: Boolean(apiKey),
+    requestEndpoint: selectedModel?.baseUrl ?? 'configured-local-endpoint',
+  });
+
+  if (!selectedModel) {
+    result.result = 'SERVER_UNAVAILABLE';
+    result.safeError =
+      'SERVER_UNAVAILABLE: the configured local server returned no discoverable models.';
+    emitResultReport(result, report);
+    void recordAcceptanceFromResult(result);
+    return 1;
+  }
+
+  let sawText = false;
+  let sawDone = false;
+  try {
+    result.streamStarted = true;
+    const stream = providerModule.plumbModelStream({
+      model: selectedModel,
+      messages: [{ role: 'user', content: 'Say exactly: PLUMB_TEST_OK' }],
+      apiKey: apiKey ?? '',
+      maxTokens: 32,
+    });
+    for await (const event of stream) {
+      if (event.type === 'text' && event.text) sawText = true;
+      if (event.type === 'done') {
+        sawDone = true;
+        break;
+      }
+      if (event.type === 'error') {
+        const unavailableCodes = new Set([
+          'NETWORK_ERROR',
+          'REQUEST_FAILED',
+          'NO_RESPONSE_BODY',
+        ]);
+        if (unavailableCodes.has(event.error?.code ?? '')) {
+          result.result = 'SERVER_UNAVAILABLE';
+          result.safeError =
+            'SERVER_UNAVAILABLE: the configured local server could not complete the request.';
+        } else {
+          result.result = 'LIVE_TEST_FAILED';
+          result.safeError = `Local transport error: ${event.error?.code ?? 'UNKNOWN'}`;
+        }
+        break;
+      }
+    }
+  } catch {
+    result.result = 'SERVER_UNAVAILABLE';
+    result.safeError =
+      'SERVER_UNAVAILABLE: the configured local server could not complete the request.';
+  }
+
+  result.streamCompleted = sawDone;
+  if (sawText && sawDone) {
+    result.result = 'LIVE_VERIFIED';
+    result.safeError = 'none';
+  } else if (result.safeError === 'none') {
+    result.result = 'LIVE_TEST_FAILED';
+    result.safeError =
+      'Local stream completed without both text and done events.';
+  }
+
+  emitResultReport(result, report);
+  void recordAcceptanceFromResult(result);
+  return result.result === 'LIVE_VERIFIED' ? 0 : 1;
 }
 
 function emitResultReport(r: ProviderTestResult, emit: ReportEmitter): void {
@@ -1492,6 +1649,15 @@ export async function runProviderAcceptanceTest(
       providerDef,
       catalogEntry,
     );
+
+    if (LOCAL_PROVIDER_ROUTES.has(providerId)) {
+      return await runLocalProviderAcceptanceTest(
+        providerId,
+        providerModule as unknown as LocalAcceptanceProviderModule,
+        classification,
+        report,
+      );
+    }
 
     if (classification.blocked) {
       const result = buildTestResult(providerId, classification, {
