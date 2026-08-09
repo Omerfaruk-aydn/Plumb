@@ -79,12 +79,23 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
               : null;
           })
           .filter((entry) => entry !== null);
-        // Nothing to refresh (no active provider carries a credential, e.g.
-        // local/custom-endpoint-only sessions): skip the extra render entirely.
-        if (refreshable.length === 0) return;
 
-        await Promise.all(
-          refreshable.map(async ({ providerId, apiKey, oauthToken }) => {
+        // Active providers with no credential at all are exactly the local
+        // no-auth servers (Ollama, LM Studio, llama.cpp, vLLM, SGLang) — they
+        // never carry an api_key/oauth credential by design. Those still need
+        // live discovery (their models otherwise only appear after a manual
+        // /local-models run), just via the dedicated local-discovery entry
+        // point rather than the credentialed one above.
+        const hasUncredentialedActive = activeStates.some(
+          (state) => !state.credentials,
+        );
+
+        // Nothing to refresh (no credentialed provider, no local provider
+        // active): skip the extra render entirely.
+        if (refreshable.length === 0 && !hasUncredentialedActive) return;
+
+        await Promise.all([
+          ...refreshable.map(async ({ providerId, apiKey, oauthToken }) => {
             try {
               await modelRegistry.discoverProviderModels(
                 providerId,
@@ -95,7 +106,18 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
               // Best-effort refresh; a failed provider keeps its last-known models.
             }
           }),
-        );
+          ...(hasUncredentialedActive
+            ? [
+                (async () => {
+                  try {
+                    await modelRegistry.discoverLocalModels?.();
+                  } catch {
+                    // Best-effort refresh; a failed local server keeps its last-known models.
+                  }
+                })(),
+              ]
+            : []),
+        ]);
 
         if (cancelled) return;
         setData({ usableProviders: buildUsableProviders(), loading: false });

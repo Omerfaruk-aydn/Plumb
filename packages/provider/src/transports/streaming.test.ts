@@ -105,6 +105,47 @@ describe('plumbModelStream — missing-credential guard', () => {
     }
     expect(fetchCalled).toBe(false);
   });
+
+  it('regression: an allowUnauthenticated local provider (lm-studio) with an empty apiKey reaches fetch instead of failing with MISSING_CREDENTIAL', async () => {
+    const localModel: PlumbModel = {
+      id: 'local-lm',
+      provider: 'lm-studio',
+      api: 'openai-completions',
+      baseUrl: 'http://127.0.0.1:1234',
+      contextWindow: 131072,
+      maxTokens: 32768,
+      reasoning: false,
+      input: 'text',
+    };
+    const originalFetch = globalThis.fetch;
+    let fetchCalled = false;
+    let sawEmptyBearer = false;
+    globalThis.fetch = (async (
+      url: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1],
+    ) => {
+      fetchCalled = true;
+      const headers = init?.headers as Record<string, string> | undefined;
+      if (headers?.['Authorization'] === 'Bearer ') sawEmptyBearer = true;
+      return new Response('data: [DONE]\n\n', {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    }) as typeof fetch;
+    try {
+      for await (const _event of plumbModelStream({
+        model: localModel,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: '',
+      })) {
+        // drain
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    expect(fetchCalled).toBe(true);
+    expect(sawEmptyBearer).toBe(false);
+  });
 });
 
 describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', () => {

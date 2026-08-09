@@ -108,6 +108,8 @@ class OllamaDiscovery implements ProviderModelDiscovery {
         name: m.name,
         contextWindow: 131072,
         maxTokens: 16384,
+        api: 'ollama-chat' as PlumbKnownApi,
+        baseUrl,
       }));
     } catch {
       return [];
@@ -138,6 +140,8 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
       name: m.id,
       contextWindow: 131072,
       maxTokens: 32768,
+      api: 'openai-completions' as PlumbKnownApi,
+      baseUrl,
     }));
   }
 }
@@ -432,6 +436,7 @@ register(new OllamaDiscovery());
 register(new OpenAICompatLocalDiscovery('lm-studio', 'http://127.0.0.1:1234'));
 register(new OpenAICompatLocalDiscovery('llama-cpp', 'http://127.0.0.1:8080'));
 register(new OpenAICompatLocalDiscovery('vllm', 'http://127.0.0.1:8000'));
+register(new OpenAICompatLocalDiscovery('sglang', 'http://127.0.0.1:30000'));
 register(new OpenAICompatDiscovery('openai', 'https://api.openai.com'));
 register(new OpenAICompatDiscovery('openrouter', 'https://openrouter.ai'));
 register(new OpenAICompatDiscovery('groq', 'https://api.groq.com'));

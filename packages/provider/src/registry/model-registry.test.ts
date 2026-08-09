@@ -73,6 +73,38 @@ describe('PlumbModelRegistry', () => {
     expect(model!.api).toBe('claude-agent-sdk');
   });
 
+  it('4c. discoverLocalModels tags results with baseUrl and the real api dialect (regression: previously hardcoded api: openai-completions and never set baseUrl, so a selected local model always fell through to the OpenAI default and died with MISSING_CREDENTIAL)', async () => {
+    const mockFetch = vi.fn(async (url: string) => {
+      if (url.includes('11434')) {
+        return {
+          ok: true,
+          json: async () => ({ models: [{ name: 'llama3:8b' }] }),
+        };
+      }
+      if (url.includes('1234')) {
+        return { ok: true, json: async () => ({ data: [{ id: 'local-lm' }] }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    try {
+      await registry.discoverLocalModels();
+
+      const ollamaModel = registry.findModel('ollama', 'llama3:8b');
+      expect(ollamaModel).toBeDefined();
+      expect(ollamaModel!.api).toBe('ollama-chat');
+      expect(ollamaModel!.baseUrl).toBe('http://127.0.0.1:11434');
+
+      const lmStudioModel = registry.findModel('lm-studio', 'local-lm');
+      expect(lmStudioModel).toBeDefined();
+      expect(lmStudioModel!.api).toBe('openai-completions');
+      expect(lmStudioModel!.baseUrl).toBe('http://127.0.0.1:1234');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('5. addCustomModel adds to registry', () => {
     registry.addCustomModel(makeModel('custom-model', 'openai'));
     const model = registry.findModel('openai', 'custom-model');

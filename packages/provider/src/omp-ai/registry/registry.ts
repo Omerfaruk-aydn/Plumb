@@ -63,6 +63,7 @@ import { umansProvider } from "./umans.js";
 import { veniceProvider } from "./venice.js";
 import { vercelAiGatewayProvider } from "./vercel-ai-gateway.js";
 import { vllmProvider } from "./vllm.js";
+import { sglangProvider } from "./sglang.js";
 import { waferServerlessProvider } from "./wafer-serverless.js";
 import { xaiProvider } from "./xai.js";
 import { xaiOauthProvider } from "./xai-oauth.js";
@@ -148,6 +149,7 @@ const ALL = [
 	lmStudioProvider,
 	llamaCppProvider,
 	vllmProvider,
+	sglangProvider,
 	openaiProvider,
 	googleProvider,
 	googleVertexProvider,

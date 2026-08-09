@@ -484,9 +484,15 @@
     "packages/provider/src/omp-catalog/discovery/vertex.test.ts",
     "packages/provider/src/omp-catalog/provider-models/openai-compat.sambanova-nebius.test.ts",
     "packages/provider/src/omp-catalog/provider-models/openai-compat.cohere-ark.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.portkey.test.ts"
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.portkey.test.ts",
+    "packages/provider/src/omp-ai/registry/sglang.ts"
   ],
   "adaptationDiffs": [
+    {
+      "path": "packages/provider/src/omp-ai/registry/registry.ts",
+      "upstream": "packages/ai/src/registry/registry.ts",
+      "reason": "PLUMB feature: added sglangProvider (packages/provider/src/omp-ai/registry/sglang.ts, no upstream counterpart -- see generatedLocalShims) to PROVIDER_REGISTRY/ALL, registering SGLang as a real local OpenAI-compatible provider alongside the existing llama.cpp/vLLM entries. No change to registry lookup/activation logic"
+    },
     {
       "path": "packages/provider/src/omp-ai/providers/azure-openai-responses.ts",
       "upstream": "packages/ai/src/providers/azure-openai-responses.ts",

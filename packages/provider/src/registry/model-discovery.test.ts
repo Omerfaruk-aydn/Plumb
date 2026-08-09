@@ -23,6 +23,7 @@ const HAND_WRITTEN_ADAPTERS = [
   'lm-studio',
   'llama-cpp',
   'vllm',
+  'sglang',
   'openai',
   'openrouter',
   'groq',
@@ -268,6 +269,20 @@ describe('Discovery Adapter Contract: Ollama', () => {
     expect(models[0].contextWindow).toBe(131072);
   });
 
+  it('9b. tags the discovered model with baseUrl and the ollama-chat dialect (regression: a selected discovered model must carry enough to route to the real transport, not fall through to https://api.openai.com)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ models: [{ name: 'llama3:8b' }] }),
+    });
+
+    const models = await discoverProviderModels('ollama', {
+      providerId: 'ollama',
+    });
+
+    expect(models[0].api).toBe('ollama-chat');
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:11434');
+  });
+
   it('10. handles unavailable local endpoint', async () => {
     mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
@@ -310,5 +325,38 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
     });
 
     expect(models).toEqual([]);
+  });
+
+  it('11b. tags LM Studio models with baseUrl and the openai-completions dialect (regression: same as Ollama, a selected discovered model must carry its baseUrl to route correctly)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [{ id: 'llama-3-8b' }] }),
+    });
+
+    const models = await discoverProviderModels('lm-studio', {
+      providerId: 'lm-studio',
+    });
+
+    expect(models[0].api).toBe('openai-completions');
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:1234');
+  });
+
+  it('13. discovers SGLang models against its default port 30000', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [{ id: 'qwen2.5-7b-instruct' }] }),
+    });
+
+    const models = await discoverProviderModels('sglang', {
+      providerId: 'sglang',
+    });
+
+    expect(models.some((m) => m.id === 'qwen2.5-7b-instruct')).toBe(true);
+    expect(models[0].baseUrl).toBe('http://127.0.0.1:30000');
+    expect(
+      mockFetch.mock.calls.some(
+        (call) => call[0] === 'http://127.0.0.1:30000/models',
+      ),
+    ).toBe(true);
   });
 });

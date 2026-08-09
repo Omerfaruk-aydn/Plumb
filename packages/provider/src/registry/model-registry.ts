@@ -143,12 +143,14 @@ export class PlumbModelRegistry {
     for (const providerId of localProviders) {
       try {
         const models = await discoverProviderModels(providerId, { providerId });
+        const providerModels: PlumbModel[] = [];
         for (const m of models) {
           const plumbModel: PlumbModel = {
             id: m.id,
             name: m.name ?? m.id,
             provider: providerId,
-            api: 'openai-completions',
+            api: m.api ?? 'openai-completions',
+            ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
             contextWindow: m.contextWindow ?? 131072,
             maxTokens: m.maxTokens ?? 32768,
             reasoning: m.reasoning ?? false,
@@ -156,8 +158,11 @@ export class PlumbModelRegistry {
           };
           const key = `${providerId}:${m.id}`;
           this.#discoveredModels.set(key, plumbModel);
+          providerModels.push(plumbModel);
           discovered.push(plumbModel);
         }
+        if (providerModels.length > 0)
+          writeModelCache(providerId, providerModels, true);
       } catch {
         // Discovery failure for a single provider is non-fatal
       }

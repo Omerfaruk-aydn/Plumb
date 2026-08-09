@@ -35,6 +35,7 @@ import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 import { streamBedrockConverse } from './bedrock.js';
 import { streamAzureResponses } from './azure.js';
 import { prepareVertexModel } from './googleVertex.js';
+import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -189,7 +190,14 @@ async function* openAICompatibleStream(
   // silently produces `Authorization: Bearer ` (no token), which providers
   // like GitHub Copilot reject as "Authorization header is badly formatted"
   // instead of the actual problem (no resolved credential for this provider).
-  if (!apiKey) {
+  // Exception: providers explicitly catalogued as allowUnauthenticated (local
+  // no-auth servers — Ollama, LM Studio, llama.cpp, vLLM, SGLang) never have
+  // a stored credential by design, so an empty apiKey there is expected, not
+  // an error.
+  const isUnauthenticatedProvider = UNAUTHENTICATED_PROVIDERS.some(
+    (p) => p.id === model.provider,
+  );
+  if (!apiKey && !isUnauthenticatedProvider) {
     yield {
       type: 'error',
       error: {
@@ -206,10 +214,12 @@ async function* openAICompatibleStream(
   const isAzure =
     model.provider === 'azure' ||
     (model.baseUrl ?? '').includes('.openai.azure.com');
-  if (isAzure) {
-    authHeaders['api-key'] = apiKey;
-  } else {
-    authHeaders['Authorization'] = `Bearer ${apiKey}`;
+  if (apiKey) {
+    if (isAzure) {
+      authHeaders['api-key'] = apiKey;
+    } else {
+      authHeaders['Authorization'] = `Bearer ${apiKey}`;
+    }
   }
 
   // Merge any provider-specific headers from the model.

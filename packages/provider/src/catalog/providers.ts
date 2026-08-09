@@ -829,6 +829,17 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     // dead-end as llama-cpp above.
     allowUnauthenticatedOverride: true,
   },
+  sglang: {
+    category: PlumbProviderCategory.LOCAL,
+    group: 'Local Models',
+    order: 6,
+    description: 'SGLang local server (OpenAI-compatible)',
+    authMethods: [{ type: 'none' }],
+    // Same shape as llama-cpp above: no OMP catalog descriptor exists for
+    // sglang, so allowUnauthenticated would otherwise resolve to undefined
+    // (falsy) and route it to a dead-end 'authenticate' step.
+    allowUnauthenticatedOverride: true,
+  },
   'custom-openai-compat': {
     category: PlumbProviderCategory.CUSTOM_ENDPOINT,
     group: 'Custom',
