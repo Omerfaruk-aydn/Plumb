@@ -52,6 +52,7 @@ import {
   type HttpRequest,
   type Method,
 } from 'oci-common';
+import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
 
 export type OciIamAuthMode =
   | 'config_profile'
@@ -74,8 +75,14 @@ const VALID_MODES: ReadonlySet<string> = new Set([
  * must surface as a clear configuration error, never silently fall back to
  * a different auth mode than the one the user configured.
  */
+const OCI_GENAI_PROVIDER_ID = 'oci-genai';
+
 export function resolveOciIamAuthMode(): OciIamAuthMode | undefined {
-  const raw = process.env['OCI_IAM_AUTH_MODE']?.trim();
+  const raw = resolveProviderConfigValue(
+    OCI_GENAI_PROVIDER_ID,
+    'iamAuthMode',
+    'OCI_IAM_AUTH_MODE',
+  );
   if (!raw) return undefined;
   return VALID_MODES.has(raw) ? (raw as OciIamAuthMode) : undefined;
 }
@@ -101,8 +108,16 @@ let cachedProvider: CachedProvider | null = null;
 export async function getOciIamAuthProvider(
   mode: OciIamAuthMode,
 ): Promise<AuthenticationDetailsProvider> {
-  const configPath = process.env['OCI_IAM_CONFIG_PATH']?.trim() || undefined;
-  const profile = process.env['OCI_IAM_CONFIG_PROFILE']?.trim() || undefined;
+  const configPath = resolveProviderConfigValue(
+    OCI_GENAI_PROVIDER_ID,
+    'iamConfigPath',
+    'OCI_IAM_CONFIG_PATH',
+  );
+  const profile = resolveProviderConfigValue(
+    OCI_GENAI_PROVIDER_ID,
+    'iamConfigProfile',
+    'OCI_IAM_CONFIG_PROFILE',
+  );
 
   if (
     cachedProvider &&

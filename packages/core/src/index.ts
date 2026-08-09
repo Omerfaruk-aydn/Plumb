@@ -73,6 +73,19 @@ export {
   getPlumbProviderAuthService,
   isPlumbProviderAuthServiceInstantiated,
 } from './auth/plumbProviderAuthService.js';
+
+// PLUMB safe (non-secret) cloud provider configuration -- the canonical
+// write path (updates the persisted store AND the synchronous resolver
+// cache together; UI code must call these, never
+// PlumbSecureCredentialStore.replaceProviderCloudConfig directly, or the
+// cache and store can drift apart within a running session).
+export {
+  CLOUD_CONFIG_PROVIDER_IDS,
+  initializeProviderCloudConfigCache,
+  saveProviderCloudConfig,
+  clearProviderCloudConfig,
+  getCachedProviderCloudConfig,
+} from './config/providerCloudConfigCache.js';
 // Codex private-file bridge: removed from the production graph.
 // See docs/verification/plumb-runtime-activation-invalidation.md.
 

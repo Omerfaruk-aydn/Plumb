@@ -59,6 +59,24 @@ describe('resolveOciIamAuthMode', () => {
     delete process.env['OCI_IAM_AUTH_MODE'];
   });
 
+  it('a PLUMB-saved auth mode (via the config resolver) takes precedence over OCI_IAM_AUTH_MODE -- the UI-driven save path actually works', async () => {
+    process.env['OCI_IAM_AUTH_MODE'] = 'session';
+    // vi.resetModules() (inside importFresh) clears the whole module
+    // registry, so the resolver must be set on the SAME fresh instance of
+    // providerConfigResolver.js that ociGenaiIamAuth.js will import --
+    // setting it on a pre-reset module instance would silently no-op.
+    vi.resetModules();
+    const resolverMod = await import('../config/providerConfigResolver.js');
+    resolverMod.setProviderConfigResolver((providerId) =>
+      providerId === 'oci-genai'
+        ? ({ iamAuthMode: 'instance_principal' } as Record<string, string>)
+        : ({} as Record<string, string>),
+    );
+    const mod = await import('./ociGenaiIamAuth.js');
+    mod.__resetOciIamProviderCacheForTests();
+    expect(mod.resolveOciIamAuthMode()).toBe('instance_principal');
+  });
+
   it('returns undefined when unset', async () => {
     const mod = await importFresh();
     expect(mod.resolveOciIamAuthMode()).toBeUndefined();
