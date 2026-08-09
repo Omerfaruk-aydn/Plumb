@@ -27,7 +27,7 @@
     "auth:npm": "npx google-artifactregistry-auth",
     "auth:docker": "gcloud auth configure-docker us-west1-docker.pkg.dev",
     "auth": "npm run auth:npm && npm run auth:docker",
-    "generate": "node scripts/generate-git-commit-info.js",
+    "generate": "node scripts/generate-git-commit-info.js && node scripts/generate-build-identity.js",
     "generate:models": "node scripts/generate-plumb-model-catalog.mjs",
     "validate:models": "node scripts/validate-plumb-model-catalog.mjs",
     "validate:ownership": "node scripts/validate-omp-ownership.mjs",
