@@ -58,6 +58,7 @@ const mockLoadOciExistingConfig = vi.fn();
 const mockSaveOciConfiguration = vi.fn();
 const mockRemoveOciConfiguration = vi.fn();
 const mockRefreshOciModelStatus = vi.fn();
+const mockClearOciConfigOverrides = vi.fn();
 
 vi.mock('../utils/ociCloudConfigActions.js', () => ({
   loadOciExistingConfig: (...args: unknown[]) =>
@@ -68,6 +69,8 @@ vi.mock('../utils/ociCloudConfigActions.js', () => ({
     mockRemoveOciConfiguration(...args),
   refreshOciModelStatus: (...args: unknown[]) =>
     mockRefreshOciModelStatus(...args),
+  clearOciConfigOverrides: (...args: unknown[]) =>
+    mockClearOciConfigOverrides(...args),
 }));
 
 // This component loads its initial state asynchronously on mount
@@ -383,6 +386,45 @@ describe('PlumbCloudProviderConfigForm', () => {
 
     expect(mockRefreshOciModelStatus).toHaveBeenCalledTimes(1);
     expect(lastFrame()).toContain('Status: Configured');
+  });
+
+  it('CLEAR_OVERRIDE: choosing Clear PLUMB override calls clearOciConfigOverrides and reflects the environment fallback immediately (no restart)', async () => {
+    mockLoadOciExistingConfig.mockResolvedValueOnce({
+      safeConfig: {
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+      },
+      hasCredential: true,
+      sources: { region: 'plumb', projectId: 'plumb' },
+    });
+    mockLoadOciExistingConfig.mockResolvedValue({
+      safeConfig: {
+        region: 'us-chicago-1-from-env',
+        projectId: 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+      },
+      hasCredential: true,
+      sources: { region: 'env', projectId: 'plumb' },
+    });
+    mockClearOciConfigOverrides.mockResolvedValue(undefined);
+    const { stdin, lastFrame, waitUntilReady } = await renderReady({
+      onContinue: vi.fn(),
+      onCancel: vi.fn(),
+    });
+    expect(lastFrame()).toContain('Source: PLUMB configuration');
+
+    // Continue -> Edit configuration -> Change authentication -> Refresh
+    // models/status -> Clear PLUMB override (only shown when an override
+    // exists).
+    for (let i = 0; i < 4; i++) {
+      await pressKey(stdin, DOWN_ARROW);
+    }
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+
+    expect(mockClearOciConfigOverrides).toHaveBeenCalledTimes(1);
+    const frame = lastFrame();
+    expect(frame).toContain('us-chicago-1-from-env');
+    expect(frame).toContain('Source: Environment');
   });
 
   it('KEYBOARD_NAVIGATION: text field editing supports backspace', async () => {

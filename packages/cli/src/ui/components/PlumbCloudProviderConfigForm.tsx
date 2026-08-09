@@ -38,6 +38,8 @@ import {
   loadOciExistingConfig,
   removeOciConfiguration,
   refreshOciModelStatus,
+  clearOciConfigOverrides,
+  type OciFieldConfigSource,
 } from '../utils/ociCloudConfigActions.js';
 
 export interface PlumbCloudProviderConfigFormProps {
@@ -60,18 +62,25 @@ type Mode =
   | 'editing-text'
   | 'saving'
   | 'removing'
-  | 'refreshing';
+  | 'refreshing'
+  | 'clearing-override';
 
 const AUTH_MODE_OPTIONS = OCI_GENAI_CONFIG_SCHEMA.authModeField.options;
 const IAM_SUBTYPE_FIELD = OCI_GENAI_CONFIG_SCHEMA.authModes
   .find((m) => m.id === 'iam')!
   .fields.find((f) => f.id === 'iamAuthMode')!;
 
-const SUMMARY_ACTIONS = [
+const BASE_SUMMARY_ACTIONS = [
   { id: 'continue', label: 'Continue' },
   { id: 'edit', label: 'Edit configuration' },
   { id: 'change-auth', label: 'Change authentication' },
   { id: 'refresh', label: 'Refresh models/status' },
+] as const;
+const CLEAR_OVERRIDE_ACTION = {
+  id: 'clear-override',
+  label: 'Clear PLUMB override (use environment)',
+} as const;
+const TAIL_SUMMARY_ACTIONS = [
   { id: 'remove', label: 'Remove configuration' },
   { id: 'back', label: 'Back' },
 ] as const;
@@ -132,6 +141,9 @@ export const PlumbCloudProviderConfigForm: React.FC<
   const [textBuffer, setTextBuffer] = useState('');
   const [errors, setErrors] = useState<OciConfigValidationErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [sources, setSources] = useState<Record<string, OciFieldConfigSource>>(
+    {},
+  );
 
   // Load persisted safe config + credential presence exactly once, on
   // mount -- never on every render, and never a bare network/keychain call
@@ -159,6 +171,7 @@ export const PlumbCloudProviderConfigForm: React.FC<
       };
       setValues(next);
       setHasExistingCredential(existing.hasCredential);
+      setSources(existing.sources ?? {});
       setFocusIndex(0);
       setMode(isConfigured(next) ? 'summary' : 'browse');
     })();
@@ -197,6 +210,16 @@ export const PlumbCloudProviderConfigForm: React.FC<
     }
   }, [controls.length, focusIndex, mode]);
 
+  const hasAnyOverride = Object.values(sources).some((s) => s === 'plumb');
+  const summaryActions = useMemo(
+    () => [
+      ...BASE_SUMMARY_ACTIONS,
+      ...(hasAnyOverride ? [CLEAR_OVERRIDE_ACTION] : []),
+      ...TAIL_SUMMARY_ACTIONS,
+    ],
+    [hasAnyOverride],
+  );
+
   // Mirrors every per-render value the keypress handler / save / remove
   // actions need, so those callbacks can stay referentially stable (see
   // module doc) instead of closing over state directly.
@@ -207,6 +230,7 @@ export const PlumbCloudProviderConfigForm: React.FC<
     focusIndex,
     textBuffer,
     controls,
+    summaryActions,
     onContinue,
     onCancel,
   });
@@ -217,6 +241,7 @@ export const PlumbCloudProviderConfigForm: React.FC<
     focusIndex,
     textBuffer,
     controls,
+    summaryActions,
     onContinue,
     onCancel,
   };
@@ -253,6 +278,21 @@ export const PlumbCloudProviderConfigForm: React.FC<
     setMode('summary');
   }, []);
 
+  const runClearOverride = useCallback(async () => {
+    setMode('clearing-override');
+    await clearOciConfigOverrides();
+    const existing = await loadOciExistingConfig();
+    const cfg = existing.safeConfig;
+    setValues((v) => ({
+      ...v,
+      region: cfg['region'],
+      projectId: cfg['projectId'],
+      compartmentId: cfg['compartmentId'],
+    }));
+    setSources(existing.sources ?? {});
+    setMode('summary');
+  }, []);
+
   const handleKeypress = useCallback(
     (key: Key) => {
       const s = stateRef.current;
@@ -260,7 +300,8 @@ export const PlumbCloudProviderConfigForm: React.FC<
         s.mode === 'loading' ||
         s.mode === 'saving' ||
         s.mode === 'removing' ||
-        s.mode === 'refreshing'
+        s.mode === 'refreshing' ||
+        s.mode === 'clearing-override'
       ) {
         return;
       }
@@ -286,11 +327,11 @@ export const PlumbCloudProviderConfigForm: React.FC<
           return;
         }
         if (key.name === 'down') {
-          setFocusIndex((i) => Math.min(SUMMARY_ACTIONS.length - 1, i + 1));
+          setFocusIndex((i) => Math.min(s.summaryActions.length - 1, i + 1));
           return;
         }
         if (key.name === 'enter') {
-          const action = SUMMARY_ACTIONS[s.focusIndex].id;
+          const action = s.summaryActions[s.focusIndex]?.id;
           if (action === 'continue') {
             s.onContinue(undefined);
           } else if (action === 'edit') {
@@ -307,6 +348,8 @@ export const PlumbCloudProviderConfigForm: React.FC<
             setMode('browse');
           } else if (action === 'refresh') {
             void runRefresh();
+          } else if (action === 'clear-override') {
+            void runClearOverride();
           } else if (action === 'remove') {
             void runRemove();
           } else {
@@ -391,12 +434,13 @@ export const PlumbCloudProviderConfigForm: React.FC<
         }
       }
     },
-    [runRemove, runRefresh, runSave],
+    [runRemove, runRefresh, runClearOverride, runSave],
   );
 
   useKeypress(handleKeypress, {
     isActive:
       mode !== 'loading' &&
+      mode !== 'clearing-override' &&
       mode !== 'saving' &&
       mode !== 'removing' &&
       mode !== 'refreshing',
@@ -415,11 +459,22 @@ export const PlumbCloudProviderConfigForm: React.FC<
     );
   }
 
-  if (mode === 'summary' || mode === 'removing' || mode === 'refreshing') {
+  if (
+    mode === 'summary' ||
+    mode === 'removing' ||
+    mode === 'refreshing' ||
+    mode === 'clearing-override'
+  ) {
     const authLabel =
       values.authMode === 'iam'
         ? `OCI IAM — ${IAM_SUBTYPE_FIELD.options!.find((o) => o.value === values.iamAuthMode)?.label ?? values.iamAuthMode}`
         : 'Generative AI API Key';
+    const sourceLabel = (field: string): string =>
+      sources[field] === 'plumb'
+        ? ' (Source: PLUMB configuration)'
+        : sources[field] === 'env'
+          ? ' (Source: Environment)'
+          : '';
     return (
       <Box flexDirection="column">
         <Text bold color={theme.text.primary}>
@@ -432,11 +487,20 @@ export const PlumbCloudProviderConfigForm: React.FC<
         </Box>
         <Box marginTop={1} flexDirection="column">
           <Text color={theme.text.secondary}>Cloud Context</Text>
-          <Text color={theme.text.primary}> Region: {values.region}</Text>
-          <Text color={theme.text.primary}> Project: {values.projectId}</Text>
+          <Text color={theme.text.primary}>
+            {' '}
+            Region: {values.region}
+            {sourceLabel('region')}
+          </Text>
+          <Text color={theme.text.primary}>
+            {' '}
+            Project: {values.projectId}
+            {sourceLabel('projectId')}
+          </Text>
           {values.compartmentId && (
             <Text color={theme.text.primary}>
               {'  '}Compartment: {values.compartmentId}
+              {sourceLabel('compartmentId')}
             </Text>
           )}
         </Box>
@@ -451,8 +515,10 @@ export const PlumbCloudProviderConfigForm: React.FC<
             <Text color={theme.text.secondary}>Removing configuration…</Text>
           ) : mode === 'refreshing' ? (
             <Text color={theme.text.secondary}>Refreshing model status…</Text>
+          ) : mode === 'clearing-override' ? (
+            <Text color={theme.text.secondary}>Clearing PLUMB override…</Text>
           ) : (
-            SUMMARY_ACTIONS.map((action, i) => (
+            summaryActions.map((action, i) => (
               <Text
                 key={action.id}
                 color={
