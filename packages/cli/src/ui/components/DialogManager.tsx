@@ -349,6 +349,7 @@ export const DialogManager = ({
           onLogout={uiActions.handleProviderLogout}
           onRefreshModels={refreshModels}
           onRefreshFullModels={refreshFullModels}
+          onRefreshProviders={providerSetupData.refresh}
           completionStage={uiState.setupCompletionStage}
         />
       </Box>

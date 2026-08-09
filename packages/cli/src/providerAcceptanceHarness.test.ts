@@ -162,10 +162,13 @@ const GATEWAY_PROVIDER_FIXTURES: Record<
   },
 };
 
+const CUSTOM_PROVIDER_ID = 'custom:123e4567-e89b-42d3-a456-426614174000';
+
 // Mock the provider module
 vi.mock('@google/gemini-cli-provider', () => ({
   installBunGlobal: vi.fn(),
   resolveProviderAlias: (id: string) => id,
+  isCustomProviderId: (id: string) => id.startsWith('custom:'),
   getProviderDefinition: (id: string) => {
     if (id === 'github-copilot') {
       return {
@@ -218,6 +221,15 @@ vi.mock('@google/gemini-cli-provider', () => ({
         authMethods: [{ type: 'none' }],
         allowUnauthenticated: true,
         name: id,
+        envVars: [],
+      };
+    }
+    if (id === CUSTOM_PROVIDER_ID) {
+      return {
+        id,
+        category: 'custom_endpoint',
+        authMethods: [{ type: 'api_key' }],
+        name: 'Custom proxy',
         envVars: [],
       };
     }
@@ -459,6 +471,42 @@ describe('provider acceptance harness', () => {
     expect(recordAcceptance).toHaveBeenCalledWith(
       expect.objectContaining({
         providerId: 'vllm',
+        safeResult: 'SERVER_UNAVAILABLE',
+        streamVerified: false,
+      }),
+    );
+  });
+
+  it('16b. a custom provider uses the same production discover-then-stream path as local providers', async () => {
+    const t = capture();
+
+    const exitCode = await runProviderAcceptanceTest(CUSTOM_PROVIDER_ID, {
+      report: t.report,
+    });
+
+    expect(exitCode).toBe(0);
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain(`provider.id: ${CUSTOM_PROVIDER_ID}`);
+    expect(joined).toContain('models.dynamic.count: 1');
+    expect(joined).toContain('stream.completed: true');
+    expect(joined).toContain('result: LIVE_VERIFIED');
+  });
+
+  it('16c. an unreachable custom endpoint fails safely, never fabricating a live route', async () => {
+    mockLocalUnavailable.add(CUSTOM_PROVIDER_ID);
+    const t = capture();
+
+    const exitCode = await runProviderAcceptanceTest(CUSTOM_PROVIDER_ID, {
+      report: t.report,
+    });
+
+    expect(exitCode).toBe(1);
+    const joined = t.reportLines.join('\n');
+    expect(joined).toContain('result: SERVER_UNAVAILABLE');
+    expect(joined).not.toContain('result: LIVE_VERIFIED');
+    expect(recordAcceptance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: CUSTOM_PROVIDER_ID,
         safeResult: 'SERVER_UNAVAILABLE',
         streamVerified: false,
       }),

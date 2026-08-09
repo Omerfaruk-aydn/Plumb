@@ -1661,7 +1661,15 @@ export async function runProviderAcceptanceTest(
       catalogEntry,
     );
 
-    if (LOCAL_PROVIDER_ROUTES.has(providerId)) {
+    // Custom providers (user-defined OpenAI/Anthropic/Gemini-compatible
+    // endpoints) share the exact same generic discover-then-stream
+    // production path as the built-in local runtime endpoints -- neither
+    // has a static catalog entry, and both must prove SERVER_UNAVAILABLE on
+    // no reachable endpoint and the real production request on a live one.
+    const isCustomProvider = Boolean(
+      providerModule.isCustomProviderId?.(providerId),
+    );
+    if (LOCAL_PROVIDER_ROUTES.has(providerId) || isCustomProvider) {
       return await runLocalProviderAcceptanceTest(
         providerId,
         providerModule as unknown as LocalAcceptanceProviderModule,

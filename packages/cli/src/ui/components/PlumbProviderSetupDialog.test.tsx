@@ -21,6 +21,22 @@ import type {
   IPlumbCredentialStore,
 } from '@google/gemini-cli-provider';
 
+// Only the "Manage custom providers…" wiring test below touches this --
+// the CRUD screen's own behavior (list/save/remove/hasCredential) is
+// already covered end-to-end by PlumbCustomProviderManagerScreen.test.tsx
+// against the real actions module. Mocked here purely so this test doesn't
+// have to stand up a real PlumbProviderRegistry/credential store just to
+// prove the step-routing and onRefreshProviders plumbing.
+const customProviderActionsMock = {
+  list: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue({ success: true }),
+  remove: vi.fn().mockResolvedValue(undefined),
+  hasCredential: vi.fn().mockResolvedValue(false),
+};
+vi.mock('../utils/customProviderConfigActions.js', () => ({
+  createCustomProviderConfigActions: () => customProviderActionsMock,
+}));
+
 enum TerminalKeys {
   ENTER = '\u000D',
   UP_ARROW = '\u001B[A',
@@ -295,6 +311,66 @@ describe('PlumbProviderSetupDialog', () => {
 
     const frame = lastFrame();
     expect(frame).toContain('Step 2');
+  });
+
+  it('7b. selecting "Manage custom providers…" opens the CRUD manager and Escape returns to provider-select, refreshing the inventory', async () => {
+    // vi.restoreAllMocks() in this describe block's afterEach clears the
+    // resolved-value implementations set at module scope, so every one
+    // must be re-armed here rather than relying on the module-level default.
+    customProviderActionsMock.list.mockReset().mockResolvedValue([]);
+    customProviderActionsMock.save.mockReset().mockResolvedValue({
+      success: true,
+    });
+    customProviderActionsMock.remove.mockReset().mockResolvedValue(undefined);
+    customProviderActionsMock.hasCredential
+      .mockReset()
+      .mockResolvedValue(false);
+    const onRefreshProviders = vi.fn();
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={mockProviders}
+        categoryGroups={mockCategoryGroups}
+        models={mockModels}
+        onRefreshProviders={onRefreshProviders}
+      />,
+    );
+
+    await waitUntilReady();
+    // Navigate to Custom Endpoint (index 4), then to the trailing
+    // "Manage custom providers…" entry (index 1 within that category —
+    // the mock fixture has exactly one real custom provider ahead of it).
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+    await pressKey(stdin, TerminalKeys.ENTER);
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('Custom Providers');
+    expect(lastFrame()).toContain('+ Add custom provider');
+
+    await pressKey(stdin, TerminalKeys.ESCAPE);
+    // A plain waitUntilReady() here never converges -- Ink's render
+    // reconciliation after this particular manager-screen unmount keeps the
+    // harness's static/dynamic frame comparison from settling, even though
+    // the real application state transition (proven by onRefreshProviders
+    // below) happens immediately. Poll with bounded fake-timer flushes
+    // instead of the full convergence helper so this can't hang the suite.
+    let frame = lastFrame();
+    for (let i = 0; i < 20 && !frame.includes('Choose provider'); i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      frame = lastFrame();
+    }
+
+    expect(onRefreshProviders).toHaveBeenCalledTimes(1);
+    expect(frame).toContain('Choose provider');
   });
 
   it('8. Escape cancels the dialog', async () => {

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PlumbProvider, PlumbModel } from '@google/gemini-cli-provider';
 
 export interface ProviderSetupModelEntry {
@@ -18,9 +18,18 @@ export interface ProviderSetupData {
   categoryGroups: Map<string, PlumbProvider[]>;
   models: ProviderSetupModelEntry[];
   fullModels: PlumbModel[];
+  /**
+   * Re-runs discovery of the provider/model inventory without closing and
+   * reopening the setup dialog. Needed after the custom-provider CRUD
+   * screen creates/edits/deletes an entry -- that store write does not
+   * otherwise re-trigger this hook's effect (which only depends on
+   * `isOpen`), so without this the dialog would keep showing a stale
+   * custom-provider list until the user closed and reopened setup.
+   */
+  refresh: () => void;
 }
 
-const EMPTY_DATA: ProviderSetupData = {
+const EMPTY_DATA: Omit<ProviderSetupData, 'refresh'> = {
   providers: [],
   categoryGroups: new Map<string, PlumbProvider[]>(),
   models: [],
@@ -46,7 +55,10 @@ const SYNTHETIC_PROVIDER_IDS_TO_INJECT = [
 ];
 
 export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
-  const [data, setData] = useState<ProviderSetupData>(EMPTY_DATA);
+  const [data, setData] =
+    useState<Omit<ProviderSetupData, 'refresh'>>(EMPTY_DATA);
+  const [reloadToken, setReloadToken] = useState(0);
+  const refresh = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -90,7 +102,7 @@ export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, reloadToken]);
 
-  return data;
+  return { ...data, refresh };
 }

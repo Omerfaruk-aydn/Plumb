@@ -36,6 +36,8 @@ import { SearchableModelPicker } from './SearchableModelPicker.js';
 import { PlumbCloudProviderConfigForm } from './PlumbCloudProviderConfigForm.js';
 import { PlumbGenericCloudConfigForm } from './PlumbGenericCloudConfigForm.js';
 import { PlumbAzureCloudConfigForm } from './PlumbAzureCloudConfigForm.js';
+import { PlumbCustomProviderManagerScreen } from './PlumbCustomProviderManagerScreen.js';
+import { createCustomProviderConfigActions } from '../utils/customProviderConfigActions.js';
 import {
   BEDROCK_CONFIG_SCHEMA,
   VERTEX_CONFIG_SCHEMA,
@@ -54,9 +56,18 @@ type SetupStep =
   | 'authenticate'
   | 'oauth-waiting'
   | 'cloud-config'
+  | 'manage-custom-providers'
   | 'model-select'
   | 'confirm'
   | 'done';
+
+/**
+ * Sentinel entry injected into the Custom Endpoint provider list. Selecting
+ * it opens the CRUD manager instead of trying to configure a real provider
+ * -- it is never itself a routable providerId (the `custom:<uuid>` pattern
+ * cannot collide with it).
+ */
+const MANAGE_CUSTOM_PROVIDERS_ID = '__manage_custom_providers__';
 
 interface SetupState {
   step: SetupStep;
@@ -170,6 +181,14 @@ export interface PlumbProviderSetupDialogProps {
     apiKey?: string,
   ) => Promise<Array<{ id: string; name?: string; provider: string }>>;
   onRefreshFullModels?: () => Promise<PlumbModel[]>;
+  /**
+   * Re-runs discovery of the provider/model inventory. Passed through to
+   * the custom-provider manager screen so a create/edit/delete there is
+   * reflected in this dialog's provider list the moment the user backs out
+   * of the manager -- without it the Custom Endpoint category would keep
+   * showing stale entries until setup was closed and reopened.
+   */
+  onRefreshProviders?: () => void;
   completionStage?: string;
 }
 
@@ -248,6 +267,7 @@ export const PlumbProviderSetupDialog: React.FC<
   onLogout,
   onRefreshModels,
   onRefreshFullModels,
+  onRefreshProviders,
   completionStage,
 }) => {
   const keyMatchers = useKeyMatchers();
@@ -275,6 +295,13 @@ export const PlumbProviderSetupDialog: React.FC<
     connectionAuthState: null,
   });
   const [confirmPending, setConfirmPending] = useState(false);
+  // Stable across renders -- PlumbCustomProviderManagerScreen re-loads its
+  // list whenever this identity changes, so constructing it fresh on every
+  // render (e.g. inline in JSX) would re-trigger that load loop forever.
+  const customProviderActions = useMemo(
+    () => createCustomProviderConfigActions(),
+    [],
+  );
   const localConfigSchema = useMemo(
     () =>
       state.selectedProvider
@@ -372,16 +399,30 @@ export const PlumbProviderSetupDialog: React.FC<
     [],
   );
 
-  const providerItems = useMemo(
-    () =>
-      categoryProviders.map((p) => ({
-        key: p.id,
-        value: p,
-        label: p.name,
-        sublabel: p.description,
-      })),
-    [categoryProviders],
-  );
+  const providerItems = useMemo(() => {
+    const items = categoryProviders.map((p) => ({
+      key: p.id,
+      value: p,
+      label: p.name,
+      sublabel: p.description,
+    }));
+    if (state.category === PlumbProviderCategory.CUSTOM_ENDPOINT) {
+      items.push({
+        key: MANAGE_CUSTOM_PROVIDERS_ID,
+        value: {
+          id: MANAGE_CUSTOM_PROVIDERS_ID,
+          name: 'Manage custom providers…',
+          category: PlumbProviderCategory.CUSTOM_ENDPOINT,
+          authMethods: [{ type: 'none' }],
+          available: true,
+        } as PlumbProvider,
+        label: 'Manage custom providers…',
+        sublabel:
+          'Add, edit, or remove custom OpenAI/Anthropic/Gemini endpoints',
+      });
+    }
+    return items;
+  }, [categoryProviders, state.category]);
 
   const modelItems = useMemo(
     () =>
@@ -458,6 +499,15 @@ export const PlumbProviderSetupDialog: React.FC<
   const handleProviderSelect = useCallback(
     (provider: PlumbProvider) => {
       setApiKeyInput('');
+
+      if (provider.id === MANAGE_CUSTOM_PROVIDERS_ID) {
+        setState((s) => ({
+          ...s,
+          step: 'manage-custom-providers',
+          error: null,
+        }));
+        return;
+      }
 
       if (provider.id === CLAUDE_SUBSCRIPTION_PROVIDER_ID) {
         probeClaudeSubscription(provider);
@@ -703,7 +753,12 @@ export const PlumbProviderSetupDialog: React.FC<
       // double-fire (once here with generic 'authenticate'-shaped
       // semantics, once inside the form with the real cloud-config
       // semantics).
-      if (step === 'cloud-config') return;
+      // PlumbCustomProviderManagerScreen likewise owns its own Escape
+      // semantics (list -> onClose, form -> back to list) -- same reasoning
+      // as the cloud-config guard above.
+      if (step === 'cloud-config' || step === 'manage-custom-providers') {
+        return;
+      }
       if (key.name === 'escape') {
         // Explicit cancellation destinations — never leave the PLUMB setup
         // graph for the legacy Gemini AuthDialog.
@@ -975,6 +1030,16 @@ export const PlumbProviderSetupDialog: React.FC<
             <Text dimColor>Backspace: back to connection types</Text>
           </Box>
         </>
+      )}
+
+      {step === 'manage-custom-providers' && (
+        <PlumbCustomProviderManagerScreen
+          actions={customProviderActions}
+          onClose={() => {
+            onRefreshProviders?.();
+            setState((s) => ({ ...s, step: 'provider-select', error: null }));
+          }}
+        />
       )}
 
       {step === 'connected' && provider && (
@@ -1497,6 +1562,7 @@ function getStepNumber(step: SetupStep): number {
     case 'connection-type':
       return 1;
     case 'provider-select':
+    case 'manage-custom-providers':
       return 2;
     case 'connected':
     case 'authenticate':
