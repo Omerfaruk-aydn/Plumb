@@ -57,6 +57,7 @@ const BACKSPACE = String.fromCharCode(127);
 const mockLoadOciExistingConfig = vi.fn();
 const mockSaveOciConfiguration = vi.fn();
 const mockRemoveOciConfiguration = vi.fn();
+const mockRefreshOciModelStatus = vi.fn();
 
 vi.mock('../utils/ociCloudConfigActions.js', () => ({
   loadOciExistingConfig: (...args: unknown[]) =>
@@ -65,6 +66,8 @@ vi.mock('../utils/ociCloudConfigActions.js', () => ({
     mockSaveOciConfiguration(...args),
   removeOciConfiguration: (...args: unknown[]) =>
     mockRemoveOciConfiguration(...args),
+  refreshOciModelStatus: (...args: unknown[]) =>
+    mockRefreshOciModelStatus(...args),
 }));
 
 // This component loads its initial state asynchronously on mount
@@ -96,6 +99,7 @@ describe('PlumbCloudProviderConfigForm', () => {
       hasCredential: false,
     });
     mockSaveOciConfiguration.mockResolvedValue({ success: true });
+    mockRefreshOciModelStatus.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -346,12 +350,39 @@ describe('PlumbCloudProviderConfigForm', () => {
       onContinue: vi.fn(),
       onCancel: vi.fn(),
     });
-    await pressKey(stdin, DOWN_ARROW); // Continue -> Edit configuration
-    await pressKey(stdin, DOWN_ARROW); // Edit configuration -> Remove configuration
+    // Continue -> Edit configuration -> Change authentication -> Refresh
+    // models/status -> Remove configuration.
+    for (let i = 0; i < 4; i++) {
+      await pressKey(stdin, DOWN_ARROW);
+    }
     await pressKey(stdin, ENTER);
     await waitUntilReady();
 
     expect(mockRemoveOciConfiguration).toHaveBeenCalledTimes(1);
+  });
+
+  it('REFRESH: choosing Refresh models/status on the summary view calls refreshOciModelStatus and returns to the summary', async () => {
+    mockLoadOciExistingConfig.mockResolvedValue({
+      safeConfig: {
+        region: 'us-chicago-1',
+        projectId: 'ocid1.generativeaiproject.oc1.us-chicago-1.real',
+      },
+      hasCredential: true,
+    });
+    mockRefreshOciModelStatus.mockResolvedValue(undefined);
+    const { stdin, lastFrame, waitUntilReady } = await renderReady({
+      onContinue: vi.fn(),
+      onCancel: vi.fn(),
+    });
+    // Continue -> Edit configuration -> Change authentication -> Refresh models/status.
+    for (let i = 0; i < 3; i++) {
+      await pressKey(stdin, DOWN_ARROW);
+    }
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+
+    expect(mockRefreshOciModelStatus).toHaveBeenCalledTimes(1);
+    expect(lastFrame()).toContain('Status: Configured');
   });
 
   it('KEYBOARD_NAVIGATION: text field editing supports backspace', async () => {

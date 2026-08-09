@@ -112,3 +112,16 @@ export async function removeOciConfiguration(): Promise<void> {
     // Best-effort -- safe config removal above is the primary guarantee.
   }
 }
+
+/**
+ * Drops OCI's cached model-discovery entry so the next model lookup
+ * re-discovers against the currently configured region/auth instead of
+ * serving a stale list from before the user changed their configuration.
+ * An explicit user action only -- never triggered by mere navigation.
+ */
+export async function refreshOciModelStatus(): Promise<void> {
+  const { removeOmpModelCacheEntry } = await import(
+    '@google/gemini-cli-provider'
+  );
+  removeOmpModelCacheEntry(OCI_PROVIDER_ID);
+}

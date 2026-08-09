@@ -182,6 +182,7 @@ export {
 export {
   readModelCache as readOmpModelCache,
   writeModelCache as writeOmpModelCache,
+  removeModelCacheEntry as removeOmpModelCacheEntry,
 } from './omp-catalog/model-cache.js';
 export {
   CATALOG_PROVIDERS,

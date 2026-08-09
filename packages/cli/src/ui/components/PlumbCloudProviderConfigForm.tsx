@@ -37,6 +37,7 @@ import {
   saveOciConfiguration,
   loadOciExistingConfig,
   removeOciConfiguration,
+  refreshOciModelStatus,
 } from '../utils/ociCloudConfigActions.js';
 
 export interface PlumbCloudProviderConfigFormProps {
@@ -58,7 +59,8 @@ type Mode =
   | 'browse'
   | 'editing-text'
   | 'saving'
-  | 'removing';
+  | 'removing'
+  | 'refreshing';
 
 const AUTH_MODE_OPTIONS = OCI_GENAI_CONFIG_SCHEMA.authModeField.options;
 const IAM_SUBTYPE_FIELD = OCI_GENAI_CONFIG_SCHEMA.authModes
@@ -68,6 +70,8 @@ const IAM_SUBTYPE_FIELD = OCI_GENAI_CONFIG_SCHEMA.authModes
 const SUMMARY_ACTIONS = [
   { id: 'continue', label: 'Continue' },
   { id: 'edit', label: 'Edit configuration' },
+  { id: 'change-auth', label: 'Change authentication' },
+  { id: 'refresh', label: 'Refresh models/status' },
   { id: 'remove', label: 'Remove configuration' },
   { id: 'back', label: 'Back' },
 ] as const;
@@ -243,13 +247,20 @@ export const PlumbCloudProviderConfigForm: React.FC<
     setMode('browse');
   }, []);
 
+  const runRefresh = useCallback(async () => {
+    setMode('refreshing');
+    await refreshOciModelStatus();
+    setMode('summary');
+  }, []);
+
   const handleKeypress = useCallback(
     (key: Key) => {
       const s = stateRef.current;
       if (
         s.mode === 'loading' ||
         s.mode === 'saving' ||
-        s.mode === 'removing'
+        s.mode === 'removing' ||
+        s.mode === 'refreshing'
       ) {
         return;
       }
@@ -283,8 +294,19 @@ export const PlumbCloudProviderConfigForm: React.FC<
           if (action === 'continue') {
             s.onContinue(undefined);
           } else if (action === 'edit') {
+            // First editable field after the auth-mode select(s) -- Change
+            // authentication (below) is the entry point for switching auth
+            // mode/subtype itself.
+            const firstFieldIndex = s.controls.findIndex(
+              (c) => c.kind === 'text' || c.kind === 'secret',
+            );
+            setFocusIndex(firstFieldIndex >= 0 ? firstFieldIndex : 0);
+            setMode('browse');
+          } else if (action === 'change-auth') {
             setFocusIndex(0);
             setMode('browse');
+          } else if (action === 'refresh') {
+            void runRefresh();
           } else if (action === 'remove') {
             void runRemove();
           } else {
@@ -369,11 +391,15 @@ export const PlumbCloudProviderConfigForm: React.FC<
         }
       }
     },
-    [runRemove, runSave],
+    [runRemove, runRefresh, runSave],
   );
 
   useKeypress(handleKeypress, {
-    isActive: mode !== 'loading' && mode !== 'saving' && mode !== 'removing',
+    isActive:
+      mode !== 'loading' &&
+      mode !== 'saving' &&
+      mode !== 'removing' &&
+      mode !== 'refreshing',
   });
 
   const getFieldValue = useCallback(
@@ -389,7 +415,7 @@ export const PlumbCloudProviderConfigForm: React.FC<
     );
   }
 
-  if (mode === 'summary' || mode === 'removing') {
+  if (mode === 'summary' || mode === 'removing' || mode === 'refreshing') {
     const authLabel =
       values.authMode === 'iam'
         ? `OCI IAM — ${IAM_SUBTYPE_FIELD.options!.find((o) => o.value === values.iamAuthMode)?.label ?? values.iamAuthMode}`
@@ -423,6 +449,8 @@ export const PlumbCloudProviderConfigForm: React.FC<
         <Box marginTop={1} flexDirection="column">
           {mode === 'removing' ? (
             <Text color={theme.text.secondary}>Removing configuration…</Text>
+          ) : mode === 'refreshing' ? (
+            <Text color={theme.text.secondary}>Refreshing model status…</Text>
           ) : (
             SUMMARY_ACTIONS.map((action, i) => (
               <Text
