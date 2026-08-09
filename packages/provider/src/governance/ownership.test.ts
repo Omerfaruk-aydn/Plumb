@@ -197,7 +197,11 @@ describe('ownership manifest', () => {
       e.includes('hard-coded provider inventory'),
     );
     expect(inventoryErrors).toEqual([]);
-  });
+  }, // findHardCodedProviderInventories walks the entire UI/config source
+  // tree looking for multi-entry provider-id array literals. Fast in
+  // isolation; observed to exceed the default 5000ms only under the full
+  // provider suite's parallel worker-thread contention.
+  20_000);
 
   it('enforces zero post-build JS patching and reproducible outputs', () => {
     // The fixer script must not exist.

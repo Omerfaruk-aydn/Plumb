@@ -83,7 +83,12 @@ describe('streamWatsonx', () => {
       },
     ]);
     expect(mockTextChatStream).not.toHaveBeenCalled();
-  });
+  }, // First test in the file to call importFresh() -> vi.resetModules() +
+  // a cold re-import of the @ibm-cloud/watsonx-ai SDK graph. Fast in
+  // isolation (<50ms); observed to exceed the default 5000ms only under
+  // the full provider suite's parallel worker-thread contention, not a
+  // hang -- isolated runs are fast and correct.
+  20_000);
 
   it('yields AUTH_REQUIRED when no API key is supplied', async () => {
     process.env['WATSONX_PROJECT_ID'] = 'proj-1';

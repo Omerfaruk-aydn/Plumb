@@ -87,7 +87,13 @@ describe('streamOciGenaiResponses', () => {
       },
     ]);
     expect(fetchSpy).not.toHaveBeenCalled();
-  });
+  }, // This is the first test in the file to call importFresh(), which does
+  // vi.resetModules() + a cold re-import of the oci-common SDK graph.
+  // That's cheap in isolation (<50ms) but under the full provider suite's
+  // parallel worker-thread contention it has been observed to exceed the
+  // default 5000ms -- not a hang (isolated runs are fast and correct),
+  // just legitimate CPU contention from many concurrent heavy test files.
+  20_000);
 
   it('normalizes response.output_text.delta into text PlumbStreamEvents', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(

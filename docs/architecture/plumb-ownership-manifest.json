@@ -485,7 +485,9 @@
     "packages/provider/src/omp-catalog/provider-models/openai-compat.sambanova-nebius.test.ts",
     "packages/provider/src/omp-catalog/provider-models/openai-compat.cohere-ark.test.ts",
     "packages/provider/src/omp-catalog/provider-models/openai-compat.portkey.test.ts",
-    "packages/provider/src/omp-ai/registry/sglang.ts"
+    "packages/provider/src/omp-ai/registry/sglang.ts",
+    "packages/provider/src/omp-ai/registry/kilo.test.ts",
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.openrouter.test.ts"
   ],
   "adaptationDiffs": [
     {
@@ -597,6 +599,11 @@
       "path": "packages/provider/src/omp-ai/registry/oauth/kimi.ts",
       "upstream": "packages/ai/src/registry/oauth/kimi.ts",
       "reason": "PLUMB fix: device-authorization, token-poll, and token-refresh responses now parse through the shared parseAuthJsonResponse hardening wrapper (./response-parser.ts) instead of raw response.json(), rejecting malformed/oversized bodies safely. No change to the device-flow/refresh control logic"
+    },
+    {
+      "path": "packages/provider/src/omp-catalog/discovery/openai-compatible.ts",
+      "upstream": "packages/catalog/src/discovery/openai-compatible.ts",
+      "reason": "PLUMB feature: two additive options on fetchOpenAICompatibleModels's config -- (1) apiKeyHeader lets a caller route the discovery credential through a non-Authorization header (used by openai-compat.ts's Portkey descriptor, which must send x-portkey-api-key rather than Bearer); Authorization keeps its existing 'Bearer ' prefix behavior, any other header receives the raw key unprefixed. (2) onFailure is a safe diagnostic hook (kind: 'transport'|'http'|'protocol', plus HTTP status where applicable) that never receives a URL, header, body, or credential -- consumed by registry/model-discovery.ts's OpenAICompatLocalDiscovery to classify local-server SERVER_UNAVAILABLE vs DISCOVERY_AUTH_FAILED vs DISCOVERY_HTTP_ERROR vs DISCOVERY_PROTOCOL_ERROR instead of collapsing every failure into an empty model list. No change to the success path's request shape or the returned model list."
     }
   ]
 }
