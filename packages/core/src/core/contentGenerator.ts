@@ -199,10 +199,14 @@ export async function createContentGeneratorConfig(
     let resolvedApiKey = apiKey;
     if (providerId) {
       const provider = getPlumbProvider(providerId);
-      const credentialEnvVars =
-        provider?.authMethods.flatMap((method) =>
-          method.type === 'api_key' && method.envVar ? [method.envVar] : [],
-        ) ?? [];
+      const credentialEnvVars = [
+        ...new Set([
+          ...(provider?.authMethods.flatMap((method) =>
+            method.type === 'api_key' && method.envVar ? [method.envVar] : [],
+          ) ?? []),
+          ...(provider?.envVars ?? []),
+        ]),
+      ];
       const envCredential = credentialEnvVars
         .map((envVar) => getEnv(envVar)?.trim())
         .find((value): value is string => Boolean(value));

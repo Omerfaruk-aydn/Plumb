@@ -210,6 +210,34 @@ describe('plumbModelStream — missing-credential guard', () => {
     expect(capturedHeaders?.['Authorization']).toBeUndefined();
     expect(capturedHeaders?.['x-portkey-provider']).toBe('openai');
   });
+
+  it('routes NanoGPT through its exact OpenAI-compatible endpoint with Bearer auth', async () => {
+    let capturedUrl: string | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (url, init) => {
+      capturedUrl = String(url);
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response('data: [DONE]\n\n', { status: 200 });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        ...copilotModel,
+        id: 'openai/gpt-5.5',
+        provider: 'nanogpt',
+        baseUrl: 'https://nano-gpt.com/api/v1',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'nanogpt-key-canary',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toBe('https://nano-gpt.com/api/v1/chat/completions');
+    expect(capturedHeaders?.['Authorization']).toBe(
+      'Bearer nanogpt-key-canary',
+    );
+  });
 });
 
 describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', () => {
@@ -291,6 +319,36 @@ describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', (
 
     expect(capturedHeaders?.['x-api-key']).toBe('sk-ant-real-key');
     expect(capturedHeaders?.['Authorization']).toBeUndefined();
+  });
+
+  it('routes Vercel AI Gateway Anthropic requests with its gateway key', async () => {
+    let capturedUrl: string | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
+    globalThis.fetch = (async (
+      url: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      capturedUrl = String(url);
+      capturedHeaders = init?.headers as Record<string, string>;
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: {
+        ...nativeAnthropicModel,
+        id: 'anthropic/claude-sonnet-4.6',
+        provider: 'vercel-ai-gateway',
+        baseUrl: 'https://ai-gateway.vercel.sh',
+      },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'vercel-gateway-canary',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toBe('https://ai-gateway.vercel.sh/v1/messages');
+    expect(capturedHeaders?.['x-api-key']).toBe('vercel-gateway-canary');
+    expect(capturedHeaders?.['anthropic-version']).toBe('2023-06-01');
   });
 
   it('keeps a Cloudflare gateway token out of upstream auth headers', async () => {

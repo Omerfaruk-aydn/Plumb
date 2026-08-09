@@ -17,6 +17,7 @@ import {
 } from './providers.js';
 import { getProviderDefinition } from '../omp-ai/registry/registry.js';
 import { getCatalogProviderEntry } from '../omp-catalog/provider-models/descriptors.js';
+import { PlumbProviderCategory } from '../types.js';
 
 // PLUMB ids that legitimately have no OMP descriptor (PLUMB-only surfaces).
 const PLUMB_ONLY_IDS = new Set([
@@ -148,6 +149,18 @@ describe('provider catalog projection', () => {
         true,
       );
     }
+  });
+
+  it('exposes Kilo device authorization and never treats ZenMux as anonymous', () => {
+    const kilo = PLUMB_PROVIDERS.find((p) => p.id === 'kilo');
+    expect(kilo).toBeDefined();
+    expect(kilo!.category).toBe(PlumbProviderCategory.OAUTH_ACCOUNT);
+    expect(kilo!.authMethods).toContainEqual({ type: 'device_code' });
+
+    const zenmux = PLUMB_PROVIDERS.find((p) => p.id === 'zenmux');
+    expect(zenmux).toBeDefined();
+    expect(zenmux!.allowUnauthenticated).not.toBe(true);
+    expect(zenmux!.authMethods.some((m) => m.type === 'api_key')).toBe(true);
   });
 
   it('claude-subscription is a PLUMB-only synthetic (no OMP backing, not in the OMP-derived selectable set)', () => {

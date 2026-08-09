@@ -536,7 +536,7 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 20,
     description: 'NanoGPT API gateway',
-    authMethods: [{ type: 'api_key' }],
+    authMethods: [{ type: 'api_key', envVar: 'NANO_GPT_API_KEY' }],
   },
   venice: {
     category: PlumbProviderCategory.API_KEY,
@@ -740,7 +740,7 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 31,
     description: 'Vercel AI Gateway (proxy)',
-    authMethods: [{ type: 'api_key', envVar: 'VERCEL_AI_GATEWAY_KEY' }],
+    authMethods: [{ type: 'api_key', envVar: 'AI_GATEWAY_API_KEY' }],
   },
   litellm: {
     category: PlumbProviderCategory.API_KEY,
@@ -754,11 +754,14 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     allowUnauthenticatedOverride: true,
   },
   kilo: {
-    category: PlumbProviderCategory.API_KEY,
+    category: PlumbProviderCategory.OAUTH_ACCOUNT,
     group: 'API Providers',
     order: 33,
     description: 'Kilo AI inference',
-    authMethods: [{ type: 'api_key', envVar: 'KILO_API_KEY' }],
+    authMethods: [
+      { type: 'device_code' },
+      { type: 'api_key', envVar: 'KILO_API_KEY' },
+    ],
   },
   zenmux: {
     category: PlumbProviderCategory.API_KEY,

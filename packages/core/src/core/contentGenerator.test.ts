@@ -37,7 +37,10 @@ vi.mock('./fakeContentGenerator.js');
 const { mockGetApiKey, mockGetPlumbProvider } = vi.hoisted(() => ({
   mockGetApiKey: vi.fn<(providerId: string) => Promise<string | undefined>>(),
   mockGetPlumbProvider: vi.fn<
-    () => { authMethods: Array<{ type: string; envVar?: string }> }
+    () => {
+      authMethods: Array<{ type: string; envVar?: string }>;
+      envVars?: string[];
+    }
   >(() => ({ authMethods: [] })),
 }));
 vi.mock('@google/gemini-cli-provider', () => ({
@@ -1601,6 +1604,34 @@ describe('createContentGeneratorConfig', () => {
       );
 
       expect(config.apiKey).toBe('lm-studio-env-token');
+      expect(config.apiKey).not.toBe('must-not-bleed');
+      vi.unstubAllEnvs();
+    });
+
+    it('honors every catalog-declared Vercel gateway key alias', async () => {
+      mockGetApiKey.mockResolvedValue(undefined);
+      mockGetPlumbProvider.mockReturnValue({
+        authMethods: [{ type: 'api_key', envVar: 'AI_GATEWAY_API_KEY' }],
+        envVars: [
+          'AI_GATEWAY_API_KEY',
+          'VERCEL_AI_GATEWAY_API_KEY',
+          'VERCEL_AI_GATEWAY_KEY',
+        ],
+      });
+      vi.stubEnv('AI_GATEWAY_API_KEY', '');
+      vi.stubEnv('VERCEL_AI_GATEWAY_API_KEY', 'vercel-alias-canary');
+      vi.stubEnv('OPENROUTER_API_KEY', 'must-not-bleed');
+      const vercelConfig = {
+        ...mockConfigPlain,
+        getPlumbProvider: vi.fn().mockReturnValue('vercel-ai-gateway'),
+      } as unknown as Config;
+
+      const config = await createContentGeneratorConfig(
+        vercelConfig,
+        AuthType.PLUMB_PROVIDER,
+      );
+
+      expect(config.apiKey).toBe('vercel-alias-canary');
       expect(config.apiKey).not.toBe('must-not-bleed');
       vi.unstubAllEnvs();
     });

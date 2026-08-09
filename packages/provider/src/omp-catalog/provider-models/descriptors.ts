@@ -469,7 +469,7 @@ export const CATALOG_PROVIDERS = [
 	{
 		id: "vercel-ai-gateway",
 		defaultModel: "anthropic/claude-opus-4.8",
-		envVars: ["AI_GATEWAY_API_KEY"],
+		envVars: ["AI_GATEWAY_API_KEY", "VERCEL_AI_GATEWAY_API_KEY", "VERCEL_AI_GATEWAY_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => vercelAiGatewayModelManagerOptions(config),
 		catalogDiscovery: {
 			label: "Vercel AI Gateway",
@@ -557,8 +557,7 @@ export const CATALOG_PROVIDERS = [
 		defaultModel: "anthropic/claude-opus-4.8",
 		envVars: ["ZENMUX_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => zenmuxModelManagerOptions(config),
-		allowUnauthenticated: true,
-		catalogDiscovery: { label: "ZenMux", allowUnauthenticated: true },
+		catalogDiscovery: { label: "ZenMux" },
 	},
 	{
 		id: "zhipu-coding-plan",
