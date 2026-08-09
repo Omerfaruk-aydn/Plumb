@@ -488,6 +488,11 @@
   ],
   "adaptationDiffs": [
     {
+      "path": "packages/provider/src/omp-ai/providers/azure-openai-responses.ts",
+      "upstream": "packages/ai/src/providers/azure-openai-responses.ts",
+      "reason": "PLUMB feature: baseUrl/resourceName/deploymentMap now resolve through resolveProviderConfigValue (PLUMB-saved config > environment variable), matching the PLUMB-config-over-env precedence already established for every other cloud provider, instead of reading AZURE_OPENAI_BASE_URL/AZURE_OPENAI_RESOURCE_NAME/AZURE_OPENAI_DEPLOYMENT_NAME_MAP directly from process.env. The deployment map is parsed by the unchanged parseAzureDeploymentNameMap using the identical 'model=deployment,...' string shape regardless of source, so an environment-only setup behaves exactly as before. No change to apiKey resolution (already credential-store-backed via options.apiKey/getEnvApiKey) or request-building/streaming logic"
+    },
+    {
       "path": "packages/provider/src/omp-ai/providers/google-gemini-cli.ts",
       "upstream": "packages/ai/src/providers/google-gemini-cli.ts",
       "reason": "PLUMB fix: exported the previously-private DEFAULT_ENDPOINT constant so packages/provider/src/transports/streaming.ts (the transport PlumbContentGenerator actually calls) can send real google-antigravity/google-gemini-cli requests to the real pinned Cloud Code Assist endpoint/path/Bearer-auth instead of the public Gemini API `?key=` shape it was previously using, which leaked the OAuth access token into the URL query string and 404'd. No change to this file's own request-building/streaming logic"

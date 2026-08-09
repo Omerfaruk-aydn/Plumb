@@ -163,6 +163,45 @@ export {
   type OciConfigValidationErrors,
 } from './config/ociGenaiConfigSchema.js';
 
+// Generic flat-schema cloud config engine + the Bedrock/Vertex/watsonx
+// schemas built on it (Azure's deployment-list shape is handled
+// separately -- see azureConfigSchema.js).
+export {
+  getVisibleCloudFields,
+  validateCloudConfig,
+  buildCloudSaveOperation,
+  type CloudConfigFormValues,
+  type CloudConfigValidationErrors,
+} from './config/cloudConfigSchema.js';
+export {
+  BEDROCK_CONFIG_SCHEMA,
+  getVisibleBedrockFields,
+  validateBedrockConfig,
+  buildBedrockSaveOperation,
+} from './config/bedrockConfigSchema.js';
+export {
+  VERTEX_CONFIG_SCHEMA,
+  getVisibleVertexFields,
+  validateVertexConfig,
+  buildVertexSaveOperation,
+} from './config/vertexConfigSchema.js';
+export {
+  WATSONX_CONFIG_SCHEMA,
+  getVisibleWatsonxFields,
+  validateWatsonxConfig,
+  buildWatsonxSaveOperation,
+} from './config/watsonxConfigSchema.js';
+export {
+  validateAzureConfig,
+  buildAzureSaveOperation,
+  encodeAzureDeploymentMap,
+  decodeAzureDeploymentMap,
+  decodeAzureEndpoint,
+  type AzureDeployment,
+  type AzureConfigFormValues,
+  type AzureConfigValidationErrors,
+} from './config/azureConfigSchema.js';
+
 // OMP catalog (directly adapted from upstream)
 export {
   getBundledModel,

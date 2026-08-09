@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { $env } from "../../omp-shims/pi-utils.js";
+import { resolveProviderConfigValue } from "../../config/providerConfigResolver.js";
 import * as AIError from "../error/index.js";
 import { getEnvApiKey } from "../stream.js";
 import type {
@@ -52,7 +53,11 @@ function resolveDeploymentName(model: Model<"azure-openai-responses">, options?:
 	if (options?.azureDeploymentName) {
 		return options.azureDeploymentName;
 	}
-	const mappedDeployment = parseAzureDeploymentNameMap($env.AZURE_OPENAI_DEPLOYMENT_NAME_MAP).get(model.id);
+	// PLUMB's in-app deployment manager persists the same "model=deployment,..."
+	// string shape a user could set via AZURE_OPENAI_DEPLOYMENT_NAME_MAP, so
+	// this reuses the same parser regardless of which source it came from.
+	const rawMap = resolveProviderConfigValue("azure", "deploymentMap", "AZURE_OPENAI_DEPLOYMENT_NAME_MAP");
+	const mappedDeployment = parseAzureDeploymentNameMap(rawMap).get(model.id);
 	return mappedDeployment ?? model.id;
 }
 
@@ -271,8 +276,12 @@ function resolveAzureConfig(
 ): { baseUrl: string; apiVersion: string } {
 	const apiVersion = options?.azureApiVersion || $env.AZURE_OPENAI_API_VERSION || DEFAULT_AZURE_API_VERSION;
 
-	const baseUrl = options?.azureBaseUrl?.trim() || $env.AZURE_OPENAI_BASE_URL?.trim() || undefined;
-	const resourceName = options?.azureResourceName || $env.AZURE_OPENAI_RESOURCE_NAME;
+	const baseUrl =
+		options?.azureBaseUrl?.trim() ||
+		resolveProviderConfigValue("azure", "baseUrl", "AZURE_OPENAI_BASE_URL")?.trim() ||
+		undefined;
+	const resourceName =
+		options?.azureResourceName || resolveProviderConfigValue("azure", "resourceName", "AZURE_OPENAI_RESOURCE_NAME");
 
 	let resolvedBaseUrl = baseUrl;
 

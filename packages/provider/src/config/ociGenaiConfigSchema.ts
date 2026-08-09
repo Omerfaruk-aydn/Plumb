@@ -16,49 +16,17 @@
  * CloudConfigFieldDef/CloudAuthModeDef/CloudProviderConfigSchema shape.
  */
 
-export type CloudConfigFieldType =
-  | 'text'
-  | 'secret'
-  | 'select'
-  | 'optional_text'
-  | 'path_reference'
-  | 'region'
-  | 'project'
-  | 'compartment'
-  | 'profile';
-
-export interface CloudConfigFieldOption {
-  readonly value: string;
-  readonly label: string;
-}
-
-export interface CloudConfigFieldDef {
-  /** Safe-config key (PlumbSecureCredentialStore.cloudConfig), or 'credential' for the one secret field. */
-  readonly id: string;
-  readonly label: string;
-  readonly description?: string;
-  readonly type: CloudConfigFieldType;
-  readonly required: boolean;
-  readonly secret?: boolean;
-  readonly options?: readonly CloudConfigFieldOption[];
-  /** The env var this field falls back to when no PLUMB override is set (for source-provenance display). */
-  readonly envVar?: string;
-}
-
-export interface CloudAuthModeDef {
-  readonly id: string;
-  readonly label: string;
-  readonly description?: string;
-  readonly fields: readonly CloudConfigFieldDef[];
-}
-
-export interface CloudProviderConfigSchema {
-  readonly providerId: string;
-  readonly authModeField: CloudConfigFieldDef & {
-    readonly options: readonly CloudConfigFieldOption[];
-  };
-  readonly authModes: readonly CloudAuthModeDef[];
-}
+export type {
+  CloudConfigFieldType,
+  CloudConfigFieldOption,
+  CloudConfigFieldDef,
+  CloudAuthModeDef,
+  CloudProviderConfigSchema,
+} from './cloudConfigSchema.js';
+import type {
+  CloudConfigFieldDef,
+  CloudProviderConfigSchema,
+} from './cloudConfigSchema.js';
 
 const OCI_CLOUD_CONTEXT_FIELDS: readonly CloudConfigFieldDef[] = [
   {
