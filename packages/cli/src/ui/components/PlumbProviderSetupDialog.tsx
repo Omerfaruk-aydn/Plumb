@@ -17,6 +17,8 @@ import {
   getCodingPlan,
   getClaudeSubscriptionStatus,
   getPlumbProviderRegistry,
+  getGatewayProviderConfigSchema,
+  GATEWAY_CONFIG_PROVIDER_IDS,
   getLocalProviderConfigSchema,
   LOCAL_PROVIDER_IDS,
   validateCodingPlanApiKey,
@@ -43,6 +45,7 @@ import { bedrockCloudConfigActions } from '../utils/bedrockCloudConfigActions.js
 import { vertexCloudConfigActions } from '../utils/vertexCloudConfigActions.js';
 import { watsonxCloudConfigActions } from '../utils/watsonxCloudConfigActions.js';
 import { getLocalProviderConfigActions } from '../utils/localProviderConfigActions.js';
+import { getGatewayProviderConfigActions } from '../utils/gatewayProviderConfigActions.js';
 
 type SetupStep =
   | 'connection-type'
@@ -94,10 +97,14 @@ const CLOUD_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
 const LOCAL_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set(
   LOCAL_PROVIDER_IDS,
 );
+const GATEWAY_CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set(
+  GATEWAY_CONFIG_PROVIDER_IDS,
+);
 
 const CONFIGURATION_PROVIDER_IDS: ReadonlySet<string> = new Set([
   ...CLOUD_CONFIGURATION_PROVIDER_IDS,
   ...LOCAL_CONFIGURATION_PROVIDER_IDS,
+  ...GATEWAY_CONFIGURATION_PROVIDER_IDS,
 ]);
 
 /**
@@ -279,6 +286,20 @@ export const PlumbProviderSetupDialog: React.FC<
     () =>
       state.selectedProvider
         ? getLocalProviderConfigActions(state.selectedProvider.id)
+        : undefined,
+    [state.selectedProvider],
+  );
+  const gatewayConfigSchema = useMemo(
+    () =>
+      state.selectedProvider
+        ? getGatewayProviderConfigSchema(state.selectedProvider.id)
+        : undefined,
+    [state.selectedProvider],
+  );
+  const gatewayConfigActions = useMemo(
+    () =>
+      state.selectedProvider
+        ? getGatewayProviderConfigActions(state.selectedProvider.id)
         : undefined,
     [state.selectedProvider],
   );
@@ -1128,6 +1149,52 @@ export const PlumbProviderSetupDialog: React.FC<
                       err instanceof Error
                         ? err.message
                         : 'SERVER_UNAVAILABLE: local server could not be reached.',
+                  }));
+                }
+              })();
+            }}
+            onCancel={() => {
+              setState((s) => ({
+                ...s,
+                step: 'provider-select',
+                selectedProvider: null,
+              }));
+            }}
+          />
+        )}
+
+      {step === 'cloud-config' &&
+        provider &&
+        GATEWAY_CONFIGURATION_PROVIDER_IDS.has(provider.id) &&
+        gatewayConfigSchema &&
+        gatewayConfigActions && (
+          <PlumbGenericCloudConfigForm
+            title={provider.name}
+            schema={gatewayConfigSchema}
+            actions={gatewayConfigActions}
+            onContinue={() => {
+              setState((s) => ({ ...s, loading: true, error: null }));
+              void (async () => {
+                try {
+                  if (onRefreshModels) {
+                    setDynamicModels(await onRefreshModels());
+                  }
+                  if (onRefreshFullModels) {
+                    setDynamicFullModels(await onRefreshFullModels());
+                  }
+                  setState((s) => ({
+                    ...s,
+                    step: 'model-select',
+                    loading: false,
+                  }));
+                } catch (err) {
+                  setState((s) => ({
+                    ...s,
+                    loading: false,
+                    error:
+                      err instanceof Error
+                        ? err.message
+                        : 'Gateway model discovery failed.',
                   }));
                 }
               })();

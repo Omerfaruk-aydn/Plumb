@@ -27,6 +27,7 @@ import {
   resolveLocalProviderBaseUrl,
   resolveOllamaNativeBaseUrl,
 } from '../config/localProviderConfig.js';
+import { resolveGatewayProviderBaseUrl } from '../config/gatewayProviderConfig.js';
 
 export interface DiscoveryContext {
   providerId: PlumbProviderId;
@@ -371,7 +372,9 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
       options = this.descriptor.createModelManagerOptions({
         apiKey,
         baseUrl:
-          context.baseUrl ?? resolveLocalProviderBaseUrl(this.providerId),
+          context.baseUrl ??
+          resolveLocalProviderBaseUrl(this.providerId) ??
+          resolveGatewayProviderBaseUrl(this.providerId),
       });
     } catch {
       return [];

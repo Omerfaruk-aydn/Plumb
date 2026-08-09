@@ -163,6 +163,15 @@ export {
   type LocalProviderId,
   type LocalProviderEndpointDefinition,
 } from './config/localProviderConfig.js';
+export {
+  GATEWAY_CONFIG_PROVIDER_IDS,
+  isGatewayConfigProviderId,
+  resolveGatewayProviderBaseUrl,
+  getGatewayProviderConfigSchema,
+  validateGatewayProviderConfig,
+  buildGatewayProviderSaveOperation,
+  type GatewayConfigProviderId,
+} from './config/gatewayProviderConfig.js';
 
 // OCI Generative AI configuration domain schema/validator (canonical --
 // the Ink UI renders from and validates through this, never a parallel

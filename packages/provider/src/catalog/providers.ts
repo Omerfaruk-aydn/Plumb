@@ -747,7 +747,11 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'API Providers',
     order: 32,
     description: 'LiteLLM proxy',
-    authMethods: [{ type: 'api_key', envVar: 'LITELLM_API_KEY' }],
+    authMethods: [
+      { type: 'none' },
+      { type: 'api_key', envVar: 'LITELLM_API_KEY' },
+    ],
+    allowUnauthenticatedOverride: true,
   },
   kilo: {
     category: PlumbProviderCategory.API_KEY,

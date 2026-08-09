@@ -258,6 +258,7 @@ export const CATALOG_PROVIDERS = [
 		defaultModel: "claude-opus-4-8",
 		envVars: ["LITELLM_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => litellmModelManagerOptions(config),
+		allowUnauthenticated: true,
 		catalogDiscovery: { label: "LiteLLM", allowUnauthenticated: true },
 	},
 	{

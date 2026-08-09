@@ -43,7 +43,8 @@ export type PlumbProviderHealthState =
 export interface PlumbProviderState {
   provider: PlumbProvider;
   authState: PlumbProviderAuthState;
-  healthState: PlumbProviderHealthState;
+  /** Omitted only by legacy/test callers; production registry states set it. */
+  healthState?: PlumbProviderHealthState;
   credentials: PlumbOAuthCredential | PlumbApiKeyCredential | null;
   error?: string;
   healthErrorCode?: string;

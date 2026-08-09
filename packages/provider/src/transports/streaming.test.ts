@@ -11,6 +11,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
 import { createNormalizationStream, plumbModelStream } from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
+import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 import type {
   PlumbModel,
   PlumbStreamEvent,
@@ -176,6 +177,12 @@ describe('plumbModelStream — missing-credential guard', () => {
   it('sends a Portkey gateway key only as x-portkey-api-key', async () => {
     let capturedHeaders: Record<string, string> | undefined;
     const originalFetch = globalThis.fetch;
+    setProviderConfigResolver(
+      (providerId): Readonly<Record<string, string>> =>
+        providerId === 'portkey'
+          ? { routingMode: 'provider', portkeyProvider: 'openai' }
+          : {},
+    );
     globalThis.fetch = vi.fn(async (_url, init) => {
       capturedHeaders = init?.headers as Record<string, string>;
       return new Response('data: [DONE]\n\n', { status: 200 });
@@ -194,12 +201,14 @@ describe('plumbModelStream — missing-credential guard', () => {
       }
     } finally {
       globalThis.fetch = originalFetch;
+      setProviderConfigResolver(undefined);
     }
 
     expect(capturedHeaders?.['x-portkey-api-key']).toBe(
       'portkey-gateway-canary',
     );
     expect(capturedHeaders?.['Authorization']).toBeUndefined();
+    expect(capturedHeaders?.['x-portkey-provider']).toBe('openai');
   });
 });
 

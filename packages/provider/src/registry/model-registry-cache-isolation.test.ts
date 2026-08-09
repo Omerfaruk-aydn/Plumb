@@ -26,11 +26,11 @@ vi.mock('./model-cache.js', () => ({
 
 import { PlumbModelRegistry } from './model-registry.js';
 
-function localModel(baseUrl?: string): PlumbModel {
+function endpointModel(baseUrl?: string, provider = 'vllm'): PlumbModel {
   return {
     id: 'served-model',
     name: 'Served model',
-    provider: 'vllm',
+    provider,
     api: 'openai-completions',
     baseUrl,
     contextWindow: 131072,
@@ -56,7 +56,7 @@ describe('local model cache endpoint isolation', () => {
 
   it('rejects and removes models discovered from a different endpoint', () => {
     cache.entry = {
-      models: [localModel('http://127.0.0.1:8000/v1')],
+      models: [endpointModel('http://127.0.0.1:8000/v1')],
       fresh: true,
       authoritative: true,
       updatedAt: Date.now(),
@@ -70,7 +70,7 @@ describe('local model cache endpoint isolation', () => {
 
   it('hydrates models only when their endpoint matches current configuration', () => {
     cache.entry = {
-      models: [localModel('http://127.0.0.1:9000/v1/')],
+      models: [endpointModel('http://127.0.0.1:9000/v1/')],
       fresh: true,
       authoritative: true,
       updatedAt: Date.now(),
@@ -86,7 +86,7 @@ describe('local model cache endpoint isolation', () => {
 
   it('rejects legacy local cache entries without endpoint provenance', () => {
     cache.entry = {
-      models: [localModel(undefined)],
+      models: [endpointModel(undefined)],
       fresh: true,
       authoritative: true,
       updatedAt: Date.now(),
@@ -95,5 +95,18 @@ describe('local model cache endpoint isolation', () => {
 
     expect(registry.loadCache('vllm')).toEqual([]);
     expect(cache.invalidate).toHaveBeenCalledWith('vllm');
+  });
+
+  it('applies the same endpoint isolation to a configured LiteLLM gateway', () => {
+    cache.entry = {
+      models: [endpointModel('http://old-proxy:4000/v1', 'litellm')],
+      fresh: true,
+      authoritative: true,
+      updatedAt: Date.now(),
+    };
+    const registry = new PlumbModelRegistry();
+
+    expect(registry.loadCache('litellm')).toEqual([]);
+    expect(cache.invalidate).toHaveBeenCalledWith('litellm');
   });
 });

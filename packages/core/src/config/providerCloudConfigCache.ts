@@ -43,6 +43,8 @@ export const CLOUD_CONFIG_PROVIDER_IDS: readonly string[] = [
   'llama-cpp',
   'vllm',
   'sglang',
+  'portkey',
+  'litellm',
 ];
 
 const cache = new Map<string, Readonly<Record<string, string>>>();

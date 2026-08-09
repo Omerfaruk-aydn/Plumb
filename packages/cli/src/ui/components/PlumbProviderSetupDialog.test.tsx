@@ -1073,28 +1073,30 @@ describe('PlumbProviderSetupDialog — connection-state guard', () => {
     expect(frame).not.toContain('Continue using this account');
   });
 
-  it('discovers a dynamic-only gateway with the typed key before confirmation', async () => {
-    const portkey: PlumbProvider = {
-      id: 'portkey',
-      name: 'Portkey',
+  it('discovers a dynamic-only API provider with the typed key before confirmation', async () => {
+    const dynamicGateway: PlumbProvider = {
+      id: 'dynamic-gateway',
+      name: 'Dynamic Gateway',
       category: PlumbProviderCategory.API_KEY,
       description: 'Portkey AI Gateway',
-      authMethods: [{ type: 'api_key', envVar: 'PORTKEY_API_KEY' }],
+      authMethods: [{ type: 'api_key', envVar: 'DYNAMIC_GATEWAY_API_KEY' }],
       allowUnauthenticated: false,
       available: true,
     };
-    const onRefreshModels = vi
-      .fn()
-      .mockResolvedValue([
-        { id: '@openai/gpt-5.5', name: 'GPT 5.5', provider: 'portkey' },
-      ]);
+    const onRefreshModels = vi.fn().mockResolvedValue([
+      {
+        id: '@openai/gpt-5.5',
+        name: 'GPT 5.5',
+        provider: 'dynamic-gateway',
+      },
+    ]);
     const onComplete = vi.fn();
     const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
       <PlumbProviderSetupDialog
         onComplete={onComplete}
         onCancel={vi.fn()}
-        providers={[portkey]}
-        categoryGroups={new Map([['api-key', [portkey]]])}
+        providers={[dynamicGateway]}
+        categoryGroups={new Map([['api-key', [dynamicGateway]]])}
         models={[]}
         onRefreshModels={onRefreshModels}
       />,
@@ -1105,13 +1107,16 @@ describe('PlumbProviderSetupDialog — connection-state guard', () => {
     await pressKey(stdin, TerminalKeys.DOWN_ARROW);
     await pressKey(stdin, TerminalKeys.ENTER); // API-key gateways
     await waitUntilReady();
-    await pressKey(stdin, TerminalKeys.ENTER); // Portkey
+    await pressKey(stdin, TerminalKeys.ENTER); // Dynamic gateway
     await waitUntilReady();
     for (const char of 'portkey-test-key') await pressKey(stdin, char);
     await pressKey(stdin, TerminalKeys.ENTER);
     await waitUntilReady();
 
-    expect(onRefreshModels).toHaveBeenCalledWith('portkey', 'portkey-test-key');
+    expect(onRefreshModels).toHaveBeenCalledWith(
+      'dynamic-gateway',
+      'portkey-test-key',
+    );
     expect(lastFrame()).toContain('GPT 5.5');
 
     await pressKey(stdin, TerminalKeys.ENTER);
@@ -1120,7 +1125,7 @@ describe('PlumbProviderSetupDialog — connection-state guard', () => {
     await waitUntilReady();
     expect(onComplete).toHaveBeenCalledWith({
       kind: 'api-credential',
-      providerId: 'portkey',
+      providerId: 'dynamic-gateway',
       modelId: '@openai/gpt-5.5',
       apiKey: 'portkey-test-key',
     });

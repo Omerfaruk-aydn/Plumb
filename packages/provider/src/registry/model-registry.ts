@@ -28,6 +28,10 @@ import {
   isLocalProviderId,
   resolveLocalProviderBaseUrl,
 } from '../config/localProviderConfig.js';
+import {
+  isGatewayConfigProviderId,
+  resolveGatewayProviderBaseUrl,
+} from '../config/gatewayProviderConfig.js';
 
 // ─── Model registry ───────────────────────────────────────────────────
 
@@ -302,8 +306,13 @@ export class PlumbModelRegistry {
     // servers: after an endpoint edit, models discovered from endpoint A
     // must never be revived and sent to endpoint B. Reject legacy entries
     // without provenance as well as entries from a different base URL.
-    if (isLocalProviderId(providerId)) {
-      const currentBaseUrl = resolveLocalProviderBaseUrl(providerId);
+    if (
+      isLocalProviderId(providerId) ||
+      isGatewayConfigProviderId(providerId)
+    ) {
+      const currentBaseUrl =
+        resolveLocalProviderBaseUrl(providerId) ??
+        resolveGatewayProviderBaseUrl(providerId);
       const matchesCurrentEndpoint =
         currentBaseUrl !== undefined &&
         entry.models.every(

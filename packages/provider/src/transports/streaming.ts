@@ -36,6 +36,7 @@ import { streamBedrockConverse } from './bedrock.js';
 import { streamAzureResponses } from './azure.js';
 import { prepareVertexModel } from './googleVertex.js';
 import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
+import { resolveProviderSafeConfig } from '../config/providerConfigResolver.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -262,6 +263,23 @@ async function* openAICompatibleStream(
   // applied last so an accidental/malicious case-insensitive auth header in
   // metadata cannot replace the credential selected for this provider.
   const authHeaders: Record<string, string> = { ...(model.headers ?? {}) };
+  if (model.provider === 'portkey') {
+    const config = resolveProviderSafeConfig('portkey');
+    const routingMode = config['routingMode'];
+    const routingValue =
+      routingMode === 'provider'
+        ? config['portkeyProvider']
+        : routingMode === 'config'
+          ? config['portkeyConfig']
+          : undefined;
+    if (routingValue && !/[\r\n]/.test(routingValue)) {
+      setHeaderCaseInsensitive(
+        authHeaders,
+        routingMode === 'provider' ? 'x-portkey-provider' : 'x-portkey-config',
+        routingValue,
+      );
+    }
+  }
   const isAzure =
     model.provider === 'azure' ||
     (model.baseUrl ?? '').includes('.openai.azure.com');
