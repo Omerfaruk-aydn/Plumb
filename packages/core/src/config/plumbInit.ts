@@ -9,6 +9,7 @@
 import { debugLogger } from '../utils/debugLogger.js';
 import { getPlumbCredentialStore as getCoreCredentialStore } from '../auth/plumbSecureCredentialStore.js';
 import { getPlumbProviderAuthService } from '../auth/plumbProviderAuthService.js';
+import { initializeProviderCloudConfigCache } from './providerCloudConfigCache.js';
 // Type-only import: erased at compile time, so this does not create a
 // runtime load-order cycle with the dynamic `import()` below — it only
 // gives the dynamically-imported module a real static shape to check
@@ -57,6 +58,16 @@ export async function initializePlumbProviders(): Promise<void> {
 
     // Register all bundled OMP-derived models
     mod.initBundledModels();
+
+    // Load PLUMB-saved safe cloud provider configuration (region/project/
+    // deployment map/auth mode/etc.) into the synchronous resolver every
+    // catalog/model-discovery/transport call below can consult, BEFORE any
+    // of them run. Must happen before provider registry initialization and
+    // before the first real request, or the first cold-start request would
+    // resolve against env/default only and "self-heal" on a later call —
+    // exactly the class of cold-start bug this session has repeatedly
+    // fixed for other dialect/provider state.
+    await initializeProviderCloudConfigCache();
 
     // Initialize the provider registry
     const { getPlumbProviderRegistry } = mod;

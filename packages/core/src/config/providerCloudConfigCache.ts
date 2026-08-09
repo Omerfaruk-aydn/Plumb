@@ -24,6 +24,7 @@ import {
   type PlumbSecureCredentialStore,
 } from '../auth/plumbSecureCredentialStore.js';
 import { setProviderConfigResolver } from '@google/gemini-cli-provider';
+import { debugLogger } from '../utils/debugLogger.js';
 
 /**
  * The fixed set of PLUMB-native cloud providers that support in-app safe
@@ -54,8 +55,22 @@ export async function initializeProviderCloudConfigCache(
   store: PlumbSecureCredentialStore = getPlumbCredentialStore(),
 ): Promise<void> {
   for (const providerId of CLOUD_CONFIG_PROVIDER_IDS) {
-    const config = await store.getProviderCloudConfig(providerId);
-    cache.set(providerId, config);
+    try {
+      const config = await store.getProviderCloudConfig(providerId);
+      cache.set(providerId, config);
+    } catch (err) {
+      // A corrupt/unreadable entry for ONE provider must never abort the
+      // loop -- Bedrock/Azure/Vertex/watsonx/OCI (and every non-cloud
+      // provider, which never touches this cache at all) must still
+      // initialize normally. Treated as "not configured" for this
+      // provider, never silently accepted as valid -- logged so a real
+      // corruption is still visible.
+      debugLogger.warn(
+        `providerCloudConfigCache: failed to load safe config for '${providerId}', treating as unconfigured:`,
+        err instanceof Error ? err.message : String(err),
+      );
+      cache.set(providerId, {});
+    }
   }
   if (!initialized) {
     setProviderConfigResolver((providerId) => cache.get(providerId) ?? {});

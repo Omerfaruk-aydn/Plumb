@@ -22,7 +22,10 @@ import {
   getCachedProviderCloudConfig,
   __resetProviderCloudConfigCacheForTests,
 } from './providerCloudConfigCache.js';
-import { resolveProviderConfigValue } from '@google/gemini-cli-provider';
+import {
+  resolveProviderConfigValue,
+  getCatalogModels,
+} from '@google/gemini-cli-provider';
 
 describe('providerCloudConfigCache', () => {
   let store: PlumbSecureCredentialStore;
@@ -146,6 +149,125 @@ describe('providerCloudConfigCache', () => {
     });
     expect(getCachedProviderCloudConfig('watsonx')).toEqual({
       region: 'eu-de',
+    });
+  });
+
+  describe('cold-start production-shaped regression', () => {
+    it('a fresh process that initializes the cache BEFORE the first catalog call resolves persisted OCI config on that very first call -- no second-request self-healing', async () => {
+      // 1. Persist OCI config (as if a prior session's setup UX saved it).
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'ap-mumbai-1',
+        compartmentId: 'ocid1.compartment.oc1..real',
+      });
+
+      // 2. Destroy all relevant runtime/cache instances (simulate process
+      // death -- the module-level cache/resolver from any prior test/run
+      // must not leak in).
+      __resetProviderCloudConfigCacheForTests();
+
+      // 3. Construct a fresh store instance and initialize production
+      // startup exactly like plumbInit.ts does, in the same order: load
+      // the cloud config cache BEFORE any catalog/model resolution runs.
+      const freshStore = new PlumbSecureCredentialStore();
+      await initializeProviderCloudConfigCache(freshStore);
+
+      // 4. First real catalog resolution in this "process".
+      const [model] = getCatalogModels('oci-genai');
+
+      expect(model).toBeDefined();
+      expect(model.baseUrl).toBe(
+        'https://inference.generativeai.ap-mumbai-1.oci.oraclecloud.com/openai/v1',
+      );
+      expect(model.headers?.['opc-compartment-id']).toBe(
+        'ocid1.compartment.oc1..real',
+      );
+    });
+
+    it('ANTI-TAUTOLOGY: without startup cache initialization, the first catalog call falls back to the default region instead of the persisted one', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'ap-mumbai-1',
+      });
+      // Deliberately skip initializeProviderCloudConfigCache() -- this is
+      // the regression this whole matrix exists to prevent: PLUMB-saved
+      // config exists on disk, but nothing loaded it into the resolver
+      // before the first request.
+      __resetProviderCloudConfigCacheForTests();
+
+      const [model] = getCatalogModels('oci-genai');
+
+      expect(model.baseUrl).not.toBe(
+        'https://inference.generativeai.ap-mumbai-1.oci.oraclecloud.com/openai/v1',
+      );
+      expect(model.baseUrl).toBe(
+        'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1',
+      );
+    });
+  });
+
+  describe('initialization idempotency and failure isolation', () => {
+    it('concurrent initialize calls (Promise.all) converge to the same correct state -- no duplicated listeners/entries/races', async () => {
+      await store.setProviderCloudConfig('oci-genai', {
+        region: 'ap-mumbai-1',
+      });
+      await store.setProviderCloudConfig('watsonx', { region: 'eu-de' });
+
+      await Promise.all([
+        initializeProviderCloudConfigCache(store),
+        initializeProviderCloudConfigCache(store),
+        initializeProviderCloudConfigCache(store),
+      ]);
+
+      expect(getCachedProviderCloudConfig('oci-genai')).toEqual({
+        region: 'ap-mumbai-1',
+      });
+      expect(getCachedProviderCloudConfig('watsonx')).toEqual({
+        region: 'eu-de',
+      });
+      expect(
+        resolveProviderConfigValue('oci-genai', 'region', 'UNUSED_ENV'),
+      ).toBe('ap-mumbai-1');
+    });
+
+    it('repeated initialize calls do not clear already-saved same-session configuration', async () => {
+      await initializeProviderCloudConfigCache(store);
+      await saveProviderCloudConfig(
+        'oci-genai',
+        { region: 'ap-mumbai-1' },
+        store,
+      );
+
+      // A second startup-style initialize call (idempotent re-sync) must
+      // not wipe out what was just saved in this session.
+      await initializeProviderCloudConfigCache(store);
+
+      expect(getCachedProviderCloudConfig('oci-genai')).toEqual({
+        region: 'ap-mumbai-1',
+      });
+    });
+
+    it('a store failure for one provider does not prevent other providers from loading, and never throws out of initialization', async () => {
+      await store.setProviderCloudConfig('watsonx', { region: 'eu-de' });
+
+      const failingStore = {
+        getProviderCloudConfig: async (providerId: string) => {
+          if (providerId === 'oci-genai') {
+            throw new Error('simulated corrupt oci-genai config entry');
+          }
+          return store.getProviderCloudConfig(providerId);
+        },
+      } as unknown as PlumbSecureCredentialStore;
+
+      await expect(
+        initializeProviderCloudConfigCache(failingStore),
+      ).resolves.not.toThrow();
+
+      // The failing provider is treated as unconfigured, not left stale/undefined.
+      expect(getCachedProviderCloudConfig('oci-genai')).toEqual({});
+      // Every other provider, including the rest of the fixed cloud set,
+      // still loaded correctly.
+      expect(getCachedProviderCloudConfig('watsonx')).toEqual({
+        region: 'eu-de',
+      });
     });
   });
 });
