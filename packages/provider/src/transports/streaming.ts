@@ -32,6 +32,7 @@ import {
 import { streamClaudeSubscription } from './claudeSubscription.js';
 import { streamWatsonx } from './watsonx.js';
 import { streamOciGenaiResponses } from './ociGenaiResponses.js';
+import { streamBedrockConverse } from './bedrock.js';
 
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
@@ -1816,6 +1817,7 @@ registerPlumbTransport('anthropic-messages', anthropicMessagesStream);
 registerPlumbTransport('claude-agent-sdk', streamClaudeSubscription);
 registerPlumbTransport('watsonx-chat', streamWatsonx);
 registerPlumbTransport('oci-openai-responses', streamOciGenaiResponses);
+registerPlumbTransport('bedrock-converse-stream', streamBedrockConverse);
 
 // Google
 registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);
