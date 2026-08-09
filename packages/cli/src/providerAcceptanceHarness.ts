@@ -18,7 +18,16 @@ import { recordAcceptance, getAllAcceptances } from './providerAcceptance.js';
 const OMP_SHA = '4df68d60438423b384b2b47fb3d6835641624757';
 
 // Reference routes that are already user-verified and must not be retested.
-const REFERENCE_ROUTES = new Set(['nvidia', 'custom-openai-compat']);
+//
+// 'custom-openai-compat' was previously listed here too, but it is a
+// PLUMB_ONLY_SYNTHETIC provider excluded from SELECTABLE_PROVIDERS (no user
+// can ever configure/verify it through the real setup flow -- it has no
+// catalog models, no discovery adapter, and no base-URL configuration UI at
+// all). Marking a provider nobody can reach as "already user-verified" is
+// exactly the fake-acceptance shape this harness exists to prevent; removed
+// so a direct `--test-provider custom-openai-compat` invocation reports its
+// real (non-selectable / no model source) classification instead.
+const REFERENCE_ROUTES = new Set(['nvidia']);
 
 const LOCAL_PROVIDER_ROUTES = new Set([
   'ollama',

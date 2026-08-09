@@ -1267,7 +1267,6 @@ describe('live acceptance terminal channels', () => {
       'lm-studio',
       'llama-cpp',
       'vllm',
-      'custom-openai-compat',
     ];
     for (const route of referenceRoutes) {
       const t = capture();
@@ -1276,6 +1275,22 @@ describe('live acceptance terminal channels', () => {
       });
       expect(exitCode).toBe(0);
     }
+  });
+
+  it("14b. a non-selectable synthetic provider is never fake-skipped as an 'already user-verified' reference route", async () => {
+    // custom-openai-compat is PLUMB_ONLY_SYNTHETIC (excluded from
+    // SELECTABLE_PROVIDERS, no catalog models, no discovery adapter, no
+    // base-URL configuration UI) -- no user can ever reach or verify it
+    // through the real setup flow, so it must not silently report success.
+    const t = capture();
+    const exitCode = await runProviderAcceptanceTest('custom-openai-compat', {
+      report: t.report,
+    });
+
+    expect(exitCode).not.toBe(0);
+    const joined = t.reportLines.join('\n');
+    expect(joined).not.toContain('reference route');
+    expect(joined).not.toContain('result: LIVE_VERIFIED');
   });
 });
 
