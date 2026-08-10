@@ -183,14 +183,18 @@ describe('streamClaudeSubscription', () => {
   });
 
   it('normalizes assistant text/thinking blocks and usage into PlumbStreamEvent', async () => {
+    // Pinned Agent SDK 0.1.77 shape: SDKAssistantMessage nests the API
+    // assistant message (with content blocks) under `message`.
     mockQuery.mockReturnValue(
       makeSdkQuery([
         {
           type: 'assistant',
-          content: [
-            { type: 'thinking', thinking: 'considering...' },
-            { type: 'text', text: 'Hello there' },
-          ],
+          message: {
+            content: [
+              { type: 'thinking', thinking: 'considering...' },
+              { type: 'text', text: 'Hello there' },
+            ],
+          },
         },
         {
           type: 'result',
@@ -225,20 +229,87 @@ describe('streamClaudeSubscription', () => {
     ]);
   });
 
+  it('reads assistant text from the pinned Agent SDK 0.1.77 nested shape (message.message.content) — live-acceptance regression', async () => {
+    // REGRESSION (live-observed): an earlier revision read top-level
+    // `message.content`, which the real SDK never populates — every real
+    // assistant reply was silently dropped, so a genuinely successful stream
+    // completed with usage+done but no text and the acceptance harness
+    // honestly reported LIVE_TEST_FAILED. This mock is shaped EXACTLY like
+    // the pinned SDK's SDKAssistantMessage (see sdk.d.ts): content blocks
+    // live under the nested API assistant message, alongside the extra
+    // envelope fields the real SDK attaches (uuid/session_id/
+    // parent_tool_use_id), proving the transport reads the real shape.
+    mockQuery.mockReturnValue(
+      makeSdkQuery([
+        {
+          type: 'assistant',
+          uuid: '00000000-0000-4000-8000-000000000001',
+          session_id: 'session-1',
+          parent_tool_use_id: null,
+          message: {
+            id: 'msg_1',
+            role: 'assistant',
+            model: 'claude-sonnet-5',
+            content: [{ type: 'text', text: 'OK' }],
+            stop_reason: 'end_turn',
+          },
+        },
+        {
+          type: 'result',
+          subtype: 'success',
+          result: 'OK',
+          usage: { input_tokens: 3, output_tokens: 1 },
+        },
+      ]),
+    );
+    const mod = await importFresh();
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of mod.streamClaudeSubscription({
+      model: subscriptionModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+    })) {
+      events.push(event);
+    }
+    expect(events).toContainEqual({ type: 'text', text: 'OK' });
+    expect(events).toContainEqual({ type: 'done', finishReason: 'stop' });
+  });
+
+  it('still tolerates a legacy flat top-level content array (older/partial SDK builds)', async () => {
+    mockQuery.mockReturnValue(
+      makeSdkQuery([
+        { type: 'assistant', content: [{ type: 'text', text: 'legacy' }] },
+        { type: 'result', subtype: 'success' },
+      ]),
+    );
+    const mod = await importFresh();
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of mod.streamClaudeSubscription({
+      model: subscriptionModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+    })) {
+      events.push(event);
+    }
+    expect(events).toContainEqual({ type: 'text', text: 'legacy' });
+  });
+
   it('drops any tool_use block instead of executing it (tools are disabled; this is the safe failure mode)', async () => {
     mockQuery.mockReturnValue(
       makeSdkQuery([
         {
           type: 'assistant',
-          content: [
-            {
-              type: 'tool_use',
-              id: 't1',
-              name: 'Bash',
-              input: { command: 'ls' },
-            },
-            { type: 'text', text: 'ok' },
-          ],
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 't1',
+                name: 'Bash',
+                input: { command: 'ls' },
+              },
+              { type: 'text', text: 'ok' },
+            ],
+          },
         },
         { type: 'result', subtype: 'success' },
       ]),
@@ -259,7 +330,11 @@ describe('streamClaudeSubscription', () => {
   it('classifies a documented SDKAssistantMessageError to a canonical code', async () => {
     mockQuery.mockReturnValue(
       makeSdkQuery([
-        { type: 'assistant', content: [], error: 'authentication_failed' },
+        {
+          type: 'assistant',
+          message: { content: [] },
+          error: 'authentication_failed',
+        },
       ]),
     );
     const mod = await importFresh();
@@ -283,7 +358,10 @@ describe('streamClaudeSubscription', () => {
     const controller = new AbortController();
     mockQuery.mockReturnValue(
       makeSdkQuery([
-        { type: 'assistant', content: [{ type: 'text', text: 'partial' }] },
+        {
+          type: 'assistant',
+          message: { content: [{ type: 'text', text: 'partial' }] },
+        },
       ]),
     );
     const mod = await importFresh();
@@ -325,7 +403,7 @@ describe('streamClaudeSubscription', () => {
         makeSdkQuery([
           {
             type: 'assistant',
-            content: [{ type: 'text', text: 'Hi! How can I help?' }],
+            message: { content: [{ type: 'text', text: 'Hi! How can I help?' }] },
           },
           { type: 'result', subtype: 'success' },
         ]),
@@ -345,7 +423,10 @@ describe('streamClaudeSubscription', () => {
       // stateless-per-call contract shared by every transport in this file.
       mockQuery.mockReturnValueOnce(
         makeSdkQuery([
-          { type: 'assistant', content: [{ type: 'text', text: 'It is 4.' }] },
+          {
+            type: 'assistant',
+            message: { content: [{ type: 'text', text: 'It is 4.' }] },
+          },
           { type: 'result', subtype: 'success' },
         ]),
       );
@@ -368,7 +449,10 @@ describe('streamClaudeSubscription', () => {
       // Turn 3 — full accumulated history again.
       mockQuery.mockReturnValueOnce(
         makeSdkQuery([
-          { type: 'assistant', content: [{ type: 'text', text: 'It is 8.' }] },
+          {
+            type: 'assistant',
+            message: { content: [{ type: 'text', text: 'It is 8.' }] },
+          },
           { type: 'result', subtype: 'success' },
         ]),
       );

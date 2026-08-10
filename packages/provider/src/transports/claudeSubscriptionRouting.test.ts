@@ -67,7 +67,12 @@ describe('claude-subscription routing (production-shaped, no mocking of streamin
   it('reaches the real Agent SDK transport and never calls fetch', async () => {
     mockQuery.mockReturnValue(
       makeSdkQuery([
-        { type: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        // Pinned Agent SDK 0.1.77 SDKAssistantMessage shape: content blocks
+        // are nested under the inner API assistant message.
+        {
+          type: 'assistant',
+          message: { content: [{ type: 'text', text: 'hello' }] },
+        },
         { type: 'result', usage: { input_tokens: 5, output_tokens: 2 } },
       ]),
     );

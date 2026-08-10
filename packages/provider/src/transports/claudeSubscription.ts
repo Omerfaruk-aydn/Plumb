@@ -77,6 +77,18 @@ interface SdkAssistantContentBlock {
 interface SdkMessage {
   type: string;
   subtype?: string;
+  /**
+   * Assistant content blocks. The pinned Agent SDK (0.1.77,
+   * SDKAssistantMessage in sdk.d.ts) nests the API assistant message under
+   * `message` — so the authoritative location is `message.message.content`,
+   * NOT a top-level `content`. Reading the top level (an earlier revision
+   * of this file did) silently drops every text block of every real SDK
+   * response: the stream then "completes" with usage+done but no text,
+   * which is exactly the live-observed false failure this structural
+   * subset now encodes correctly. The top-level field is only tolerated as
+   * a fallback for older/partial SDK builds.
+   */
+  message?: { content?: SdkAssistantContentBlock[] };
   content?: SdkAssistantContentBlock[];
   error?: string;
   result?: string;
@@ -554,7 +566,12 @@ export async function* streamClaudeSubscription(
       }
       switch (message.type) {
         case 'assistant': {
-          for (const block of message.content ?? []) {
+          // Pinned SDK 0.1.77 shape: SDKAssistantMessage.message.content
+          // (nested APIAssistantMessage). The top-level `content` read is a
+          // legacy-shape fallback only — see the SdkMessage doc above.
+          const contentBlocks =
+            message.message?.content ?? message.content ?? [];
+          for (const block of contentBlocks) {
             if (block.type === 'text' && block.text) {
               yield { type: 'text', text: block.text };
             } else if (block.type === 'thinking' && block.thinking) {
