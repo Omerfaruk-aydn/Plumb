@@ -19,6 +19,7 @@ import {
   resetPlumbProviderRegistry,
   resolveUsablePlumbCredential,
   getProviderDefinition,
+  getCatalogModels,
 } from '@google/gemini-cli-provider';
 import { runCodingPlanLiveAcceptance } from './providerAcceptanceHarness.js';
 
@@ -119,12 +120,20 @@ describe('antigravity live auth -> production stream credential handoff (product
 
     let capturedUrl: string | undefined;
     let capturedHeaders: Record<string, string> | undefined;
+    let capturedBody: unknown;
     globalThis.fetch = (async (
       url: string | URL | Request,
       init?: RequestInit,
     ) => {
       capturedUrl = String(url);
       capturedHeaders = init?.headers as Record<string, string>;
+      if (typeof init?.body === 'string') {
+        try {
+          capturedBody = JSON.parse(init.body);
+        } catch {
+          capturedBody = init.body;
+        }
+      }
       return new Response(SSE_BODY, {
         status: 200,
         headers: { 'content-type': 'text/event-stream' },
@@ -164,6 +173,21 @@ describe('antigravity live auth -> production stream credential handoff (product
     );
     expect(capturedHeaders?.['Authorization']).toBe(`Bearer ${ACCESS}`);
     expect(capturedHeaders?.['User-Agent']).toContain('antigravity');
+
+    // The wire model in the request body must be the catalog's
+    // requestModelId (gemini-3.6-flash-low), NOT the display id
+    // (gemini-3.6-flash). Sending the display id causes HTTP 404.
+    const body = capturedBody as Record<string, unknown> | undefined;
+    expect(body).toBeDefined();
+    expect(body!['model']).not.toBe('gemini-3.6-flash');
+    // The first model in the google-antigravity catalog with a distinct
+    // requestModelId is gemini-3.6-flash -> gemini-3.6-flash-low.
+    // Whatever model is at index 0, its wire model must match the
+    // catalog's requestModelId (or id when requestModelId is absent).
+    const firstCatalogModel = getCatalogModels('google-antigravity')[0];
+    const expectedWireModel =
+      firstCatalogModel.requestModelId ?? firstCatalogModel.id;
+    expect(body!['model']).toBe(expectedWireModel);
 
     // The adoption persists for the rest of the runtime: the same usable
     // credential authority normal chat, /login antigravity, and

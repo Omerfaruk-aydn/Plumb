@@ -1051,6 +1051,13 @@ export async function runCodingPlanLiveAcceptance(
         name?: string;
         api?: string;
         baseUrl?: string;
+        requestModelId?: string;
+        provider: string;
+        contextWindow: number;
+        maxTokens: number;
+        reasoning?: boolean;
+        input: string;
+        headers?: Record<string, string>;
       }>)
     : [];
   // Live discovery is not performed by the acceptance harness; the bundled
@@ -1065,7 +1072,19 @@ export async function runCodingPlanLiveAcceptance(
     dynamicCount: dynamicModelCount,
     finalCount: finalModelCount,
     selectedModel: undefined as
-      | { id: string; name?: string; api?: string; baseUrl?: string }
+      | {
+          id: string;
+          name?: string;
+          api?: string;
+          baseUrl?: string;
+          requestModelId?: string;
+          provider: string;
+          contextWindow: number;
+          maxTokens: number;
+          reasoning?: boolean;
+          input: string;
+          headers?: Record<string, string>;
+        }
       | undefined,
     routingProvider: providerId,
     streamStarted: false,
@@ -1329,7 +1348,17 @@ export async function runCodingPlanLiveAcceptance(
       ? stubStream
       : plumbModelStream({
           model: {
-            id: selectedModel.id,
+            // Spread the FULL catalog model (selectedModel) so that
+            // requestModelId, name, baseUrl, headers, thinking, pricing,
+            // and every other catalog field the transport may consult are
+            // preserved. Constructing a synthetic model that only copies
+            // `id` loses requestModelId — which for Antigravity models
+            // like gemini-3.6-flash maps the display id to the wire id
+            // (gemini-3.6-flash-low). Without this spread the acceptance
+            // harness sends the display id on the wire, the backend
+            // returns 404, and the test reports LIVE_TEST_FAILED even
+            // though the credential and endpoint are correct.
+            ...selectedModel,
             // The canonical catalog/OMP id, NOT the PLUMB presentation id:
             // normal-chat catalog models carry the OMP id on
             // PlumbModel.provider (e.g. `google-antigravity` for a caller
@@ -1341,14 +1370,25 @@ export async function runCodingPlanLiveAcceptance(
             // the exact request normal chat sends. For non-aliased
             // providers (github-copilot) canonicalId === providerId, so
             // this changes nothing for them.
+            //
+            // selectedModel.provider is already the canonical OMP id from
+            // the catalog, but we override explicitly for clarity and to
+            // preserve the exact same runtime behavior as before.
             provider: canonicalId,
+            // Override transport-specific fallbacks for Copilot and any
+            // provider where the catalog omits api/baseUrl. The spread
+            // above already carries the catalog values; these ??-coalesces
+            // only fire when the catalog entry is missing the field.
             api: modelApi,
-            baseUrl: modelBaseUrl,
-            headers: modelHeaders,
+            ...(modelBaseUrl ? { baseUrl: modelBaseUrl } : {}),
+            ...(modelHeaders ? { headers: modelHeaders } : {}),
+            // Harness-specific overrides: narrow the acceptance stream to
+            // the minimum token/window envelope so the test stays fast and
+            // deterministic.
             contextWindow: 4096,
             maxTokens: 32,
             reasoning: false,
-            input: 'text',
+            input: 'text' as const,
           },
           messages: [{ role: 'user', content: 'Say exactly: PLUMB_TEST_OK' }],
           apiKey: state.credential.key,
@@ -1893,15 +1933,19 @@ export async function runProviderAcceptanceTest(
           result.streamStarted = true;
           const stream = providerModule.plumbModelStream({
             model: {
-              id: selectedModel.id,
+              // Spread the full catalog model so that requestModelId and
+              // all other catalog metadata are preserved for transports
+              // that consult them (e.g. google-antigravity's
+              // buildAntigravityRequest uses requestModelId for the wire
+              // model).
+              ...selectedModel,
               provider: providerId,
               api: api as 'openai-completions',
               contextWindow: selectedModel.contextWindow ?? 4096,
               maxTokens: 32,
               reasoning: false,
               input: 'text' as const,
-              baseUrl: baseUrl !== 'from-omp-factory' ? baseUrl : undefined,
-              headers: selectedModel.headers,
+              ...(baseUrl !== 'from-omp-factory' ? { baseUrl } : {}),
             },
             messages: [{ role: 'user', content: 'Say exactly: PLUMB_TEST_OK' }],
             apiKey,
