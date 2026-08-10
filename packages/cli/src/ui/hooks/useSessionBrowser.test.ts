@@ -28,7 +28,17 @@ import {
 
 // Mock modules
 vi.mock('fs/promises');
-vi.mock('path');
+vi.mock('path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('path')>();
+  return {
+    ...actual,
+    join: vi.fn((...args: string[]) => actual.join(...args)),
+    default: {
+      ...actual,
+      join: vi.fn((...args: string[]) => actual.join(...args)),
+    },
+  };
+});
 vi.mock('../../utils/sessionUtils.js', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('../../utils/sessionUtils.js')>();

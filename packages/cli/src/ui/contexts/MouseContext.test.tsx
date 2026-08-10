@@ -7,7 +7,15 @@
 import { renderHookWithProviders } from '../../test-utils/render.js';
 import { act } from 'react';
 import { useMouseContext, useMouse } from './MouseContext.js';
-import { vi, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type Mock,
+} from 'vitest';
 import { useStdin } from 'ink';
 import { EventEmitter } from 'node:events';
 import { appEvents, AppEvent } from '../../utils/events.js';

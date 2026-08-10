@@ -28,11 +28,15 @@ import * as path from 'node:path';
 
 // Mock dependencies BEFORE imports
 vi.mock('node:fs/promises');
-vi.mock('node:fs', () => ({
-  createWriteStream: vi.fn(),
-  existsSync: vi.fn(),
-  statSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    createWriteStream: vi.fn(),
+    existsSync: vi.fn(),
+    statSync: vi.fn(),
+  };
+});
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:child_process')>();
   return {

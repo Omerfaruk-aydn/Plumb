@@ -22,7 +22,7 @@ vi.mock('./useKeypress.js');
 
 let activeKeypressHandler: KeypressHandler | null = null;
 
-describe('useSelectionList', () => {
+describe('useSelectionList', { timeout: 30000 }, () => {
   const mockOnSelect = vi.fn();
   const mockOnHighlight = vi.fn();
 

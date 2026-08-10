@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook } from '../../test-utils/render.js';
 import { useMouse } from './useMouse.js';
 import { useMouseContext } from '../contexts/MouseContext.js';

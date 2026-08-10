@@ -171,7 +171,11 @@ describe('Full Terminal Tool Confirmation Snapshot', () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
     });
 
-    await expect({ lastFrame, generateSvg }).toMatchSvgSnapshot();
+    const normalizedLastFrame = () => lastFrame().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋');
+    await expect({
+      lastFrame: normalizedLastFrame,
+      generateSvg,
+    }).toMatchSvgSnapshot();
     unmount();
   });
 });

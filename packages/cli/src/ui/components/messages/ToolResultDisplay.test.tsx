@@ -8,7 +8,7 @@ import { renderWithProviders } from '../../../test-utils/render.js';
 import { waitFor } from '../../../test-utils/async.js';
 import { createMockSettings } from '../../../test-utils/settings.js';
 import { ToolResultDisplay } from './ToolResultDisplay.js';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { makeFakeConfig, type AnsiOutput } from '@google/gemini-cli-core';
 
 describe('ToolResultDisplay', () => {

@@ -7,7 +7,15 @@
 import { renderWithProviders } from '../../test-utils/render.js';
 import { EventEmitter } from 'node:events';
 import { useFocus } from './useFocus.js';
-import { vi, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type Mock,
+} from 'vitest';
 import { useStdin, useStdout } from 'ink';
 import { act } from 'react';
 

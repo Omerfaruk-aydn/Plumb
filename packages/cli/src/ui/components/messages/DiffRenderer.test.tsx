@@ -10,7 +10,7 @@ import { createMockSettings } from '../../../test-utils/settings.js';
 import { waitFor } from '../../../test-utils/async.js';
 import { DiffRenderer } from './DiffRenderer.js';
 import * as CodeColorizer from '../../utils/CodeColorizer.js';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('<OverflowProvider><DiffRenderer /></OverflowProvider>', () => {
   const mockColorizeCode = vi.spyOn(CodeColorizer, 'colorizeCode');

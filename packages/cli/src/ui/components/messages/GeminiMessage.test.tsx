@@ -7,6 +7,7 @@
 import { GeminiMessage } from './GeminiMessage.js';
 import { StreamingState } from '../../types.js';
 import { renderWithProviders } from '../../../test-utils/render.js';
+import { describe, it, expect } from 'vitest';
 
 describe('<GeminiMessage /> - Raw Markdown Display Snapshots', () => {
   const baseProps = {

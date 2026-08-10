@@ -167,14 +167,14 @@ describe('Configuration Integration Tests', () => {
     });
   });
 
-  describe('Approval Mode Integration Tests', () => {
+  describe('Approval Mode Integration Tests', { timeout: 30000 }, () => {
     let parseArguments: typeof import('./config.js').parseArguments;
 
     beforeEach(async () => {
       // Import the argument parsing function for integration testing
       const { parseArguments: parseArgs } = await import('./config.js');
       parseArguments = parseArgs;
-    });
+    }, 30000);
 
     it.each([
       {

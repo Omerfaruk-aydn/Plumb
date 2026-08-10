@@ -5,7 +5,15 @@
  */
 
 import { renderHook } from '../../test-utils/render.js';
-import { vi, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type Mock,
+} from 'vitest';
 import { useFlickerDetector } from './useFlickerDetector.js';
 import { useConfig } from '../contexts/ConfigContext.js';
 import { recordFlickerFrame, type Config } from '@google/gemini-cli-core';

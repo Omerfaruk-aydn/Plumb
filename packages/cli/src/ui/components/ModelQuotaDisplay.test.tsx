@@ -5,7 +5,7 @@
  */
 
 import { renderWithProviders } from '../../test-utils/render.js';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ModelQuotaDisplay } from './ModelQuotaDisplay.js';
 
 describe('<ModelQuotaDisplay />', () => {

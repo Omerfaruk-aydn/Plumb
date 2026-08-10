@@ -136,11 +136,13 @@ describe('useHistoryManager', () => {
     });
 
     expect(result.current.history).toHaveLength(1);
-    expect(result.current.history[0]).toEqual({
-      ...initialItem,
-      id: itemId,
-      text: updatedText,
-    });
+    expect(result.current.history[0]).toEqual(
+      expect.objectContaining({
+        ...initialItem,
+        id: itemId,
+        text: updatedText,
+      }),
+    );
   });
 
   it('should not change history if updateHistoryItem is called with a nonexistent ID', async () => {

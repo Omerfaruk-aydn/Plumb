@@ -264,7 +264,7 @@ const createSettingsFile = (
   readOnly,
 });
 
-describe('SettingsDialog', () => {
+describe('SettingsDialog', { timeout: 30000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(

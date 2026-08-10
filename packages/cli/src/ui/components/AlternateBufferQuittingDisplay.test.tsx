@@ -225,7 +225,8 @@ describe('AlternateBufferQuittingDisplay', () => {
         },
       },
     );
-    expect(lastFrame()).toMatchSnapshot('with_user_gemini_messages');
+    const frame = lastFrame().replace(/\b\d{2}:\d{2}\b/g, '12:00');
+    expect(frame).toMatchSnapshot('with_user_gemini_messages');
     unmount();
   });
 });

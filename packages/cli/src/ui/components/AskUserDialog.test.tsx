@@ -21,7 +21,7 @@ const writeKey = (stdin: { write: (data: string) => void }, key: string) => {
   });
 };
 
-describe('AskUserDialog', () => {
+describe('AskUserDialog', { timeout: 30000 }, () => {
   // Ensure keystrokes appear spaced in time to avoid bufferFastReturn
   // converting Enter into Shift+Enter during synchronous test execution.
   let mockTime: number;

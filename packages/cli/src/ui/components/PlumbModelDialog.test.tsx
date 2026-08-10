@@ -139,7 +139,7 @@ function buildConfig(): Partial<Config> {
   };
 }
 
-describe('PlumbModelDialog', () => {
+describe('PlumbModelDialog', { timeout: 30000 }, () => {
   beforeEach(() => {
     activeStates = [
       {

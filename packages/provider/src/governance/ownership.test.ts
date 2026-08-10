@@ -53,7 +53,7 @@ const OMP_REQUIRED = [
   'stream-normalization',
 ];
 
-describe('ownership manifest', () => {
+describe('ownership manifest', { timeout: 30000 }, () => {
   it('is well-formed and pinned to the accepted upstream SHA', () => {
     const repoRoot = resolveRepoRoot();
     const manifest = loadManifest(repoRoot);
@@ -197,8 +197,7 @@ describe('ownership manifest', () => {
       e.includes('hard-coded provider inventory'),
     );
     expect(inventoryErrors).toEqual([]);
-  }, // findHardCodedProviderInventories walks the entire UI/config source
-  // tree looking for multi-entry provider-id array literals. Fast in
+  }, // tree looking for multi-entry provider-id array literals. Fast in // findHardCodedProviderInventories walks the entire UI/config source
   // isolation; observed to exceed the default 5000ms only under the full
   // provider suite's parallel worker-thread contention.
   20_000);

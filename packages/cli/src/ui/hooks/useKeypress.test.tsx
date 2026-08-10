@@ -9,7 +9,15 @@ import { renderHookWithProviders } from '../../test-utils/render.js';
 import { useKeypress } from './useKeypress.js';
 import { useStdin } from 'ink';
 import { EventEmitter } from 'node:events';
-import type { Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  type Mock,
+} from 'vitest';
 
 // Mock the 'ink' module to control stdin
 vi.mock('ink', async (importOriginal) => {

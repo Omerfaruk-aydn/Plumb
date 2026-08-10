@@ -56,7 +56,7 @@ describe('<SubagentProgressDisplay />', () => {
     const { lastFrame } = await render(
       <SubagentProgressDisplay progress={progress} terminalWidth={80} />,
     );
-    expect(lastFrame()).toMatchSnapshot();
+    expect(lastFrame().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋')).toMatchSnapshot();
   });
 
   it('renders correctly with command fallback', async () => {
@@ -77,7 +77,7 @@ describe('<SubagentProgressDisplay />', () => {
     const { lastFrame } = await render(
       <SubagentProgressDisplay progress={progress} terminalWidth={80} />,
     );
-    expect(lastFrame()).toMatchSnapshot();
+    expect(lastFrame().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋')).toMatchSnapshot();
   });
 
   it('renders correctly with file_path', async () => {
@@ -98,7 +98,7 @@ describe('<SubagentProgressDisplay />', () => {
     const { lastFrame } = await render(
       <SubagentProgressDisplay progress={progress} terminalWidth={80} />,
     );
-    expect(lastFrame()).toMatchSnapshot();
+    expect(lastFrame().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋')).toMatchSnapshot();
   });
 
   it('truncates long args', async () => {
@@ -121,7 +121,7 @@ describe('<SubagentProgressDisplay />', () => {
     const { lastFrame } = await render(
       <SubagentProgressDisplay progress={progress} terminalWidth={80} />,
     );
-    expect(lastFrame()).toMatchSnapshot();
+    expect(lastFrame().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋')).toMatchSnapshot();
   });
 
   it('renders thought bubbles correctly', async () => {

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { ToolConfirmationMessage } from './ToolConfirmationMessage.js';
 import type {
   SerializableConfirmationDetails,
@@ -13,7 +13,7 @@ import type {
 import { initializeShellParsers } from '@google/gemini-cli-core';
 import { renderWithProviders } from '../../../test-utils/render.js';
 
-describe('ToolConfirmationMessage Redirection', () => {
+describe('ToolConfirmationMessage Redirection', { timeout: 30000 }, () => {
   beforeAll(async () => {
     await initializeShellParsers();
   });

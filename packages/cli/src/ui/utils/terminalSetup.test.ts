@@ -32,15 +32,20 @@ vi.mock('node:child_process', () => ({
   execFile: vi.fn(),
 }));
 
-vi.mock('node:fs', () => ({
-  createWriteStream: () => mocks.writeStream,
-  promises: {
-    mkdir: mocks.mkdir,
-    readFile: mocks.readFile,
-    writeFile: mocks.writeFile,
-    copyFile: mocks.copyFile,
-  },
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    createWriteStream: () => mocks.writeStream,
+    promises: {
+      ...actual.promises,
+      mkdir: mocks.mkdir,
+      readFile: mocks.readFile,
+      writeFile: mocks.writeFile,
+      copyFile: mocks.copyFile,
+    },
+  };
+});
 
 vi.mock('node:os', () => ({
   homedir: mocks.homedir,

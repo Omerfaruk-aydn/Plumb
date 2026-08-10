@@ -79,7 +79,7 @@ const createMockItems = (count = 4): SettingsDialogItem[] => {
   return items.slice(0, count);
 };
 
-describe('BaseSettingsDialog', () => {
+describe('BaseSettingsDialog', { timeout: 30000 }, () => {
   let mockOnItemToggle: ReturnType<typeof vi.fn>;
   let mockOnEditCommit: ReturnType<typeof vi.fn>;
   let mockOnItemClear: ReturnType<typeof vi.fn>;
@@ -784,7 +784,7 @@ describe('BaseSettingsDialog', () => {
         );
       });
       unmount();
-    });
+    }, 30000);
   });
 
   describe('custom key handling', () => {

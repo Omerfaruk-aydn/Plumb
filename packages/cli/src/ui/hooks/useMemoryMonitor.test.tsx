@@ -5,7 +5,7 @@
  */
 
 import { render } from '../../test-utils/render.js';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   useMemoryMonitor,
   MEMORY_CHECK_INTERVAL,

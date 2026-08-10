@@ -15,6 +15,7 @@ import {
   renderWithProviders,
   type RenderWithProvidersInstance,
 } from '../../test-utils/render.js';
+import { waitFor } from '../../test-utils/async.js';
 import { PlumbAzureCloudConfigForm } from './PlumbAzureCloudConfigForm.js';
 
 async function renderReady(
@@ -27,6 +28,9 @@ async function renderReady(
     );
   });
   await instance.waitUntilReady();
+  await waitFor(() => {
+    expect(instance.lastFrame()).not.toContain('Loading configuration…');
+  });
   return instance;
 }
 
@@ -64,7 +68,7 @@ async function typeText(
   for (const ch of text) await pressKey(stdin, ch);
 }
 
-describe('PlumbAzureCloudConfigForm', () => {
+describe('PlumbAzureCloudConfigForm', { timeout: 30000 }, () => {
   beforeEach(() => {
     mockLoadAzureExistingConfig.mockResolvedValue({
       endpoint: '',

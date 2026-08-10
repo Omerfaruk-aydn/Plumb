@@ -15,6 +15,7 @@ import {
   type Mock,
 } from 'vitest';
 import { execSync } from 'node:child_process';
+import path from 'node:path';
 import {
   main,
   setupUnhandledRejectionHandler,
@@ -479,7 +480,7 @@ describe('getNodeMemoryArgs', () => {
   });
 });
 
-describe('gemini.tsx main function kitty protocol', () => {
+describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
   let originalEnvNoRelaunch: string | undefined;
   let originalIsTTY: boolean | undefined;
   let originalIsRaw: boolean | undefined;
@@ -1314,7 +1315,7 @@ describe('gemini.tsx main function exit codes', () => {
   });
 
   it('should exit with 41 for validateAuthMethod failure during sandbox setup', async () => {
-    vi.stubEnv('SANDBOX', '');
+    delete process.env['SANDBOX'];
     vi.mocked(loadSandboxConfig).mockResolvedValue(
       createMockSandboxConfig({
         command: 'docker',
@@ -1331,7 +1332,9 @@ describe('gemini.tsx main function exit codes', () => {
     vi.mocked(loadSettings).mockReturnValue(
       createMockSettings({
         merged: {
-          security: { auth: { selectedType: 'google', useExternal: false } },
+          security: {
+            auth: { selectedType: 'oauth-personal', useExternal: false },
+          },
         },
       }),
     );
@@ -1352,7 +1355,7 @@ describe('gemini.tsx main function exit codes', () => {
   });
 
   it('should exit with 41 for auth failure during sandbox setup', async () => {
-    vi.stubEnv('SANDBOX', '');
+    delete process.env['SANDBOX'];
     vi.mocked(loadSandboxConfig).mockResolvedValue(
       createMockSandboxConfig({
         command: 'docker',
@@ -1369,7 +1372,9 @@ describe('gemini.tsx main function exit codes', () => {
     vi.mocked(loadSettings).mockReturnValue(
       createMockSettings({
         merged: {
-          security: { auth: { selectedType: 'google', useExternal: false } },
+          security: {
+            auth: { selectedType: 'oauth-personal', useExternal: false },
+          },
         },
       }),
     );
@@ -1875,9 +1880,10 @@ describe('startInteractiveUI', () => {
   });
 });
 
-describe('PLUMB product identity in help output', () => {
+describe('PLUMB product identity in help output', { timeout: 30000 }, () => {
   it('does not expose Gemini CLI product text in --help', async () => {
-    const out = execSync('node dist/index.js --help', {
+    const cliBinPath = path.resolve(__dirname, '../dist/index.js');
+    const out = execSync(`node "${cliBinPath}" --help`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

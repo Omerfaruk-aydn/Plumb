@@ -3,17 +3,6 @@
 exports[`AskUserDialog > Choice question placeholder > uses default placeholder when not provided 1`] = `
 "Select your preferred language:
 
-  1.  TypeScript
-  2.  JavaScript
-● 3.  Enter a custom value                                                      
-
-Enter to submit · Esc to cancel
-"
-`;
-
-exports[`AskUserDialog > Choice question placeholder > uses default placeholder when not provided 2`] = `
-"Select your preferred language:
-
 ● 1.  TypeScript
   2.  JavaScript
   3.  Enter a custom value
@@ -22,18 +11,18 @@ Enter to select · ↑/↓ to navigate · Esc to cancel
 "
 `;
 
-exports[`AskUserDialog > Choice question placeholder > uses placeholder for "Other" option when provided 1`] = `
+exports[`AskUserDialog > Choice question placeholder > uses default placeholder when not provided 2`] = `
 "Select your preferred language:
 
   1.  TypeScript
   2.  JavaScript
-● 3.  Type another language...                                                  
+● 3.  Enter a custom value
 
 Enter to submit · Esc to cancel
 "
 `;
 
-exports[`AskUserDialog > Choice question placeholder > uses placeholder for "Other" option when provided 2`] = `
+exports[`AskUserDialog > Choice question placeholder > uses placeholder for "Other" option when provided 1`] = `
 "Select your preferred language:
 
 ● 1.  TypeScript
@@ -44,23 +33,18 @@ Enter to select · ↑/↓ to navigate · Esc to cancel
 "
 `;
 
-exports[`AskUserDialog > Scroll Arrows (useAlternateBuffer: false) > shows scroll arrows correctly when useAlternateBuffer is false 1`] = `
-"Choose an option
+exports[`AskUserDialog > Choice question placeholder > uses placeholder for "Other" option when provided 2`] = `
+"Select your preferred language:
 
-▲
-●  1.  Option 1                                                                 
-       Description 1                                                            
-   2.  Option 2
-       Description 2
-   3.  Option 3
-       Description 3
-▼
+  1.  TypeScript
+  2.  JavaScript
+● 3.  Type another language...
 
-Enter to select · ↑/↓ to navigate · Esc to cancel
+Enter to submit · Esc to cancel
 "
 `;
 
-exports[`AskUserDialog > Scroll Arrows (useAlternateBuffer: false) > shows scroll arrows correctly when useAlternateBuffer is false 2`] = `
+exports[`AskUserDialog > Scroll Arrows (useAlternateBuffer: false) > shows scroll arrows correctly when useAlternateBuffer is false 1`] = `
 "Choose an option
 
 ▲
@@ -80,8 +64,8 @@ exports[`AskUserDialog > Scroll Arrows (useAlternateBuffer: true) > shows scroll
 "Choose an option
 
 ▲
-●  1.  Option 1                                                                 
-       Description 1                                                            
+●  1.  Option 1
+       Description 1
    2.  Option 2
        Description 2
    3.  Option 3
@@ -139,8 +123,8 @@ Enter to submit · Tab/Shift+Tab to edit answers · Esc to cancel
 exports[`AskUserDialog > hides progress header for single question 1`] = `
 "Which authentication method should we use?
 
-● 1.  OAuth 2.0                                                                                                         
-      Industry standard, supports SSO                                                                                   
+● 1.  OAuth 2.0
+      Industry standard, supports SSO
   2.  JWT tokens
       Stateless, good for APIs
   3.  Enter a custom value
@@ -150,22 +134,6 @@ Enter to select · ↑/↓ to navigate · Esc to cancel
 `;
 
 exports[`AskUserDialog > indents multi-line descriptions correctly 1`] = `
-"Single choice?
-
-● 1.  Option 1                          
-      This is a very long description   
-      that is expected to wrap onto     
-      multiple lines in a narrow        
-      terminal. We want to ensure that  
-      all lines are correctly indented. 
-  2.  Enter a custom value
-
-Enter to select · ↑/↓ to navigate · Esc
-to cancel
-"
-`;
-
-exports[`AskUserDialog > indents multi-line descriptions correctly 2`] = `
 "Single choice?
 
 ● 1.  Option 1
@@ -185,26 +153,6 @@ exports[`AskUserDialog > indents multi-line descriptions correctly in multi-sele
 "Multi-select?
 (Select all that apply)
 
-● 1. [ ] Option 1                       
-         This is a very long description
-         that is expected to wrap onto  
-         multiple lines in a narrow     
-         terminal. We want to ensure    
-         that all lines are correctly   
-         indented even with checkboxes. 
-  2. [ ] Enter a custom value
-   Done
-   Finish selection
-
-Enter to select · ↑/↓ to navigate · Esc
-to cancel
-"
-`;
-
-exports[`AskUserDialog > indents multi-line descriptions correctly in multi-select mode 2`] = `
-"Multi-select?
-(Select all that apply)
-
 ● 1. [ ] Option 1
          This is a very long description
          that is expected to wrap onto
@@ -221,27 +169,11 @@ to cancel
 "
 `;
 
-exports[`AskUserDialog > navigates to custom option when typing unbound characters (Type-to-Jump) 1`] = `
-"Choose an option
-
-▲
-●  1.  Option 1
-       Description 1
-   2.  Option 2
-       Description 2
-   3.  Option 3
-       Description 3
-▼
-
-Enter to select · ↑/↓ to navigate · Esc to cancel
-"
-`;
-
 exports[`AskUserDialog > renders question and options 1`] = `
 "Which authentication method should we use?
 
-● 1.  OAuth 2.0                                                                                                         
-      Industry standard, supports SSO                                                                                   
+● 1.  OAuth 2.0
+      Industry standard, supports SSO
   2.  JWT tokens
       Stateless, good for APIs
   3.  Enter a custom value
@@ -255,8 +187,8 @@ exports[`AskUserDialog > shows Review tab in progress header for multiple questi
 
 Which framework?
 
-● 1.  React                                                                                                             
-      Component library                                                                                                 
+● 1.  React
+      Component library
   2.  Vue
       Progressive framework
   3.  Enter a custom value
@@ -268,8 +200,8 @@ Enter to select · ←/→ to switch questions · Esc to cancel
 exports[`AskUserDialog > shows keyboard hints 1`] = `
 "Which authentication method should we use?
 
-● 1.  OAuth 2.0                                                                                                         
-      Industry standard, supports SSO                                                                                   
+● 1.  OAuth 2.0
+      Industry standard, supports SSO
   2.  JWT tokens
       Stateless, good for APIs
   3.  Enter a custom value
@@ -283,8 +215,8 @@ exports[`AskUserDialog > shows progress header for multiple questions 1`] = `
 
 Which database should we use?
 
-● 1.  PostgreSQL                                                                                                        
-      Relational database                                                                                               
+● 1.  PostgreSQL
+      Relational database
   2.  MongoDB
       Document database
   3.  Enter a custom value
@@ -294,6 +226,19 @@ Enter to select · ←/→ to switch questions · Esc to cancel
 `;
 
 exports[`AskUserDialog > shows warning for unanswered questions on Review tab 1`] = `
+"← □ License │ □ README │ ≡ Review →
+
+Which license?
+
+● 1.  MIT
+      Permissive license
+  2.  Enter a custom value
+
+Enter to select · ←/→ to switch questions · Esc to cancel
+"
+`;
+
+exports[`AskUserDialog > shows warning for unanswered questions on Review tab 2`] = `
 "← □ License │ □ README │ ≡ Review →
 
 Review your answers:
@@ -307,36 +252,7 @@ Enter to submit · Tab/Shift+Tab to edit answers · Esc to cancel
 "
 `;
 
-exports[`AskUserDialog > shows warning for unanswered questions on Review tab 2`] = `
-"← □ License │ □ README │ ≡ Review →
-
-Which license?
-
-● 1.  MIT
-      Permissive license
-  2.  Enter a custom value
-
-Enter to select · ←/→ to switch questions · Esc to cancel
-"
-`;
-
 exports[`AskUserDialog > verifies "All of the above" visual state with snapshot 1`] = `
-"Which features?
-(Select all that apply)
-
-  1. [x] TypeScript
-  2. [x] ESLint
-● 3. [x] All of the above                                                                                               
-         Select all options                                                                                             
-  4. [ ] Enter a custom value
-   Done
-   Finish selection
-
-Enter to select · ↑/↓ to navigate · Esc to cancel
-"
-`;
-
-exports[`AskUserDialog > verifies "All of the above" visual state with snapshot 2`] = `
 "Which features?
 (Select all that apply)
 

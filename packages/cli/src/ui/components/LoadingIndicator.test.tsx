@@ -48,7 +48,7 @@ const renderWithContext = async (
   });
 };
 
-describe('<LoadingIndicator />', () => {
+describe('<LoadingIndicator />', { timeout: 30000 }, () => {
   const defaultProps = {
     currentLoadingPhrase: 'Thinking...',
     elapsedTime: 5,

@@ -12,7 +12,7 @@ import { PolicyDecision } from '@google/gemini-cli-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-describe('Model Steering Integration', () => {
+describe('Model Steering Integration', { timeout: 30000 }, () => {
   let rig: AppRig | undefined;
 
   afterEach(async () => {

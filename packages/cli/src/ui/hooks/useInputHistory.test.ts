@@ -6,6 +6,7 @@
 
 import { act } from 'react';
 import { renderHook } from '../../test-utils/render.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useInputHistory } from './useInputHistory.js';
 
 describe('useInputHistory', () => {

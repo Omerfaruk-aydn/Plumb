@@ -30,11 +30,49 @@ vi.mock('@google/gemini-cli-core', async () => {
 });
 
 // Mock fs and fs/promises
-vi.mock('node:fs', async () => {
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
   const memfs = await vi.importActual<typeof import('memfs')>('memfs');
+  const realReadFileSync = actual.readFileSync;
+  const realExistsSync = actual.existsSync;
   return {
     ...memfs.fs,
     default: memfs.fs,
+    readFileSync: (pathStr: unknown, options: unknown) => {
+      if (
+        typeof pathStr === 'string' &&
+        (pathStr.includes('oauth.html') ||
+          pathStr.includes('packages') ||
+          pathStr.includes('node_modules'))
+      ) {
+        return realReadFileSync(
+          pathStr as fs.PathOrFileDescriptor,
+          options as fs.ObjectEncodingOptions,
+        );
+      }
+      try {
+        return memfs.fs.readFileSync(pathStr as string, options as string);
+      } catch {
+        return realReadFileSync(
+          pathStr as fs.PathOrFileDescriptor,
+          options as fs.ObjectEncodingOptions,
+        );
+      }
+    },
+    existsSync: (pathStr: unknown) => {
+      if (
+        typeof pathStr === 'string' &&
+        (pathStr.includes('oauth.html') ||
+          pathStr.includes('packages') ||
+          pathStr.includes('node_modules'))
+      ) {
+        return realExistsSync(pathStr);
+      }
+      return (
+        memfs.fs.existsSync(pathStr as string) ||
+        realExistsSync(pathStr as fs.PathLike)
+      );
+    },
   };
 });
 

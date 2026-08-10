@@ -408,7 +408,7 @@ describe('ScrollableList Demo Behavior', () => {
         await new Promise((resolve) => setTimeout(resolve, 1600));
         result.unmount();
       });
-    });
+    }, 30000);
   });
 
   describe('Width Prop', () => {
@@ -546,7 +546,7 @@ describe('ScrollableList Demo Behavior', () => {
     });
 
     result!.unmount();
-  });
+  }, 30000);
 
   it('regression: bottom-most element changes size but list does not update', async () => {
     let listRef: ScrollableListRef<Item> | null = null;

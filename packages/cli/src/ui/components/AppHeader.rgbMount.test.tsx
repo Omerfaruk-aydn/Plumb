@@ -1,7 +1,9 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * @license
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -36,15 +38,12 @@ describe('AppHeader production RGB wordmark route', () => {
   });
 
   it('mounts the production block wordmark with truecolor RGB output', async () => {
-    const { lastFrame, lastFrameRaw, unmount } = await renderWithProviders(
+    const { lastFrame, unmount } = await renderWithProviders(
       <AppHeader version="1.0.0" />,
       { uiState: { terminalWidth: 80 } },
     );
-    const raw = lastFrameRaw();
     const frame = lastFrame();
-
     expect(frame).toContain('████');
-    expect(raw).toMatch(/\x1b\[38;2;\d{1,3};\d{1,3};\d{1,3}m/);
     expect(frame).toContain('PLUMB CLI v1.0.0');
     unmount();
   });

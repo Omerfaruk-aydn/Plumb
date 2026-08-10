@@ -47,7 +47,7 @@ export async function toMatchSvgSnapshot(
       'toMatchSvgSnapshot requires a renderInstance with either lastFrameRaw or lastFrame',
     );
   }
-  const svgContent = renderInstance.generateSvg();
+  const svgContent = renderInstance.generateSvg().replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋');
 
   const sanitize = (name: string) =>
     name.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-');
@@ -70,7 +70,34 @@ export async function toMatchSvgSnapshot(
   const svgFilePath = path.join(svgDir, svgFileName);
 
   // Assert the text matches standard snapshot, stripping ANSI for stability
-  expect(stripAnsi(textContent)).toMatchSnapshot();
+  expect(
+    stripAnsi(textContent).replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, '⠋'),
+  ).toMatchSnapshot();
+
+  const snapshotState = (
+    expect.getState() as unknown as {
+      snapshotState?: {
+        _updateSnapshot?: string;
+        snapshotOptions?: { updateSnapshot?: string };
+      };
+    }
+  ).snapshotState;
+  const isUpdate =
+    snapshotState?._updateSnapshot === 'all' ||
+    snapshotState?.snapshotOptions?.updateSnapshot === 'all' ||
+    process.argv.includes('-u') ||
+    process.argv.includes('--update') ||
+    Boolean(process.env['UPDATE_SNAPSHOTS']);
+
+  if (isUpdate) {
+    try {
+      const fs = await import('node:fs');
+      fs.mkdirSync(svgDir, { recursive: true });
+      fs.writeFileSync(svgFilePath, svgContent, 'utf-8');
+    } catch {
+      // Ignore concurrent file write lock errors during parallel Vitest runs
+    }
+  }
 
   // Assert the SVG matches the file snapshot
   await expect(svgContent).toMatchFileSnapshot(svgFilePath);
@@ -78,9 +105,7 @@ export async function toMatchSvgSnapshot(
   return { pass: true, message: () => '' };
 }
 
-function toHaveOnlyValidCharacters(this: Assertion, buffer: TextBuffer) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { isNot } = this as any;
+function toHaveOnlyValidCharacters(buffer: TextBuffer) {
   let pass = true;
   const invalidLines: Array<{ line: number; content: string }> = [];
 
@@ -100,19 +125,21 @@ function toHaveOnlyValidCharacters(this: Assertion, buffer: TextBuffer) {
   return {
     pass,
     message: () =>
-      `Expected buffer ${isNot ? 'not ' : ''}to have only valid characters, but found invalid characters in lines:\n${invalidLines
-        .map((l) => `  [${l.line}]: "${l.content}"`) /* This line was changed */
+      `Expected buffer to have only valid characters, but found invalid characters in lines:\n${invalidLines
+        .map((l) => `  [${l.line}]: "${l.content}"`)
         .join('\n')}`,
     actual: buffer.lines,
     expected: 'Lines with no line breaks, backspaces, or escape codes.',
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toMatchSvgSnapshotMatcher: any = toMatchSvgSnapshot;
+
 expect.extend({
   toHaveOnlyValidCharacters,
-  toMatchSvgSnapshot,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as any);
+  toMatchSvgSnapshot: toMatchSvgSnapshotMatcher,
+});
 
 // Extend Vitest's `expect` interface with the custom matcher's type definition.
 declare module 'vitest' {

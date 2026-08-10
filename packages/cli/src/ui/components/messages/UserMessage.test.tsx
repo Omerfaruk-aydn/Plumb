@@ -6,7 +6,7 @@
 
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { UserMessage } from './UserMessage.js';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { makeFakeConfig } from '@google/gemini-cli-core';
 
 // Mock the commandUtils to control isSlashCommand behavior

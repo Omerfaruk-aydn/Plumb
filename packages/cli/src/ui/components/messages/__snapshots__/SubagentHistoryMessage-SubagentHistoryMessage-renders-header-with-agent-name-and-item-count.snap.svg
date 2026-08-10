@@ -4,9 +4,9 @@
   </style>
   <rect width="920" height="105" fill="#000000" />
   <g transform="translate(10, 10)">
-    <text x="0" y="2" fill="#00cdcd" textLength="234" lengthAdjust="spacingAndGlyphs" font-weight="bold">🤖 research Trace (3 items)</text>
-    <text x="18" y="36" fill="#7f7f7f" textLength="270" lengthAdjust="spacingAndGlyphs">🧠 Thinking about the problem ✅</text>
-    <text x="18" y="53" fill="#e5e5e5" textLength="297" lengthAdjust="spacingAndGlyphs">🛠️ Calling search_web (Running...)</text>
-    <text x="18" y="70" fill="#e5e5e5" textLength="234" lengthAdjust="spacingAndGlyphs">🛠️ Calling read_file fail ❌</text>
+    <text x="0" y="2" fill="#ffffff" textLength="900" lengthAdjust="spacingAndGlyphs">🤖 research Trace (3 items)                                                                          </text>
+    <text x="0" y="36" fill="#ffffff" textLength="900" lengthAdjust="spacingAndGlyphs">  🧠 Thinking about the problem ✅                                                                    </text>
+    <text x="0" y="53" fill="#ffffff" textLength="900" lengthAdjust="spacingAndGlyphs">  🛠️ Calling search_web (Running...)                                                                 </text>
+    <text x="0" y="70" fill="#ffffff" textLength="900" lengthAdjust="spacingAndGlyphs">  🛠️ Calling read_file fail ❌                                                                        </text>
   </g>
 </svg>

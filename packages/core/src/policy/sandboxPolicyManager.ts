@@ -56,40 +56,42 @@ export class SandboxPolicyManager {
         'sandbox-default.toml',
       );
       try {
-        const content = fs.readFileSync(defaultPath, 'utf8');
-        if (typeof content !== 'string') {
-          SandboxPolicyManager._DEFAULT_CONFIG = {
-            modes: {
-              plan: {
-                network: false,
-                readonly: true,
-                approvedTools: [],
-                allowOverrides: true,
-              },
-              default: {
-                network: false,
-                readonly: false,
-                approvedTools: [],
-                allowOverrides: true,
-              },
-              accepting_edits: {
-                network: false,
-                readonly: false,
-                approvedTools: ['sed', 'grep', 'awk', 'perl', 'cat', 'echo'],
-                allowOverrides: true,
-              },
-            },
-            commands: {},
-          };
-          return SandboxPolicyManager._DEFAULT_CONFIG;
+        if (fs.existsSync(defaultPath)) {
+          const content = fs.readFileSync(defaultPath, 'utf8');
+          if (typeof content === 'string') {
+            SandboxPolicyManager._DEFAULT_CONFIG = SandboxTomlSchema.parse(
+              toml.parse(content),
+            );
+            return SandboxPolicyManager._DEFAULT_CONFIG;
+          }
         }
-        SandboxPolicyManager._DEFAULT_CONFIG = SandboxTomlSchema.parse(
-          toml.parse(content),
-        );
       } catch (e) {
-        debugLogger.error(`Failed to parse default sandbox policy: ${e}`);
-        throw new Error(`Failed to parse default sandbox policy: ${e}`);
+        debugLogger.error(`Failed to parse default sandbox policy file: ${e}`);
       }
+
+      SandboxPolicyManager._DEFAULT_CONFIG = {
+        modes: {
+          plan: {
+            network: false,
+            readonly: true,
+            approvedTools: [],
+            allowOverrides: true,
+          },
+          default: {
+            network: false,
+            readonly: false,
+            approvedTools: [],
+            allowOverrides: true,
+          },
+          accepting_edits: {
+            network: false,
+            readonly: false,
+            approvedTools: ['sed', 'grep', 'awk', 'perl', 'cat', 'echo'],
+            allowOverrides: true,
+          },
+        },
+        commands: {},
+      };
     }
     return SandboxPolicyManager._DEFAULT_CONFIG;
   }

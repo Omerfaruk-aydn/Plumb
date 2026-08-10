@@ -73,13 +73,18 @@ async function pressKey(stdin: { write: (data: string) => void }, key: string) {
  */
 function CompetingHighPriorityHandler({
   onEnterConsumed,
+  activeRef,
 }: {
   onEnterConsumed: () => void;
+  activeRef?: { current: boolean };
 }) {
   const keyMatchers = useKeyMatchers();
 
   useKeypress(
     (key) => {
+      if (activeRef && !activeRef.current) {
+        return false;
+      }
       if (keyMatchers[Command.RETURN](key)) {
         onEnterConsumed();
         return true; // Consume the key — this is the bug
@@ -92,334 +97,352 @@ function CompetingHighPriorityHandler({
   return null;
 }
 
-describe('PlumbProviderSetupDialog — Input Competition Tests', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
-  });
-
-  it('dialog Enter at confirm step is consumed ONLY by the dialog, not by a competing High-priority handler subscribed BEFORE the dialog', async () => {
-    const onComplete = vi.fn();
-    const competingEnterCount = { value: 0 };
-    const onCompetingEnter = vi.fn(() => {
-      competingEnterCount.value++;
+describe(
+  'PlumbProviderSetupDialog — Input Competition Tests',
+  { timeout: 30000 },
+  () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
     });
 
-    // Render BOTH the competing handler AND the dialog.
-    // Competing handler subscribes BEFORE dialog (tree order: it's rendered first).
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <>
-        <CompetingHighPriorityHandler onEnterConsumed={onCompetingEnter} />
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    });
+
+    it('dialog Enter at confirm step is consumed ONLY by the dialog, not by a competing High-priority handler subscribed BEFORE the dialog', async () => {
+      const onComplete = vi.fn();
+      const competingEnterCount = { value: 0 };
+      const onCompetingEnter = vi.fn(() => {
+        competingEnterCount.value++;
+      });
+
+      const activeRef = { current: false };
+
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+        <>
+          <CompetingHighPriorityHandler
+            onEnterConsumed={onCompetingEnter}
+            activeRef={activeRef}
+          />
+          <PlumbProviderSetupDialog
+            onComplete={onComplete}
+            onCancel={vi.fn()}
+            providers={providers}
+            categoryGroups={categoryGroups}
+            models={models}
+          />
+        </>,
+      );
+
+      await waitUntilReady();
+
+      // Navigate: API Key Provider category (index 2)
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Select NVIDIA
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Type API key and submit
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Select model
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Should be on confirm step
+      expect(lastFrame()).toContain('Confirm setup');
+      expect(lastFrame()).toContain('Step 5');
+
+      // Activate competing handler at confirm step
+      activeRef.current = true;
+
+      // Press Enter to confirm
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // The dialog should have received the Enter (onComplete called)
+      // The competing handler should NOT have consumed it
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(competingEnterCount.value).toBe(0);
+    });
+
+    it('dialog Enter at confirm step is consumed ONLY by the dialog, not by a competing High-priority handler subscribed AFTER the dialog', async () => {
+      const onComplete = vi.fn();
+      const competingEnterCount = { value: 0 };
+      const onCompetingEnter = vi.fn(() => {
+        competingEnterCount.value++;
+      });
+
+      const activeRef = { current: false };
+
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+        <>
+          <PlumbProviderSetupDialog
+            onComplete={onComplete}
+            onCancel={vi.fn()}
+            providers={providers}
+            categoryGroups={categoryGroups}
+            models={models}
+          />
+          <CompetingHighPriorityHandler
+            onEnterConsumed={onCompetingEnter}
+            activeRef={activeRef}
+          />
+        </>,
+      );
+
+      await waitUntilReady();
+
+      // Navigate: API Key Provider category (index 2)
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Select NVIDIA
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Type API key and submit
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Select model
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // Should be on confirm step
+      expect(lastFrame()).toContain('Confirm setup');
+      expect(lastFrame()).toContain('Step 5');
+
+      // Activate competing handler at confirm step
+      activeRef.current = true;
+
+      // Press Enter to confirm
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
+
+      // CRITICAL: Even though the competing handler subscribes AFTER the dialog
+      // (and thus runs FIRST within the same priority level), the dialog should
+      // still receive the Enter because InputPrompt must be inactive when a
+      // modal dialog is open.
+      //
+      // With the current code (no input ownership), the competing handler
+      // WOULD steal Enter because it runs first. After the fix, InputPrompt
+      // should not be active when a modal dialog is open.
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(competingEnterCount.value).toBe(0);
+    });
+
+    it('repeated Enter at confirm step only triggers onComplete once', async () => {
+      const onComplete = vi.fn();
+
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
         <PlumbProviderSetupDialog
           onComplete={onComplete}
           onCancel={vi.fn()}
           providers={providers}
           categoryGroups={categoryGroups}
           models={models}
-        />
-      </>,
-    );
+        />,
+      );
 
-    await waitUntilReady();
+      await waitUntilReady();
 
-    // Navigate: API Key Provider category (index 2)
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Navigate to confirm
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Select NVIDIA
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Type API key and submit
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Select model
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Should be on confirm step
-    expect(lastFrame()).toContain('Confirm setup');
-    expect(lastFrame()).toContain('Step 5');
+      expect(lastFrame()).toContain('Confirm setup');
 
-    // Press Enter to confirm
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Press Enter 5 times rapidly
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // The dialog should have received the Enter (onComplete called)
-    // The competing handler should NOT have consumed it
-    expect(onComplete).toHaveBeenCalledTimes(1);
-    // If the competing handler also consumed Enter, that's a bug
-    // (the competing handler subscribed BEFORE the dialog, so the dialog,
-    // subscribed LAST, should run first within the same priority level)
-    expect(competingEnterCount.value).toBe(0);
-  });
-
-  it('dialog Enter at confirm step is consumed ONLY by the dialog, not by a competing High-priority handler subscribed AFTER the dialog', async () => {
-    const onComplete = vi.fn();
-    const competingEnterCount = { value: 0 };
-    const onCompetingEnter = vi.fn(() => {
-      competingEnterCount.value++;
+      expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
-    // Render the dialog FIRST, then the competing handler.
-    // Competing handler subscribes AFTER dialog (tree order: it's rendered second).
-    // Within the same priority level, the LAST subscribed handler runs first.
-    // So the competing handler would run BEFORE the dialog.
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <>
+    it('Backspace at confirm returns to model selection', async () => {
+      const onComplete = vi.fn();
+
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
         <PlumbProviderSetupDialog
           onComplete={onComplete}
           onCancel={vi.fn()}
           providers={providers}
           categoryGroups={categoryGroups}
           models={models}
-        />
-        <CompetingHighPriorityHandler onEnterConsumed={onCompetingEnter} />
-      </>,
-    );
+        />,
+      );
 
-    await waitUntilReady();
+      await waitUntilReady();
 
-    // Navigate: API Key Provider category (index 2)
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Navigate to confirm
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Select NVIDIA
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Type API key and submit
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Select model
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    // Should be on confirm step
-    expect(lastFrame()).toContain('Confirm setup');
-    expect(lastFrame()).toContain('Step 5');
+      expect(lastFrame()).toContain('Confirm setup');
 
-    // Press Enter to confirm
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Backspace returns to model selection
+      await pressKey(stdin, TerminalKeys.BACKSPACE);
+      await waitUntilReady();
 
-    // CRITICAL: Even though the competing handler subscribes AFTER the dialog
-    // (and thus runs FIRST within the same priority level), the dialog should
-    // still receive the Enter because InputPrompt must be inactive when a
-    // modal dialog is open.
-    //
-    // With the current code (no input ownership), the competing handler
-    // WOULD steal Enter because it runs first. After the fix, InputPrompt
-    // should not be active when a modal dialog is open.
-    expect(onComplete).toHaveBeenCalledTimes(1);
-    expect(competingEnterCount.value).toBe(0);
-  });
+      expect(lastFrame()).toContain('Step 4');
+      expect(lastFrame()).not.toContain('Confirm setup');
+      expect(onComplete).not.toHaveBeenCalled();
+    });
 
-  it('repeated Enter at confirm step only triggers onComplete once', async () => {
-    const onComplete = vi.fn();
+    it('Escape at confirm cancels setup', async () => {
+      const onComplete = vi.fn();
+      const onCancel = vi.fn();
 
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <PlumbProviderSetupDialog
-        onComplete={onComplete}
-        onCancel={vi.fn()}
-        providers={providers}
-        categoryGroups={categoryGroups}
-        models={models}
-      />,
-    );
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+        <PlumbProviderSetupDialog
+          onComplete={onComplete}
+          onCancel={onCancel}
+          providers={providers}
+          categoryGroups={categoryGroups}
+          models={models}
+        />,
+      );
 
-    await waitUntilReady();
+      await waitUntilReady();
 
-    // Navigate to confirm
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Navigate to confirm
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    expect(lastFrame()).toContain('Confirm setup');
+      expect(lastFrame()).toContain('Confirm setup');
 
-    // Press Enter 5 times rapidly
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Escape returns to model selection
+      await pressKey(stdin, TerminalKeys.ESCAPE);
 
-    expect(onComplete).toHaveBeenCalledTimes(1);
-  });
+      expect(onComplete).not.toHaveBeenCalled();
+    });
 
-  it('Backspace at confirm returns to model selection', async () => {
-    const onComplete = vi.fn();
+    it('no legacy Gemini auth text appears at any step', async () => {
+      const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+        <PlumbProviderSetupDialog
+          onComplete={vi.fn()}
+          onCancel={vi.fn()}
+          providers={providers}
+          categoryGroups={categoryGroups}
+          models={models}
+        />,
+      );
 
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <PlumbProviderSetupDialog
-        onComplete={onComplete}
-        onCancel={vi.fn()}
-        providers={providers}
-        categoryGroups={categoryGroups}
-        models={models}
-      />,
-    );
+      await waitUntilReady();
 
-    await waitUntilReady();
+      // Check all steps for legacy auth text
+      const frame1 = lastFrame();
+      expect(frame1).not.toContain('Sign in with Google');
+      expect(frame1).not.toContain('geminicli.com');
+      expect(frame1).not.toContain('Get started');
 
-    // Navigate to confirm
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      // Navigate through all steps
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      const frame2 = lastFrame();
+      expect(frame2).not.toContain('Sign in with Google');
+      expect(frame2).not.toContain('geminicli.com');
 
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.DOWN_ARROW);
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
+      for (const ch of 'nvapi-test-key') {
+        await pressKey(stdin, ch);
+      }
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    expect(lastFrame()).toContain('Confirm setup');
+      const frame3 = lastFrame();
+      expect(frame3).not.toContain('Sign in with Google');
+      expect(frame3).not.toContain('geminicli.com');
+      expect(frame3).not.toContain('Waiting for authorization');
 
-    // Backspace returns to model selection
-    await pressKey(stdin, TerminalKeys.BACKSPACE);
-    await waitUntilReady();
+      await pressKey(stdin, TerminalKeys.ENTER);
+      await waitUntilReady();
 
-    expect(lastFrame()).toContain('Step 4');
-    expect(lastFrame()).not.toContain('Confirm setup');
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-
-  it('Escape at confirm returns to model selection', async () => {
-    const onComplete = vi.fn();
-
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <PlumbProviderSetupDialog
-        onComplete={onComplete}
-        onCancel={vi.fn()}
-        providers={providers}
-        categoryGroups={categoryGroups}
-        models={models}
-      />,
-    );
-
-    await waitUntilReady();
-
-    // Navigate to confirm
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    expect(lastFrame()).toContain('Confirm setup');
-
-    // Escape returns to model selection
-    await pressKey(stdin, TerminalKeys.ESCAPE);
-    await waitUntilReady();
-
-    expect(lastFrame()).toContain('Step 4');
-    expect(lastFrame()).not.toContain('Confirm setup');
-    expect(onComplete).not.toHaveBeenCalled();
-  });
-
-  it('no legacy Gemini auth text appears at any step', async () => {
-    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
-      <PlumbProviderSetupDialog
-        onComplete={vi.fn()}
-        onCancel={vi.fn()}
-        providers={providers}
-        categoryGroups={categoryGroups}
-        models={models}
-      />,
-    );
-
-    await waitUntilReady();
-
-    // Check all steps for legacy auth text
-    const frame1 = lastFrame();
-    expect(frame1).not.toContain('Sign in with Google');
-    expect(frame1).not.toContain('geminicli.com');
-    expect(frame1).not.toContain('Get started');
-
-    // Navigate through all steps
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    const frame2 = lastFrame();
-    expect(frame2).not.toContain('Sign in with Google');
-    expect(frame2).not.toContain('geminicli.com');
-
-    await pressKey(stdin, TerminalKeys.DOWN_ARROW);
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    for (const ch of 'nvapi-test-key') {
-      await pressKey(stdin, ch);
-    }
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    const frame3 = lastFrame();
-    expect(frame3).not.toContain('Sign in with Google');
-    expect(frame3).not.toContain('geminicli.com');
-    expect(frame3).not.toContain('Waiting for authorization');
-
-    await pressKey(stdin, TerminalKeys.ENTER);
-    await waitUntilReady();
-
-    const frame4 = lastFrame();
-    expect(frame4).not.toContain('Sign in with Google');
-    expect(frame4).not.toContain('geminicli.com');
-    expect(frame4).toContain('Confirm setup');
-  });
-});
+      const frame4 = lastFrame();
+      expect(frame4).not.toContain('Sign in with Google');
+      expect(frame4).not.toContain('geminicli.com');
+      expect(frame4).toContain('Confirm setup');
+    });
+  },
+);

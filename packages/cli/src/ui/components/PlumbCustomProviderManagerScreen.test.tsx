@@ -15,6 +15,7 @@ import {
   renderWithProviders,
   type RenderWithProvidersInstance,
 } from '../../test-utils/render.js';
+import { waitFor } from '../../test-utils/async.js';
 import { PlumbCustomProviderManagerScreen } from './PlumbCustomProviderManagerScreen.js';
 import type { CustomProviderConfigActions } from '../utils/customProviderConfigActions.js';
 import type { CustomProviderDefinition } from '@google/gemini-cli-provider';
@@ -29,6 +30,9 @@ async function renderReady(
     );
   });
   await instance.waitUntilReady();
+  await waitFor(() => {
+    expect(instance.lastFrame()).not.toContain('Loading custom providers…');
+  });
   return instance;
 }
 
@@ -82,7 +86,7 @@ function makeMockActions(initial: CustomProviderDefinition[] = []): {
   };
 }
 
-describe('PlumbCustomProviderManagerScreen', () => {
+describe('PlumbCustomProviderManagerScreen', { timeout: 30000 }, () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

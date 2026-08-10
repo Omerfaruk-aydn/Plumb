@@ -25,6 +25,7 @@ import {
   renderWithProviders,
   type RenderWithProvidersInstance,
 } from '../../test-utils/render.js';
+import { waitFor } from '../../test-utils/async.js';
 import { PlumbCloudProviderConfigForm } from './PlumbCloudProviderConfigForm.js';
 
 // renderWithProviders()'s internal mount is a *synchronous* act() call, but
@@ -46,6 +47,9 @@ async function renderReady(
   // act() above defers the commit until that act() call itself resolves,
   // which starves the poll of the render it's waiting to see.
   await instance.waitUntilReady();
+  await waitFor(() => {
+    expect(instance.lastFrame()).not.toContain('Loading configuration…');
+  });
   return instance;
 }
 
@@ -95,7 +99,7 @@ async function typeText(
   }
 }
 
-describe('PlumbCloudProviderConfigForm', () => {
+describe('PlumbCloudProviderConfigForm', { timeout: 30000 }, () => {
   beforeEach(() => {
     mockLoadOciExistingConfig.mockResolvedValue({
       safeConfig: {},

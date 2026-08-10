@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { describe, it, expect, vi, beforeEach, afterEach , assert } from 'vitest';
 import * as glob from 'glob';
 import * as path from 'node:path';
 import {
@@ -14,7 +15,6 @@ import {
 } from '@google/gemini-cli-core';
 import mock from 'mock-fs';
 import { FileCommandLoader } from './FileCommandLoader.js';
-import { assert, vi } from 'vitest';
 import { createMockCommandContext } from '../test-utils/mockCommandContext.js';
 import {
   SHELL_INJECTION_TRIGGER,

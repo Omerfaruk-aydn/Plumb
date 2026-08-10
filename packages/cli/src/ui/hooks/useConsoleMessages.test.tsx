@@ -5,7 +5,7 @@
  */
 
 import { act, useCallback } from 'react';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '../../test-utils/render.js';
 import {
   useConsoleMessages,

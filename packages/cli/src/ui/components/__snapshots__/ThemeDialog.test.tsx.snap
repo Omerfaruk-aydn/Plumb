@@ -8,15 +8,15 @@ exports[`Initial Theme Selection > should default to a dark theme when terminal 
 │    1. ANSI Dark                              │                                                 │ │
 │    2. Atom One Dark                          │ 1 # function                                    │ │
 │    3. Ayu Dark                               │ 2 def fibonacci(n):                             │ │
-│ ●  4. Default Dark (Matches terminal)        │ 3     a, b = 0, 1                               │ │
+│    4. Default Dark (Matches terminal)        │ 3     a, b = 0, 1                               │ │
 │    5. Dracula Dark                           │ 4     for _ in range(n):                        │ │
 │    6. GitHub Dark                            │ 5         a, b = b, a + b                       │ │
 │    7. GitHub Dark Colorblind Dark            │ 6     return a                                  │ │
 │    8. Holiday Dark                           │                                                 │ │
-│    9. Shades Of Purple Dark                  │ 1 - print("Hello, " + name)                     │ │
-│   10. Solarized Dark                         │ 1 + print(f"Hello, {name}!")                    │ │
-│   11. Tokyo Night Dark                       │                                                 │ │
-│   12. ANSI Light (Incompatible)              └─────────────────────────────────────────────────┘ │
+│ ●  9. PLUMB Dark (Matches terminal)          │ 1 - print("Hello, " + name)                     │ │
+│   10. Shades Of Purple Dark                  │ 1 + print(f"Hello, {name}!")                    │ │
+│   11. Solarized Dark                         │                                                 │ │
+│   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
 │ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
@@ -63,10 +63,10 @@ exports[`Initial Theme Selection > should use the theme from settings even if te
 │    6. GitHub Dark                            │ 5         a, b = b, a + b                       │ │
 │    7. GitHub Dark Colorblind Dark            │ 6     return a                                  │ │
 │    8. Holiday Dark                           │                                                 │ │
-│    9. Shades Of Purple Dark                  │ 1 - print("Hello, " + name)                     │ │
-│   10. Solarized Dark                         │ 1 + print(f"Hello, {name}!")                    │ │
-│   11. Tokyo Night Dark                       │                                                 │ │
-│   12. ANSI Light (Incompatible)              └─────────────────────────────────────────────────┘ │
+│    9. PLUMB Dark (Matches terminal)          │ 1 - print("Hello, " + name)                     │ │
+│   10. Shades Of Purple Dark                  │ 1 + print(f"Hello, {name}!")                    │ │
+│   11. Solarized Dark                         │                                                 │ │
+│   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
 │ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
@@ -102,10 +102,10 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │    6. GitHub Dark                            │ 5         a, b = b, a + b                       │ │
 │    7. GitHub Dark Colorblind Dark            │ 6     return a                                  │ │
 │    8. Holiday Dark                           │                                                 │ │
-│    9. Shades Of Purple Dark                  │ 1 - print("Hello, " + name)                     │ │
-│   10. Solarized Dark                         │ 1 + print(f"Hello, {name}!")                    │ │
-│   11. Tokyo Night Dark                       │                                                 │ │
-│   12. ANSI Light (Incompatible)              └─────────────────────────────────────────────────┘ │
+│    9. PLUMB Dark                             │ 1 - print("Hello, " + name)                     │ │
+│   10. Shades Of Purple Dark                  │ 1 + print(f"Hello, {name}!")                    │ │
+│   11. Solarized Dark                         │                                                 │ │
+│   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
 │ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
@@ -127,10 +127,10 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │    6. GitHub Dark                            │ 5         a, b = b, a + b                       │ │
 │    7. GitHub Dark Colorblind Dark            │ 6     return a                                  │ │
 │    8. Holiday Dark                           │                                                 │ │
-│    9. Shades Of Purple Dark                  │ 1 - print("Hello, " + name)                     │ │
-│   10. Solarized Dark                         │ 1 + print(f"Hello, {name}!")                    │ │
-│   11. Tokyo Night Dark                       │                                                 │ │
-│   12. ANSI Light (Incompatible)              └─────────────────────────────────────────────────┘ │
+│    9. PLUMB Dark                             │ 1 - print("Hello, " + name)                     │ │
+│   10. Shades Of Purple Dark                  │ 1 + print(f"Hello, {name}!")                    │ │
+│   11. Solarized Dark                         │                                                 │ │
+│   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                              ╭─────────────────────────────────────────────────╮ │
 │                                              │ DEVELOPER TOOLS (Not visible to users)          │ │

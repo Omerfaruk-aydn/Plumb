@@ -4,7 +4,8 @@ exports[`Composer > Snapshots > matches snapshot in idle state 1`] = `
 "
                                                                                     ? for shortcuts
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- ApprovalModeIndicator: default                                                        StatusDisplay
+                                 StatusDisplay    Prompt tokens ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0.0%
+ ApprovalModeIndicator: default                   0 / 128.0K tokens | 128.0K remaining
 InputPrompt:   Type your message or @path/to/file
 Footer
 "
@@ -26,8 +27,15 @@ exports[`Composer > Snapshots > matches snapshot in narrow view 1`] = `
 "
                         ? for shortcuts
 ────────────────────────────────────────
- ApprovalModeIndicator:     StatusDispl
- default                    ay
+                            ░░░░░░░░░
+                      Prompt░░░░░░░░0.0
+                     tokens ░░░░░░░░%
+ ApprovalModeStatus         ░░░
+ Indicator:  Displa    0 /   |128.0K
+ default     y         128.0K remaining
+                       tokens
+
+
 InputPrompt:   Type your message or
 @path/to/file
 Footer
@@ -36,9 +44,10 @@ Footer
 
 exports[`Composer > Snapshots > matches snapshot while streaming 1`] = `
 "
- LoadingIndicator: Thinking                                                         ? for shortcuts
+ LoadingIndicator: Thinking ⠋ ▌                                                     ? for shortcuts
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- ApprovalModeIndicator: default                                                        StatusDisplay
+                                 StatusDisplay    Prompt tokens ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0.0%
+ ApprovalModeIndicator: default                   0 / 128.0K tokens | 128.0K remaining
 InputPrompt:   Type your message or @path/to/file
 Footer
 "

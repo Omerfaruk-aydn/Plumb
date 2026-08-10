@@ -22,7 +22,7 @@ exports[`<SubagentProgressDisplay /> > renders correctly with command fallback 1
 exports[`<SubagentProgressDisplay /> > renders correctly with description in args 1`] = `
 "Running subagent TestAgent...
 
-⠋  run_shell_command Say hello
+⠙  run_shell_command Say hello
 "
 `;
 

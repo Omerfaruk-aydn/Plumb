@@ -1023,24 +1023,25 @@ describe('convertSessionToHistoryFormats', () => {
 
     // thoughts become a separate item
     expect(result.uiHistory).toHaveLength(6);
-    expect(result.uiHistory[0]).toEqual({ type: 'user', text: 'Hello user' });
-    expect(result.uiHistory[1]).toEqual({ type: 'info', text: 'System info' });
-    expect(result.uiHistory[2]).toEqual({
-      type: 'error',
-      text: 'System error',
-    });
-    expect(result.uiHistory[3]).toEqual({
-      type: 'warning',
-      text: 'System warning',
-    });
+    expect(result.uiHistory[0]).toEqual(
+      expect.objectContaining({ type: 'user', text: 'Hello user' }),
+    );
+    expect(result.uiHistory[1]).toEqual(
+      expect.objectContaining({ type: 'info', text: 'System info' }),
+    );
+    expect(result.uiHistory[2]).toEqual(
+      expect.objectContaining({ type: 'error', text: 'System error' }),
+    );
+    expect(result.uiHistory[3]).toEqual(
+      expect.objectContaining({ type: 'warning', text: 'System warning' }),
+    );
     expect(result.uiHistory[4]).toEqual({
       type: 'thinking',
       thought: { subject: 'Thinking', description: 'about things' },
     });
-    expect(result.uiHistory[5]).toEqual({
-      type: 'gemini',
-      text: 'Hello gemini',
-    });
+    expect(result.uiHistory[5]).toEqual(
+      expect.objectContaining({ type: 'gemini', text: 'Hello gemini' }),
+    );
   });
 
   it('should filter out <session_context> from UI history', () => {

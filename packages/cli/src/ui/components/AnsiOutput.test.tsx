@@ -5,6 +5,7 @@
  */
 
 import { render } from '../../test-utils/render.js';
+import { describe, it, expect } from 'vitest';
 import { AnsiOutputText } from './AnsiOutput.js';
 import type { AnsiOutput, AnsiToken } from '@google/gemini-cli-core';
 

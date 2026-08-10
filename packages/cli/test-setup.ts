@@ -10,7 +10,13 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
   process.env.NODE_ENV = 'test';
 }
 
+// @ts-expect-error globalThis IS_REACT_ACT_ENVIRONMENT flag
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 import { vi, beforeEach, afterEach } from 'vitest';
+
+// Ensure 30s timeout for all Ink component render tests on Windows
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 import { format } from 'node:util';
 import { coreEvents, debugLogger } from '@google/gemini-cli-core';
 import { themeManager } from './src/ui/themes/theme-manager.js';
@@ -51,7 +57,7 @@ if (process.stdout) {
   process.stdout.getColorDepth = () => 24;
 }
 
-import './src/test-utils/customMatchers.js';
+import './src/test-utils/customMatchers.ts';
 
 let consoleErrorSpy: vi.SpyInstance;
 let actWarnings: Array<{ message: string; stack: string }> = [];

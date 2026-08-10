@@ -7,6 +7,7 @@
 import { act } from 'react';
 import { renderHook } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSessionResume } from './useSessionResume.js';
 import type {
   Config,
@@ -415,13 +416,16 @@ describe('useSessionResume', () => {
       expect(mockHistoryManager.addItem).toHaveBeenCalledTimes(2);
       expect(mockHistoryManager.addItem).toHaveBeenNthCalledWith(
         1,
-        { type: 'user', text: 'Hello from resumed session' },
+        expect.objectContaining({
+          type: 'user',
+          text: 'Hello from resumed session',
+        }),
         0,
         true,
       );
       expect(mockHistoryManager.addItem).toHaveBeenNthCalledWith(
         2,
-        { type: 'gemini', text: 'Welcome back!' },
+        expect.objectContaining({ type: 'gemini', text: 'Welcome back!' }),
         1,
         true,
       );

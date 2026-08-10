@@ -13,6 +13,7 @@ import { EventEmitter } from 'node:events';
 import { Box } from 'ink';
 import { Terminal } from '@xterm/headless';
 import { vi } from 'vitest';
+import './customMatchers.js';
 import stripAnsi from 'strip-ansi';
 import type React from 'react';
 import { act, useState } from 'react';
