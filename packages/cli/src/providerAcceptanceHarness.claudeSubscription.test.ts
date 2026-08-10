@@ -89,6 +89,36 @@ describe('providerAcceptanceHarness — claude-subscription', () => {
     expect(joined).toContain(
       'credentialAuthority: EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY',
     );
+    // This SDK path never takes terminal ownership, so the terminal is
+    // intact by construction — the report must say so instead of the
+    // misleading generic default (false).
+    expect(joined).toContain('terminal.restored: true');
+  });
+
+  it('never fabricates success: a completed-but-textless stream is honestly LIVE_TEST_FAILED', async () => {
+    // The success predicate is stream evidence (completed AND saw text). A
+    // stream that completes without any text event — e.g. a transport that
+    // drops assistant content — must NOT be classified LIVE_VERIFIED.
+    mockGetClaudeSubscriptionStatus.mockResolvedValue({
+      status: 'CONNECTED_SUBSCRIPTION',
+      account: { subscriptionType: 'max' },
+    });
+    mockPlumbModelStream.mockReturnValue(
+      (async function* () {
+        yield { type: 'usage', usage: { inputTokens: 3, outputTokens: 0 } };
+        yield { type: 'done', finishReason: 'stop' };
+      })(),
+    );
+
+    const code = await runProviderAcceptanceTest('claude-subscription', {
+      report: (line) => lines.push(line),
+    });
+
+    expect(code).toBe(1);
+    const joined = lines.join('\n');
+    expect(joined).toContain('stream.completed: true');
+    expect(joined).toContain('result: LIVE_TEST_FAILED');
+    expect(joined).not.toContain('result: LIVE_VERIFIED');
   });
 
   it('reports NOT_LOGGED_IN honestly and never attempts a chat call when not connected', async () => {

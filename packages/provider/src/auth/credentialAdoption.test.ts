@@ -218,9 +218,9 @@ describe('adoptPlumbLoginResult — canonical login adoption', () => {
     expect(await adoptPlumbLoginResult('antigravity', {})).toEqual({
       kind: 'none',
     });
-    expect(await adoptPlumbLoginResult('antigravity', { access: '' })).toEqual(
-      { kind: 'none' },
-    );
+    expect(await adoptPlumbLoginResult('antigravity', { access: '' })).toEqual({
+      kind: 'none',
+    });
 
     const store = await ensurePlumbCredentialStore();
     expect(await store.getCredentials('antigravity')).toEqual([]);
@@ -259,4 +259,3 @@ describe('adoptPlumbLoginResult — canonical login adoption', () => {
     });
   });
 });
-

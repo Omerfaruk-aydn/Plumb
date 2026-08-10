@@ -1,32 +1,9 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
- * Production-shaped regression for the live-observed Antigravity acceptance
- * failure:
- *
- *   real OAuth login succeeded ("Authentication successful.")
- *   -> credential held only in runtime memory by the harness
- *   -> immediate REAL production stream (plumbModelStream ->
- *      googleCloudCodeAssistStream -> buildAntigravityRequest ->
- *      resolveUsablePlumbCredential('antigravity')) reported
- *      "No credential available for provider: antigravity (NO_CREDENTIAL)"
- *
- * because the harness never adopted the completed login into the canonical
- * credential authority (secure store + provider registry) the way /login
- * does. This test runs the REAL end-to-end chain:
- *
- *   initializePlumbProviders (the same bootstrap gemini.tsx runs before
- *   --test-provider) -> REAL provider module (only the OMP device-OAuth
- *   login function is stubbed — no real browser/network in tests) ->
- *   runCodingPlanLiveAcceptance -> adoptPlumbLoginResult ->
- *   REAL store/registry/resolver/request-builder -> fetch (stubbed SSE)
- *
- * It fails against the broken behavior (no adoption -> MISSING_CREDENTIAL
- * -> LIVE_TEST_FAILED) and passes once the adoption leg exists.
- *
- * Never prints tokens, refresh tokens, project ids, or auth headers.
+ * @license
  */
 
 import * as fs from 'node:fs';
@@ -233,4 +210,3 @@ describe('antigravity live auth -> production stream credential handoff (product
     expect(report).not.toContain(ACCESS);
   }, 30_000);
 });
-
