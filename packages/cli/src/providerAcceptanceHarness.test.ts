@@ -268,6 +268,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
     yield { type: 'text', text: 'PLUMB_TEST_OK' };
     yield { type: 'done' };
   },
+  adoptPlumbLoginResult: vi.fn(async () => ({ kind: 'oauth' })),
   SELECTABLE_PROVIDERS: [{ id: 'github-copilot', category: 'coding_plan' }],
   getPlumbProviderRegistry: () => ({
     initialize: vi.fn(),
@@ -346,6 +347,9 @@ function makeProviderModule(
       { id: 'gpt-4o', name: 'GPT-4o' },
       { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
     ],
+    // Canonical login adoption seam (mirrors the real provider export the
+    // production module always has). Tests that care override this.
+    adoptPlumbLoginResult: vi.fn(async () => ({ kind: 'oauth' })),
     async *plumbModelStream() {
       yield { type: 'text', text: 'PLUMB_TEST_OK' };
     },

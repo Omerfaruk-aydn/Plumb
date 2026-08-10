@@ -1091,6 +1091,56 @@ export async function runCodingPlanLiveAcceptance(
       ...overrides,
     });
 
+  // -------------------------------------------------------------------------
+  // Canonical credential adoption (the same write path /login performs).
+  //
+  // The OMP login above returns the credential to its CALLER only. Unlike
+  // PlumbProviderAuthService (#ompLoginFlow), this harness held no
+  // persistence leg of its own — so a store-resolving production transport
+  // (the google-gemini-cli / google-antigravity dialect:
+  // buildAntigravityRequest -> resolvePlumbProviderId(model.provider) ->
+  // resolveUsablePlumbCredential) could not see the credential the user had
+  // just authenticated with, and the immediate production stream failed with
+  // NO_CREDENTIAL right after "Authentication successful." (live-observed
+  // against a real Antigravity account). Adopt the completed login result
+  // into the canonical credential authority (secure store + provider
+  // registry) under the PLUMB presentation id (`providerId`, never the OMP
+  // catalog id) BEFORE the stream step. This never starts another login —
+  // it is the missing persistence leg of the login that just succeeded.
+  //
+  // The stub path is exempt: its credential is synthetic and must never
+  // touch the real credential store.
+  // -------------------------------------------------------------------------
+  if (!stub) {
+    const adoptLoginResult = providerModule['adoptPlumbLoginResult'] as
+      | ((
+          id: string,
+          loginResult: unknown,
+        ) => Promise<{ kind: 'oauth' | 'api_key' | 'none' }>)
+      | undefined;
+    if (typeof adoptLoginResult !== 'function') {
+      state.terminalRestored = true;
+      const result = resultFromState({
+        result: 'LIVE_TEST_FAILED',
+        safeError:
+          'Provider module exposes no canonical login adoption (adoptPlumbLoginResult)',
+      });
+      return finish('FAILED', result, undefined);
+    }
+    try {
+      await adoptLoginResult(providerId, credentialResult);
+    } catch (err) {
+      state.terminalRestored = true;
+      const result = resultFromState({
+        result: 'LIVE_TEST_FAILED',
+        safeError: `Credential adoption into the PLUMB credential store failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      });
+      return finish('FAILED', result, undefined);
+    }
+  }
+
   traceStage(`MODELS_LOADED (${state.bundledCount})`);
   writeLive(`Models loaded: ${state.bundledCount}`);
   if (state.bundledCount === 0) {
@@ -1280,7 +1330,18 @@ export async function runCodingPlanLiveAcceptance(
       : plumbModelStream({
           model: {
             id: selectedModel.id,
-            provider: state.routingProvider,
+            // The canonical catalog/OMP id, NOT the PLUMB presentation id:
+            // normal-chat catalog models carry the OMP id on
+            // PlumbModel.provider (e.g. `google-antigravity` for a caller
+            // selecting `antigravity`), and the transport keys BOTH
+            // credential-scope resolution (resolvePlumbProviderId) and the
+            // provider-specific request shaping (isAntigravity envelope /
+            // User-Agent) off model.provider. Passing the presentation id
+            // here would make the acceptance request silently diverge from
+            // the exact request normal chat sends. For non-aliased
+            // providers (github-copilot) canonicalId === providerId, so
+            // this changes nothing for them.
+            provider: canonicalId,
             api: modelApi,
             baseUrl: modelBaseUrl,
             headers: modelHeaders,
@@ -1571,6 +1632,8 @@ async function runClaudeSubscriptionAcceptanceTest(
             selectedModel: selectedModel.id,
             transportDialect: 'claude-agent-sdk',
             streamStarted,
+            // Never taken over on this path — see the final result below.
+            terminalRestored: true,
             result: 'LIVE_TEST_FAILED',
             safeError: event.error?.message ?? 'stream error',
           },
@@ -1615,6 +1678,14 @@ async function runClaudeSubscriptionAcceptanceTest(
       transportDialect: 'claude-agent-sdk',
       streamStarted,
       streamCompleted,
+      // This bespoke SDK path never takes terminal ownership (no raw-mode
+      // acquire, no readline, no SIGINT capture — that machinery exists only
+      // in runCodingPlanLiveAcceptance), so the terminal is intact by
+      // construction and there is nothing to restore. Reporting the
+      // buildTestResult default (false) here falsely implied broken cleanup
+      // on an otherwise successful run. The success predicate below is
+      // deliberately stream evidence only; this field is not part of it.
+      terminalRestored: true,
       result: streamCompleted && sawText ? 'LIVE_VERIFIED' : 'LIVE_TEST_FAILED',
       safeError: streamCompleted ? 'none' : 'stream did not complete',
     },

@@ -85,6 +85,15 @@ export {
   resolveUsablePlumbCredential,
 } from './auth/credential-resolver.js';
 
+// Canonical adoption of a completed OMP login result into the PLUMB
+// credential authority (secure store + provider registry). Never starts a
+// login of its own — see the module doc for the two-caller rationale.
+export {
+  type AdoptedPlumbLoginCredential,
+  ompLoginCredentialToPlumb,
+  adoptPlumbLoginResult,
+} from './auth/credential-adoption.js';
+
 // Provider registry
 export {
   PlumbProviderRegistry,
