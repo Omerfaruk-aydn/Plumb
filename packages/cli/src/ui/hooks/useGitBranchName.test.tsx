@@ -6,6 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
+import type * as nodeFs from 'node:fs';
 import { render } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
 import { useGitBranchName } from './useGitBranchName.js';
@@ -46,16 +47,16 @@ vi.mock('node:fs', async (importOriginal) => {
           pathStr.includes('node_modules'))
       ) {
         return realReadFileSync(
-          pathStr as fs.PathOrFileDescriptor,
-          options as fs.ObjectEncodingOptions,
+          pathStr as nodeFs.PathOrFileDescriptor,
+          options as nodeFs.ObjectEncodingOptions,
         );
       }
       try {
         return memfs.fs.readFileSync(pathStr as string, options as string);
       } catch {
         return realReadFileSync(
-          pathStr as fs.PathOrFileDescriptor,
-          options as fs.ObjectEncodingOptions,
+          pathStr as nodeFs.PathOrFileDescriptor,
+          options as nodeFs.ObjectEncodingOptions,
         );
       }
     },
@@ -70,7 +71,7 @@ vi.mock('node:fs', async (importOriginal) => {
       }
       return (
         memfs.fs.existsSync(pathStr as string) ||
-        realExistsSync(pathStr as fs.PathLike)
+        realExistsSync(pathStr as nodeFs.PathLike)
       );
     },
   };
