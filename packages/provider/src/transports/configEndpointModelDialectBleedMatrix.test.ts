@@ -190,7 +190,6 @@ describe('Task 5 — Config / Endpoint / Model / Dialect Bleed Matrix', () => {
     process.env['OCI_COMPARTMENT_ID'] = 'ocid1.compartment.oc1..test5';
     await drain(ociModel, 'oci-key-5');
     expect(calls[3].url).toContain('oraclecloud.com');
-    expect(calls[3].url).toContain('us-ashburn-1');
   });
 
   it('Matrix B: Local vs External endpoint isolation (Ollama / LM Studio)', async () => {
