@@ -327,4 +327,149 @@ describe('Claude Subscription tool-authority adapter', () => {
       ) => mockCreateSdkMcpServer(...args),
     }));
   });
+
+  // Regression for the production-observed stall: "sadece projeyi analiz et"
+  // -> assistant emits intro text -> nothing ever happens again. Root cause:
+  // the SDK's own permission gate defaults to 'default' (prompts before any
+  // tool execution, including in-process MCP calls) and nothing in this
+  // non-interactive transport ever answers that prompt, so the query hangs
+  // forever after the model's first tool_use. PLUMB's own CoreToolScheduler
+  // (reached inside the MCP handler via the injected executor) is already
+  // the real permission authority for these calls, so the SDK's redundant
+  // gate must be bypassed whenever PLUMB tools are registered.
+  it('bypasses the SDK permission gate when PLUMB tools are registered, so a real tool call never stalls waiting on an unanswered prompt', async () => {
+    mockQuery.mockReturnValue(
+      makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+    );
+    const executor = vi
+      .fn<(r: PlumbToolExecutionRequest) => Promise<PlumbToolExecutionResult>>()
+      .mockResolvedValue({ status: 'success', content: 'ok', isError: false });
+    const mod = await importFresh();
+
+    for await (const _e of mod.streamClaudeSubscription({
+      model: subscriptionModel,
+      messages: [{ role: 'user', content: 'analyze this project' }],
+      apiKey: '',
+      tools: [readFileTool],
+      toolExecutor: executor,
+    })) {
+      // drain
+    }
+
+    const [callArgs] = mockQuery.mock.calls[0] as [
+      { options: Record<string, unknown> },
+    ];
+    expect(callArgs.options['permissionMode']).toBe('bypassPermissions');
+    expect(callArgs.options['allowDangerouslySkipPermissions']).toBe(true);
+  });
+
+  it('does not force a permission mode when no PLUMB tools are registered (nothing to bypass)', async () => {
+    mockQuery.mockReturnValue(
+      makeSdkQuery([{ type: 'result', subtype: 'success' }]),
+    );
+    const mod = await importFresh();
+
+    for await (const _e of mod.streamClaudeSubscription({
+      model: subscriptionModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: '',
+    })) {
+      // drain
+    }
+
+    const [callArgs] = mockQuery.mock.calls[0] as [
+      { options: Record<string, unknown> },
+    ];
+    expect(callArgs.options['permissionMode']).toBeUndefined();
+  });
+
+  // Full production-shaped tool-continuation loop: assistant intro text ->
+  // model invokes a tool via the plumb MCP server -> CoreToolScheduler-backed
+  // executor runs exactly once -> a second assistant message continues the
+  // turn -> final 'result' message arrives. Asserts every REQUIRED TOOL LOOP
+  // INVARIANT from the bug brief in one place.
+  it('completes a full multi-step turn: intro text -> tool call -> executor runs once -> continuation -> final text', async () => {
+    const sdkMessages = [
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'text',
+              text: 'Proje analizini başlatıyorum. Önce dizin yapısını inceleyeyim.',
+            },
+          ],
+        },
+      },
+      // The SDK dispatches the tool_use to the registered MCP handler
+      // out-of-band (not through this content-block stream) — simulated
+      // below by invoking the captured handler directly, mirroring what the
+      // real SDK subprocess does once permissionMode unblocks it.
+      {
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'text',
+              text: 'package.json içeriğini de kontrol ediyorum.',
+            },
+          ],
+        },
+      },
+      { type: 'result', subtype: 'success' },
+    ];
+    mockQuery.mockReturnValue(makeSdkQuery(sdkMessages));
+    const executor = vi
+      .fn<(r: PlumbToolExecutionRequest) => Promise<PlumbToolExecutionResult>>()
+      .mockResolvedValue({
+        status: 'success',
+        content: 'README.md\npackage.json\nsrc/',
+        isError: false,
+      });
+    const mod = await importFresh();
+
+    const events = await drain(
+      mod.streamClaudeSubscription({
+        model: subscriptionModel,
+        messages: [
+          {
+            role: 'user',
+            content:
+              'Analyze this project. First inspect the directory and package configuration.',
+          },
+        ],
+        apiKey: '',
+        tools: [readFileTool],
+        toolExecutor: executor,
+      }),
+    );
+
+    // CORE_TOOL_SCHEDULER authority is reached exactly once via the captured
+    // MCP handler — invoked here to prove the adapter->executor wiring the
+    // real SDK subprocess would trigger mid-stream.
+    const [captured] = capturedTools;
+    const toolResult = await captured!.handler({ path: 'package.json' }, {});
+    expect(executor).toHaveBeenCalledTimes(1);
+    expect(toolResult.isError).toBe(false);
+
+    // TOOL_CALL_RECEIVED / FINAL_TEXT_RECEIVED: both assistant text blocks
+    // surfaced, and the stream reached its real terminal 'done' event.
+    const textEvents = events.filter((e) => e.type === 'text');
+    expect(textEvents).toHaveLength(2);
+    expect(textEvents[0]).toMatchObject({
+      text: expect.stringContaining('analizini'),
+    });
+    expect(textEvents[1]).toMatchObject({
+      text: expect.stringContaining('package.json'),
+    });
+    const doneEvent = events.find((e) => e.type === 'done');
+    expect(doneEvent).toMatchObject({ type: 'done', finishReason: 'stop' });
+
+    // The SDK's redundant permission gate was bypassed, so this never stalls
+    // waiting on an unanswered prompt after the first assistant text block.
+    const [callArgs] = mockQuery.mock.calls[0] as [
+      { options: Record<string, unknown> },
+    ];
+    expect(callArgs.options['permissionMode']).toBe('bypassPermissions');
+  });
 });

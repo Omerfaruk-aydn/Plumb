@@ -6,7 +6,7 @@
 
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useStdin } from 'ink';
 import {
   PlumbProviderCategory,
   type PlumbProvider,
@@ -16,6 +16,7 @@ import {
   getCatalogModels,
   getCodingPlan,
   getClaudeSubscriptionStatus,
+  runClaudeSubscriptionReauth,
   getPlumbProviderRegistry,
   getGatewayProviderConfigSchema,
   GATEWAY_CONFIG_PROVIDER_IDS,
@@ -272,6 +273,7 @@ export const PlumbProviderSetupDialog: React.FC<
 }) => {
   const keyMatchers = useKeyMatchers();
   const { claim } = useInputOwnership();
+  const { setRawMode } = useStdin();
 
   // Claim exclusive input ownership while this dialog is mounted.
   // This prevents InputPrompt/Composer from registering or processing
@@ -495,6 +497,73 @@ export const PlumbProviderSetupDialog: React.FC<
       }
     })();
   }, []);
+
+  // Real Claude Subscription re-authentication: hands the terminal off to
+  // the official Agent SDK's bundled Claude CLI (`claude setup-token`, the
+  // one Anthropic-documented non-interactive-friendly auth command — see
+  // runClaudeSubscriptionReauth) rather than telling the user to go run a
+  // command in another terminal themselves. Raw mode is disabled for the
+  // duration so the child process gets a normal, non-Ink terminal (mirrors
+  // how openFileInEditor suspends Ink for an external editor) and restored
+  // once it exits, after which the real connection state is re-probed —
+  // never assumed from the child's exit code alone.
+  const handleClaudeSubscriptionReauth = useCallback(async () => {
+    setState((s) => ({
+      ...s,
+      loading: true,
+      error: null,
+      oauthStatus:
+        'Launching the official Claude sign-in (claude setup-token)…',
+    }));
+    setRawMode?.(false);
+    try {
+      const result = await runClaudeSubscriptionReauth();
+      setRawMode?.(true);
+      if (
+        result.outcome === 'CLI_NOT_FOUND' ||
+        result.outcome === 'SPAWN_FAILED'
+      ) {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          oauthStatus: null,
+          error:
+            result.detail ??
+            'Could not launch the official Claude CLI for sign-in.',
+        }));
+        return;
+      }
+      // COMPLETED or NONZERO_EXIT (e.g. the user cancelled inside the CLI) —
+      // either way, re-probe the real connection state rather than infer it
+      // from the child process's exit code.
+      const status = await getClaudeSubscriptionStatus();
+      if (status.status === 'CONNECTED_SUBSCRIPTION') {
+        setState((s) => ({
+          ...s,
+          step: 'model-select',
+          connectionAuthState: 'authenticated',
+          loading: false,
+          oauthStatus: null,
+          error: null,
+        }));
+      } else {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          oauthStatus: null,
+          error: describeClaudeSubscriptionStatus(status),
+        }));
+      }
+    } catch (err) {
+      setRawMode?.(true);
+      setState((s) => ({
+        ...s,
+        loading: false,
+        oauthStatus: null,
+        error: err instanceof Error ? err.message : 'Claude sign-in failed.',
+      }));
+    }
+  }, [setRawMode]);
 
   const handleProviderSelect = useCallback(
     (provider: PlumbProvider) => {
@@ -835,12 +904,24 @@ export const PlumbProviderSetupDialog: React.FC<
       }
 
       if (step === 'authenticate') {
-        // Claude Subscription has no PLUMB-initiated login — Enter re-runs
-        // the connection probe (e.g. after the user has run `claude login`
-        // in another terminal per the remediation text shown above).
+        // Claude Subscription has no PLUMB-initiated OAuth/API-key flow, but
+        // it DOES have a real official sign-in mechanism: the bundled Agent
+        // SDK's Claude CLI (`claude setup-token`). Enter hands the terminal
+        // to that official process (see handleClaudeSubscriptionReauth);
+        // 'r' just re-runs the read-only connection probe (e.g. after the
+        // user signed in from another terminal).
         if (
           provider?.id === CLAUDE_SUBSCRIPTION_PROVIDER_ID &&
-          keyMatchers[Command.RETURN](key)
+          keyMatchers[Command.RETURN](key) &&
+          !state.loading
+        ) {
+          void handleClaudeSubscriptionReauth();
+          return true;
+        }
+        if (
+          provider?.id === CLAUDE_SUBSCRIPTION_PROVIDER_ID &&
+          (key.name === 'r' || key.name === 'R') &&
+          !state.loading
         ) {
           probeClaudeSubscription(provider);
           return true;
@@ -1453,24 +1534,36 @@ function AuthStep({
   const apiKeyAuthUrl =
     getCodingPlan(provider.id)?.authUrl ?? provider.description;
 
-  // Claude Subscription has no PLUMB-initiated auth method at all
+  // Claude Subscription has no PLUMB-initiated OAuth/API-key auth method
   // (authMethods: [{type: 'none'}]) — the generic hasOAuth/hasApiKey/
   // hasDeviceCode/hasEnv branches below would render an empty box with a
-  // misleading "Type API key and press Enter" footer. The real status
-  // (with a real remediation step) is already surfaced via the error
-  // banner above this component; this just explains what Enter does here.
+  // misleading "Type API key and press Enter" footer. Sign-in for this
+  // provider is delegated to the official Agent SDK's bundled Claude CLI
+  // (`claude setup-token` — Anthropic's documented long-lived-token login
+  // command; see runClaudeSubscriptionReauth), invoked for real when the
+  // user presses Enter, never a "run this yourself elsewhere" dead end.
   if (provider.id === 'claude-subscription') {
     return (
       <Box flexDirection="column">
         <Text bold>Authenticate: {provider.name}</Text>
         <Box flexDirection="column" marginY={1}>
           <Text>
-            This provider is connected through the official Claude Agent SDK,
-            which manages its own sign-in outside of PLUMB.
+            Claude Pro/Max/Team/Enterprise sign-in is handled by the official
+            Claude CLI, bundled with the Agent SDK — not by a PLUMB-hosted login
+            flow.
+          </Text>
+        </Box>
+        <Box flexDirection="column" marginBottom={1}>
+          <Text color="cyan">Press Enter to run official Claude sign-in</Text>
+          <Text dimColor>
+            Hands your terminal to `claude setup-token` to complete sign-in,
+            then returns here and refreshes the connection automatically.
           </Text>
         </Box>
         <Box>
-          <Text dimColor>Press Enter to retry • Backspace to go back</Text>
+          <Text dimColor>
+            R to just refresh connection status • Backspace to go back
+          </Text>
         </Box>
       </Box>
     );

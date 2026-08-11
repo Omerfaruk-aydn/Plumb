@@ -389,8 +389,18 @@ export type {
 } from './plans/coding-plans.js';
 
 // Claude Subscription (Agent SDK)
-export { getClaudeSubscriptionStatus } from './transports/claudeSubscription.js';
+export {
+  getClaudeSubscriptionStatus,
+  resolveClaudeCliCommand,
+  runClaudeSubscriptionReauth,
+  CLAUDE_SUBSCRIPTION_MODELS,
+} from './transports/claudeSubscription.js';
 export type {
   ClaudeSubscriptionAuthStatus,
   ClaudeSubscriptionStatusResult,
+  ClaudeCliCommand,
+  ClaudeCliProcessAdapter,
+  ClaudeSubscriptionReauthOutcome,
+  ClaudeSubscriptionReauthResult,
+  ClaudeSubscriptionModelMetadata,
 } from './transports/claudeSubscription.js';

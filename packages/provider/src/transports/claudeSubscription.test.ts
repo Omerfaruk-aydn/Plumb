@@ -403,7 +403,9 @@ describe('streamClaudeSubscription', () => {
         makeSdkQuery([
           {
             type: 'assistant',
-            message: { content: [{ type: 'text', text: 'Hi! How can I help?' }] },
+            message: {
+              content: [{ type: 'text', text: 'Hi! How can I help?' }],
+            },
           },
           { type: 'result', subtype: 'success' },
         ]),
@@ -537,5 +539,101 @@ describe('streamClaudeSubscription', () => {
       }
       expect(mockQuery.mock.calls[1]![0].options.model).toBe('claude-opus-4-8');
     });
+  });
+});
+
+describe('resolveClaudeCliCommand', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('prefers a claude binary found on PATH over the bundled SDK CLI', async () => {
+    const mod = await importFresh();
+    const result = await mod.resolveClaudeCliCommand({
+      findOnPath: () => '/usr/local/bin/claude',
+      resolveBundledCliJs: async () => '/should/not/be/used/cli.js',
+    });
+    expect(result).toEqual({
+      command: '/usr/local/bin/claude',
+      args: [],
+      source: 'PATH',
+    });
+  });
+
+  it('falls back to the bundled SDK cli.js run via node when nothing is on PATH', async () => {
+    const mod = await importFresh();
+    const result = await mod.resolveClaudeCliCommand({
+      findOnPath: () => null,
+      resolveBundledCliJs: async () =>
+        '/repo/node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    });
+    expect(result).toEqual({
+      command: process.execPath,
+      args: ['/repo/node_modules/@anthropic-ai/claude-agent-sdk/cli.js'],
+      source: 'BUNDLED_SDK',
+    });
+  });
+
+  it('returns null when neither PATH nor the bundled SDK expose a CLI', async () => {
+    const mod = await importFresh();
+    const result = await mod.resolveClaudeCliCommand({
+      findOnPath: () => null,
+      resolveBundledCliJs: async () => null,
+    });
+    expect(result).toBeNull();
+  });
+});
+
+describe('runClaudeSubscriptionReauth', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('reports CLI_NOT_FOUND without spawning anything when no CLI can be resolved', async () => {
+    const mod = await importFresh();
+    const spawnInherit = vi.fn();
+    const result = await mod.runClaudeSubscriptionReauth({
+      findOnPath: () => null,
+      resolveBundledCliJs: async () => null,
+      spawnInherit,
+    });
+    expect(result.outcome).toBe('CLI_NOT_FOUND');
+    expect(spawnInherit).not.toHaveBeenCalled();
+  });
+
+  it('spawns "setup-token" against the resolved CLI with inherited stdio and reports COMPLETED on exit code 0', async () => {
+    const mod = await importFresh();
+    const spawnInherit = vi.fn().mockResolvedValue(0);
+    const result = await mod.runClaudeSubscriptionReauth({
+      findOnPath: () => '/usr/local/bin/claude',
+      spawnInherit,
+    });
+    expect(spawnInherit).toHaveBeenCalledWith(
+      '/usr/local/bin/claude',
+      ['setup-token'],
+      expect.objectContaining({ shell: expect.any(Boolean) }),
+    );
+    expect(result).toEqual({ outcome: 'COMPLETED', exitCode: 0 });
+  });
+
+  it('reports NONZERO_EXIT (not an error) when the official CLI exits non-zero, e.g. the user cancelled', async () => {
+    const mod = await importFresh();
+    const spawnInherit = vi.fn().mockResolvedValue(1);
+    const result = await mod.runClaudeSubscriptionReauth({
+      findOnPath: () => '/usr/local/bin/claude',
+      spawnInherit,
+    });
+    expect(result).toEqual({ outcome: 'NONZERO_EXIT', exitCode: 1 });
+  });
+
+  it('reports SPAWN_FAILED when the child process itself cannot be started', async () => {
+    const mod = await importFresh();
+    const spawnInherit = vi.fn().mockRejectedValue(new Error('ENOENT'));
+    const result = await mod.runClaudeSubscriptionReauth({
+      findOnPath: () => '/usr/local/bin/claude',
+      spawnInherit,
+    });
+    expect(result.outcome).toBe('SPAWN_FAILED');
+    expect(result.detail).toContain('ENOENT');
   });
 });

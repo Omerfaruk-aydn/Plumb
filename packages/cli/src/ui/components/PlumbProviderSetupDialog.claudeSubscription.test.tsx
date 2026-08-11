@@ -24,10 +24,22 @@ import type {
 const ENTER = String.fromCharCode(13);
 const DOWN_ARROW = String.fromCharCode(27) + '[B';
 
-const { mockGetClaudeSubscriptionStatus } = vi.hoisted(() => ({
-  mockGetClaudeSubscriptionStatus:
-    vi.fn<() => Promise<ClaudeSubscriptionStatusResult>>(),
-}));
+const { mockGetClaudeSubscriptionStatus, mockRunClaudeSubscriptionReauth } =
+  vi.hoisted(() => ({
+    mockGetClaudeSubscriptionStatus:
+      vi.fn<() => Promise<ClaudeSubscriptionStatusResult>>(),
+    mockRunClaudeSubscriptionReauth: vi.fn<
+      () => Promise<{
+        outcome:
+          | 'COMPLETED'
+          | 'CLI_NOT_FOUND'
+          | 'SPAWN_FAILED'
+          | 'NONZERO_EXIT';
+        exitCode?: number | null;
+        detail?: string;
+      }>
+    >(),
+  }));
 
 vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
   const actual =
@@ -35,6 +47,7 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
   return {
     ...actual,
     getClaudeSubscriptionStatus: mockGetClaudeSubscriptionStatus,
+    runClaudeSubscriptionReauth: mockRunClaudeSubscriptionReauth,
   };
 });
 
@@ -64,6 +77,7 @@ describe('PlumbProviderSetupDialog — Claude Subscription (Agent SDK)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockGetClaudeSubscriptionStatus.mockReset();
+    mockRunClaudeSubscriptionReauth.mockReset();
   });
 
   afterEach(() => {
@@ -139,7 +153,7 @@ describe('PlumbProviderSetupDialog — Claude Subscription (Agent SDK)', () => {
     expect(frame).not.toContain('Type API key and press Enter');
   });
 
-  it('retries the probe on Enter after a failed/unresolved status', async () => {
+  it("retries the read-only probe on 'r' after a failed/unresolved status, without launching the official CLI", async () => {
     mockGetClaudeSubscriptionStatus
       .mockResolvedValueOnce({ status: 'AGENT_SDK_UNAVAILABLE' })
       .mockResolvedValueOnce({ status: 'CONNECTED_SUBSCRIPTION' });
@@ -167,8 +181,8 @@ describe('PlumbProviderSetupDialog — Claude Subscription (Agent SDK)', () => {
     await waitUntilReady();
     expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(1);
 
-    // Retry
-    await pressKey(stdin, ENTER);
+    // Retry via 'r' -- must re-probe only, never spawn the official CLI.
+    await pressKey(stdin, 'r');
     await waitUntilReady();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(50);
@@ -176,6 +190,103 @@ describe('PlumbProviderSetupDialog — Claude Subscription (Agent SDK)', () => {
     await waitUntilReady();
 
     expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(2);
+    expect(mockRunClaudeSubscriptionReauth).not.toHaveBeenCalled();
     expect(lastFrame()).toContain('Step 4');
+  });
+
+  // Bug 1 regression: "Re-authenticate" (and the initial NOT_LOGGED_IN
+  // screen's Enter key) must perform a REAL action -- handing the terminal
+  // to the official Claude CLI's `setup-token` command -- never a dead end
+  // that just re-runs the same read-only probe with no way to actually sign
+  // in.
+  it('Enter on the authenticate step launches the official Claude CLI sign-in and re-probes on success', async () => {
+    mockGetClaudeSubscriptionStatus
+      .mockResolvedValueOnce({ status: 'NOT_LOGGED_IN' })
+      .mockResolvedValueOnce({ status: 'CONNECTED_SUBSCRIPTION' });
+    mockRunClaudeSubscriptionReauth.mockResolvedValue({
+      outcome: 'COMPLETED',
+      exitCode: 0,
+    });
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={mockProviders}
+        categoryGroups={mockCategoryGroups}
+        models={[]}
+      />,
+    );
+
+    await waitUntilReady();
+    await pressKey(stdin, DOWN_ARROW);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await waitUntilReady();
+    expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(1);
+
+    // Real re-auth action, not the dead-end "Press Enter to retry" text.
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await waitUntilReady();
+
+    expect(mockRunClaudeSubscriptionReauth).toHaveBeenCalledTimes(1);
+    // Success re-probes the real status rather than assuming from exit code.
+    expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(2);
+    expect(lastFrame()).toContain('Step 4');
+  });
+
+  it('shows an honest error (never a fake success) when the official CLI cannot be launched', async () => {
+    mockGetClaudeSubscriptionStatus.mockResolvedValueOnce({
+      status: 'NOT_LOGGED_IN',
+    });
+    mockRunClaudeSubscriptionReauth.mockResolvedValue({
+      outcome: 'CLI_NOT_FOUND',
+      detail: 'The official Claude CLI was not found.',
+    });
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={mockProviders}
+        categoryGroups={mockCategoryGroups}
+        models={[]}
+      />,
+    );
+
+    await waitUntilReady();
+    await pressKey(stdin, DOWN_ARROW);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await waitUntilReady();
+
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await waitUntilReady();
+
+    expect(mockRunClaudeSubscriptionReauth).toHaveBeenCalledTimes(1);
+    // getClaudeSubscriptionStatus is NOT called again -- CLI_NOT_FOUND/
+    // SPAWN_FAILED are launch failures, not "maybe it worked" ambiguity.
+    expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(1);
+    expect(lastFrame()).toContain('The official Claude CLI was not found.');
   });
 });

@@ -45,6 +45,7 @@
  */
 
 import { z } from 'zod';
+import { spawn, spawnSync } from 'node:child_process';
 import type {
   PlumbModel,
   PlumbStreamEvent,
@@ -290,6 +291,160 @@ function classifyStatusError(err: unknown): ClaudeSubscriptionStatusResult {
     return { status: 'UPSTREAM_POLICY_CHANGED', detail: message };
   }
   return { status: 'NOT_LOGGED_IN', detail: message };
+}
+
+// ─── Re-authentication (official Claude CLI hand-off) ──────────────────
+//
+// The Agent SDK exposes no login/auth function of its own (checked:
+// entrypoints/agentSdkTypes.d.ts only exports `tool`, `createSdkMcpServer`,
+// `query`, `AbortError`, `unstable_v2_*` — nothing auth-related). The
+// package it wraps DOES bundle the real Claude Code CLI (`cli.js`), whose
+// documented `setup-token` subcommand ("Set up a long-lived authentication
+// token (requires Claude subscription)") is the officially shipped,
+// scriptable sign-in entry point. This is the ONLY mechanism this module
+// invokes for re-authentication — no raw OAuth endpoint is ever contacted
+// here, matching the module-level EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY
+// invariant above.
+
+export interface ClaudeCliCommand {
+  /** Executable to spawn — either the `claude` binary found on PATH, or `process.execPath` (node) when running the bundled cli.js. */
+  command: string;
+  args: string[];
+  source: 'PATH' | 'BUNDLED_SDK';
+}
+
+/** Injectable process primitives so tests never spawn a real child process. */
+export interface ClaudeCliProcessAdapter {
+  /** Resolves a `claude` executable on PATH, or null if absent. Defaults to `where`/`which claude`. */
+  findOnPath?: () => string | null;
+  /** Resolves the absolute path to the bundled SDK's cli.js, or null if it can't be located. */
+  resolveBundledCliJs?: () => Promise<string | null>;
+  /** Spawns a command with inherited stdio and resolves with its exit code. Defaults to node:child_process spawn. */
+  spawnInherit?: (
+    command: string,
+    args: string[],
+    opts: { shell: boolean },
+  ) => Promise<number | null>;
+}
+
+function defaultFindClaudeCliOnPath(): string | null {
+  try {
+    const isWin = process.platform === 'win32';
+    const result = spawnSync(isWin ? 'where' : 'which', ['claude'], {
+      encoding: 'utf8',
+    });
+    if (result.status === 0 && result.stdout) {
+      const first = result.stdout
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .find((l) => l.length > 0);
+      return first ?? null;
+    }
+  } catch {
+    // PATH lookup itself failing (e.g. no `where`/`which` binary) just means
+    // "not found on PATH" — fall through to the bundled-SDK path.
+  }
+  return null;
+}
+
+async function defaultResolveBundledCliJs(): Promise<string | null> {
+  try {
+    const pkgJsonUrl = await import.meta.resolve(
+      '@anthropic-ai/claude-agent-sdk/package.json',
+    );
+    const { fileURLToPath } = await import('node:url');
+    const path = await import('node:path');
+    return path.join(path.dirname(fileURLToPath(pkgJsonUrl)), 'cli.js');
+  } catch {
+    return null;
+  }
+}
+
+async function defaultSpawnInherit(
+  command: string,
+  args: string[],
+  opts: { shell: boolean },
+): Promise<number | null> {
+  return await new Promise<number | null>((resolve, reject) => {
+    const child = spawn(command, args, { stdio: 'inherit', shell: opts.shell });
+    child.on('error', (err) => reject(err));
+    child.on('close', (code) => resolve(code));
+  });
+}
+
+/**
+ * Resolves how to invoke the official Claude CLI: prefer a `claude` binary
+ * already on PATH (the user's own Claude Code install, most likely to carry
+ * the account/session the user expects), falling back to the exact CLI
+ * bundled with PLUMB's pinned `@anthropic-ai/claude-agent-sdk` dependency —
+ * never any other/invented binary.
+ */
+export async function resolveClaudeCliCommand(
+  adapter: ClaudeCliProcessAdapter = {},
+): Promise<ClaudeCliCommand | null> {
+  const findOnPath = adapter.findOnPath ?? defaultFindClaudeCliOnPath;
+  const resolveBundled =
+    adapter.resolveBundledCliJs ?? defaultResolveBundledCliJs;
+
+  const onPath = findOnPath();
+  if (onPath) {
+    return { command: onPath, args: [], source: 'PATH' };
+  }
+  const bundled = await resolveBundled();
+  if (bundled) {
+    return {
+      command: process.execPath,
+      args: [bundled],
+      source: 'BUNDLED_SDK',
+    };
+  }
+  return null;
+}
+
+export type ClaudeSubscriptionReauthOutcome =
+  | 'COMPLETED'
+  | 'CLI_NOT_FOUND'
+  | 'SPAWN_FAILED'
+  | 'NONZERO_EXIT';
+
+export interface ClaudeSubscriptionReauthResult {
+  outcome: ClaudeSubscriptionReauthOutcome;
+  exitCode?: number | null;
+  detail?: string;
+}
+
+/**
+ * Runs the official Claude CLI's `setup-token` command interactively
+ * (inherited stdio — the CLI owns the terminal for the duration, exactly
+ * like PLUMB already does for `$EDITOR`), then returns honestly what
+ * happened. Callers MUST re-probe `getClaudeSubscriptionStatus()` after this
+ * resolves rather than inferring success from `outcome` alone — a zero exit
+ * code is a strong signal but not a redundant guarantee, and a non-zero one
+ * (e.g. the user backed out of the CLI's own prompt) doesn't necessarily
+ * mean an existing session was invalidated.
+ */
+export async function runClaudeSubscriptionReauth(
+  adapter: ClaudeCliProcessAdapter = {},
+): Promise<ClaudeSubscriptionReauthResult> {
+  const cli = await resolveClaudeCliCommand(adapter);
+  if (!cli) {
+    return {
+      outcome: 'CLI_NOT_FOUND',
+      detail:
+        'The official Claude CLI was not found — neither on PATH nor bundled with the installed Agent SDK. Install Claude Code to sign in.',
+    };
+  }
+  const spawnInherit = adapter.spawnInherit ?? defaultSpawnInherit;
+  try {
+    const code = await spawnInherit(cli.command, [...cli.args, 'setup-token'], {
+      shell: process.platform === 'win32' && cli.source === 'PATH',
+    });
+    return code === 0
+      ? { outcome: 'COMPLETED', exitCode: code }
+      : { outcome: 'NONZERO_EXIT', exitCode: code };
+  } catch (err) {
+    return { outcome: 'SPAWN_FAILED', detail: (err as Error).message };
+  }
 }
 
 // ─── Pinned model metadata (OFFICIAL_STATIC_METADATA — no live discovery
@@ -544,7 +699,26 @@ export async function* streamClaudeSubscription(
         // through mcpServers below, never through this field.
         tools: [],
         ...(mcpServer
-          ? { mcpServers: { plumb: mcpServer }, maxTurns: 10 }
+          ? {
+              mcpServers: { plumb: mcpServer },
+              maxTurns: 10,
+              // The SDK's own permission gate (`permissionMode: 'default'`)
+              // prompts before executing ANY tool call, including in-process
+              // MCP calls registered via createSdkMcpServer — and nothing in
+              // this non-interactive transport ever answers that prompt, so
+              // the query hangs forever after the model's first tool_use
+              // (observed as: assistant emits intro text, then the session
+              // silently stalls with no tool execution, no continuation, no
+              // final answer). PLUMB's own CoreToolScheduler, reached inside
+              // the `plumb` MCP tool handlers built by buildPlumbMcpServer
+              // above (see toSdkCallToolResult / the module doc's
+              // CLAUDE_SUBSCRIPTION_TOOL_AUTHORITY note), is already the real
+              // permission/confirmation authority for every one of these
+              // calls — so the SDK's redundant gate must be bypassed here,
+              // not left unanswered.
+              permissionMode: 'bypassPermissions' as const,
+              allowDangerouslySkipPermissions: true,
+            }
           : { maxTurns: 1 }),
         abortController: toAbortController(options.signal),
       },
@@ -577,11 +751,18 @@ export async function* streamClaudeSubscription(
             } else if (block.type === 'thinking' && block.thinking) {
               yield { type: 'thinking', thinkingText: block.thinking };
             }
-            // tool_use blocks are intentionally not surfaced — tools are
-            // disabled for this transport (see module doc); a tool_use
-            // block should not appear with `tools: []`, but if the SDK
-            // ever emits one anyway, silently dropping it (rather than
-            // executing it) is the safe failure mode.
+            // tool_use blocks are intentionally not surfaced as PLUMB stream
+            // events here. This is NOT dead code when `mcpServer` is wired:
+            // PLUMB tool calls execute through the SDK's own MCP dispatch
+            // (the `tool()` handlers registered in buildPlumbMcpServer),
+            // which is a separate channel from this content-block loop — the
+            // SDK invokes those handlers directly and folds their results
+            // back into its own turn, so this loop never needs to react to
+            // tool_use blocks to make execution happen. When `mcpServer` is
+            // absent (no PLUMB tools registered this turn), `tools: []` means
+            // a tool_use block should never appear at all; if the SDK ever
+            // emits one anyway, silently dropping it is the safe failure
+            // mode.
           }
           if (message.error) {
             yield {
