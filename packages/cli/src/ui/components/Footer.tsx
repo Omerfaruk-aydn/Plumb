@@ -35,6 +35,7 @@ import {
   deriveItemsFromLegacySettings,
 } from '../../config/footerItems.js';
 import { isDevelopment } from '../../utils/installationInfo.js';
+import { useValueChangeFlash } from '../hooks/useValueChangeFlash.js';
 
 const HOSTNAME = os.hostname();
 
@@ -222,6 +223,11 @@ export const Footer: React.FC = () => {
     terminalWidth: uiState.terminalWidth,
   };
 
+  // Brief accent highlight right after a model switch -- never on first
+  // mount, never a repeating animation, just a one-shot "this just
+  // changed" cue on the one footer item most worth noticing a change to.
+  const isModelFlashing = useValueChangeFlash(model);
+
   const quotaStats = quotaState.stats;
 
   const isFullErrorVerbosity = settings.merged.ui.errorVerbosity === 'full';
@@ -327,7 +333,14 @@ export const Footer: React.FC = () => {
         addCol(
           id,
           header,
-          () => <Text color={itemColor}>{str}</Text>,
+          () => (
+            <Text
+              color={isModelFlashing ? theme.text.accent : itemColor}
+              bold={isModelFlashing}
+            >
+              {str}
+            </Text>
+          ),
           str.length,
         );
         break;
