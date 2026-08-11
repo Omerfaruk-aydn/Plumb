@@ -6,7 +6,10 @@
 
 import { Text } from 'ink';
 import { theme } from '../semantic-colors.js';
-import { getContextUsagePercentage } from '../utils/contextUsage.js';
+import {
+  getContextUsagePercentage,
+  isContextLimitKnown,
+} from '../utils/contextUsage.js';
 import { useSettings } from '../contexts/SettingsContext.js';
 import {
   MIN_TERMINAL_WIDTH_FOR_FULL_LABEL,
@@ -23,6 +26,14 @@ export const ContextUsageDisplay = ({
   terminalWidth: number;
 }) => {
   const settings = useSettings();
+
+  if (!isContextLimitKnown(model)) {
+    // The active model's real context window is confirmed UNKNOWN --
+    // never present a percentage computed against the internal
+    // safety-budget fallback as if it were real usage.
+    return <Text color={theme.text.secondary}>?</Text>;
+  }
+
   const percentage = getContextUsagePercentage(promptTokenCount, model);
   const percentageUsed = (percentage * 100).toFixed(0);
 

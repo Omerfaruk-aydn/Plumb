@@ -9,6 +9,7 @@ import type { GenerateContentParameters } from '@google/genai';
 import { LlmRole } from '../telemetry/llmRole.js';
 import {
   tokenLimit,
+  hasKnownTokenLimit,
   __resetPlumbContextWindowCacheForTests,
 } from './tokenLimits.js';
 
@@ -201,6 +202,36 @@ describe('PlumbContentGenerator', () => {
 
       expect(tokenLimit('claude-opus-4-8')).toBe(200_000);
       expect(tokenLimit('grok-4.5')).toBe(128_000);
+    });
+
+    it('marks the model UNKNOWN (not a fabricated guess) when the registry has no real contextWindow for it, e.g. a Claude Subscription generic alias', async () => {
+      mockFindModel.mockReturnValue({
+        id: 'opus',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        // No contextWindow: mirrors a live-discovered generic alias with
+        // no pinned reference match (universal-model-inventory.ts's
+        // GENERIC_FLOOR case).
+        maxTokens: undefined,
+        reasoning: true,
+        input: 'text',
+      });
+
+      const generator = new PlumbContentGenerator(
+        'claude-subscription',
+        'opus',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(hasKnownTokenLimit('opus')).toBe(false);
     });
   });
 

@@ -104,4 +104,20 @@ describe('<ContextVisualization />', () => {
     expect(frame).toContain('2.5M');
     expect(frame).toContain('4.0M');
   });
+
+  it('renders an honest unknown state instead of a percentage when maxTokens is undefined', async () => {
+    const { lastFrame, waitUntilReady } = await renderContext({
+      usedTokens: 18,
+      maxTokens: undefined,
+    });
+    await waitUntilReady();
+    const frame = lastFrame();
+    expect(frame).toContain('?');
+    expect(frame).toContain('18');
+    // Must never fabricate a percentage or a generic 128K/1M/200K number.
+    expect(frame).not.toMatch(/\d+(\.\d+)?%/);
+    expect(frame).not.toContain('128.0K');
+    expect(frame).not.toContain('1.0M');
+    expect(frame).not.toContain('200.0K');
+  });
 });

@@ -25,7 +25,10 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import type { Config } from '../config/config.js';
 import { debugLogger } from '../utils/debugLogger.js';
-import { recordPlumbModelContextWindow } from './tokenLimits.js';
+import {
+  recordPlumbModelContextWindow,
+  recordPlumbModelContextWindowUnknown,
+} from './tokenLimits.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -228,10 +231,16 @@ export class PlumbContentGenerator implements ContentGenerator {
     // ...), letting the client send/keep far more history than the model's
     // real window actually allows. Keyed by this exact model id, so
     // switching models never bleeds one model's limit onto another.
-    recordPlumbModelContextWindow(
-      this.#modelId,
-      (registryModel as any)?.contextWindow,
-    );
+    const realContextWindow = (registryModel as any)?.contextWindow;
+    recordPlumbModelContextWindow(this.#modelId, realContextWindow);
+    if (!(typeof realContextWindow === 'number' && realContextWindow > 0)) {
+      // The registry itself has no real contextWindow for this exact model
+      // id (e.g. a Claude Subscription generic alias with no pinned
+      // reference match) -- mark it explicitly UNKNOWN rather than leaving
+      // tokenLimit() to silently fall back to a Gemini-only guess that a
+      // UI surface could mistake for this model's real limit.
+      recordPlumbModelContextWindowUnknown(this.#modelId);
+    }
 
     const abortSignal = (request as any).config?.abortSignal as
       | AbortSignal

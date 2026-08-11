@@ -14,6 +14,10 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
   return {
     ...actual,
     tokenLimit: () => 10000,
+    // "opus" simulates a Claude Subscription generic alias with a
+    // confirmed-UNKNOWN real context window; every other model id keeps
+    // the actual (known) behavior.
+    hasKnownTokenLimit: (model: string) => model !== 'opus',
   };
 });
 
@@ -82,6 +86,21 @@ describe('ContextUsageDisplay', () => {
     );
     const output = lastFrame();
     expect(output).toContain('100% used');
+    unmount();
+  });
+
+  it('renders an honest unknown state, never a percentage against the internal safety-budget fallback', async () => {
+    const { lastFrame, unmount } = await renderWithProviders(
+      <ContextUsageDisplay
+        promptTokenCount={5000}
+        model="opus"
+        terminalWidth={120}
+      />,
+    );
+    const output = lastFrame();
+    expect(output).toContain('?');
+    expect(output).not.toContain('50% used');
+    expect(output).not.toMatch(/\d+%/);
     unmount();
   });
 });

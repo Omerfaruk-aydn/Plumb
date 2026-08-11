@@ -29,7 +29,7 @@ import { RawMarkdownIndicator } from './RawMarkdownIndicator.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 import { MultiAgentStatus } from './MultiAgentStatus.js';
-import { tokenLimit } from '@google/gemini-cli-core';
+import { tokenLimit, hasKnownTokenLimit } from '@google/gemini-cli-core';
 
 /**
  * Layout constants to prevent magic numbers.
@@ -500,11 +500,12 @@ export const StatusRow: React.FC<StatusRowProps> = ({
                   // (real 200,000) showed 128,000 until the first chat turn
                   // (which records the registry value) ran. Switching models
                   // re-bled this back to 128,000 every time.
-                  maxTokens={tokenLimit(
-                    typeof uiState.currentModel === 'string'
-                      ? uiState.currentModel
-                      : '',
-                  )}
+                  maxTokens={
+                    typeof uiState.currentModel === 'string' &&
+                    hasKnownTokenLimit(uiState.currentModel)
+                      ? tokenLimit(uiState.currentModel)
+                      : undefined
+                  }
                   modelName={
                     typeof uiState.currentModel === 'string'
                       ? uiState.currentModel

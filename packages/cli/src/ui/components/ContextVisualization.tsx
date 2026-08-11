@@ -20,7 +20,13 @@ import { theme } from '../semantic-colors.js';
 
 interface ContextVisualizationProps {
   usedTokens: number;
-  maxTokens: number;
+  /**
+   * The active model's real context window, or `undefined` when it has
+   * been explicitly confirmed UNKNOWN (see tokenLimits.ts:
+   * hasKnownTokenLimit). Never pass an internal safety-budget fallback
+   * here — undefined renders an honest "? tokens" state instead.
+   */
+  maxTokens: number | undefined;
   modelName?: string;
   terminalWidth: number;
   showDetails?: boolean;
@@ -56,6 +62,30 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
   terminalWidth,
   showDetails = true,
 }) => {
+  if (maxTokens === undefined) {
+    // Confirmed-UNKNOWN real context window -- render an honest unknown
+    // state rather than a percentage/bar computed against a guessed
+    // number a user could mistake for the model's real limit.
+    return (
+      <Box flexDirection="column" paddingX={1}>
+        <Box flexDirection="row" alignItems="center">
+          <Text color={theme.text.secondary}> Prompt tokens </Text>
+          <Text color={theme.text.secondary}>?</Text>
+          {modelName && (
+            <Text color={theme.text.secondary}> ({modelName})</Text>
+          )}
+        </Box>
+        {showDetails && (
+          <Box flexDirection="row" paddingLeft={2}>
+            <Text color={theme.text.secondary}>
+              {formatTokenCount(usedTokens)} / ? tokens
+            </Text>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
   const percentage = maxTokens > 0 ? usedTokens / maxTokens : 0;
   const percentageDisplay = (percentage * 100).toFixed(1);
   const color = getUsageColor(percentage);

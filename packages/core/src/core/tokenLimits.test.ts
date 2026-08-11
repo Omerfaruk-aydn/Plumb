@@ -9,6 +9,8 @@ import {
   tokenLimit,
   DEFAULT_TOKEN_LIMIT,
   recordPlumbModelContextWindow,
+  recordPlumbModelContextWindowUnknown,
+  hasKnownTokenLimit,
   __resetPlumbContextWindowCacheForTests,
 } from './tokenLimits.js';
 import {
@@ -88,5 +90,46 @@ describe('recordPlumbModelContextWindow / tokenLimit integration', () => {
     // No recording for DEFAULT_GEMINI_MODEL -- must still use the switch.
     recordPlumbModelContextWindow('claude-opus-4-8', 200_000);
     expect(tokenLimit(DEFAULT_GEMINI_MODEL)).toBe(1_048_576);
+  });
+});
+
+describe('recordPlumbModelContextWindowUnknown / hasKnownTokenLimit', () => {
+  afterEach(() => {
+    __resetPlumbContextWindowCacheForTests();
+  });
+
+  it('a never-seen model is treated as known (cold start / built-in fallback applies)', () => {
+    expect(hasKnownTokenLimit('never-seen-model')).toBe(true);
+  });
+
+  it('marks a model UNKNOWN, distinct from "never recorded"', () => {
+    recordPlumbModelContextWindowUnknown('opus');
+    expect(hasKnownTokenLimit('opus')).toBe(false);
+    // tokenLimit() still returns a number -- an internal safety budget
+    // only, never to be displayed as this model's real limit.
+    expect(tokenLimit('opus')).toBe(DEFAULT_TOKEN_LIMIT);
+  });
+
+  it('a real recorded contextWindow clears a prior UNKNOWN marking', () => {
+    recordPlumbModelContextWindowUnknown('opus');
+    expect(hasKnownTokenLimit('opus')).toBe(false);
+    recordPlumbModelContextWindow('opus', 200_000);
+    expect(hasKnownTokenLimit('opus')).toBe(true);
+    expect(tokenLimit('opus')).toBe(200_000);
+  });
+
+  it('marking UNKNOWN never overwrites an already-known real value', () => {
+    recordPlumbModelContextWindow('opus', 200_000);
+    recordPlumbModelContextWindowUnknown('opus');
+    expect(hasKnownTokenLimit('opus')).toBe(true);
+    expect(tokenLimit('opus')).toBe(200_000);
+  });
+
+  it('UNKNOWN marking is per-model id (no bleed between models)', () => {
+    recordPlumbModelContextWindowUnknown('opus');
+    recordPlumbModelContextWindow('haiku', 100_000);
+    expect(hasKnownTokenLimit('opus')).toBe(false);
+    expect(hasKnownTokenLimit('haiku')).toBe(true);
+    expect(tokenLimit('haiku')).toBe(100_000);
   });
 });
