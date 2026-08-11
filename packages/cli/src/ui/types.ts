@@ -139,6 +139,8 @@ export interface IndividualToolCallDisplay {
   progress?: number;
   progressTotal?: number;
   subagentHistory?: SubagentActivityItem[];
+  /** Wall-clock time the tool took to run, once terminal. Never fabricated. */
+  durationMs?: number;
 }
 
 export interface CompressionProps {

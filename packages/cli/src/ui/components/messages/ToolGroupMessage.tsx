@@ -43,6 +43,16 @@ import {
   TOOL_RESULT_STATIC_HEIGHT,
   TOOL_RESULT_STANDARD_RESERVED_LINE_COUNT,
 } from '../../utils/toolLayoutUtils.js';
+import { useToolActions } from '../../contexts/ToolActionsContext.js';
+import {
+  isToolGroupFinished,
+  summarizeToolGroup,
+  formatToolGroupDuration,
+  toolGroupExpansionId,
+} from '../../utils/toolGroupSummary.js';
+import { TOOL_STATUS } from '../../constants.js';
+import { formatCommand } from '../../key/keybindingUtils.js';
+import { Command } from '../../key/keyBindings.js';
 
 const COMPACT_OUTPUT_ALLOWLIST = new Set([
   EDIT_DISPLAY_NAME,
@@ -102,6 +112,8 @@ interface ToolGroupMessageProps {
   borderTop?: boolean;
   borderBottom?: boolean;
   isExpandable?: boolean;
+  /** Whether this group is still the live/streaming tail of a turn. */
+  isPending?: boolean;
 }
 
 // Main component renders the border and maps the tools using ToolMessage
@@ -115,10 +127,13 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
   borderTop: borderTopOverride,
   borderBottom: borderBottomOverride,
   isExpandable,
+  isPending,
 }) => {
   const settings = useSettings();
   const isLowErrorVerbosity = settings.merged.ui?.errorVerbosity !== 'full';
   const isCompactModeEnabled = settings.merged.ui?.compactToolOutput === true;
+  const isGroupSummaryEnabled = settings.merged.ui?.groupToolSummary === true;
+  const { isExpanded } = useToolActions();
 
   // Filter out tool calls that should be hidden (e.g. in-progress Ask User, or Plan Mode operations).
   const visibleToolCalls = useMemo(
@@ -315,6 +330,58 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
 
   if (!shouldShowGroup) {
     return null;
+  }
+
+  // Collapse a finished, committed batch of tool calls into one summary
+  // line (opt-in via ui.groupToolSummary). Never collapses the live/pending
+  // tail of a turn -- only a group that has already been pushed to real
+  // history, so the user always watches tool activity happen in full before
+  // it settles into a summary. Agent (subagent) groups and topic tools have
+  // their own dedicated renderers and are left alone.
+  const groupExpansionId =
+    !isPending && 'id' in item ? toolGroupExpansionId(item.id) : undefined;
+  const isCollapsible =
+    isGroupSummaryEnabled &&
+    groupExpansionId !== undefined &&
+    visibleToolCalls.length >= 2 &&
+    isToolGroupFinished(visibleToolCalls) &&
+    visibleToolCalls.every(
+      (t) => t.kind !== Kind.Agent && !isTopicTool(t.name),
+    );
+  const isCollapsed = isCollapsible && !isExpanded(groupExpansionId);
+
+  if (isCollapsed) {
+    const summary = summarizeToolGroup(visibleToolCalls);
+    const icon =
+      summary.outcome === 'error'
+        ? TOOL_STATUS.ERROR
+        : summary.outcome === 'cancelled'
+          ? TOOL_STATUS.CANCELED
+          : TOOL_STATUS.SUCCESS;
+    const iconColor =
+      summary.outcome === 'error'
+        ? theme.status.error
+        : summary.outcome === 'cancelled'
+          ? theme.text.secondary
+          : theme.status.success;
+    const durationLabel =
+      summary.totalDurationMs !== undefined
+        ? ` · ${formatToolGroupDuration(summary.totalDurationMs)}`
+        : '';
+
+    return (
+      <Box width={terminalWidth} paddingRight={TOOL_MESSAGE_HORIZONTAL_MARGIN}>
+        <Text color={iconColor}>{icon} </Text>
+        <Text color={theme.text.secondary}>
+          {summary.countsLabel}
+          {durationLabel}
+          {'  '}
+        </Text>
+        <Text color={theme.text.secondary} dimColor>
+          ({formatCommand(Command.SHOW_MORE_LINES)} to expand)
+        </Text>
+      </Box>
+    );
   }
 
   const content = (

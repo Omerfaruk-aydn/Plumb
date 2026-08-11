@@ -71,15 +71,18 @@ export function mapToDisplay(
     let progressMessage: string | undefined = undefined;
     let progress: number | undefined = undefined;
     let progressTotal: number | undefined = undefined;
+    let durationMs: number | undefined = undefined;
 
     switch (call.status) {
       case CoreToolCallStatus.Success:
         resultDisplay = call.response.resultDisplay;
         outputFile = call.response.outputFile;
+        durationMs = call.durationMs;
         break;
       case CoreToolCallStatus.Error:
       case CoreToolCallStatus.Cancelled:
         resultDisplay = call.response.resultDisplay;
+        durationMs = call.durationMs;
         break;
       case CoreToolCallStatus.AwaitingApproval:
         correlationId = call.correlationId;
@@ -120,6 +123,7 @@ export function mapToDisplay(
       progressMessage,
       progress,
       progressTotal,
+      durationMs,
       approvalMode: call.approvalMode,
       originalRequestName: call.request.originalRequestName,
       subagentHistory: hasSubagentHistory(call)

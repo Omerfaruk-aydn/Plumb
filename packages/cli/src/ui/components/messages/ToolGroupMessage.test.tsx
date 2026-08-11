@@ -1100,4 +1100,141 @@ describe('<ToolGroupMessage />', () => {
       },
     );
   });
+
+  describe('Collapsed group summary (ui.groupToolSummary)', () => {
+    const summarySettings = createMockSettings({
+      ui: { errorVerbosity: 'full', groupToolSummary: true },
+    });
+
+    it('collapses a finished, multi-tool committed group into one summary line', async () => {
+      const toolCalls = [
+        createToolCall({
+          callId: 'a',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+        createToolCall({
+          callId: 'b',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+      ];
+      const item = createItem(toolCalls);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <ToolGroupMessage
+          {...baseProps}
+          item={item}
+          toolCalls={toolCalls}
+          isPending={false}
+        />,
+        { config: baseMockConfig, settings: summarySettings },
+      );
+
+      const output = lastFrame();
+      expect(output).toContain('2 files read');
+      // The full tool cards should not be rendered when collapsed.
+      expect(output).not.toContain('A tool for testing');
+      unmount();
+    });
+
+    it('never collapses the live/pending tail of a turn, even with matching tools', async () => {
+      const toolCalls = [
+        createToolCall({ callId: 'a', name: READ_FILE_DISPLAY_NAME }),
+        createToolCall({ callId: 'b', name: READ_FILE_DISPLAY_NAME }),
+      ];
+      const item = createItem(toolCalls);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <ToolGroupMessage
+          {...baseProps}
+          item={item}
+          toolCalls={toolCalls}
+          isPending={true}
+        />,
+        { config: baseMockConfig, settings: summarySettings },
+      );
+
+      expect(lastFrame()).not.toContain('2 files read');
+      unmount();
+    });
+
+    it('never collapses while any tool is still executing', async () => {
+      const toolCalls = [
+        createToolCall({
+          callId: 'a',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+        createToolCall({
+          callId: 'b',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Executing,
+          resultDisplay: undefined,
+        }),
+      ];
+      const item = createItem(toolCalls);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <ToolGroupMessage
+          {...baseProps}
+          item={item}
+          toolCalls={toolCalls}
+          isPending={false}
+        />,
+        { config: baseMockConfig, settings: summarySettings },
+      );
+
+      expect(lastFrame()).not.toContain('2 files read');
+      unmount();
+    });
+
+    it('leaves a single-tool group fully expanded (not worth collapsing)', async () => {
+      const toolCalls = [
+        createToolCall({
+          callId: 'a',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+      ];
+      const item = createItem(toolCalls);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <ToolGroupMessage
+          {...baseProps}
+          item={item}
+          toolCalls={toolCalls}
+          isPending={false}
+        />,
+        { config: baseMockConfig, settings: summarySettings },
+      );
+
+      expect(lastFrame()).not.toContain('1 file read');
+      unmount();
+    });
+
+    it('stays fully expanded when the setting is off, regardless of finished multi-tool groups', async () => {
+      const toolCalls = [
+        createToolCall({
+          callId: 'a',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+        createToolCall({
+          callId: 'b',
+          name: READ_FILE_DISPLAY_NAME,
+          status: CoreToolCallStatus.Success,
+        }),
+      ];
+      const item = createItem(toolCalls);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <ToolGroupMessage
+          {...baseProps}
+          item={item}
+          toolCalls={toolCalls}
+          isPending={false}
+        />,
+        { config: baseMockConfig, settings: fullVerbositySettings },
+      );
+
+      expect(lastFrame()).not.toContain('2 files read');
+      unmount();
+    });
+  });
 });

@@ -12,6 +12,7 @@ import type {
   HistoryItemToolGroup,
   IndividualToolCallDisplay,
 } from '../types.js';
+import { toolGroupExpansionId } from './toolGroupSummary.js';
 
 /**
  * Maps an IndividualToolCallDisplay from the CLI to a ToolVisibilityContext for core logic.
@@ -52,6 +53,10 @@ export function getLastTurnToolCallIds(
       item.tools.forEach((t) => {
         if (t.callId) targetToolCallIds.push(t.callId);
       });
+      // Also include the group's own synthetic expansion id, so Ctrl+O
+      // expands a collapsed group-summary line (see ToolGroupMessage's
+      // ui.groupToolSummary handling), not just individual tool cards.
+      targetToolCallIds.push(toolGroupExpansionId(item.id));
     }
   });
 

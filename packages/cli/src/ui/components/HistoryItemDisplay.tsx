@@ -208,6 +208,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
           borderTop={itemForDisplay.borderTop}
           borderBottom={itemForDisplay.borderBottom}
           isExpandable={isExpandable}
+          isPending={isPending}
         />
       )}
       {itemForDisplay.type === 'tool_display_group' && (

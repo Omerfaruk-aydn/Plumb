@@ -642,6 +642,16 @@ const SETTINGS_SCHEMA = {
           'Display tool outputs (like directory listings and file reads) in a compact, structured format.',
         showInDialog: true,
       },
+      groupToolSummary: {
+        type: 'boolean',
+        label: 'Collapse Finished Tool Groups',
+        category: 'UI',
+        requiresRestart: false,
+        default: false,
+        description:
+          'Once a batch of tool calls in a turn has finished, collapse it into a single summary line (e.g. "3 files read, 1 search - 1.2s") instead of leaving every tool card expanded. Press Ctrl+O to expand/collapse the last turn.',
+        showInDialog: true,
+      },
       animatedLogo: {
         type: 'boolean',
         label: 'Animated RGB Logo',
