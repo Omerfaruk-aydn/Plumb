@@ -25,6 +25,7 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import type { Config } from '../config/config.js';
 import { debugLogger } from '../utils/debugLogger.js';
+import { recordPlumbModelContextWindow } from './tokenLimits.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -218,6 +219,19 @@ export class PlumbContentGenerator implements ContentGenerator {
       reasoning: (registryModel as any)?.reasoning ?? true,
       input: (registryModel as any)?.input ?? 'text',
     };
+
+    // Feed the real per-model contextWindow into packages/core's own
+    // client-side token-budget bookkeeping (compaction threshold, overflow
+    // check, tool-output truncation) -- see tokenLimits.ts. Without this,
+    // that bookkeeping silently falls back to a Gemini-only default for
+    // every non-Gemini model (Claude Subscription, OpenCode, Antigravity,
+    // ...), letting the client send/keep far more history than the model's
+    // real window actually allows. Keyed by this exact model id, so
+    // switching models never bleeds one model's limit onto another.
+    recordPlumbModelContextWindow(
+      this.#modelId,
+      (registryModel as any)?.contextWindow,
+    );
 
     const abortSignal = (request as any).config?.abortSignal as
       | AbortSignal

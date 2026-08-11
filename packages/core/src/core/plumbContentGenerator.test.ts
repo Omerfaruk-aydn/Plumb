@@ -4,9 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { GenerateContentParameters } from '@google/genai';
 import { LlmRole } from '../telemetry/llmRole.js';
+import {
+  tokenLimit,
+  __resetPlumbContextWindowCacheForTests,
+} from './tokenLimits.js';
 
 const testRequest: GenerateContentParameters = {
   model: 'unused',
@@ -109,6 +113,95 @@ describe('PlumbContentGenerator', () => {
     expect(mockPlumbModelStream).toHaveBeenCalledTimes(1);
     const { model } = mockPlumbModelStream.mock.calls[0][0];
     expect(model.provider).toBe('google-antigravity');
+  });
+
+  // Bug 5 regression: packages/core's own client-side token-budget
+  // bookkeeping (tokenLimits.ts) has no way to resolve a non-Gemini
+  // model's real contextWindow itself -- this generator must feed the
+  // registry's real value into it on every request, keyed by the exact
+  // model id, so compaction/overflow checks stop using a Gemini-only
+  // default for e.g. Claude Subscription or OpenCode models.
+  describe('feeds the real per-model contextWindow into tokenLimits.ts', () => {
+    afterEach(() => {
+      __resetPlumbContextWindowCacheForTests();
+    });
+
+    it('records the registry-reported contextWindow for the exact model id used', async () => {
+      mockFindModel.mockReturnValue({
+        id: 'claude-opus-4-8',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        contextWindow: 200_000,
+        maxTokens: 32_000,
+        reasoning: true,
+        input: 'text',
+      });
+
+      const generator = new PlumbContentGenerator(
+        'claude-subscription',
+        'claude-opus-4-8',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      expect(tokenLimit('claude-opus-4-8')).toBe(200_000);
+    });
+
+    it('CONTEXT_METADATA_BLEED = ZERO: two different models in sequence each keep their own recorded contextWindow', async () => {
+      mockFindModel.mockReturnValueOnce({
+        id: 'claude-opus-4-8',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        contextWindow: 200_000,
+        maxTokens: 32_000,
+        reasoning: true,
+        input: 'text',
+      });
+      const first = new PlumbContentGenerator(
+        'claude-subscription',
+        'claude-opus-4-8',
+        'api-key',
+      );
+      for await (const _ of await first.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      )) {
+        // drain
+      }
+
+      mockFindModel.mockReturnValueOnce({
+        id: 'grok-4.5',
+        provider: 'opencode-go',
+        api: 'openai-completions',
+        contextWindow: 128_000,
+        maxTokens: 16_000,
+        reasoning: false,
+        input: 'text',
+      });
+      const second = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+      for await (const _ of await second.generateContentStream(
+        testRequest,
+        'prompt-id',
+        testRole,
+      )) {
+        // drain
+      }
+
+      expect(tokenLimit('claude-opus-4-8')).toBe(200_000);
+      expect(tokenLimit('grok-4.5')).toBe(128_000);
+    });
   });
 
   it('fails closed without a hydrated descriptor instead of fabricating an OpenAI route', async () => {
