@@ -226,7 +226,7 @@ describe('<ToolMessage />', () => {
       unmount();
     });
 
-    it('shows o for Pending status', async () => {
+    it('shows ○ for Pending status', async () => {
       const { lastFrame, unmount } = await renderWithContext(
         <ToolMessage {...baseProps} status={CoreToolCallStatus.Scheduled} />,
         StreamingState.Idle,
@@ -247,7 +247,7 @@ describe('<ToolMessage />', () => {
       unmount();
     });
 
-    it('shows - for Canceled status', async () => {
+    it('shows ⦸ for Canceled status', async () => {
       const { lastFrame, unmount } = await renderWithContext(
         <ToolMessage {...baseProps} status={CoreToolCallStatus.Cancelled} />,
         StreamingState.Idle,
@@ -256,7 +256,7 @@ describe('<ToolMessage />', () => {
       unmount();
     });
 
-    it('shows x for Error status', async () => {
+    it('shows ✗ for Error status', async () => {
       const { lastFrame, unmount } = await renderWithContext(
         <ToolMessage {...baseProps} status={CoreToolCallStatus.Error} />,
         StreamingState.Idle,

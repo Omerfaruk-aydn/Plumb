@@ -19,25 +19,9 @@ exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows ? for Confirmin
 "
 `;
 
-exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows - for Canceled status 1`] = `
-"╭──────────────────────────────────────────────────────────────────────────────╮
-│ -  test-tool A tool for testing                                              │
-│                                                                              │
-│ Test result                                                                  │
-"
-`;
-
 exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows MockRespondingSpinner for Executing status when streamingState is Responding 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────╮
 │ ⊶  test-tool A tool for testing                                              │
-│                                                                              │
-│ Test result                                                                  │
-"
-`;
-
-exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows o for Pending status 1`] = `
-"╭──────────────────────────────────────────────────────────────────────────────╮
-│ o  test-tool A tool for testing                                              │
 │                                                                              │
 │ Test result                                                                  │
 "
@@ -59,9 +43,9 @@ exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows paused spinner 
 "
 `;
 
-exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows x for Error status 1`] = `
+exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows ○ for Pending status 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────╮
-│ x  test-tool A tool for testing                                              │
+│ ○  test-tool A tool for testing                                              │
 │                                                                              │
 │ Test result                                                                  │
 "
@@ -70,6 +54,22 @@ exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows x for Error sta
 exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows ✓ for Success status 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────╮
 │ ✓  test-tool A tool for testing                                              │
+│                                                                              │
+│ Test result                                                                  │
+"
+`;
+
+exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows ✗ for Error status 1`] = `
+"╭──────────────────────────────────────────────────────────────────────────────╮
+│ ✗  test-tool A tool for testing                                              │
+│                                                                              │
+│ Test result                                                                  │
+"
+`;
+
+exports[`<ToolMessage /> > ToolStatusIndicator rendering > shows ⦸ for Canceled status 1`] = `
+"╭──────────────────────────────────────────────────────────────────────────────╮
+│ ⦸  test-tool A tool for testing                                              │
 │                                                                              │
 │ Test result                                                                  │
 "

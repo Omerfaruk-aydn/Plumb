@@ -2,7 +2,7 @@
 
 exports[`<ToolGroupMessage /> > Ask User Filtering > filtering logic for status='error' and hasResult='error message' 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────╮
-│ x  Ask User                                                              │
+│ ✗  Ask User                                                              │
 │                                                                          │
 │ error message                                                            │
 ╰──────────────────────────────────────────────────────────────────────────╯
@@ -51,7 +51,7 @@ exports[`<ToolGroupMessage /> > Border Color Logic > uses yellow border for shel
 
 exports[`<ToolGroupMessage /> > Golden Snapshots > renders canceled tool calls > canceled_tool 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────╮
-│ -  canceled-tool A tool for testing                                      │
+│ ⦸  canceled-tool A tool for testing                                      │
 │                                                                          │
 │ Test result                                                              │
 ╰──────────────────────────────────────────────────────────────────────────╯
@@ -84,11 +84,11 @@ exports[`<ToolGroupMessage /> > Golden Snapshots > renders mixed tool calls incl
 │                                                                          │
 │ Test result                                                              │
 │                                                                          │
-│ ⊷  run_shell_command Run command                                         │
+│ ⊶  run_shell_command Run command                                         │
 │                                                                          │
 │ Test result                                                              │
 │                                                                          │
-│ o  write_file Write to file                                              │
+│ ○  write_file Write to file                                              │
 │                                                                          │
 │ Test result                                                              │
 ╰──────────────────────────────────────────────────────────────────────────╯
@@ -101,11 +101,11 @@ exports[`<ToolGroupMessage /> > Golden Snapshots > renders multiple tool calls w
 │                                                                          │
 │ Test result                                                              │
 │                                                                          │
-│ o  pending-tool This tool is pending                                     │
+│ ○  pending-tool This tool is pending                                     │
 │                                                                          │
 │ Test result                                                              │
 │                                                                          │
-│ x  error-tool This tool failed                                           │
+│ ✗  error-tool This tool failed                                           │
 │                                                                          │
 │ Test result                                                              │
 ╰──────────────────────────────────────────────────────────────────────────╯

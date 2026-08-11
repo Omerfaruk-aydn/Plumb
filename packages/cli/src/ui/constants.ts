@@ -16,14 +16,16 @@ export const MAX_GEMINI_MESSAGE_LINES = 65536;
 
 export const SHELL_FOCUS_HINT_DELAY_MS = 5000;
 
-// Tool status symbols used in ToolMessage component
+// Tool status symbols used in ToolMessage component. SUCCESS/ERROR are a
+// deliberate check/cross pair (same visual weight) so a scanning eye can
+// tell "done" from "failed" from shape alone, without reading color.
 export const TOOL_STATUS = {
   SUCCESS: '✓',
-  PENDING: 'o',
+  PENDING: '○',
   EXECUTING: '⊷',
   CONFIRMING: '?',
-  CANCELED: '-',
-  ERROR: 'x',
+  CANCELED: '⦸',
+  ERROR: '✗',
 } as const;
 
 // Maximum number of MCP resources to display per server before truncating
