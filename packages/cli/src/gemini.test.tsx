@@ -589,6 +589,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseModelLimits: undefined,
       diagnoseModelLimitsProvider: undefined,
       diagnoseModelLimitsSummary: undefined,
+      provider: undefined,
+      diagnoseTools: undefined,
     });
 
     await act(async () => {
@@ -669,6 +671,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseModelLimits: undefined,
       diagnoseModelLimitsProvider: undefined,
       diagnoseModelLimitsSummary: undefined,
+      provider: undefined,
+      diagnoseTools: undefined,
     });
 
     await act(async () => {

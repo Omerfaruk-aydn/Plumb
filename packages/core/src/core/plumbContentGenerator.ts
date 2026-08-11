@@ -29,6 +29,11 @@ import {
   recordPlumbModelContextWindow,
   recordPlumbModelContextWindowUnknown,
 } from './tokenLimits.js';
+import {
+  validateCanonicalToolSchema,
+  InvalidToolSchemaError,
+  CANONICAL_NO_ARGS_SCHEMA,
+} from '../tools/definitions/canonicalSchemaValidator.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -145,7 +150,23 @@ export class PlumbContentGenerator implements ContentGenerator {
 
     const contents = (request as any).contents ?? [];
     const messages = this.#convertMessages(contents);
-    const tools = this.#convertTools((request as any).config?.tools ?? []);
+    let tools: Array<{
+      type: string;
+      function: { name: string; description: string; parameters: unknown };
+    }>;
+    try {
+      tools = this.#convertTools((request as any).config?.tools ?? []);
+    } catch (err) {
+      // Fail closed BEFORE any network/HTTP usage: a structurally invalid
+      // tool schema must never reach a provider. Never expose credentials,
+      // tokens, prompt contents, or file contents in this message.
+      if (err instanceof InvalidToolSchemaError) {
+        debugLogger.error('Refusing to send malformed tool schema:', err);
+        yield this.#errorChunk(err.message);
+        return;
+      }
+      throw err;
+    }
     const systemPrompt = this.#extractSystemPrompt(request);
     const requestConfig = (request as any).config ?? {};
     const responseFormat = this.#buildResponseFormat(requestConfig);
@@ -560,6 +581,28 @@ export class PlumbContentGenerator implements ContentGenerator {
     return result;
   }
 
+  /**
+   * Converts the canonical `FunctionDeclaration[]` this provider-neutral
+   * layer receives into the OpenAI-shaped tool array every downstream
+   * dialect transport (openAICompatibleStream, anthropicMessagesStream,
+   * streamClaudeSubscription, ...) expects.
+   *
+   * Every real PLUMB tool declares its schema on `parametersJsonSchema`
+   * (see packages/core/src/tools/definitions/*.ts) -- `parameters` is a
+   * *different*, mutually-exclusive legacy `@google/genai` field (a
+   * Schema-enum shape, not JSON Schema) that PLUMB's own tool
+   * declarations never populate. Reading `fd.parameters` here silently
+   * collapsed every tool's real schema to `{}` (no `type`, no
+   * `properties`) before it ever reached a provider -- the shared root
+   * cause behind "schema must be type object, got type null" and
+   * equivalent errors across every provider routed through this
+   * generator (Claude Subscription, OpenCode Go/Zen, Antigravity,
+   * Anthropic API, ...), not a Claude-specific bug.
+   *
+   * Fails closed (throws InvalidToolSchemaError, never partially built)
+   * when a tool's canonical schema doesn't satisfy
+   * validateCanonicalToolSchema -- the caller must not send the request.
+   */
   #convertTools(tools: any[]): Array<{
     type: string;
     function: { name: string; description: string; parameters: unknown };
@@ -568,14 +611,26 @@ export class PlumbContentGenerator implements ContentGenerator {
     return tools.flatMap((t: any) => {
       const decls = t.functionDeclarations;
       if (!Array.isArray(decls)) return [];
-      return decls.map((fd: any) => ({
-        type: 'function' as const,
-        function: {
-          name: String(fd.name ?? ''),
-          description: String(fd.description ?? ''),
-          parameters: fd.parameters ?? {},
-        },
-      }));
+      return decls.map((fd: any) => {
+        const name = String(fd.name ?? '');
+        const rawSchema = fd.parametersJsonSchema ?? fd.parameters;
+        const parameters =
+          rawSchema === undefined || rawSchema === null
+            ? CANONICAL_NO_ARGS_SCHEMA
+            : rawSchema;
+        const validation = validateCanonicalToolSchema(parameters, name);
+        if (!validation.valid) {
+          throw new InvalidToolSchemaError(validation);
+        }
+        return {
+          type: 'function' as const,
+          function: {
+            name,
+            description: String(fd.description ?? ''),
+            parameters,
+          },
+        };
+      });
     });
   }
 

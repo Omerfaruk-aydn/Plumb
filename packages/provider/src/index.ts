@@ -320,6 +320,15 @@ export {
 } from './omp-ai/registry/oauth/index.js';
 export { OAuthCallbackFlow } from './omp-ai/registry/oauth/callback-server.js';
 export { generatePKCE } from './omp-ai/registry/oauth/pkce.js';
+
+// Schema normalization (diagnostic/dialect-serialization surface --
+// see omp-ai/utils/schema/CONSTRAINTS.md for the operational contract).
+export {
+  normalizeSchemaForGoogle,
+  normalizeSchemaForCCA,
+  normalizeSchemaForMCP,
+  tryEnforceStrictSchema,
+} from './omp-ai/utils/schema/index.js';
 export type {
   OAuthProvider,
   OAuthCredentials,

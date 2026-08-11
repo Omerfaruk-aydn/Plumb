@@ -1305,6 +1305,41 @@ async function runProviderLiveProbe(
     );
   }
 
+  // ─── Claude Subscription model-selection authority audit (PART G) ───
+  //
+  // Query.supportedModels() is the Agent SDK's live, account/plan-aware
+  // discovery call -- per its own documented behavior it is populated
+  // from the live CLI subprocess's own session-init handshake with
+  // Anthropic's backend (see transports/claudeSubscription.ts), i.e. it
+  // already reflects what the real official Claude CLI session sees for
+  // THIS account. The installed Agent SDK's public type surface
+  // (entrypoints/sdk/runtimeTypes.d.ts) exposes no separate, richer
+  // model-enumeration facility (setModel() only changes the active
+  // model; it does not enumerate). No other official model-listing API
+  // was found. This is reported structurally, not assumed -- if a
+  // stronger authority is added to a future SDK release, this diagnostic
+  // must be updated to probe it and this comment corrected.
+  if (canonicalId === 'claude-subscription') {
+    lines.push('');
+    lines.push('[claude-subscription model authority]');
+    lines.push(`AGENT_SDK_RAW_COUNT: ${rawSupportedModelCount}`);
+    lines.push(
+      `AGENT_SDK_IDS: ${liveModels.map((m) => m.id).join(',') || '(none)'}`,
+    );
+    lines.push('OFFICIAL_CLIENT_ENUMERATION_AVAILABLE: NO');
+    lines.push(
+      'OFFICIAL_CLIENT_COUNT: N/A (supportedModels() is itself backed by the live official CLI subprocess session -- no separate official-client enumeration facility exists in the installed Agent SDK)',
+    );
+    const finalAuthority =
+      liveSource === 'ACCOUNT_DYNAMIC' && rawSupportedModelCount > 0
+        ? 'AGENT_SDK'
+        : 'FALLBACK';
+    lines.push(`FINAL_SELECTION_AUTHORITY: ${finalAuthority}`);
+    lines.push(
+      `FINAL_MODEL_COUNT: ${rawSupportedModelCount > 0 ? rawSupportedModelCount : (providerModule.getCatalogModels?.(canonicalId) ?? []).length}`,
+    );
+  }
+
   // Bundled floor
   const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
   lines.push(`bundled.model.count: ${bundledModels.length}`);
@@ -1586,6 +1621,211 @@ export async function printModelLimitsDiagnostics(
   }
   for (const failure of failures) {
     process.stderr.write(`diagnose-model-limits: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
+// ─── Tool schema diagnostics (--diagnose-tools) ─────────────────────
+//
+// Safe, credential-free structural audit of every canonical PLUMB tool
+// declaration and its per-dialect serialization. Never prints prompt
+// contents, file contents, or credentials -- only tool names and schema
+// shape metadata (root type, property/required counts, per-dialect
+// validity booleans).
+
+export interface ToolSchemaDiagnosticsFilter {
+  provider?: string;
+  model?: string;
+}
+
+export interface ToolSchemaDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+interface ToolSchemaRow {
+  name: string;
+  valid: boolean;
+  rootType: string | null;
+  propertyCount: number;
+  requiredCount: number;
+  reason?: string;
+  openaiValid: boolean;
+  anthropicValid: boolean;
+  geminiValid: boolean;
+  mcpValid: boolean;
+}
+
+export async function buildToolSchemaDiagnostics(
+  filter?: ToolSchemaDiagnosticsFilter,
+): Promise<ToolSchemaDiagnosticsResult> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+  try {
+    const core = await import('@google/gemini-cli-core');
+    const provider = await import('@google/gemini-cli-provider');
+
+    const family =
+      filter?.model && core.isGemini3Model?.(filter.model)
+        ? 'gemini-3-pro'
+        : undefined;
+    const set = core.getToolSet(family);
+
+    const decls: Array<{ name: string; schema: unknown }> = [
+      { name: 'read_file', schema: set.read_file },
+      { name: 'write_file', schema: set.write_file },
+      { name: 'grep_search', schema: set.grep_search },
+      { name: 'grep_search_ripgrep', schema: set.grep_search_ripgrep },
+      { name: 'glob', schema: set.glob },
+      { name: 'list_directory', schema: set.list_directory },
+      {
+        name: 'run_shell_command',
+        schema: set.run_shell_command(true, true, true),
+      },
+      { name: 'replace', schema: set.replace },
+      { name: 'google_web_search', schema: set.google_web_search },
+      { name: 'web_fetch', schema: set.web_fetch },
+      { name: 'read_many_files', schema: set.read_many_files },
+      { name: 'write_todos', schema: set.write_todos },
+      { name: 'get_internal_docs', schema: set.get_internal_docs },
+      { name: 'ask_user', schema: set.ask_user },
+      { name: 'enter_plan_mode', schema: set.enter_plan_mode },
+      { name: 'exit_plan_mode', schema: set.exit_plan_mode() },
+      {
+        name: 'activate_skill',
+        schema: set.activate_skill(['example-skill']),
+      },
+      { name: 'read_mcp_resource', schema: set.read_mcp_resource },
+      { name: 'list_mcp_resources', schema: set.list_mcp_resources },
+      // update_topic's registered instance (topicTool.ts) always calls
+      // getUpdateTopicDeclaration() directly -- it is NOT gated by tool
+      // family the way the rest of `set` is (its GEMINI_3_SET entry is
+      // an unused placeholder for a different resolution path). Audit
+      // the real, always-live declaration here rather than `set.update_topic`,
+      // which is undefined outside the gemini-3 family and would
+      // silently skip the exact tool the real-user report named.
+      {
+        name: 'update_topic',
+        schema: core.getUpdateTopicDeclaration(),
+      },
+    ];
+
+    const rows: ToolSchemaRow[] = decls.map(({ name, schema: decl }) => {
+      const rawSchema =
+        (decl as { parametersJsonSchema?: unknown; parameters?: unknown })
+          .parametersJsonSchema ??
+        (decl as { parameters?: unknown }).parameters ??
+        core.CANONICAL_NO_ARGS_SCHEMA;
+      const result = core.validateCanonicalToolSchema(rawSchema, name);
+
+      let openaiValid = result.valid;
+      const anthropicValid = result.valid;
+      let geminiValid = result.valid;
+      let mcpValid = result.valid;
+      if (result.valid) {
+        try {
+          provider.tryEnforceStrictSchema(rawSchema as Record<string, unknown>);
+        } catch {
+          openaiValid = false;
+        }
+        try {
+          provider.normalizeSchemaForGoogle(rawSchema);
+        } catch {
+          geminiValid = false;
+        }
+        try {
+          provider.normalizeSchemaForMCP(rawSchema);
+        } catch {
+          mcpValid = false;
+        }
+        // Anthropic's Messages API consumes standard JSON Schema
+        // directly (input_schema) -- no PLUMB-side normalizer rewrites
+        // it structurally, so validity there tracks canonical validity.
+      }
+
+      return {
+        name,
+        valid: result.valid,
+        rootType: result.rootType,
+        propertyCount: result.propertyCount,
+        requiredCount: result.requiredCount,
+        reason: result.reason,
+        openaiValid,
+        anthropicValid,
+        geminiValid,
+        mcpValid,
+      };
+    });
+
+    lines.push('PLUMB tool schema diagnostics');
+    lines.push(`tool.family: ${family ?? 'default-legacy'}`);
+    if (filter?.provider) lines.push(`filter.provider: ${filter.provider}`);
+    if (filter?.model) lines.push(`filter.model: ${filter.model}`);
+    lines.push('');
+    lines.push(`total.tools: ${rows.length}`);
+    lines.push(
+      `invalid.canonical.schemas: ${rows.filter((r) => !r.valid).length}`,
+    );
+    lines.push('');
+
+    for (const row of rows) {
+      lines.push(`tool=${row.name}`);
+      lines.push(`  canonical.valid: ${row.valid}`);
+      lines.push(`  root.type: ${row.rootType ?? 'null'}`);
+      lines.push(`  property.count: ${row.propertyCount}`);
+      lines.push(`  required.count: ${row.requiredCount}`);
+      if (row.reason) lines.push(`  reason: ${row.reason}`);
+      lines.push(`  openai.valid: ${row.openaiValid}`);
+      lines.push(`  anthropic.valid: ${row.anthropicValid}`);
+      lines.push(`  gemini.valid: ${row.geminiValid}`);
+      lines.push(`  mcp.valid: ${row.mcpValid}`);
+    }
+
+    if (filter?.provider) {
+      lines.push('');
+      lines.push(`[provider capability]`);
+      lines.push(`provider: ${filter.provider}`);
+      if (filter.model) lines.push(`model: ${filter.model}`);
+      try {
+        const catalogModel = filter.model
+          ? provider.getCatalogModel?.(filter.provider, filter.model)
+          : undefined;
+        if (filter.model && !catalogModel) {
+          lines.push('toolsSupported: UNKNOWN');
+          lines.push('capability.source: NO_CATALOG_ENTRY');
+        } else {
+          const toolsSupported = catalogModel?.toolsSupported;
+          lines.push(
+            `toolsSupported: ${toolsSupported === undefined ? 'UNKNOWN' : toolsSupported}`,
+          );
+          lines.push(
+            `capability.source: ${toolsSupported === undefined ? 'UNKNOWN' : 'BUNDLED_CATALOG'}`,
+          );
+        }
+        lines.push(`dialect: ${catalogModel?.api ?? 'UNKNOWN'}`);
+      } catch (err) {
+        failures.push(
+          `Failed to resolve provider capability: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  } catch (err) {
+    failures.push(
+      `Failed to build tool schema diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  return { lines, failures };
+}
+
+export async function printToolSchemaDiagnostics(
+  filter?: ToolSchemaDiagnosticsFilter,
+): Promise<number> {
+  const { lines, failures } = await buildToolSchemaDiagnostics(filter);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-tools: FAIL: ${failure}\n`);
   }
   return failures.length > 0 ? 1 : 0;
 }

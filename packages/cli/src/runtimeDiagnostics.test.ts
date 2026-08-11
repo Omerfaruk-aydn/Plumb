@@ -14,6 +14,7 @@ import {
   buildPlanDiagnostics,
   buildProviderModelsDiagnostics,
   buildModelLimitsDiagnostics,
+  buildToolSchemaDiagnostics,
 } from './runtimeDiagnostics.js';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { createTestMergedSettings } from './config/settings.js';
@@ -228,6 +229,25 @@ describe('buildProviderModelsDiagnostics', () => {
     expect(report).toContain('PLUMB provider model discovery diagnostics');
     expect(report).toContain('canonical.provider:');
   });
+
+  it('PART G: reports the Claude Subscription model-selection authority audit, never fabricating account entitlement', async () => {
+    const { lines, failures, rawSupportedModelCount } =
+      await buildProviderModelsDiagnostics('claude-subscription');
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('[claude-subscription model authority]');
+    expect(report).toMatch(/AGENT_SDK_RAW_COUNT: \d+/);
+    expect(report).toContain('AGENT_SDK_IDS:');
+    expect(report).toMatch(/OFFICIAL_CLIENT_ENUMERATION_AVAILABLE: (YES|NO)/);
+    expect(report).toContain('OFFICIAL_CLIENT_COUNT:');
+    expect(report).toMatch(
+      /FINAL_SELECTION_AUTHORITY: (AGENT_SDK|OFFICIAL_CLIENT|FALLBACK)/,
+    );
+    expect(report).toMatch(/FINAL_MODEL_COUNT: \d+/);
+    // AGENT_SDK_RAW_COUNT must match the same counter the rest of the
+    // report already computed -- no second, disagreeing authority.
+    expect(report).toContain(`AGENT_SDK_RAW_COUNT: ${rawSupportedModelCount}`);
+  });
 });
 
 describe('buildModelLimitsDiagnostics', () => {
@@ -311,4 +331,47 @@ describe('buildModelLimitsDiagnostics', () => {
     });
     expect(failures.length).toBeGreaterThan(0);
   }, 15000);
+});
+
+describe('buildToolSchemaDiagnostics (--diagnose-tools)', () => {
+  it('reports every built-in tool as canonically valid, including update_topic', async () => {
+    const { lines, failures } = await buildToolSchemaDiagnostics();
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('PLUMB tool schema diagnostics');
+    expect(report).toContain('total.tools:');
+    expect(report).toMatch(/invalid\.canonical\.schemas: 0/);
+    expect(report).toContain('tool=update_topic');
+    expect(report).toContain('tool=read_file');
+    // No tool row may report an invalid canonical schema.
+    expect(report).not.toContain('canonical.valid: false');
+    // Every dialect serializer must accept every canonical tool.
+    expect(report).not.toContain('openai.valid: false');
+    expect(report).not.toContain('anthropic.valid: false');
+    expect(report).not.toContain('gemini.valid: false');
+    expect(report).not.toContain('mcp.valid: false');
+  });
+
+  it('never prints prompt or file contents -- only tool names and schema shape metadata', async () => {
+    const { lines } = await buildToolSchemaDiagnostics();
+    const report = lines.join('\n');
+    // Property descriptions (which may reference user-facing prose) must
+    // never leak into this diagnostic -- only counts/booleans/names.
+    expect(report).not.toMatch(/description:/i);
+  });
+
+  it('--provider + --model reports capability metadata honestly as UNKNOWN rather than fabricating toolsSupported', async () => {
+    const { lines, failures } = await buildToolSchemaDiagnostics({
+      provider: 'claude-subscription',
+      model: 'opus',
+    });
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('[provider capability]');
+    expect(report).toContain('provider: claude-subscription');
+    expect(report).toContain('model: opus');
+    // claude-subscription has no bundled catalog entry for a live-discovered
+    // generic alias id -- must be honestly UNKNOWN, never fabricated true/false.
+    expect(report).toContain('toolsSupported: UNKNOWN');
+  });
 });

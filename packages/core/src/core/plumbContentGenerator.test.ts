@@ -830,4 +830,291 @@ describe('PlumbContentGenerator', () => {
       expect(mockCreateClaudeSubscriptionToolExecutor).not.toHaveBeenCalled();
     });
   });
+
+  // ─── GLOBAL TOOL SCHEMA regression ─────────────────────────────────
+  //
+  // Every real PLUMB tool declares its schema on `parametersJsonSchema`
+  // (see tools/definitions/dynamic-declaration-helpers.ts and
+  // coreTools.ts) -- `parameters` is a different, mutually-exclusive
+  // legacy `@google/genai` field PLUMB's own declarations never
+  // populate. Reading the wrong field silently collapsed every tool's
+  // real schema to `{}` (no `type`) before it reached ANY provider
+  // (Claude Subscription, OpenCode Go/Zen, Antigravity, Anthropic,
+  // ...) -- this generator is the shared, provider-neutral bridge, not
+  // a Claude-specific path.
+  describe('canonical tool schema (parametersJsonSchema is the real shape every tool uses)', () => {
+    beforeEach(() => {
+      mockFindModel.mockReturnValue({
+        id: 'grok-4.5',
+        provider: 'opencode-go',
+        api: 'openai-completions',
+        contextWindow: 128000,
+        maxTokens: 16000,
+        reasoning: false,
+        input: 'text',
+      });
+    });
+
+    it('forwards the real parametersJsonSchema to the wire tool, never a fabricated {}', async () => {
+      const request = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'update the topic' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'update_topic',
+                  description: 'Manages narrative flow.',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: {
+                      title: { type: 'string' },
+                      strategic_intent: { type: 'string' },
+                    },
+                    required: ['strategic_intent'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const generator = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      const { tools } = mockPlumbModelStream.mock.calls[0][0] as unknown as {
+        tools: Array<{
+          function: { name: string; parameters: unknown };
+        }>;
+      };
+      expect(tools).toHaveLength(1);
+      expect(tools[0].function.name).toBe('update_topic');
+      expect(tools[0].function.parameters).toEqual({
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          strategic_intent: { type: 'string' },
+        },
+        required: ['strategic_intent'],
+      });
+    });
+
+    it('normalizes a genuinely no-argument tool to the canonical {type:"object",properties:{},additionalProperties:false} shape, never bare {}', async () => {
+      const request = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'complete the task' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                { name: 'complete_task', description: 'Finish.' },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const generator = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      for await (const _ of stream) {
+        // drain
+      }
+
+      const { tools } = mockPlumbModelStream.mock.calls[0][0] as unknown as {
+        tools: Array<{ function: { parameters: unknown } }>;
+      };
+      expect(tools[0].function.parameters).toEqual({
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      });
+    });
+
+    it('fails closed BEFORE any network usage when a tool schema is structurally invalid (never sends the request)', async () => {
+      const request = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'broken tool' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'update_topic',
+                  description: 'Manages narrative flow.',
+                  // Malformed: root type is not "object".
+                  parametersJsonSchema: { type: null },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const generator = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      expect(mockPlumbModelStream).not.toHaveBeenCalled();
+      const text = JSON.stringify(chunks);
+      expect(text).toContain('INVALID_TOOL_SCHEMA');
+      expect(text).toContain('update_topic');
+      expect(text).toContain('ROOT_TYPE_NOT_OBJECT');
+    });
+
+    it('fails closed when required references a property that does not exist', async () => {
+      const request = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'broken tool' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'read_file',
+                  description: 'Reads a file.',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: { path: { type: 'string' } },
+                    required: ['path', 'nonexistent_property'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const generator = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+      const stream = await generator.generateContentStream(
+        request,
+        'prompt-id',
+        testRole,
+      );
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      expect(mockPlumbModelStream).not.toHaveBeenCalled();
+      const text = JSON.stringify(chunks);
+      expect(text).toContain('INVALID_TOOL_SCHEMA');
+      expect(text).toContain('REQUIRED_PROPERTY_MISSING:nonexistent_property');
+    });
+
+    it('TOOL_SCHEMA_BLEED = ZERO: a failed-closed request never poisons the next request on the same generator instance', async () => {
+      const brokenRequest = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'broken tool' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'update_topic',
+                  parametersJsonSchema: { type: null },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const validRequest = {
+        model: 'unused',
+        contents: [{ role: 'user', parts: [{ text: 'merhaba' }] }],
+        config: {
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'read_file',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: { path: { type: 'string' } },
+                    required: ['path'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as GenerateContentParameters;
+
+      const generator = new PlumbContentGenerator(
+        'opencode-go',
+        'grok-4.5',
+        'api-key',
+      );
+
+      // Request 1: fails closed, never reaches the transport.
+      const brokenStream = await generator.generateContentStream(
+        brokenRequest,
+        'prompt-1',
+        testRole,
+      );
+      for await (const _ of brokenStream) {
+        // drain
+      }
+      expect(mockPlumbModelStream).not.toHaveBeenCalled();
+
+      // Request 2 on the SAME generator instance: must be a completely
+      // normal request with its own real tool schema, unaffected by
+      // request 1's failure.
+      const okStream = await generator.generateContentStream(
+        validRequest,
+        'prompt-2',
+        testRole,
+      );
+      for await (const _ of okStream) {
+        // drain
+      }
+      expect(mockPlumbModelStream).toHaveBeenCalledTimes(1);
+      const { tools } = mockPlumbModelStream.mock.calls[0][0] as unknown as {
+        tools: Array<{ function: { name: string; parameters: unknown } }>;
+      };
+      expect(tools).toHaveLength(1);
+      expect(tools[0].function.name).toBe('read_file');
+      expect(tools[0].function.parameters).toEqual({
+        type: 'object',
+        properties: { path: { type: 'string' } },
+        required: ['path'],
+      });
+    });
+  });
 });

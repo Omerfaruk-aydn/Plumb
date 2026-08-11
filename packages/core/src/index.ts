@@ -292,6 +292,15 @@ export * from './tools/write-todos.js';
 export * from './tools/trackerTools.js';
 export * from './tools/activate-skill.js';
 export * from './tools/ask-user.js';
+export { getToolSet } from './tools/definitions/coreTools.js';
+export { getUpdateTopicDeclaration } from './tools/definitions/dynamic-declaration-helpers.js';
+export type { CoreToolSet } from './tools/definitions/types.js';
+export {
+  validateCanonicalToolSchema,
+  CANONICAL_NO_ARGS_SCHEMA,
+  InvalidToolSchemaError,
+} from './tools/definitions/canonicalSchemaValidator.js';
+export type { CanonicalSchemaValidationResult } from './tools/definitions/canonicalSchemaValidator.js';
 
 // MCP OAuth
 export { MCPOAuthProvider } from './mcp/oauth-provider.js';

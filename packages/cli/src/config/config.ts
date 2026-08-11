@@ -121,6 +121,9 @@ export interface CliArgs {
   diagnoseModelLimits: boolean | undefined;
   diagnoseModelLimitsProvider: string | undefined;
   diagnoseModelLimitsSummary: boolean | undefined;
+  /** Shared `--provider` filter, aliased from diagnose-model-limits-provider; also read by --diagnose-tools. */
+  provider: string | undefined;
+  diagnoseTools: boolean | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
   codingPlanStatus: boolean | undefined;
@@ -565,6 +568,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'With --diagnose-model-limits, print only the compact counts summary (registered/configured/selectable providers, models.context/output known+unknown, one provider=... line per provider) — no individual model rows. Usage: plumb --diagnose-model-limits --summary',
+        })
+        .option('diagnose-tools', {
+          type: 'boolean',
+          description:
+            'Print safe structural tool-schema diagnostics (canonical validity, root type, property/required counts, per-dialect serialization validity for openai/anthropic/gemini/mcp) for every built-in PLUMB tool. Never exposes credentials or prompt/file contents. Usage: plumb --diagnose-tools [--provider <id>] [--model <id>]',
         })
         .option('diagnose-auth-state', {
           type: 'boolean',
