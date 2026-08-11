@@ -14,7 +14,12 @@
  * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { PlumbModel, PlumbProviderId, PlumbKnownApi } from '../types.js';
+import type {
+  PlumbModel,
+  PlumbProviderId,
+  PlumbKnownApi,
+  PlumbModelPricing,
+} from '../types.js';
 import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
 import { createModelManager } from '../omp-catalog/model-manager.js';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
@@ -61,6 +66,14 @@ export interface DiscoveredModel {
   api?: PlumbKnownApi;
   baseUrl?: string;
   source?: PlumbModel['source'];
+  /**
+   * Per-token pricing when the discovery source reports it. A model whose
+   * upstream marks it explicitly free (e.g. OpenCode Zen's `-free`-suffixed
+   * ids) carries an all-zero pricing record here -- real zero cost, not a
+   * missing-data placeholder -- so callers can render a truthful FREE badge
+   * instead of guessing from the id string themselves.
+   */
+  pricing?: PlumbModelPricing;
 }
 
 export interface ProviderModelDiscovery {
@@ -410,6 +423,16 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
         source: resolveLocalProviderBaseUrl(this.providerId)
           ? 'SERVER_DYNAMIC'
           : 'PROVIDER_DYNAMIC',
+        ...(m.cost
+          ? {
+              pricing: {
+                input: m.cost.input,
+                output: m.cost.output,
+                cacheRead: m.cost.cacheRead,
+                cacheWrite: m.cost.cacheWrite,
+              },
+            }
+          : undefined),
       }));
     } catch {
       return [];

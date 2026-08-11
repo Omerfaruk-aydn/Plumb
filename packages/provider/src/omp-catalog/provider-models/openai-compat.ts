@@ -2417,10 +2417,22 @@ function openCodeModelManagerOptions(
 					mapModel: (entry, defaults) => {
 						const reference = references.get(defaults.id);
 						const name = toModelName(entry.name, reference?.name ?? defaults.name);
+						// OpenCode Zen's live `/models` response carries no structured
+						// pricing/free field (confirmed against the actual endpoint --
+						// only id/object/created/owned_by) -- the only real, observed
+						// signal for a currently-free model is the `-free` suffix
+						// OpenCode itself puts on the id (e.g. `deepseek-v4-flash-free`,
+						// `mimo-v2.5-free`). This never applies to opencode-go (its
+						// catalog has no `-free`-suffixed ids -- Go is a paid coding
+						// plan, never labeled free here).
+						const freeCost = defaults.id.endsWith("-free")
+							? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+							: undefined;
 						if (!reference) {
 							return {
 								...defaults,
 								name,
+								...(freeCost ? { cost: freeCost } : undefined),
 							};
 						}
 						return {
@@ -2430,6 +2442,7 @@ function openCodeModelManagerOptions(
 							baseUrl: openCodeBaseUrlForApi(reference.api, basePath),
 							contextWindow: toPositiveNumber(entry.context_length, reference.contextWindow),
 							maxTokens: toPositiveNumber(entry.max_completion_tokens, reference.maxTokens),
+							cost: freeCost ?? reference.cost,
 						};
 					},
 					fetch: config?.fetch,

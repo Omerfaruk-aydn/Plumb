@@ -284,6 +284,7 @@ export class PlumbModelRegistry {
             : undefined),
           input: m.input ?? 'text',
           ...(m.source ? { source: m.source } : undefined),
+          ...(m.pricing ? { pricing: m.pricing } : undefined),
         };
         const key = `${providerId}:${m.id}`;
         this.#discoveredModels.set(key, plumbModel);

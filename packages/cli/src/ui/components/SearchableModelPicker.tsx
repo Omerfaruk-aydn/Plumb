@@ -34,16 +34,36 @@ function fuzzyMatch(query: string, text: string): boolean {
   return qi === q.length;
 }
 
+/**
+ * A model is displayed as FREE only when its pricing record is present AND
+ * every field is exactly zero -- real reported zero cost (e.g. OpenCode
+ * Zen's `-free`-suffixed models), never inferred from the id/name string
+ * and never the default for a model with no pricing data at all (missing
+ * pricing means unknown, not free).
+ */
+function isFreeModel(model: PlumbModel): boolean {
+  const p = model.pricing;
+  if (!p) return false;
+  return (
+    p.input === 0 &&
+    p.output === 0 &&
+    (p.cacheRead ?? 0) === 0 &&
+    (p.cacheWrite ?? 0) === 0
+  );
+}
+
 function getCapabilityBadges(model: PlumbModel): string[] {
   const badges: string[] = [];
+  if (isFreeModel(model)) badges.push('FREE');
   if (model.reasoning) badges.push('reasoning');
+  if (model.toolsSupported) badges.push('tools');
   if (model.input === 'text+image') badges.push('vision');
   if (model.input === 'text+image+audio') badges.push('multimodal');
   if (model.isPreview) badges.push('preview');
   return badges;
 }
 
-function formatContextWindow(tokens: number): string {
+function formatTokenCount(tokens: number): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
   if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}K`;
   return String(tokens);
@@ -167,7 +187,18 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
             const globalIndex = scrollOffset + i;
             const isSelected = globalIndex === selectedIndex;
             const badges = getCapabilityBadges(model);
-            const ctxStr = formatContextWindow(model.contextWindow);
+            // Each model reads its OWN contextWindow/maxTokens -- never a
+            // provider-level or sibling-model constant. `0` from an
+            // unresolved discovery floor means "unknown", never fabricated
+            // as a specific limit.
+            const ctxStr =
+              model.contextWindow > 0
+                ? `${formatTokenCount(model.contextWindow)} ctx`
+                : 'ctx unknown';
+            const outStr =
+              model.maxTokens > 0
+                ? `${formatTokenCount(model.maxTokens)} max output`
+                : null;
 
             return (
               <Box key={`${model.provider}:${model.id}`}>
@@ -178,6 +209,7 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
                 <Text dimColor>
                   {' '}
                   [{model.provider}] {ctxStr}
+                  {outStr ? ` · ${outStr}` : ''}
                   {badges.length > 0 ? ` ${badges.join(' ')}` : ''}
                 </Text>
               </Box>

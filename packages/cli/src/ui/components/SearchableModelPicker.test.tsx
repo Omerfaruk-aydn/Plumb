@@ -253,4 +253,63 @@ describe('SearchableModelPicker', () => {
     expect(frame).toContain('Enter');
     expect(frame).toContain('ESC');
   });
+
+  // Bug 3/5 regression: OpenCode Zen's real, currently-free models (e.g.
+  // deepseek-v4-flash-free) must show a truthful FREE badge, driven only by
+  // a real all-zero pricing record -- never inferred from the model id/name
+  // string, and never shown for a model with no pricing data at all.
+  it('12. shows a FREE badge only for a model with an explicit all-zero pricing record', async () => {
+    const models = [
+      makeModel('deepseek-v4-flash-free', 'opencode-zen', {
+        pricing: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      makeModel('grok-4.5', 'opencode-go', {
+        // No pricing data at all -- must NOT be labeled free.
+      }),
+      makeModel('gpt-5.6-luna', 'opencode-go', {
+        pricing: { input: 3, output: 15 },
+      }),
+    ];
+    const { lastFrame } = await renderWithProviders(
+      <SearchableModelPicker
+        models={models}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    const lines = frame.split('\n');
+    const freeLine = lines.find((l) => l.includes('deepseek-v4-flash-free'));
+    const goLine = lines.find((l) => l.includes('grok-4.5'));
+    const paidLine = lines.find((l) => l.includes('gpt-5.6-luna'));
+    expect(freeLine).toContain('FREE');
+    expect(goLine).not.toContain('FREE');
+    expect(paidLine).not.toContain('FREE');
+  });
+
+  it("13. shows each model's own max-output figure, never a sibling's or a global constant", async () => {
+    const models = [
+      makeModel('claude-opus-4-8', 'claude-subscription', {
+        contextWindow: 200_000,
+        maxTokens: 32_000,
+      }),
+      makeModel('claude-sonnet-5', 'claude-subscription', {
+        contextWindow: 200_000,
+        maxTokens: 64_000,
+      }),
+    ];
+    const { lastFrame } = await renderWithProviders(
+      <SearchableModelPicker
+        models={models}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    const lines = frame.split('\n');
+    const opusLine = lines.find((l) => l.includes('claude-opus-4-8'));
+    const sonnetLine = lines.find((l) => l.includes('claude-sonnet-5'));
+    expect(opusLine).toContain('32K max output');
+    expect(sonnetLine).toContain('64K max output');
+  });
 });
