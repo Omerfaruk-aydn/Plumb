@@ -26,6 +26,7 @@ import { QueuedMessageDisplay } from './QueuedMessageDisplay.js';
 import { OverflowProvider } from '../contexts/OverflowContext.js';
 import { ConfigInitDisplay } from './ConfigInitDisplay.js';
 import { TodoTray } from './messages/Todo.js';
+import { SuggestionChips } from './SuggestionChips.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { appEvents, AppEvent } from '../../utils/events.js';
 
@@ -140,6 +141,19 @@ export const Composer = ({ isFocused = true }: { isFocused?: boolean }) => {
           </Box>
         </OverflowProvider>
       )}
+
+      {showUiDetails &&
+        uiState.streamingState === 'idle' &&
+        !hasPendingActionRequired &&
+        (uiState.lastTurnEdits.length > 0 ||
+          uiState.lastTurnAgentRuns.length > 0) && (
+          <Box marginLeft={isNarrow ? 0 : 1}>
+            <SuggestionChips
+              edits={uiState.lastTurnEdits}
+              agentRuns={uiState.lastTurnAgentRuns}
+            />
+          </Box>
+        )}
 
       {uiState.isInputActive && (
         <InputPrompt

@@ -122,6 +122,8 @@ export interface UIState {
   sessionEdits: SessionEdit[];
   isAgentMissionControlOpen: boolean;
   sessionAgentRuns: AgentRun[];
+  lastTurnEdits: SessionEdit[];
+  lastTurnAgentRuns: AgentRun[];
   isModelDialogOpen: boolean;
   isVoiceModelDialogOpen: boolean;
   isAgentConfigDialogOpen: boolean;

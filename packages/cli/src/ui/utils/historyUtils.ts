@@ -72,6 +72,26 @@ export function getLastTurnToolCallIds(
   return targetToolCallIds;
 }
 
+/**
+ * F11 (PLUMB-UI-DEVRIM-PROMPT.md) data source. Returns the history items
+ * that belong to the most recent turn (everything after the last user
+ * prompt) -- the same "last turn" boundary getLastTurnToolCallIds already
+ * scans for, exposed here as items rather than ids so callers like
+ * sessionEditHistory/sessionAgentActivity can be scoped to just this turn
+ * instead of the whole session.
+ */
+export function getLastTurnHistoryItems(history: HistoryItem[]): HistoryItem[] {
+  let lastUserPromptIndex = -1;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const type = history[i].type;
+    if (type === 'user' || type === 'user_shell') {
+      lastUserPromptIndex = i;
+      break;
+    }
+  }
+  return history.slice(lastUserPromptIndex + 1);
+}
+
 export function isToolExecuting(
   pendingHistoryItems: HistoryItemWithoutId[],
 ): boolean {

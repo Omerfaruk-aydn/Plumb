@@ -197,6 +197,7 @@ import {
 } from '../utils/terminalNotifications.js';
 import {
   getLastTurnToolCallIds,
+  getLastTurnHistoryItems,
   isToolExecuting,
   isToolAwaitingConfirmation,
   getAllToolCalls,
@@ -727,6 +728,18 @@ export const AppContainer = (props: AppContainerProps) => {
   const sessionAgentRuns = useMemo(
     () => collectSessionAgentRuns(historyManager.history),
     [historyManager.history],
+  );
+  const lastTurnHistoryItems = useMemo(
+    () => getLastTurnHistoryItems(historyManager.history),
+    [historyManager.history],
+  );
+  const lastTurnEdits = useMemo(
+    () => collectSessionEdits(lastTurnHistoryItems),
+    [lastTurnHistoryItems],
+  );
+  const lastTurnAgentRuns = useMemo(
+    () => collectSessionAgentRuns(lastTurnHistoryItems),
+    [lastTurnHistoryItems],
   );
 
   const {
@@ -2730,6 +2743,8 @@ Logging in with Google... Restarting PLUMB to continue.
       sessionEdits,
       isAgentMissionControlOpen,
       sessionAgentRuns,
+      lastTurnEdits,
+      lastTurnAgentRuns,
 
       themeError,
       isAuthenticating,
@@ -2854,6 +2869,8 @@ Logging in with Google... Restarting PLUMB to continue.
       sessionEdits,
       isAgentMissionControlOpen,
       sessionAgentRuns,
+      lastTurnEdits,
+      lastTurnAgentRuns,
 
       themeError,
       isAuthenticating,

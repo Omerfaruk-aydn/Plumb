@@ -201,6 +201,8 @@ const createMockUIState = (overrides: Partial<UIState> = {}): UIState =>
     isBackgroundTaskVisible: false,
     embeddedShellFocused: false,
     showIsExpandableHint: false,
+    lastTurnEdits: [],
+    lastTurnAgentRuns: [],
     ...overrides,
   }) as UIState;
 
