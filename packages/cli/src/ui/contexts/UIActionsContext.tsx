@@ -54,6 +54,7 @@ export interface UIActions {
   closePalette: () => void;
   executePaletteCommand: (command: SlashCommand) => void;
   closeDiffReview: () => void;
+  closeAgentMissionControl: () => void;
   closeModelDialog: () => void;
   openVoiceModelDialog: () => void;
   closeVoiceModelDialog: () => void;

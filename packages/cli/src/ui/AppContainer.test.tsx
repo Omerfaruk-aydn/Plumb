@@ -2921,6 +2921,56 @@ describe('AppContainer State Management', () => {
     });
   });
 
+  describe('Agent Mission Control Integration (F8)', () => {
+    it('starts closed and exposes an empty sessionAgentRuns list in UIStateContext', async () => {
+      const { unmount } = await act(async () => renderAppContainer());
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(false);
+      expect(capturedUIState.sessionAgentRuns).toEqual([]);
+      unmount();
+    });
+
+    it('Alt+A opens the mission control screen (ctrl+a is HOME)', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1ba'); // ESC + a == alt+a
+      });
+
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(true);
+      unmount();
+    });
+
+    it('does not reopen (no-op) when mission control is already open', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1ba');
+      });
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(true);
+
+      act(() => {
+        stdin.write('\x1ba');
+      });
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(true);
+      unmount();
+    });
+
+    it('closeAgentMissionControl closes the screen', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1ba');
+      });
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(true);
+
+      act(() => {
+        capturedUIActions.closeAgentMissionControl();
+      });
+      expect(capturedUIState.isAgentMissionControlOpen).toBe(false);
+      unmount();
+    });
+  });
+
   describe('Agent Configuration Dialog Integration', () => {
     it('should initialize with dialog closed and no agent selected', async () => {
       const { unmount } = await act(async () => renderAppContainer());

@@ -104,6 +104,8 @@ import { useSettingsCommand } from './hooks/useSettingsCommand.js';
 import { usePaletteCommand } from './hooks/usePaletteCommand.js';
 import { useDiffReviewCommand } from './hooks/useDiffReviewCommand.js';
 import { collectSessionEdits } from './utils/sessionEditHistory.js';
+import { useAgentMissionControlCommand } from './hooks/useAgentMissionControlCommand.js';
+import { collectSessionAgentRuns } from './utils/sessionAgentActivity.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -715,6 +717,15 @@ export const AppContainer = (props: AppContainerProps) => {
     useDiffReviewCommand();
   const sessionEdits = useMemo(
     () => collectSessionEdits(historyManager.history),
+    [historyManager.history],
+  );
+  const {
+    isAgentMissionControlOpen,
+    openAgentMissionControl,
+    closeAgentMissionControl,
+  } = useAgentMissionControlCommand();
+  const sessionAgentRuns = useMemo(
+    () => collectSessionAgentRuns(historyManager.history),
     [historyManager.history],
   );
 
@@ -1761,7 +1772,8 @@ Logging in with Google... Restarting PLUMB to continue.
     !isModelDialogOpen &&
     !isThemeDialogOpen &&
     !isPaletteOpen &&
-    !isDiffReviewOpen;
+    !isDiffReviewOpen &&
+    !isAgentMissionControlOpen;
 
   const observerRef = useRef<ResizeObserver | null>(null);
 
@@ -2093,6 +2105,12 @@ Logging in with Google... Restarting PLUMB to continue.
       ) {
         openDiffReview();
         return true;
+      } else if (
+        keyMatchers[Command.OPEN_AGENT_MISSION_CONTROL](key) &&
+        !isAgentMissionControlOpen
+      ) {
+        openAgentMissionControl();
+        return true;
       } else if (keyMatchers[Command.DUMP_FRAME](key)) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `snapshot-${timestamp}.json`;
@@ -2313,6 +2331,8 @@ Logging in with Google... Restarting PLUMB to continue.
       openPalette,
       isDiffReviewOpen,
       openDiffReview,
+      isAgentMissionControlOpen,
+      openAgentMissionControl,
     ],
   );
 
@@ -2461,6 +2481,7 @@ Logging in with Google... Restarting PLUMB to continue.
     isThemeDialogOpen ||
     isPaletteOpen ||
     isDiffReviewOpen ||
+    isAgentMissionControlOpen ||
     isSettingsDialogOpen ||
     isModelDialogOpen ||
     isVoiceModelDialogOpen ||
@@ -2707,6 +2728,8 @@ Logging in with Google... Restarting PLUMB to continue.
       isPaletteOpen,
       isDiffReviewOpen,
       sessionEdits,
+      isAgentMissionControlOpen,
+      sessionAgentRuns,
 
       themeError,
       isAuthenticating,
@@ -2829,6 +2852,8 @@ Logging in with Google... Restarting PLUMB to continue.
       isPaletteOpen,
       isDiffReviewOpen,
       sessionEdits,
+      isAgentMissionControlOpen,
+      sessionAgentRuns,
 
       themeError,
       isAuthenticating,
@@ -2971,6 +2996,7 @@ Logging in with Google... Restarting PLUMB to continue.
       closePalette,
       executePaletteCommand,
       closeDiffReview,
+      closeAgentMissionControl,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
@@ -3083,6 +3109,7 @@ Logging in with Google... Restarting PLUMB to continue.
       closePalette,
       executePaletteCommand,
       closeDiffReview,
+      closeAgentMissionControl,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,

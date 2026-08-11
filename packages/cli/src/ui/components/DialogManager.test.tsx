@@ -35,6 +35,9 @@ vi.mock('./CommandPalette.js', () => ({
 vi.mock('./DiffReviewScreen.js', () => ({
   DiffReviewScreen: () => <Text>DiffReviewScreen</Text>,
 }));
+vi.mock('./AgentMissionControl.js', () => ({
+  AgentMissionControl: () => <Text>AgentMissionControl</Text>,
+}));
 vi.mock('./SettingsDialog.js', () => ({
   SettingsDialog: () => <Text>SettingsDialog</Text>,
 }));
@@ -101,6 +104,8 @@ describe('DialogManager', () => {
     isPaletteOpen: false,
     isDiffReviewOpen: false,
     sessionEdits: [],
+    isAgentMissionControlOpen: false,
+    sessionAgentRuns: [],
     isSettingsDialogOpen: false,
     isModelDialogOpen: false,
     isAuthenticating: false,
@@ -174,6 +179,7 @@ describe('DialogManager', () => {
     [{ isThemeDialogOpen: true }, 'ThemeDialog'],
     [{ isPaletteOpen: true }, 'CommandPalette'],
     [{ isDiffReviewOpen: true }, 'DiffReviewScreen'],
+    [{ isAgentMissionControlOpen: true }, 'AgentMissionControl'],
     [{ isSettingsDialogOpen: true }, 'SettingsDialog'],
     [{ isModelDialogOpen: true }, 'ModelDialog'],
     [{ isAuthenticating: true }, 'AuthInProgress'],

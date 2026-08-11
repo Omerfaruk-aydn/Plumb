@@ -46,6 +46,7 @@ import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
 import { useProviderSetupData } from '../hooks/useProviderSetupData.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DiffReviewScreen } from './DiffReviewScreen.js';
+import { AgentMissionControl } from './AgentMissionControl.js';
 
 interface DialogManagerProps {
   addItem: UseHistoryManagerReturn['addItem'];
@@ -231,6 +232,15 @@ export const DialogManager = ({
         onClose={uiActions.closeDiffReview}
         terminalWidth={uiTerminalWidth}
         terminalHeight={terminalHeight}
+      />
+    );
+  }
+  if (uiState.isAgentMissionControlOpen) {
+    return (
+      <AgentMissionControl
+        runs={uiState.sessionAgentRuns}
+        onClose={uiActions.closeAgentMissionControl}
+        terminalWidth={uiTerminalWidth}
       />
     );
   }

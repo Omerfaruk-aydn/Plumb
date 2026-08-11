@@ -17,6 +17,7 @@ import type {
 } from '../types.js';
 import type { CommandContext, SlashCommand } from '../commands/types.js';
 import type { SessionEdit } from '../utils/sessionEditHistory.js';
+import type { AgentRun } from '../utils/sessionAgentActivity.js';
 
 import type {
   IdeContext,
@@ -119,6 +120,8 @@ export interface UIState {
   isPaletteOpen: boolean;
   isDiffReviewOpen: boolean;
   sessionEdits: SessionEdit[];
+  isAgentMissionControlOpen: boolean;
+  sessionAgentRuns: AgentRun[];
   isModelDialogOpen: boolean;
   isVoiceModelDialogOpen: boolean;
   isAgentConfigDialogOpen: boolean;

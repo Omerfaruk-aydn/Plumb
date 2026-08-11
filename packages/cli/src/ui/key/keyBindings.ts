@@ -92,6 +92,7 @@ export enum Command {
   SHOW_MORE_LINES = 'app.showMoreLines',
   OPEN_COMMAND_PALETTE = 'app.openCommandPalette',
   OPEN_DIFF_REVIEW = 'app.openDiffReview',
+  OPEN_AGENT_MISSION_CONTROL = 'app.openAgentMissionControl',
   EXPAND_PASTE = 'app.expandPaste',
   FOCUS_SHELL_INPUT = 'app.focusShellInput',
   UNFOCUS_SHELL_INPUT = 'app.unfocusShellInput',
@@ -405,6 +406,9 @@ export const defaultKeyBindingConfig: KeyBindingConfig = new Map([
   // (press-twice-to-quit); alt+d is also taken (DELETE_WORD_FORWARD).
   // alt+r is free and mnemonic ("Review").
   [Command.OPEN_DIFF_REVIEW, [new KeyBinding('alt+r')]],
+  // F8 suggested ctrl+a, but that is HOME (line editing). alt+a is free
+  // and mnemonic ("Agents").
+  [Command.OPEN_AGENT_MISSION_CONTROL, [new KeyBinding('alt+a')]],
   [Command.EXPAND_PASTE, [new KeyBinding('ctrl+o')]],
   [Command.FOCUS_SHELL_INPUT, [new KeyBinding('tab')]],
   [Command.UNFOCUS_SHELL_INPUT, [new KeyBinding('shift+tab')]],
@@ -540,6 +544,7 @@ export const commandCategories: readonly CommandCategory[] = [
       Command.SHOW_MORE_LINES,
       Command.OPEN_COMMAND_PALETTE,
       Command.OPEN_DIFF_REVIEW,
+      Command.OPEN_AGENT_MISSION_CONTROL,
       Command.EXPAND_PASTE,
       Command.FOCUS_SHELL_INPUT,
       Command.UNFOCUS_SHELL_INPUT,
@@ -663,6 +668,8 @@ export const commandDescriptions: Readonly<Record<Command, string>> = {
     'Open the command palette to search and run slash commands.',
   [Command.OPEN_DIFF_REVIEW]:
     'Open a read-only, full-screen review of the file edits made this session.',
+  [Command.OPEN_AGENT_MISSION_CONTROL]:
+    'Open a read-only, full-screen roster of subagents run this session.',
   [Command.EXPAND_PASTE]:
     'Expand or collapse a paste placeholder when cursor is over placeholder.',
   [Command.FOCUS_SHELL_INPUT]: 'Move focus from Gemini to the active shell.',
