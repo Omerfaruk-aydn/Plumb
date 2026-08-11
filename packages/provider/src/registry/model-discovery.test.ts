@@ -94,9 +94,23 @@ describe('Discovery Adapter Contract: Claude Subscription (Agent SDK)', () => {
     });
 
     expect(models.length).toBeGreaterThan(0);
+    // A discovered id is either a dated `claude-*` id (the pinned
+    // OFFICIAL_STATIC_METADATA floor) or one of the Agent SDK's own
+    // documented generic aliases (live ACCOUNT_DYNAMIC discovery via
+    // `Query.supportedModels()` -- see getClaudeSubscriptionModels) --
+    // both are real, non-fabricated sources.
+    const KNOWN_GENERIC_ALIASES = new Set([
+      'sonnet',
+      'opus',
+      'haiku',
+      'sonnet[1m]',
+      'opusplan',
+    ]);
     for (const model of models) {
       expect(model.api).toBe('claude-agent-sdk');
-      expect(model.id).toMatch(/^claude-/);
+      expect(
+        model.id.startsWith('claude-') || KNOWN_GENERIC_ALIASES.has(model.id),
+      ).toBe(true);
     }
   });
 

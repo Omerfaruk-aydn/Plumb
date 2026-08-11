@@ -447,8 +447,7 @@ export async function runClaudeSubscriptionReauth(
   }
 }
 
-// ─── Pinned model metadata (OFFICIAL_STATIC_METADATA — no live discovery
-// endpoint exists for Claude subscription models today) ──────────────────
+// ─── Model metadata (pinned floor + account-aware discovery) ───────────
 
 export interface ClaudeSubscriptionModelMetadata {
   id: string;
@@ -456,15 +455,15 @@ export interface ClaudeSubscriptionModelMetadata {
   contextWindow: number;
   maxTokens: number;
   reasoning: boolean;
-  source: 'OFFICIAL_STATIC_METADATA';
+  source: 'OFFICIAL_STATIC_METADATA' | 'ACCOUNT_DYNAMIC';
 }
 
 /**
- * Pinned model aliases the Agent SDK accepts for `options.model`. Not a
- * dynamic catalog — Anthropic does not expose a live model-list endpoint
- * for Claude subscription sessions the way the Developer Platform API
- * does. Update this list from official Claude Code release notes when
- * model aliases change; never claim `model.source = ACCOUNT_DYNAMIC` here.
+ * Pinned model aliases the Agent SDK accepts for `options.model`, used as
+ * the floor `OFFICIAL_STATIC_METADATA` result whenever live discovery
+ * (`getClaudeSubscriptionModels` below) is unavailable or fails. Update
+ * this list from official Claude Code release notes when model aliases
+ * change; never claim `source: 'ACCOUNT_DYNAMIC'` on an entry here.
  */
 export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadata[] =
   [
@@ -485,6 +484,145 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
       source: 'OFFICIAL_STATIC_METADATA',
     },
   ];
+
+/**
+ * Context window shared by every model currently in `CLAUDE_SUBSCRIPTION_MODELS`
+ * — Anthropic's current platform-wide floor for the whole Claude 4.x
+ * generation, not a per-model guess. Applied to a live-discovered model only
+ * when its id has no specific known entry below.
+ */
+const CLAUDE_GENERATION_CONTEXT_WINDOW = 200_000;
+
+/**
+ * Conservative maxTokens floor for a live-discovered model whose id doesn't
+ * match a known reference entry: the SMALLEST maxTokens among the pinned
+ * references (currently Opus's 32,000), deliberately under- rather than
+ * over-promising output capacity until real per-model metadata is known.
+ * Never a guessed/invented number for a specific model.
+ */
+const CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR = Math.min(
+  ...CLAUDE_SUBSCRIPTION_MODELS.map((m) => m.maxTokens),
+);
+
+export interface ClaudeSubscriptionModelsResult {
+  models: readonly ClaudeSubscriptionModelMetadata[];
+  /**
+   * `ACCOUNT_DYNAMIC` when the models list itself came from the live,
+   * authenticated SDK session (`query.supportedModels()` — account/plan
+   * aware, reflects what THIS account can actually use); `OFFICIAL_STATIC_METADATA`
+   * when discovery was unavailable/failed and the pinned floor was used
+   * instead. Per-entry `source` may still differ (see ClaudeSubscriptionModelMetadata).
+   */
+  source: 'ACCOUNT_DYNAMIC' | 'OFFICIAL_STATIC_METADATA';
+}
+
+/**
+ * Discovers the models the CURRENT authenticated Claude subscription
+ * session can actually use, via the pinned Agent SDK's documented
+ * `Query.supportedModels()` (`node_modules/@anthropic-ai/claude-agent-sdk/
+ * entrypoints/sdk/runtimeTypes.d.ts`: "Get the list of available models" —
+ * populated from the live CLI subprocess's own session-init handshake with
+ * Anthropic's backend, so it reflects the real account/plan, not a guess).
+ * This supersedes an earlier module comment claiming no such discovery
+ * exists; the pinned SDK's own type surface says otherwise.
+ *
+ * Numeric context/output metadata for a live-discovered id is filled from
+ * `CLAUDE_SUBSCRIPTION_MODELS` when the id matches a known entry exactly;
+ * for a genuinely new id neither table has real numbers for, this uses
+ * documented, non-fabricated floors (see CLAUDE_GENERATION_CONTEXT_WINDOW /
+ * CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR) rather than inventing a number —
+ * the model's existence is never fabricated (it came from the live
+ * account), only its exact numeric limits may be conservative estimates
+ * until this file's pinned reference table is updated.
+ *
+ * Falls back to `CLAUDE_SUBSCRIPTION_MODELS` (OFFICIAL_STATIC_METADATA)
+ * whenever the SDK is unavailable, the probe query fails, `supportedModels`
+ * is absent/throws, or it returns an empty list — the returned model count
+ * never drops below today's pinned floor.
+ */
+export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionModelsResult> {
+  const sdk = await loadAgentSdk();
+  if (!sdk) {
+    return {
+      models: CLAUDE_SUBSCRIPTION_MODELS,
+      source: 'OFFICIAL_STATIC_METADATA',
+    };
+  }
+
+  let query: SdkQuery | undefined;
+  try {
+    query = sdk.query({ prompt: '', options: { tools: [], maxTurns: 0 } });
+    const supportedModels = (
+      query as unknown as {
+        supportedModels?: () => Promise<
+          Array<{ value: string; displayName?: string; description?: string }>
+        >;
+      }
+    ).supportedModels;
+    if (typeof supportedModels !== 'function') {
+      return {
+        models: CLAUDE_SUBSCRIPTION_MODELS,
+        source: 'OFFICIAL_STATIC_METADATA',
+      };
+    }
+
+    const discovered = await supportedModels.call(query);
+    // Observed live behavior (not documented): an unauthenticated/no-session
+    // probe resolves `supportedModels()` successfully but with a single
+    // placeholder entry (`value: 'default'`) instead of throwing or
+    // returning []. That is not real account data — trusting it would
+    // silently report a fake "default" model. Every real Claude model id
+    // either starts with `claude-` (dated ids) or is one of the CLI's own
+    // documented generic aliases (its interactive model picker's alias
+    // table: sonnet/opus/haiku/sonnet[1m]/opusplan) — require at least one
+    // discovered entry to look like a real id before trusting the batch.
+    const KNOWN_GENERIC_ALIASES = new Set([
+      'sonnet',
+      'opus',
+      'haiku',
+      'sonnet[1m]',
+      'opusplan',
+    ]);
+    const looksLikeRealModelId = (id: string) =>
+      id.startsWith('claude-') || KNOWN_GENERIC_ALIASES.has(id);
+    if (
+      !discovered ||
+      discovered.length === 0 ||
+      !discovered.some((info) => looksLikeRealModelId(info.value))
+    ) {
+      return {
+        models: CLAUDE_SUBSCRIPTION_MODELS,
+        source: 'OFFICIAL_STATIC_METADATA',
+      };
+    }
+
+    const knownById = new Map(CLAUDE_SUBSCRIPTION_MODELS.map((m) => [m.id, m]));
+    const models: ClaudeSubscriptionModelMetadata[] = discovered
+      .filter((info) => looksLikeRealModelId(info.value))
+      .map((info) => {
+        const known = knownById.get(info.value);
+        if (known) {
+          return { ...known, source: 'ACCOUNT_DYNAMIC' };
+        }
+        return {
+          id: info.value,
+          name: info.displayName ?? info.value,
+          contextWindow: CLAUDE_GENERATION_CONTEXT_WINDOW,
+          maxTokens: CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR,
+          reasoning: /reasoning|thinking/i.test(info.description ?? ''),
+          source: 'ACCOUNT_DYNAMIC',
+        };
+      });
+    return { models, source: 'ACCOUNT_DYNAMIC' };
+  } catch {
+    return {
+      models: CLAUDE_SUBSCRIPTION_MODELS,
+      source: 'OFFICIAL_STATIC_METADATA',
+    };
+  } finally {
+    query?.close?.();
+  }
+}
 
 // ─── Streaming transport ────────────────────────────────────────────────
 

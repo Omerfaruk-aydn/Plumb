@@ -393,6 +393,7 @@ export {
   getClaudeSubscriptionStatus,
   resolveClaudeCliCommand,
   runClaudeSubscriptionReauth,
+  getClaudeSubscriptionModels,
   CLAUDE_SUBSCRIPTION_MODELS,
 } from './transports/claudeSubscription.js';
 export type {
@@ -403,4 +404,5 @@ export type {
   ClaudeSubscriptionReauthOutcome,
   ClaudeSubscriptionReauthResult,
   ClaudeSubscriptionModelMetadata,
+  ClaudeSubscriptionModelsResult,
 } from './transports/claudeSubscription.js';

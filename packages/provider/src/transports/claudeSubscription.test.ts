@@ -637,3 +637,140 @@ describe('runClaudeSubscriptionReauth', () => {
     expect(result.detail).toContain('ENOENT');
   });
 });
+
+describe('getClaudeSubscriptionModels', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  function makeQueryWithSupportedModels(
+    models:
+      | Array<{ value: string; displayName?: string; description?: string }>
+      | undefined,
+  ) {
+    const query = (async function* () {
+      // no assistant/result messages needed -- getClaudeSubscriptionModels
+      // never iterates the query, only calls supportedModels().
+    })() as AsyncGenerator<unknown> & {
+      supportedModels?: () => Promise<typeof models>;
+      close?: () => void;
+    };
+    query.supportedModels =
+      models === undefined ? undefined : async () => models;
+    query.close = vi.fn();
+    return query;
+  }
+
+  it('falls back to the pinned static floor when the SDK is not installed', async () => {
+    vi.doMock('@anthropic-ai/claude-agent-sdk', () => {
+      throw new Error('Cannot find module');
+    });
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('OFFICIAL_STATIC_METADATA');
+    expect(result.models).toEqual(mod.CLAUDE_SUBSCRIPTION_MODELS);
+    vi.doMock('@anthropic-ai/claude-agent-sdk', () => ({
+      query: (...args: unknown[]) => mockQuery(...args),
+    }));
+  });
+
+  it('falls back to the pinned static floor when the installed SDK build has no supportedModels()', async () => {
+    mockQuery.mockReturnValue(makeQueryWithSupportedModels(undefined));
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('OFFICIAL_STATIC_METADATA');
+    expect(result.models).toEqual(mod.CLAUDE_SUBSCRIPTION_MODELS);
+  });
+
+  it('falls back to the pinned static floor when supportedModels() throws', async () => {
+    const query = makeQueryWithSupportedModels([]);
+    query.supportedModels = async () => {
+      throw new Error('not authenticated');
+    };
+    mockQuery.mockReturnValue(query);
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('OFFICIAL_STATIC_METADATA');
+  });
+
+  it('falls back to the pinned static floor on an empty supportedModels() result', async () => {
+    mockQuery.mockReturnValue(makeQueryWithSupportedModels([]));
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('OFFICIAL_STATIC_METADATA');
+  });
+
+  it('rejects a placeholder-only result (e.g. "default") instead of trusting it as real account data', async () => {
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        { value: 'default', displayName: 'Default' },
+      ]),
+    );
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('OFFICIAL_STATIC_METADATA');
+    expect(result.models).toEqual(mod.CLAUDE_SUBSCRIPTION_MODELS);
+  });
+
+  it('reports ACCOUNT_DYNAMIC and reuses known numeric metadata when a discovered id matches a pinned entry exactly', async () => {
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        { value: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' },
+        { value: 'claude-sonnet-5', displayName: 'Claude Sonnet 5' },
+      ]),
+    );
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('ACCOUNT_DYNAMIC');
+    expect(result.models).toEqual([
+      { ...mod.CLAUDE_SUBSCRIPTION_MODELS[0], source: 'ACCOUNT_DYNAMIC' },
+      { ...mod.CLAUDE_SUBSCRIPTION_MODELS[1], source: 'ACCOUNT_DYNAMIC' },
+    ]);
+  });
+
+  it('includes a genuinely new discovered id (e.g. a generic alias) using conservative, non-fabricated floor metadata rather than dropping it', async () => {
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        {
+          value: 'haiku',
+          displayName: 'Haiku',
+          description: 'Fast and efficient for everyday coding',
+        },
+      ]),
+    );
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('ACCOUNT_DYNAMIC');
+    expect(result.models).toEqual([
+      {
+        id: 'haiku',
+        name: 'Haiku',
+        contextWindow: 200_000,
+        maxTokens: 32_000,
+        reasoning: false,
+        source: 'ACCOUNT_DYNAMIC',
+      },
+    ]);
+  });
+
+  it('never drops the model count below the pinned static floor across any discovery outcome', async () => {
+    const mod = await importFresh();
+    const floorCount = mod.CLAUDE_SUBSCRIPTION_MODELS.length;
+
+    mockQuery.mockReturnValue(makeQueryWithSupportedModels([]));
+    expect(
+      (await mod.getClaudeSubscriptionModels()).models.length,
+    ).toBeGreaterThanOrEqual(floorCount);
+
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        { value: 'opus' },
+        { value: 'sonnet' },
+        { value: 'haiku' },
+      ]),
+    );
+    expect(
+      (await mod.getClaudeSubscriptionModels()).models.length,
+    ).toBeGreaterThanOrEqual(floorCount);
+  });
+});

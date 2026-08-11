@@ -455,48 +455,63 @@ export const PlumbProviderSetupDialog: React.FC<
   // connection status and routes straight to model-select when connected,
   // or shows the actual reason (with a real remediation step) when not.
   // Also used as the Enter-to-retry handler from the authenticate step.
-  const probeClaudeSubscription = useCallback((provider: PlumbProvider) => {
-    setState((s) => ({
-      ...s,
-      step: 'authenticate',
-      selectedProvider: provider,
-      connectionAuthState: null,
-      error: null,
-      loading: true,
-      oauthStatus: null,
-    }));
-    void (async () => {
-      try {
-        const result = await getClaudeSubscriptionStatus();
-        if (result.status === 'CONNECTED_SUBSCRIPTION') {
-          setState((s) => ({
-            ...s,
-            step: 'model-select',
-            connectionAuthState: 'authenticated',
-            loading: false,
-            error: null,
-          }));
-        } else {
+  const probeClaudeSubscription = useCallback(
+    (provider: PlumbProvider) => {
+      setState((s) => ({
+        ...s,
+        step: 'authenticate',
+        selectedProvider: provider,
+        connectionAuthState: null,
+        error: null,
+        loading: true,
+        oauthStatus: null,
+      }));
+      void (async () => {
+        try {
+          const result = await getClaudeSubscriptionStatus();
+          if (result.status === 'CONNECTED_SUBSCRIPTION') {
+            // Re-run model discovery on every connect -- getClaudeSubscriptionModels
+            // is account/plan-aware (Query.supportedModels()), so a stale
+            // initialFullModels snapshot from an earlier process/account must
+            // never be the only thing model-select shows.
+            if (onRefreshFullModels) {
+              try {
+                setDynamicFullModels(await onRefreshFullModels());
+              } catch {
+                // Non-fatal -- model-select still falls back to whatever
+                // initialFullModels/dynamicFullModels already has.
+              }
+            }
+            setState((s) => ({
+              ...s,
+              step: 'model-select',
+              connectionAuthState: 'authenticated',
+              loading: false,
+              error: null,
+            }));
+          } else {
+            setState((s) => ({
+              ...s,
+              step: 'authenticate',
+              loading: false,
+              error: describeClaudeSubscriptionStatus(result),
+            }));
+          }
+        } catch (err) {
           setState((s) => ({
             ...s,
             step: 'authenticate',
             loading: false,
-            error: describeClaudeSubscriptionStatus(result),
+            error:
+              err instanceof Error
+                ? err.message
+                : 'Failed to check Claude subscription status.',
           }));
         }
-      } catch (err) {
-        setState((s) => ({
-          ...s,
-          step: 'authenticate',
-          loading: false,
-          error:
-            err instanceof Error
-              ? err.message
-              : 'Failed to check Claude subscription status.',
-        }));
-      }
-    })();
-  }, []);
+      })();
+    },
+    [onRefreshFullModels],
+  );
 
   // Real Claude Subscription re-authentication: hands the terminal off to
   // the official Agent SDK's bundled Claude CLI (`claude setup-token`, the

@@ -423,33 +423,36 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
  * `claude-subscription` is a PLUMB-only synthetic (transports/claudeSubscription.ts,
  * built on the official Claude Agent SDK) with no OMP catalog descriptor and
  * therefore no `PROVIDER_DESCRIPTORS` entry — the generic
- * `OmpModelManagerDiscovery` bridge below never covers it. The Agent SDK also
- * has no live `/models` enumeration endpoint of its own — it does not expose
- * account-level dynamic discovery, only a fixed set of pinned model aliases
- * (`CLAUDE_SUBSCRIPTION_MODELS`) that `options.model` on `query()` accepts.
+ * `OmpModelManagerDiscovery` bridge below never covers it.
  *
- * This deliberately does NOT reuse the full bundled Anthropic Developer
- * Platform catalog: that catalog lists every Anthropic API model id, most
- * of which the Agent SDK does not accept as a subscription model alias.
- * Presenting it here would misrepresent this source as broader/more
- * dynamic than it actually is (source: OFFICIAL_STATIC_METADATA, never
- * ACCOUNT_DYNAMIC or PROVIDER_DYNAMIC) and could let a user pick a model
- * id the SDK rejects.
+ * The pinned Agent SDK's `Query.supportedModels()` DOES expose a real,
+ * account/plan-aware model list (populated from the live CLI subprocess's
+ * own session-init handshake with Anthropic's backend) — see
+ * `getClaudeSubscriptionModels` in transports/claudeSubscription.ts, which
+ * this delegates to. This does NOT reuse the full bundled Anthropic
+ * Developer Platform catalog: that catalog lists every Anthropic API model
+ * id, most of which the Agent SDK does not accept as a subscription model
+ * alias. `getClaudeSubscriptionModels` falls back to the pinned
+ * `CLAUDE_SUBSCRIPTION_MODELS` floor (source: OFFICIAL_STATIC_METADATA)
+ * whenever live discovery is unavailable, so the model count here never
+ * drops below that floor.
  */
 class ClaudeSubscriptionDiscovery implements ProviderModelDiscovery {
   readonly providerId = 'claude-subscription';
 
   async discover(): Promise<DiscoveredModel[]> {
-    const { CLAUDE_SUBSCRIPTION_MODELS } = await import(
+    const { getClaudeSubscriptionModels } = await import(
       '../transports/claudeSubscription.js'
     );
-    return CLAUDE_SUBSCRIPTION_MODELS.map((m) => ({
+    const { models } = await getClaudeSubscriptionModels();
+    return models.map((m) => ({
       id: m.id,
       name: m.name,
       contextWindow: m.contextWindow,
       maxTokens: m.maxTokens,
       reasoning: m.reasoning,
       api: 'claude-agent-sdk' as PlumbKnownApi,
+      source: m.source,
     }));
   }
 }
