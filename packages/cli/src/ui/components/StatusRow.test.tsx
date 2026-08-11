@@ -12,7 +12,7 @@ import { type UIState } from '../contexts/UIStateContext.js';
 
 import { type SessionStatsState } from '../contexts/SessionContext.js';
 import { type ThoughtSummary } from '../types.js';
-import { ApprovalMode } from '@google/gemini-cli-core';
+import { ApprovalMode, tokenLimit } from '@google/gemini-cli-core';
 
 vi.mock('../hooks/useComposerStatus.js', () => ({
   useComposerStatus: vi.fn(),
@@ -205,5 +205,74 @@ describe('<StatusRow />', () => {
     expect(output).toMatch(
       /(\d+(?:\.\d+)?[KM]?)\s+tokens\s*\|\s*\S+\s+remaining/,
     );
+  });
+
+  describe('critical context usage hint (minimal footer)', () => {
+    const minimalContextComposerStatus = {
+      isInteractiveShellWaiting: false,
+      showLoadingIndicator: false,
+      showTips: false,
+      showWit: false,
+      modeContentObj: null,
+      showMinimalContext: true,
+    };
+
+    it('shows a "try /compress" hint once usage crosses the critical threshold', async () => {
+      (useComposerStatus as Mock).mockReturnValue(minimalContextComposerStatus);
+
+      const uiState: Partial<UIState> = {
+        ...defaultUiState,
+        currentModel: 'claude-sonnet-5',
+        // 95% of whatever this model's real resolved context window is in
+        // this test environment -- past the 90% critical threshold.
+        sessionStats: {
+          lastPromptTokenCount: Math.ceil(tokenLimit('claude-sonnet-5') * 0.95),
+        } as unknown as SessionStatsState,
+      };
+
+      const { lastFrame, waitUntilReady } = await renderWithProviders(
+        <StatusRow
+          showUiDetails={false}
+          isNarrow={false}
+          terminalWidth={100}
+          hideContextSummary={false}
+          hideUiDetailsForSuggestions={false}
+          hasPendingActionRequired={false}
+        />,
+        { width: 100, uiState },
+      );
+
+      await waitUntilReady();
+      expect(lastFrame()).toContain('try /compress');
+    });
+
+    it('does not show the hint while usage is high but not yet critical', async () => {
+      (useComposerStatus as Mock).mockReturnValue(minimalContextComposerStatus);
+
+      const uiState: Partial<UIState> = {
+        ...defaultUiState,
+        currentModel: 'claude-sonnet-5',
+        // 70% -- enough to make the minimal indicator visible, well under
+        // the 90% critical threshold.
+        sessionStats: {
+          lastPromptTokenCount: Math.ceil(tokenLimit('claude-sonnet-5') * 0.7),
+        } as unknown as SessionStatsState,
+      };
+
+      const { lastFrame, waitUntilReady } = await renderWithProviders(
+        <StatusRow
+          showUiDetails={false}
+          isNarrow={false}
+          terminalWidth={100}
+          hideContextSummary={false}
+          hideUiDetailsForSuggestions={false}
+          hasPendingActionRequired={false}
+        />,
+        { width: 100, uiState },
+      );
+
+      await waitUntilReady();
+      expect(lastFrame()).not.toContain('try /compress');
+    });
   });
 });

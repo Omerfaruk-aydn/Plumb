@@ -30,6 +30,7 @@ import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 import { MultiAgentStatus } from './MultiAgentStatus.js';
 import { tokenLimit, hasKnownTokenLimit } from '@google/gemini-cli-core';
+import { isContextUsageCritical } from '../utils/contextUsage.js';
 
 /**
  * Layout constants to prevent magic numbers.
@@ -480,6 +481,12 @@ export const StatusRow: React.FC<StatusRowProps> = ({
                   }
                   terminalWidth={terminalWidth}
                 />
+                {isContextUsageCritical(
+                  uiState.sessionStats.lastPromptTokenCount,
+                  typeof uiState.currentModel === 'string'
+                    ? uiState.currentModel
+                    : undefined,
+                ) && <Text color={theme.status.error}> · try /compress</Text>}
               </Box>
             )}
             {showUiDetails && (

@@ -41,3 +41,22 @@ export function isContextUsageHigh(
 ): boolean {
   return getContextUsagePercentage(promptTokenCount, model) > threshold;
 }
+
+/**
+ * Usage level past which a bare percentage stops being enough and the UI
+ * should surface an actionable next step (run /compress), not just a
+ * color change. Shared so every context-usage surface (the full
+ * ContextVisualization panel, the compact footer indicator) agrees on the
+ * same "this is now urgent" line.
+ */
+export const CONTEXT_USAGE_CRITICAL_THRESHOLD = 0.9;
+
+export function isContextUsageCritical(
+  promptTokenCount: number,
+  model: string | undefined,
+): boolean {
+  return (
+    getContextUsagePercentage(promptTokenCount, model) >=
+    CONTEXT_USAGE_CRITICAL_THRESHOLD
+  );
+}

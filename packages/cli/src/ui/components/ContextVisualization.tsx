@@ -17,6 +17,7 @@
 import type React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
+import { CONTEXT_USAGE_CRITICAL_THRESHOLD } from '../utils/contextUsage.js';
 
 interface ContextVisualizationProps {
   usedTokens: number;
@@ -128,7 +129,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
         </Box>
       )}
 
-      {percentage >= 0.9 && (
+      {percentage >= CONTEXT_USAGE_CRITICAL_THRESHOLD && (
         <Box paddingLeft={2}>
           <Text color={theme.status.error} bold>
             ⚠ Context window almost full! Consider using /compact
@@ -136,7 +137,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
         </Box>
       )}
 
-      {percentage >= 0.7 && percentage < 0.9 && (
+      {percentage >= 0.7 && percentage < CONTEXT_USAGE_CRITICAL_THRESHOLD && (
         <Box paddingLeft={2}>
           <Text color={theme.status.warning}>
             Context usage is getting high
