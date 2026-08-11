@@ -86,6 +86,14 @@ export interface ResolvedModelMetadata {
   pricing?: PlumbModelPricing;
   reasoning?: boolean;
   toolsSupported?: boolean;
+  toolsCapabilitySource?:
+    | 'ACCOUNT_DYNAMIC'
+    | 'PROVIDER_DYNAMIC'
+    | 'SERVER_DYNAMIC'
+    | 'BUNDLED_CATALOG'
+    | 'PINNED_REFERENCE'
+    | 'USER_CONFIGURED'
+    | 'UNKNOWN';
   registered: boolean;
   configured: boolean;
   discoveryAttempted: boolean;
@@ -231,6 +239,7 @@ function resolveFromBundledCatalog(
     pricing: m.pricing,
     reasoning: m.reasoning,
     toolsSupported: m.toolsSupported,
+    toolsCapabilitySource: m.toolsCapabilitySource,
     registered,
     configured,
     discoveryAttempted,
@@ -585,6 +594,7 @@ export async function buildUniversalModelInventory(
         pricing: m.pricing,
         reasoning: m.reasoning,
         toolsSupported: m.toolsSupported,
+        toolsCapabilitySource: m.toolsCapabilitySource,
         registered: true,
         configured: configuredById.has(m.provider),
         discoveryAttempted: false,

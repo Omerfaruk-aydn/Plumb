@@ -613,9 +613,16 @@ export class PlumbContentGenerator implements ContentGenerator {
       if (!Array.isArray(decls)) return [];
       return decls.map((fd: any) => {
         const name = String(fd.name ?? '');
-        const rawSchema = fd.parametersJsonSchema ?? fd.parameters;
+        // Explicit null is a malformed JSON Schema, not an absent no-args
+        // declaration. Only genuinely absent/empty declarations may receive
+        // the canonical no-argument schema.
+        const rawSchema =
+          fd.parametersJsonSchema !== undefined
+            ? fd.parametersJsonSchema
+            : fd.parameters;
         const parameters =
-          rawSchema === undefined || rawSchema === null
+          rawSchema === undefined ||
+          (isRecord(rawSchema) && Object.keys(rawSchema).length === 0)
             ? CANONICAL_NO_ARGS_SCHEMA
             : rawSchema;
         const validation = validateCanonicalToolSchema(parameters, name);

@@ -180,6 +180,18 @@ export interface PlumbModel {
    * never guessed from the model name.
    */
   readonly toolsSupported?: boolean;
+  /**
+   * Provenance of the toolsSupported value. Required when toolsSupported is
+   * defined; omitted when toolsSupported is undefined (UNKNOWN).
+   */
+  readonly toolsCapabilitySource?:
+    | 'ACCOUNT_DYNAMIC'
+    | 'PROVIDER_DYNAMIC'
+    | 'SERVER_DYNAMIC'
+    | 'BUNDLED_CATALOG'
+    | 'PINNED_REFERENCE'
+    | 'USER_CONFIGURED'
+    | 'UNKNOWN';
   readonly input: 'text' | 'text+image' | 'text+image+audio';
   readonly pricing?: PlumbModelPricing;
   readonly thinking?: PlumbThinkingConfig;

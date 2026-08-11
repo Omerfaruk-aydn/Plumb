@@ -9,7 +9,11 @@
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
-import { createNormalizationStream, plumbModelStream } from './streaming.js';
+import {
+  createNormalizationStream,
+  plumbModelStream,
+  resolveAdvertisedTools,
+} from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 import {
@@ -56,6 +60,114 @@ describe('transport/stream activation', () => {
     expect(stream).toBeInstanceOf(OmpEventStream);
     expect(stream.done).toBe(false);
   });
+});
+
+describe('model-level tool capability gate', () => {
+  const tool = {
+    type: 'function' as const,
+    function: {
+      name: 'list_directory',
+      description: 'List a directory',
+      parameters: { type: 'object', properties: {} },
+    },
+  };
+
+  it.each([
+    ['OpenCode Go true', 'opencode-go', 'true-model', true, 'NONE', 1],
+    [
+      'OpenCode Go false',
+      'opencode-go',
+      'false-model',
+      false,
+      'MODEL_UNSUPPORTED',
+      0,
+    ],
+    ['OpenCode Zen true', 'opencode-zen', 'true-model', true, 'NONE', 1],
+    [
+      'OpenCode Zen false',
+      'opencode-zen',
+      'false-model',
+      false,
+      'MODEL_UNSUPPORTED',
+      0,
+    ],
+    [
+      'unknown model',
+      'opencode-go',
+      'unknown-model',
+      undefined,
+      'CAPABILITY_UNKNOWN',
+      0,
+    ],
+  ] as const)(
+    '%s resolves advertised tools before dialect serialization',
+    (_label, provider, id, toolsSupported, reason, expectedCount) => {
+      const result = resolveAdvertisedTools({
+        model: {
+          id,
+          provider,
+          api: 'openai-completions',
+          contextWindow: 4096,
+          maxTokens: 256,
+          input: 'text',
+          ...(toolsSupported === undefined ? {} : { toolsSupported }),
+        },
+        messages: [{ role: 'user', content: 'merhaba' }],
+        tools: [tool],
+        apiKey: 'test-key',
+      });
+      expect(result.suppressionReason).toBe(reason);
+      expect(result.tools?.length ?? 0).toBe(expectedCount);
+    },
+  );
+
+  it.each([
+    ['opencode-go', true, true],
+    ['opencode-go', false, false],
+    ['opencode-zen', true, true],
+    ['opencode-zen', false, false],
+  ] as const)(
+    '%s toolsSupported=%s reaches the OpenAI wire with tools=%s',
+    async (provider, toolsSupported, expectedOnWire) => {
+      let body: Record<string, unknown> | undefined;
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn(async (_url, init) => {
+        body = JSON.parse(String(init?.body ?? '{}')) as Record<
+          string,
+          unknown
+        >;
+        return new Response('data: [DONE]\n\n', { status: 200 });
+      }) as typeof fetch;
+      try {
+        for await (const _event of plumbModelStream({
+          model: {
+            id: `${provider}-matrix`,
+            provider,
+            api: 'openai-completions',
+            baseUrl: 'https://opencode.example.test/v1',
+            contextWindow: 4096,
+            maxTokens: 256,
+            toolsSupported,
+            toolsCapabilitySource: 'PINNED_REFERENCE',
+            input: 'text',
+          },
+          messages: [{ role: 'user', content: 'merhaba' }],
+          tools: [tool],
+          apiKey: 'test-key',
+        })) {
+          // drain
+        }
+        expect(Array.isArray(body?.['tools'])).toBe(expectedOnWire);
+        expect(body?.['tools']).toEqual(
+          expectedOnWire
+            ? expect.arrayContaining([expect.anything()])
+            : undefined,
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    },
+  );
 });
 
 describe('custom provider credential placement', () => {

@@ -234,14 +234,16 @@ describe('Task 8 — Tool Authority Matrix', () => {
   });
 
   it('3. Anthropic-compatible family tool authority & single call normalization', async () => {
-    const model = registry.getModelsForProvider('anthropic-api')[0];
+    const catalogModel = registry.getModelsForProvider('anthropic-api')[0];
+    const model = { ...catalogModel, toolsSupported: true as const };
     const { events } = await drainWithTools(model, 'key-8');
     expect(events.some((e) => e.type === 'error')).toBe(false);
     expect(calls[0].body).toContain('execute_command');
   });
 
   it('4. Gemini-compatible family tool authority & single call normalization', async () => {
-    const model = registry.getModelsForProvider('google')[0];
+    const catalogModel = registry.getModelsForProvider('google')[0];
+    const model = { ...catalogModel, toolsSupported: true as const };
     const { events } = await drainWithTools(model, 'key-8');
     expect(events.some((e) => e.type === 'error')).toBe(false);
     expect(calls[0].body).toContain('execute_command');
@@ -255,6 +257,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
       contextWindow: 200000,
       maxTokens: 8192,
       reasoning: true,
+      toolsSupported: true,
       input: 'text',
     };
     const { events } = await drainWithTools(model, '<authenticated>');
@@ -263,8 +266,9 @@ describe('Task 8 — Tool Authority Matrix', () => {
   });
 
   it('6. Cloud family tool authority (Azure OpenAI)', async () => {
-    const [azureModel] = getCatalogModels('azure');
-    const { events } = await drainWithTools(azureModel, 'azure-key-8');
+    const [azureCatalogModel] = getCatalogModels('azure');
+    const model = { ...azureCatalogModel, toolsSupported: true as const };
+    const { events } = await drainWithTools(model, 'azure-key-8');
     expect(events.some((e) => e.type === 'error')).toBe(false);
     expect(calls[0].body).toContain('execute_command');
   });
@@ -277,6 +281,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
       baseUrl: 'http://127.0.0.1:11434/v1',
       contextWindow: 8192,
       maxTokens: 4096,
+      toolsSupported: true,
       input: 'text',
     };
     const { events, toolCallCount } = await drainWithTools(ollamaModel, '');
@@ -285,15 +290,19 @@ describe('Task 8 — Tool Authority Matrix', () => {
   });
 
   it('8. Gateway family tool authority (OpenRouter)', async () => {
-    const model = registry.getModelsForProvider('openrouter')[0] ?? {
-      id: 'openrouter/auto',
-      provider: 'openrouter',
-      api: 'openrouter',
-      baseUrl: 'https://openrouter.ai/api/v1',
-      contextWindow: 128000,
-      maxTokens: 4096,
-      input: 'text',
-    };
+    const catalogModel = registry.getModelsForProvider('openrouter')[0];
+    const model = catalogModel
+      ? { ...catalogModel, toolsSupported: true as const }
+      : {
+          id: 'openrouter/auto',
+          provider: 'openrouter',
+          api: 'openrouter' as const,
+          baseUrl: 'https://openrouter.ai/api/v1',
+          contextWindow: 128000,
+          maxTokens: 4096,
+          toolsSupported: true,
+          input: 'text' as const,
+        };
     const { events, toolCallCount } = await drainWithTools(model, 'or-key-8');
     expect(events.some((e) => e.type === 'error')).toBe(false);
     expect(toolCallCount).toBe(1);
@@ -302,7 +311,8 @@ describe('Task 8 — Tool Authority Matrix', () => {
   it('9. Custom family tool authority (Custom OpenAI)', async () => {
     setCustomProviderDefinitions(CUSTOM_DEFS);
     registry.hydrateCustomProviderModels();
-    const model = registry.findModel(CUSTOM_ID, 'custom-tool-model')!;
+    const catalogModel = registry.findModel(CUSTOM_ID, 'custom-tool-model')!;
+    const model = { ...catalogModel, toolsSupported: true as const };
 
     const { events, toolCallCount } = await drainWithTools(
       model,

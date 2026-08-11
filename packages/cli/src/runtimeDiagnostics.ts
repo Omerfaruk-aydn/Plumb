@@ -1572,6 +1572,9 @@ function inventoryToLines(
         if (m.toolsSupported !== undefined) {
           lines.push(`    toolsSupported: ${m.toolsSupported}`);
         }
+        if (m.toolsCapabilitySource !== undefined) {
+          lines.push(`    toolsCapabilitySource: ${m.toolsCapabilitySource}`);
+        }
         lines.push(`    registered: ${m.registered}`);
         lines.push(`    configured: ${m.configured}`);
         lines.push(`    discoveryAttempted: ${m.discoveryAttempted}`);
@@ -1792,15 +1795,43 @@ export async function buildToolSchemaDiagnostics(
           : undefined;
         if (filter.model && !catalogModel) {
           lines.push('toolsSupported: UNKNOWN');
-          lines.push('capability.source: NO_CATALOG_ENTRY');
+          lines.push('capability.status: UNKNOWN');
+          lines.push('capability.source: UNKNOWN');
+          lines.push('wire.model: UNKNOWN');
+          lines.push(`canonical.tool.count: ${rows.length}`);
+          lines.push('advertised.tool.count: 0');
+          lines.push('tools.advertised: 0');
+          lines.push('tools.suppressed.reason: CAPABILITY_UNKNOWN');
         } else {
           const toolsSupported = catalogModel?.toolsSupported;
+          const toolsCapabilitySource = catalogModel?.toolsCapabilitySource;
+          const advertisedToolCount = toolsSupported === true ? rows.length : 0;
+          const suppressedReason =
+            toolsSupported === true
+              ? 'NONE'
+              : toolsSupported === false
+                ? 'MODEL_UNSUPPORTED'
+                : 'CAPABILITY_UNKNOWN';
+          const capabilityStatus =
+            toolsSupported === true
+              ? 'SUPPORTED'
+              : toolsSupported === false
+                ? 'UNSUPPORTED'
+                : 'UNKNOWN';
           lines.push(
             `toolsSupported: ${toolsSupported === undefined ? 'UNKNOWN' : toolsSupported}`,
           );
+          lines.push(`capability.status: ${capabilityStatus}`);
           lines.push(
-            `capability.source: ${toolsSupported === undefined ? 'UNKNOWN' : 'BUNDLED_CATALOG'}`,
+            `capability.source: ${toolsCapabilitySource ?? 'UNKNOWN'}`,
           );
+          lines.push(
+            `wire.model: ${catalogModel?.requestModelId ?? catalogModel?.id ?? 'UNKNOWN'}`,
+          );
+          lines.push(`canonical.tool.count: ${rows.length}`);
+          lines.push(`advertised.tool.count: ${advertisedToolCount}`);
+          lines.push(`tools.advertised: ${advertisedToolCount}`);
+          lines.push(`tools.suppressed.reason: ${suppressedReason}`);
         }
         lines.push(`dialect: ${catalogModel?.api ?? 'UNKNOWN'}`);
       } catch (err) {

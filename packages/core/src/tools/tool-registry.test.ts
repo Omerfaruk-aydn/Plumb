@@ -889,6 +889,130 @@ describe('ToolRegistry', () => {
       expect(description).toBe(JSON.stringify(params));
     });
   });
+
+  describe('Runtime tool schema validation at registration boundary', () => {
+    it('should accept a valid no-arg MCP tool (empty schema)', () => {
+      const tool = createMCPTool('server-a', 'no-arg-tool', 'A no-arg tool');
+      toolRegistry.registerTool(tool);
+      expect(toolRegistry.getAllToolNames()).toContain(
+        'mcp_server-a_no-arg-tool',
+      );
+    });
+
+    it('should accept a valid MCP tool with required parameter', () => {
+      const mcpTool = new DiscoveredMCPTool(
+        {} as CallableTool,
+        'server-b',
+        'param-tool',
+        'A tool with params',
+        {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Search query' },
+          },
+          required: ['query'],
+        },
+        mockMessageBusForHelper,
+      );
+      toolRegistry.registerTool(mcpTool);
+      expect(toolRegistry.getAllToolNames()).toContain(
+        'mcp_server-b_param-tool',
+      );
+    });
+
+    it('should reject an invalid null-root MCP tool schema', () => {
+      const mcpTool = new DiscoveredMCPTool(
+        {} as CallableTool,
+        'server-c',
+        'null-root',
+        'Malformed tool',
+        null as unknown as Record<string, unknown>,
+        mockMessageBusForHelper,
+      );
+      toolRegistry.registerTool(mcpTool);
+      expect(toolRegistry.getAllToolNames()).not.toContain(
+        'mcp_server-c_null-root',
+      );
+    });
+
+    it('should reject a tool with type missing (not object root)', () => {
+      const mcpTool = new DiscoveredMCPTool(
+        {} as CallableTool,
+        'server-d',
+        'bad-type',
+        'Bad type tool',
+        {
+          type: 'string',
+          properties: {},
+        } as unknown as Record<string, unknown>,
+        mockMessageBusForHelper,
+      );
+      toolRegistry.registerTool(mcpTool);
+      expect(toolRegistry.getAllToolNames()).not.toContain(
+        'mcp_server-d_bad-type',
+      );
+    });
+
+    it('should reject a tool with required property missing from properties', () => {
+      const mcpTool = new DiscoveredMCPTool(
+        {} as CallableTool,
+        'server-e',
+        'missing-prop',
+        'Missing required prop',
+        {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name', 'nonexistent_field'],
+        },
+        mockMessageBusForHelper,
+      );
+      toolRegistry.registerTool(mcpTool);
+      expect(toolRegistry.getAllToolNames()).not.toContain(
+        'mcp_server-e_missing-prop',
+      );
+    });
+
+    it('should accept a valid extension tool with proper schema', () => {
+      const extTool = new DiscoveredTool(
+        config,
+        'ext-tool',
+        DISCOVERED_TOOL_PREFIX + 'ext-tool',
+        'An extension tool',
+        {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: 'File path' },
+          },
+          required: ['path'],
+        },
+        mockMessageBus,
+      );
+      toolRegistry.registerTool(extTool);
+      expect(toolRegistry.getAllToolNames()).toContain(
+        DISCOVERED_TOOL_PREFIX + 'ext-tool',
+      );
+    });
+
+    it('should reject a malformed extension tool with type array (not object)', () => {
+      const extTool = new DiscoveredTool(
+        config,
+        'bad-ext',
+        DISCOVERED_TOOL_PREFIX + 'bad-ext',
+        'Bad extension tool',
+        {
+          type: 'array',
+          items: { type: 'string' },
+        } as unknown as Record<string, unknown>,
+        mockMessageBus,
+      );
+      toolRegistry.registerTool(extTool);
+      expect(toolRegistry.getAllToolNames()).not.toContain(
+        DISCOVERED_TOOL_PREFIX + 'bad-ext',
+      );
+    });
+  });
 });
 
 /**

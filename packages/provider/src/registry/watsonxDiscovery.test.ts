@@ -71,6 +71,7 @@ describe('WatsonxDiscovery', () => {
         name: 'Granite 3.3 8B Instruct',
         api: 'watsonx-chat',
         toolsSupported: true,
+        toolsCapabilitySource: 'PROVIDER_DYNAMIC',
       },
     ]);
   });
@@ -98,6 +99,7 @@ describe('WatsonxDiscovery', () => {
         name: 'Text Only Model',
         api: 'watsonx-chat',
         toolsSupported: false,
+        toolsCapabilitySource: 'PROVIDER_DYNAMIC',
       },
     ]);
   });

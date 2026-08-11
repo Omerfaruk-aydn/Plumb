@@ -87,11 +87,37 @@ describe('validateCanonicalToolSchema', () => {
     expect(result.reason).toBe('REQUIRED_PROPERTY_MISSING:ghost');
   });
 
-  it('accepts a schema with no properties/required (properties defaults to {})', () => {
+  it('rejects a schema with no properties', () => {
     const result = validateCanonicalToolSchema({ type: 'object' }, 'x');
-    expect(result.valid).toBe(true);
-    expect(result.propertyCount).toBe(0);
-    expect(result.requiredCount).toBe(0);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toBe('PROPERTIES_NOT_OBJECT');
+  });
+
+  it('rejects non-object properties and non-array required', () => {
+    expect(
+      validateCanonicalToolSchema(
+        { type: 'object', properties: [], required: [] },
+        'bad-properties',
+      ).reason,
+    ).toBe('PROPERTIES_NOT_OBJECT');
+    expect(
+      validateCanonicalToolSchema(
+        { type: 'object', properties: {}, required: 'value' },
+        'bad-required',
+      ).reason,
+    ).toBe('REQUIRED_NOT_ARRAY');
+  });
+
+  it('rejects null JSON Schema types below the root', () => {
+    expect(
+      validateCanonicalToolSchema(
+        {
+          type: 'object',
+          properties: { value: { type: null } },
+        },
+        'null-nested-type',
+      ).reason,
+    ).toBe('SCHEMA_TYPE_NULL_OR_UNDEFINED');
   });
 });
 

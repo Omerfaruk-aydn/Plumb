@@ -360,18 +360,36 @@ describe('buildToolSchemaDiagnostics (--diagnose-tools)', () => {
     expect(report).not.toMatch(/description:/i);
   });
 
-  it('--provider + --model reports capability metadata honestly as UNKNOWN rather than fabricating toolsSupported', async () => {
+  it('--provider + --model reports resolved capability, wire model, and advertised count without secrets', async () => {
     const { lines, failures } = await buildToolSchemaDiagnostics({
       provider: 'claude-subscription',
-      model: 'opus',
+      model: 'claude-opus-4-8',
     });
     expect(failures).toEqual([]);
     const report = lines.join('\n');
     expect(report).toContain('[provider capability]');
     expect(report).toContain('provider: claude-subscription');
-    expect(report).toContain('model: opus');
-    // claude-subscription has no bundled catalog entry for a live-discovered
-    // generic alias id -- must be honestly UNKNOWN, never fabricated true/false.
+    expect(report).toContain('model: claude-opus-4-8');
+    expect(report).toContain('toolsSupported: true');
+    expect(report).toContain('capability.status: SUPPORTED');
+    expect(report).toContain('capability.source: PINNED_REFERENCE');
+    expect(report).toContain('wire.model: claude-opus-4-8');
+    expect(report).toContain('canonical.tool.count:');
+    expect(report).toContain('advertised.tool.count:');
+    expect(report).toContain('tools.suppressed.reason: NONE');
+  });
+
+  it('reports an unknown model as CAPABILITY_UNKNOWN with zero advertised tools', async () => {
+    const { lines, failures } = await buildToolSchemaDiagnostics({
+      provider: 'opencode-go',
+      model: 'not-in-catalog',
+    });
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
     expect(report).toContain('toolsSupported: UNKNOWN');
+    expect(report).toContain('capability.status: UNKNOWN');
+    expect(report).toContain('capability.source: UNKNOWN');
+    expect(report).toContain('advertised.tool.count: 0');
+    expect(report).toContain('tools.suppressed.reason: CAPABILITY_UNKNOWN');
   });
 });

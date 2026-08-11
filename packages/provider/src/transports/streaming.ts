@@ -261,7 +261,7 @@ async function* openAICompatibleStream(
     stream_options: { include_usage: true },
   };
 
-  if (tools && tools.length > 0 && model.toolsSupported !== false) {
+  if (tools && tools.length > 0 && model.toolsSupported === true) {
     body.tools = tools.map((t) => ({
       type: 'function',
       function: t.function,
@@ -599,7 +599,7 @@ async function* anthropicMessagesStream(
     body.system = systemMessages;
   }
 
-  if (tools && tools.length > 0) {
+  if (tools && tools.length > 0 && model.toolsSupported === true) {
     body.tools = tools.map((t) => ({
       name: t.function.name,
       description: t.function.description,
@@ -941,6 +941,33 @@ export type AntigravityRequestResult =
   | { ok: true; descriptor: AntigravityRequestDescriptor }
   | { ok: false; error: PlumbStreamEvent };
 
+export type ToolSuppressionReason =
+  | 'MODEL_UNSUPPORTED'
+  | 'CAPABILITY_UNKNOWN'
+  | 'NONE';
+
+/**
+ * Resolve tool exposure exactly once before a model request is handed to a
+ * dialect serializer. UNKNOWN is deliberately fail-closed: no provider-wide
+ * compatibility inference is valid because a provider can host models with
+ * different function-calling capability.
+ */
+export function resolveAdvertisedTools(options: PlumbStreamOptions): {
+  tools: PlumbStreamOptions['tools'];
+  suppressionReason: ToolSuppressionReason;
+} {
+  if (options.model.toolsSupported === true) {
+    return { tools: options.tools, suppressionReason: 'NONE' };
+  }
+  return {
+    tools: undefined,
+    suppressionReason:
+      options.model.toolsSupported === false
+        ? 'MODEL_UNSUPPORTED'
+        : 'CAPABILITY_UNKNOWN',
+  };
+}
+
 /**
  * Builds the exact request (URL/headers/body) a real google-gemini-cli /
  * google-antigravity chat turn sends — used by BOTH normal chat
@@ -956,6 +983,9 @@ export async function buildAntigravityRequest(
 ): Promise<AntigravityRequestResult> {
   const { model, messages, tools, systemPrompt, maxTokens, temperature } =
     options;
+
+  // Gate tools based on model capability — only send tools when explicitly supported
+  const gatedTools = model.toolsSupported === true ? tools : undefined;
 
   const source = options.traceSource ?? 'NORMAL_CHAT';
   const traceId = antigravityTraceEnabled()
@@ -1065,7 +1095,7 @@ export async function buildAntigravityRequest(
   const context: import('../omp-ai/types.js').Context = {
     systemPrompt: systemPrompt ? [systemPrompt] : undefined,
     messages: ompMessages,
-    tools: (tools ?? []).map(
+    tools: (gatedTools ?? []).map(
       (t) =>
         ({
           name: t.function.name,
@@ -1535,7 +1565,7 @@ async function* googleGenerativeAiStream(
     };
   }
 
-  if (tools && tools.length > 0) {
+  if (tools && tools.length > 0 && model.toolsSupported === true) {
     body.tools = [
       {
         functionDeclarations: tools.map((t) => ({
@@ -1700,7 +1730,7 @@ async function* ollamaCompatibleStream(
     stream: true,
   };
 
-  if (tools && tools.length > 0) {
+  if (tools && tools.length > 0 && model.toolsSupported === true) {
     body.tools = tools.map((t) => ({
       type: 'function',
       function: t.function,
@@ -2130,6 +2160,28 @@ export async function* plumbModelStream(
     }
     model = prep.model;
     options = { ...options, model };
+  }
+
+  // This is the single model-facing wire boundary. All registered and
+  // fallback transports receive only this resolved list; therefore no
+  // provider serializer can advertise a tool when the selected model is
+  // unsupported or its capability metadata is UNKNOWN.
+  const requestedToolCount = options.tools?.length ?? 0;
+  const toolResolution = resolveAdvertisedTools(options);
+  options = { ...options, tools: toolResolution.tools };
+  if (
+    model.toolsSupported === false &&
+    requestedToolCount > 0 &&
+    (options.tools?.length ?? 0) !== 0
+  ) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'TOOL_CAPABILITY_INVARIANT',
+        message: 'Unsupported model reached the wire boundary with tools.',
+      },
+    };
+    return;
   }
 
   // Try registered transport first

@@ -54,6 +54,18 @@ export interface DiscoveredModel {
   reasoning?: boolean;
   /** See `PlumbModel.toolsSupported` -- undefined means unknown, never guessed. */
   toolsSupported?: boolean;
+  /**
+   * Provenance of the toolsSupported value. Required when toolsSupported is
+   * defined; omitted when toolsSupported is undefined (UNKNOWN).
+   */
+  toolsCapabilitySource?:
+    | 'ACCOUNT_DYNAMIC'
+    | 'PROVIDER_DYNAMIC'
+    | 'SERVER_DYNAMIC'
+    | 'BUNDLED_CATALOG'
+    | 'PINNED_REFERENCE'
+    | 'USER_CONFIGURED'
+    | 'UNKNOWN';
   input?: PlumbModel['input'];
   /**
    * Wire dialect for this model (e.g. `google-vertex`, `anthropic-messages`).
@@ -229,6 +241,10 @@ class OllamaDiscovery implements ProviderModelDiscovery {
             maxTokens: 8192,
             reasoning: capabilities?.includes('thinking'),
             toolsSupported: capabilities?.includes('tools'),
+            toolsCapabilitySource:
+              capabilities !== undefined
+                ? ('SERVER_DYNAMIC' as const)
+                : undefined,
             input: capabilities
               ? capabilities.includes('vision')
                 ? ('text+image' as const)
@@ -414,6 +430,12 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
         maxTokens: m.maxTokens ?? undefined,
         reasoning: m.reasoning,
         toolsSupported: m.supportsTools,
+        toolsCapabilitySource:
+          m.supportsTools !== undefined
+            ? resolveLocalProviderBaseUrl(this.providerId)
+              ? ('SERVER_DYNAMIC' as const)
+              : ('PROVIDER_DYNAMIC' as const)
+            : undefined,
         input: m.input.includes('image') ? 'text+image' : 'text',
         // The real wire dialect, NOT a hardcoded 'openai-completions' — this
         // provider may be anthropic-messages, google-vertex, etc. Callers
@@ -467,13 +489,22 @@ class ClaudeSubscriptionDiscovery implements ProviderModelDiscovery {
     const { getClaudeSubscriptionModels } = await import(
       '../transports/claudeSubscription.js'
     );
-    const { models } = await getClaudeSubscriptionModels();
+    const { models, source } = await getClaudeSubscriptionModels();
     return models.map((m) => ({
       id: m.id,
       name: m.name,
       contextWindow: m.contextWindow,
       maxTokens: m.maxTokens,
       reasoning: m.reasoning,
+      toolsSupported: true,
+      // The Agent SDK MCP bridge establishes client-tool support for this
+      // subscription architecture. Preserve whether model identity itself
+      // came from the authenticated SDK enumeration or the pinned two-model
+      // Agent SDK reference floor.
+      toolsCapabilitySource:
+        source === 'ACCOUNT_DYNAMIC'
+          ? ('ACCOUNT_DYNAMIC' as const)
+          : ('PINNED_REFERENCE' as const),
       api: 'claude-agent-sdk' as PlumbKnownApi,
       source: m.source,
     }));
@@ -525,6 +556,8 @@ class WatsonxDiscovery implements ProviderModelDiscovery {
         toolsSupported: m.tasks
           ? m.tasks.some((t) => t.id === 'function_calling')
           : undefined,
+        toolsCapabilitySource:
+          m.tasks !== undefined ? ('PROVIDER_DYNAMIC' as const) : undefined,
       }));
     } catch {
       return [];

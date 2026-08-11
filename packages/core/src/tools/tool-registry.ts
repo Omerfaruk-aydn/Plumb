@@ -26,6 +26,10 @@ import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { coreEvents } from '../utils/events.js';
 import {
+  validateCanonicalToolSchema,
+  CANONICAL_NO_ARGS_SCHEMA,
+} from './definitions/canonicalSchemaValidator.js';
+import {
   DISCOVERED_TOOL_PREFIX,
   TOOL_LEGACY_ALIASES,
   getToolAliases,
@@ -266,9 +270,53 @@ export class ToolRegistry {
    * Note that excluded tools are still registered to allow for enabling them
    * later in the session.
    *
+   * Validates the tool's parameter schema against the canonical invariants
+   * (root.type == object, properties is object, required ⊆ properties, no
+   * null/undefined types). Malformed tools are rejected with INVALID_TOOL_SCHEMA
+   * and never enter the model-facing tool list.
+   *
    * @param tool - The tool object containing schema and execution logic.
    */
   registerTool(tool: AnyDeclarativeTool): void {
+    // Validate the tool's parameter schema at the registration boundary.
+    // This catches malformed MCP tools, extension tools, and discovered tools
+    // before they can reach any provider serialization path.
+    try {
+      const schema = tool.getSchema();
+      // Do not use `??` here: an explicitly null JSON Schema is malformed and
+      // must not be mistaken for an absent legacy declaration.
+      const rawSchema =
+        schema.parametersJsonSchema !== undefined
+          ? schema.parametersJsonSchema
+          : schema.parameters;
+      // Normalize empty/absent schemas to the canonical no-args schema
+      // (type: object, empty properties) before validation. MCP tools that
+      // declare no parameters pass {} — this is valid but needs canonicalization.
+      const effectiveSchema =
+        rawSchema === undefined ||
+        (typeof rawSchema === 'object' &&
+          rawSchema !== null &&
+          !Array.isArray(rawSchema) &&
+          Object.keys(rawSchema).length === 0)
+          ? CANONICAL_NO_ARGS_SCHEMA
+          : rawSchema;
+      const validation = validateCanonicalToolSchema(
+        effectiveSchema,
+        tool.name,
+      );
+      if (!validation.valid) {
+        debugLogger.warn(
+          `INVALID_TOOL_SCHEMA tool=${tool.name} reason=${validation.reason ?? 'UNKNOWN'} — tool rejected at registration boundary`,
+        );
+        return;
+      }
+    } catch {
+      debugLogger.warn(
+        `INVALID_TOOL_SCHEMA tool=${tool.name} reason=SCHEMA_EXTRACTION_FAILED — tool rejected at registration boundary`,
+      );
+      return;
+    }
+
     if (this.allKnownTools.has(tool.name)) {
       // Decide on behavior: throw error, log warning, or allow overwrite
       debugLogger.warn(

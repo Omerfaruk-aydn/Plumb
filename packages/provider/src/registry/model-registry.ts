@@ -209,6 +209,12 @@ export class PlumbModelRegistry {
             ...(m.reasoning !== undefined
               ? { reasoning: m.reasoning }
               : undefined),
+            ...(m.toolsSupported !== undefined
+              ? { toolsSupported: m.toolsSupported }
+              : undefined),
+            ...(m.toolsCapabilitySource !== undefined
+              ? { toolsCapabilitySource: m.toolsCapabilitySource }
+              : undefined),
             input: m.input ?? 'text',
             ...(m.source ? { source: m.source } : undefined),
           };
@@ -281,6 +287,9 @@ export class PlumbModelRegistry {
             : undefined),
           ...(m.toolsSupported !== undefined
             ? { toolsSupported: m.toolsSupported }
+            : undefined),
+          ...(m.toolsCapabilitySource !== undefined
+            ? { toolsCapabilitySource: m.toolsCapabilitySource }
             : undefined),
           input: m.input ?? 'text',
           ...(m.source ? { source: m.source } : undefined),

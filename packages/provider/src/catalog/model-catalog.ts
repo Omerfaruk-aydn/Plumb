@@ -141,6 +141,12 @@ function claudeSubscriptionCatalogModels(): PlumbModel[] {
     contextWindow: m.contextWindow,
     maxTokens: m.maxTokens,
     reasoning: m.reasoning,
+    // The Agent SDK's supportedModels() result is the pinned authority for
+    // this intentionally two-model Subscription surface, and its MCP bridge
+    // is the documented client-tool mechanism for these aliases. Do not
+    // extrapolate this fact to other Anthropic API models.
+    toolsSupported: true,
+    toolsCapabilitySource: 'PINNED_REFERENCE',
     input: 'text' as const,
   }));
 }

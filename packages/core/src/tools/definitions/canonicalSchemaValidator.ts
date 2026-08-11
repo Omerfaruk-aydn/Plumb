@@ -44,6 +44,38 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function findInvalidSchemaType(
+  schema: unknown,
+  seen = new Set<object>(),
+): string | undefined {
+  if (!isPlainObject(schema)) return undefined;
+  if (seen.has(schema)) return undefined;
+  seen.add(schema);
+
+  if ('type' in schema) {
+    const type = schema['type'];
+    if (type === null || type === undefined || type === 'null') {
+      return 'SCHEMA_TYPE_NULL_OR_UNDEFINED';
+    }
+    if (Array.isArray(type) && type.some((entry) => entry === 'null')) {
+      return 'SCHEMA_TYPE_NULL_OR_UNDEFINED';
+    }
+  }
+
+  for (const value of Object.values(schema)) {
+    if (isPlainObject(value)) {
+      const failure = findInvalidSchemaType(value, seen);
+      if (failure) return failure;
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        const failure = findInvalidSchemaType(item, seen);
+        if (failure) return failure;
+      }
+    }
+  }
+  return undefined;
+}
+
 /**
  * Validates a tool's root input schema against the invariant every PLUMB
  * client tool must satisfy:
@@ -89,13 +121,29 @@ export function validateCanonicalToolSchema(
     };
   }
 
-  const properties = isPlainObject(schema['properties'])
-    ? schema['properties']
-    : {};
+  if (!isPlainObject(schema['properties'])) {
+    return {
+      valid: false,
+      toolName,
+      rootType,
+      propertyCount: 0,
+      requiredCount: 0,
+      reason: 'PROPERTIES_NOT_OBJECT',
+    };
+  }
+  const properties = schema['properties'];
   const propertyKeys = new Set(Object.keys(properties));
-  const required = Array.isArray(schema['required'])
-    ? (schema['required'] as unknown[])
-    : [];
+  if (schema['required'] !== undefined && !Array.isArray(schema['required'])) {
+    return {
+      valid: false,
+      toolName,
+      rootType,
+      propertyCount: propertyKeys.size,
+      requiredCount: 0,
+      reason: 'REQUIRED_NOT_ARRAY',
+    };
+  }
+  const required = (schema['required'] ?? []) as unknown[];
 
   for (const entry of required) {
     if (typeof entry !== 'string' || !propertyKeys.has(entry)) {
@@ -108,6 +156,18 @@ export function validateCanonicalToolSchema(
         reason: `REQUIRED_PROPERTY_MISSING:${String(entry)}`,
       };
     }
+  }
+
+  const invalidType = findInvalidSchemaType(schema);
+  if (invalidType) {
+    return {
+      valid: false,
+      toolName,
+      rootType,
+      propertyCount: propertyKeys.size,
+      requiredCount: required.length,
+      reason: invalidType,
+    };
   }
 
   return {
