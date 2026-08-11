@@ -2803,6 +2803,74 @@ describe('AppContainer State Management', () => {
     });
   });
 
+  describe('Command Palette Integration (F1)', () => {
+    it('starts closed and exposes the real slash command list in UIStateContext', async () => {
+      const { unmount } = await act(async () => renderAppContainer());
+      expect(capturedUIState.isPaletteOpen).toBe(false);
+      expect(capturedUIState.slashCommands).toEqual([]);
+      unmount();
+    });
+
+    it('Alt+P opens the palette (ctrl+k was already claimed by KILL_LINE_RIGHT/KILL_BACKGROUND_SHELL)', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1bp'); // ESC + p == alt+p
+      });
+
+      expect(capturedUIState.isPaletteOpen).toBe(true);
+      unmount();
+    });
+
+    it('does not reopen (no-op) when the palette is already open', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1bp');
+      });
+      expect(capturedUIState.isPaletteOpen).toBe(true);
+
+      act(() => {
+        stdin.write('\x1bp');
+      });
+      expect(capturedUIState.isPaletteOpen).toBe(true);
+      unmount();
+    });
+
+    it('executePaletteCommand dispatches through the real handleSlashCommand path and closes the palette', async () => {
+      const mockHandleSlashCommand = vi.fn();
+      mockedUseSlashCommandProcessor.mockReturnValue({
+        handleSlashCommand: mockHandleSlashCommand,
+        slashCommands: [
+          { name: 'help', description: 'Show help', kind: 'BUILT_IN' },
+        ],
+        pendingHistoryItems: [],
+        commandContext: {},
+        shellConfirmationRequest: null,
+        confirmationRequest: null,
+      });
+
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1bp');
+      });
+      expect(capturedUIState.isPaletteOpen).toBe(true);
+
+      act(() => {
+        capturedUIActions.executePaletteCommand({
+          name: 'help',
+          description: 'Show help',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
+      });
+
+      expect(mockHandleSlashCommand).toHaveBeenCalledWith('/help');
+      expect(capturedUIState.isPaletteOpen).toBe(false);
+      unmount();
+    });
+  });
+
   describe('Agent Configuration Dialog Integration', () => {
     it('should initialize with dialog closed and no agent selected', async () => {
       const { unmount } = await act(async () => renderAppContainer());

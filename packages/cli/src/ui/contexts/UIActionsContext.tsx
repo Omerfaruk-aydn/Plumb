@@ -20,6 +20,7 @@ import { type PermissionsDialogProps } from '../components/PermissionsModifyTrus
 import type { SessionInfo } from '../../utils/sessionUtils.js';
 import { type NewAgentsChoice } from '../components/NewAgentsNotification.js';
 import type { OverageMenuIntent, EmptyWalletIntent } from './UIStateContext.js';
+import type { SlashCommand } from '../commands/types.js';
 
 export interface UIActions {
   handleThemeSelect: (
@@ -50,6 +51,8 @@ export interface UIActions {
   exitEditorDialog: () => void;
   exitPrivacyNotice: () => void;
   closeSettingsDialog: () => void;
+  closePalette: () => void;
+  executePaletteCommand: (command: SlashCommand) => void;
   closeModelDialog: () => void;
   openVoiceModelDialog: () => void;
   closeVoiceModelDialog: () => void;

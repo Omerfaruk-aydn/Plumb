@@ -29,6 +29,9 @@ vi.mock('./ConsentPrompt.js', () => ({
 vi.mock('./ThemeDialog.js', () => ({
   ThemeDialog: () => <Text>ThemeDialog</Text>,
 }));
+vi.mock('./CommandPalette.js', () => ({
+  CommandPalette: () => <Text>CommandPalette</Text>,
+}));
 vi.mock('./SettingsDialog.js', () => ({
   SettingsDialog: () => <Text>SettingsDialog</Text>,
 }));
@@ -92,6 +95,7 @@ describe('DialogManager', () => {
     confirmationRequest: null,
     consentRequest: null,
     isThemeDialogOpen: false,
+    isPaletteOpen: false,
     isSettingsDialogOpen: false,
     isModelDialogOpen: false,
     isAuthenticating: false,
@@ -163,6 +167,7 @@ describe('DialogManager', () => {
       'ConsentPrompt',
     ],
     [{ isThemeDialogOpen: true }, 'ThemeDialog'],
+    [{ isPaletteOpen: true }, 'CommandPalette'],
     [{ isSettingsDialogOpen: true }, 'SettingsDialog'],
     [{ isModelDialogOpen: true }, 'ModelDialog'],
     [{ isAuthenticating: true }, 'AuthInProgress'],

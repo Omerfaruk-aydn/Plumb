@@ -115,6 +115,7 @@ export interface UIState {
   quittingMessages: HistoryItem[] | null;
   isSettingsDialogOpen: boolean;
   isSessionBrowserOpen: boolean;
+  isPaletteOpen: boolean;
   isModelDialogOpen: boolean;
   isVoiceModelDialogOpen: boolean;
   isAgentConfigDialogOpen: boolean;

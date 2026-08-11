@@ -44,6 +44,7 @@ import { PolicyUpdateDialog } from './PolicyUpdateDialog.js';
 import { LoginRestartDialog } from '../auth/LoginRestartDialog.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
 import { useProviderSetupData } from '../hooks/useProviderSetupData.js';
+import { CommandPalette } from './CommandPalette.js';
 
 interface DialogManagerProps {
   addItem: UseHistoryManagerReturn['addItem'];
@@ -209,6 +210,16 @@ export const DialogManager = ({
         prompt={request.prompt}
         onConfirm={request.onConfirm}
         terminalWidth={terminalWidth}
+      />
+    );
+  }
+  if (uiState.isPaletteOpen) {
+    return (
+      <CommandPalette
+        commands={uiState.slashCommands ?? []}
+        onExecute={uiActions.executePaletteCommand}
+        onClose={uiActions.closePalette}
+        terminalWidth={uiTerminalWidth}
       />
     );
   }

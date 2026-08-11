@@ -90,6 +90,7 @@ export enum Command {
   TOGGLE_YOLO = 'app.toggleYolo',
   CYCLE_APPROVAL_MODE = 'app.cycleApprovalMode',
   SHOW_MORE_LINES = 'app.showMoreLines',
+  OPEN_COMMAND_PALETTE = 'app.openCommandPalette',
   EXPAND_PASTE = 'app.expandPaste',
   FOCUS_SHELL_INPUT = 'app.focusShellInput',
   UNFOCUS_SHELL_INPUT = 'app.unfocusShellInput',
@@ -394,6 +395,11 @@ export const defaultKeyBindingConfig: KeyBindingConfig = new Map([
   [Command.TOGGLE_YOLO, [new KeyBinding('ctrl+y')]],
   [Command.CYCLE_APPROVAL_MODE, [new KeyBinding('shift+tab')]],
   [Command.SHOW_MORE_LINES, [new KeyBinding('ctrl+o')]],
+  // The spec (PLUMB-UI-DEVRIM-PROMPT.md F1) suggested ctrl+k, but that is
+  // already bound to KILL_LINE_RIGHT / KILL_BACKGROUND_SHELL -- in fact
+  // nearly every ctrl+<letter> is already claimed in this file. alt+p is
+  // free and mnemonic ("Palette").
+  [Command.OPEN_COMMAND_PALETTE, [new KeyBinding('alt+p')]],
   [Command.EXPAND_PASTE, [new KeyBinding('ctrl+o')]],
   [Command.FOCUS_SHELL_INPUT, [new KeyBinding('tab')]],
   [Command.UNFOCUS_SHELL_INPUT, [new KeyBinding('shift+tab')]],
@@ -527,6 +533,7 @@ export const commandCategories: readonly CommandCategory[] = [
       Command.TOGGLE_YOLO,
       Command.CYCLE_APPROVAL_MODE,
       Command.SHOW_MORE_LINES,
+      Command.OPEN_COMMAND_PALETTE,
       Command.EXPAND_PASTE,
       Command.FOCUS_SHELL_INPUT,
       Command.UNFOCUS_SHELL_INPUT,
@@ -646,6 +653,8 @@ export const commandDescriptions: Readonly<Record<Command, string>> = {
     'Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). Plan mode is skipped when the agent is busy.',
   [Command.SHOW_MORE_LINES]:
     'Expand and collapse blocks of content when not in alternate buffer mode.',
+  [Command.OPEN_COMMAND_PALETTE]:
+    'Open the command palette to search and run slash commands.',
   [Command.EXPAND_PASTE]:
     'Expand or collapse a paste placeholder when cursor is over placeholder.',
   [Command.FOCUS_SHELL_INPUT]: 'Move focus from Gemini to the active shell.',

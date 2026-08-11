@@ -101,6 +101,7 @@ import { useAuthCommand } from './auth/useAuth.js';
 import { useQuotaAndFallback } from './hooks/useQuotaAndFallback.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSettingsCommand } from './hooks/useSettingsCommand.js';
+import { usePaletteCommand } from './hooks/usePaletteCommand.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -179,6 +180,7 @@ import {
 } from './constants.js';
 import { NewAgentsChoice } from './components/NewAgentsNotification.js';
 import { isSlashCommand } from './utils/commandUtils.js';
+import type { SlashCommand } from './commands/types.js';
 import { parseSlashCommand } from '../utils/commands.js';
 import { useTerminalTheme } from './hooks/useTerminalTheme.js';
 import { useTimedMessage } from './hooks/useTimedMessage.js';
@@ -705,6 +707,8 @@ export const AppContainer = (props: AppContainerProps) => {
 
   const { isSettingsDialogOpen, openSettingsDialog, closeSettingsDialog } =
     useSettingsCommand();
+
+  const { isPaletteOpen, openPalette, closePalette } = usePaletteCommand();
 
   const {
     isThemeDialogOpen,
@@ -1266,6 +1270,17 @@ Logging in with Google... Restarting PLUMB to continue.
     setCustomDialog,
   );
 
+  // F1 (command palette): dispatch through the exact same slash-command
+  // path every other entry point (typed input, suggestion chips) already
+  // uses -- never a second execution route.
+  const executePaletteCommand = useCallback(
+    (command: SlashCommand) => {
+      closePalette();
+      void handleSlashCommand(`/${command.name}`);
+    },
+    [closePalette, handleSlashCommand],
+  );
+
   const [authConsentRequest, setAuthConsentRequest] =
     useState<ConfirmationRequest | null>(null);
   const [permissionConfirmationRequest, setPermissionConfirmationRequest] =
@@ -1736,7 +1751,8 @@ Logging in with Google... Restarting PLUMB to continue.
     !isAuthDialogOpen &&
     !isSettingsDialogOpen &&
     !isModelDialogOpen &&
-    !isThemeDialogOpen;
+    !isThemeDialogOpen &&
+    !isPaletteOpen;
 
   const observerRef = useRef<ResizeObserver | null>(null);
 
@@ -2056,6 +2072,12 @@ Logging in with Google... Restarting PLUMB to continue.
         return true;
       } else if (keyMatchers[Command.SUSPEND_APP](key)) {
         handleSuspend();
+      } else if (
+        keyMatchers[Command.OPEN_COMMAND_PALETTE](key) &&
+        !isPaletteOpen
+      ) {
+        openPalette();
+        return true;
       } else if (keyMatchers[Command.DUMP_FRAME](key)) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `snapshot-${timestamp}.json`;
@@ -2272,6 +2294,8 @@ Logging in with Google... Restarting PLUMB to continue.
       startRecording,
       stopRecording,
       mouseMode,
+      isPaletteOpen,
+      openPalette,
     ],
   );
 
@@ -2418,6 +2442,7 @@ Logging in with Google... Restarting PLUMB to continue.
     confirmUpdateExtensionRequests.length > 0 ||
     !!loopDetectionConfirmationRequest ||
     isThemeDialogOpen ||
+    isPaletteOpen ||
     isSettingsDialogOpen ||
     isModelDialogOpen ||
     isVoiceModelDialogOpen ||
@@ -2661,6 +2686,7 @@ Logging in with Google... Restarting PLUMB to continue.
       history: historyManager.history,
       historyManager,
       isThemeDialogOpen,
+      isPaletteOpen,
 
       themeError,
       isAuthenticating,
@@ -2780,6 +2806,7 @@ Logging in with Google... Restarting PLUMB to continue.
     }),
     [
       isThemeDialogOpen,
+      isPaletteOpen,
 
       themeError,
       isAuthenticating,
@@ -2919,6 +2946,8 @@ Logging in with Google... Restarting PLUMB to continue.
       exitEditorDialog,
       exitPrivacyNotice,
       closeSettingsDialog,
+      closePalette,
+      executePaletteCommand,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
@@ -3028,6 +3057,8 @@ Logging in with Google... Restarting PLUMB to continue.
       exitEditorDialog,
       exitPrivacyNotice,
       closeSettingsDialog,
+      closePalette,
+      executePaletteCommand,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
