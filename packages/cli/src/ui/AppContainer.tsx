@@ -102,6 +102,8 @@ import { useQuotaAndFallback } from './hooks/useQuotaAndFallback.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSettingsCommand } from './hooks/useSettingsCommand.js';
 import { usePaletteCommand } from './hooks/usePaletteCommand.js';
+import { useDiffReviewCommand } from './hooks/useDiffReviewCommand.js';
+import { collectSessionEdits } from './utils/sessionEditHistory.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -709,6 +711,12 @@ export const AppContainer = (props: AppContainerProps) => {
     useSettingsCommand();
 
   const { isPaletteOpen, openPalette, closePalette } = usePaletteCommand();
+  const { isDiffReviewOpen, openDiffReview, closeDiffReview } =
+    useDiffReviewCommand();
+  const sessionEdits = useMemo(
+    () => collectSessionEdits(historyManager.history),
+    [historyManager.history],
+  );
 
   const {
     isThemeDialogOpen,
@@ -1752,7 +1760,8 @@ Logging in with Google... Restarting PLUMB to continue.
     !isSettingsDialogOpen &&
     !isModelDialogOpen &&
     !isThemeDialogOpen &&
-    !isPaletteOpen;
+    !isPaletteOpen &&
+    !isDiffReviewOpen;
 
   const observerRef = useRef<ResizeObserver | null>(null);
 
@@ -2078,6 +2087,12 @@ Logging in with Google... Restarting PLUMB to continue.
       ) {
         openPalette();
         return true;
+      } else if (
+        keyMatchers[Command.OPEN_DIFF_REVIEW](key) &&
+        !isDiffReviewOpen
+      ) {
+        openDiffReview();
+        return true;
       } else if (keyMatchers[Command.DUMP_FRAME](key)) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `snapshot-${timestamp}.json`;
@@ -2296,6 +2311,8 @@ Logging in with Google... Restarting PLUMB to continue.
       mouseMode,
       isPaletteOpen,
       openPalette,
+      isDiffReviewOpen,
+      openDiffReview,
     ],
   );
 
@@ -2443,6 +2460,7 @@ Logging in with Google... Restarting PLUMB to continue.
     !!loopDetectionConfirmationRequest ||
     isThemeDialogOpen ||
     isPaletteOpen ||
+    isDiffReviewOpen ||
     isSettingsDialogOpen ||
     isModelDialogOpen ||
     isVoiceModelDialogOpen ||
@@ -2687,6 +2705,8 @@ Logging in with Google... Restarting PLUMB to continue.
       historyManager,
       isThemeDialogOpen,
       isPaletteOpen,
+      isDiffReviewOpen,
+      sessionEdits,
 
       themeError,
       isAuthenticating,
@@ -2807,6 +2827,8 @@ Logging in with Google... Restarting PLUMB to continue.
     [
       isThemeDialogOpen,
       isPaletteOpen,
+      isDiffReviewOpen,
+      sessionEdits,
 
       themeError,
       isAuthenticating,
@@ -2948,6 +2970,7 @@ Logging in with Google... Restarting PLUMB to continue.
       closeSettingsDialog,
       closePalette,
       executePaletteCommand,
+      closeDiffReview,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
@@ -3059,6 +3082,7 @@ Logging in with Google... Restarting PLUMB to continue.
       closeSettingsDialog,
       closePalette,
       executePaletteCommand,
+      closeDiffReview,
       closeModelDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,

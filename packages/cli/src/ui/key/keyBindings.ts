@@ -91,6 +91,7 @@ export enum Command {
   CYCLE_APPROVAL_MODE = 'app.cycleApprovalMode',
   SHOW_MORE_LINES = 'app.showMoreLines',
   OPEN_COMMAND_PALETTE = 'app.openCommandPalette',
+  OPEN_DIFF_REVIEW = 'app.openDiffReview',
   EXPAND_PASTE = 'app.expandPaste',
   FOCUS_SHELL_INPUT = 'app.focusShellInput',
   UNFOCUS_SHELL_INPUT = 'app.unfocusShellInput',
@@ -400,6 +401,10 @@ export const defaultKeyBindingConfig: KeyBindingConfig = new Map([
   // nearly every ctrl+<letter> is already claimed in this file. alt+p is
   // free and mnemonic ("Palette").
   [Command.OPEN_COMMAND_PALETTE, [new KeyBinding('alt+p')]],
+  // F7 (PLUMB-UI-DEVRIM-PROMPT.md) suggested ctrl+d, but that is EXIT
+  // (press-twice-to-quit); alt+d is also taken (DELETE_WORD_FORWARD).
+  // alt+r is free and mnemonic ("Review").
+  [Command.OPEN_DIFF_REVIEW, [new KeyBinding('alt+r')]],
   [Command.EXPAND_PASTE, [new KeyBinding('ctrl+o')]],
   [Command.FOCUS_SHELL_INPUT, [new KeyBinding('tab')]],
   [Command.UNFOCUS_SHELL_INPUT, [new KeyBinding('shift+tab')]],
@@ -534,6 +539,7 @@ export const commandCategories: readonly CommandCategory[] = [
       Command.CYCLE_APPROVAL_MODE,
       Command.SHOW_MORE_LINES,
       Command.OPEN_COMMAND_PALETTE,
+      Command.OPEN_DIFF_REVIEW,
       Command.EXPAND_PASTE,
       Command.FOCUS_SHELL_INPUT,
       Command.UNFOCUS_SHELL_INPUT,
@@ -655,6 +661,8 @@ export const commandDescriptions: Readonly<Record<Command, string>> = {
     'Expand and collapse blocks of content when not in alternate buffer mode.',
   [Command.OPEN_COMMAND_PALETTE]:
     'Open the command palette to search and run slash commands.',
+  [Command.OPEN_DIFF_REVIEW]:
+    'Open a read-only, full-screen review of the file edits made this session.',
   [Command.EXPAND_PASTE]:
     'Expand or collapse a paste placeholder when cursor is over placeholder.',
   [Command.FOCUS_SHELL_INPUT]: 'Move focus from Gemini to the active shell.',

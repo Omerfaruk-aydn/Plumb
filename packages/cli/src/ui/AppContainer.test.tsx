@@ -2871,6 +2871,56 @@ describe('AppContainer State Management', () => {
     });
   });
 
+  describe('Diff Review Integration (F7)', () => {
+    it('starts closed and exposes an empty sessionEdits list in UIStateContext', async () => {
+      const { unmount } = await act(async () => renderAppContainer());
+      expect(capturedUIState.isDiffReviewOpen).toBe(false);
+      expect(capturedUIState.sessionEdits).toEqual([]);
+      unmount();
+    });
+
+    it('Alt+R opens the diff review screen (ctrl+d/alt+d were already claimed)', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1br'); // ESC + r == alt+r
+      });
+
+      expect(capturedUIState.isDiffReviewOpen).toBe(true);
+      unmount();
+    });
+
+    it('does not reopen (no-op) when the diff review screen is already open', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1br');
+      });
+      expect(capturedUIState.isDiffReviewOpen).toBe(true);
+
+      act(() => {
+        stdin.write('\x1br');
+      });
+      expect(capturedUIState.isDiffReviewOpen).toBe(true);
+      unmount();
+    });
+
+    it('closeDiffReview closes the screen', async () => {
+      const { stdin, unmount } = await act(async () => renderAppContainer());
+
+      act(() => {
+        stdin.write('\x1br');
+      });
+      expect(capturedUIState.isDiffReviewOpen).toBe(true);
+
+      act(() => {
+        capturedUIActions.closeDiffReview();
+      });
+      expect(capturedUIState.isDiffReviewOpen).toBe(false);
+      unmount();
+    });
+  });
+
   describe('Agent Configuration Dialog Integration', () => {
     it('should initialize with dialog closed and no agent selected', async () => {
       const { unmount } = await act(async () => renderAppContainer());

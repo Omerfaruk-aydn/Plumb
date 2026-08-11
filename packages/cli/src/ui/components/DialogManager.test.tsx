@@ -32,6 +32,9 @@ vi.mock('./ThemeDialog.js', () => ({
 vi.mock('./CommandPalette.js', () => ({
   CommandPalette: () => <Text>CommandPalette</Text>,
 }));
+vi.mock('./DiffReviewScreen.js', () => ({
+  DiffReviewScreen: () => <Text>DiffReviewScreen</Text>,
+}));
 vi.mock('./SettingsDialog.js', () => ({
   SettingsDialog: () => <Text>SettingsDialog</Text>,
 }));
@@ -96,6 +99,8 @@ describe('DialogManager', () => {
     consentRequest: null,
     isThemeDialogOpen: false,
     isPaletteOpen: false,
+    isDiffReviewOpen: false,
+    sessionEdits: [],
     isSettingsDialogOpen: false,
     isModelDialogOpen: false,
     isAuthenticating: false,
@@ -168,6 +173,7 @@ describe('DialogManager', () => {
     ],
     [{ isThemeDialogOpen: true }, 'ThemeDialog'],
     [{ isPaletteOpen: true }, 'CommandPalette'],
+    [{ isDiffReviewOpen: true }, 'DiffReviewScreen'],
     [{ isSettingsDialogOpen: true }, 'SettingsDialog'],
     [{ isModelDialogOpen: true }, 'ModelDialog'],
     [{ isAuthenticating: true }, 'AuthInProgress'],

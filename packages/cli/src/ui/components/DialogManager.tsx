@@ -45,6 +45,7 @@ import { LoginRestartDialog } from '../auth/LoginRestartDialog.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
 import { useProviderSetupData } from '../hooks/useProviderSetupData.js';
 import { CommandPalette } from './CommandPalette.js';
+import { DiffReviewScreen } from './DiffReviewScreen.js';
 
 interface DialogManagerProps {
   addItem: UseHistoryManagerReturn['addItem'];
@@ -220,6 +221,16 @@ export const DialogManager = ({
         onExecute={uiActions.executePaletteCommand}
         onClose={uiActions.closePalette}
         terminalWidth={uiTerminalWidth}
+      />
+    );
+  }
+  if (uiState.isDiffReviewOpen) {
+    return (
+      <DiffReviewScreen
+        edits={uiState.sessionEdits}
+        onClose={uiActions.closeDiffReview}
+        terminalWidth={uiTerminalWidth}
+        terminalHeight={terminalHeight}
       />
     );
   }

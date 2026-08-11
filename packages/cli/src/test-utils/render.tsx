@@ -561,6 +561,7 @@ const mockUIActions: UIActions = {
   closeSettingsDialog: vi.fn(),
   closePalette: vi.fn(),
   executePaletteCommand: vi.fn(),
+  closeDiffReview: vi.fn(),
   closeModelDialog: vi.fn(),
   openVoiceModelDialog: vi.fn(),
   closeVoiceModelDialog: vi.fn(),

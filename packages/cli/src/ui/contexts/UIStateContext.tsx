@@ -16,6 +16,7 @@ import type {
   PermissionConfirmationRequest,
 } from '../types.js';
 import type { CommandContext, SlashCommand } from '../commands/types.js';
+import type { SessionEdit } from '../utils/sessionEditHistory.js';
 
 import type {
   IdeContext,
@@ -116,6 +117,8 @@ export interface UIState {
   isSettingsDialogOpen: boolean;
   isSessionBrowserOpen: boolean;
   isPaletteOpen: boolean;
+  isDiffReviewOpen: boolean;
+  sessionEdits: SessionEdit[];
   isModelDialogOpen: boolean;
   isVoiceModelDialogOpen: boolean;
   isAgentConfigDialogOpen: boolean;
