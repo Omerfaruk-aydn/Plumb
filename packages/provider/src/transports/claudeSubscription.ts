@@ -225,8 +225,25 @@ export async function getClaudeSubscriptionStatus(): Promise<ClaudeSubscriptionS
 
   let query: SdkQuery;
   try {
+    // CRITICAL INVARIANT — ANTHROPIC cache_control SAFETY:
+    //
+    // Anthropic's API rejects every request that attaches `cache_control`
+    // to a zero-length text content block (HTTP 400 `cache_control cannot
+    // be set for empty text blocks`). The Agent SDK auto-attaches a
+    // `cache_control: { type: "ephemeral" }` breakpoint to the LAST
+    // text content block it ships, so a literal `prompt: ''` becomes a
+    // user message with content: [{ type: 'text', text: '' }] carrying
+    // cache_control → the exact failure reported on the first
+    // interactive PLUMB turn. We must never feed the SDK a zero-length
+    // prompt. The status probe here only reads `accountInfo()` and never
+    // iterates the prompt stream, so a single non-empty ASCII placeholder
+    // char is both safe (never reaches the model) and required (keeps
+    // the SDK's outbound message non-empty and cache_control-legal).
+    // Same rationale as `getClaudeSubscriptionModels`'s PROBE_PROMPT
+    // — a single non-whitespace ASCII char that survives any
+    // SDK-side trim/normalize pass.
     query = sdk.query({
-      prompt: '',
+      prompt: 'p',
       options: {
         tools: [],
         maxTurns: 0,

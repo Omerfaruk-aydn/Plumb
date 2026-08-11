@@ -118,13 +118,16 @@ describe('getClaudeSubscriptionStatus', () => {
     expect(result.status).toBe('NOT_LOGGED_IN');
   });
 
-  it('probes with tools disabled and zero turns (never sends a real prompt)', async () => {
+  it('probes with tools disabled and zero turns (never sends a real prompt) but never ships an empty cache_control-unsafe text block', async () => {
     mockQuery.mockReturnValue(makeSdkQuery([], { subscriptionType: 'pro' }));
     const mod = await importFresh();
     await mod.getClaudeSubscriptionStatus();
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: '',
+        // Non-empty placeholder char — see cache_control safety note
+        // in getClaudeSubscriptionStatus above. A literal '' is the
+        // exact shape Anthropic rejects with HTTP 400.
+        prompt: 'p',
         options: expect.objectContaining({ tools: [], maxTurns: 0 }),
       }),
     );
