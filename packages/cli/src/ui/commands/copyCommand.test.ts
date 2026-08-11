@@ -297,6 +297,73 @@ describe('copyCommand', () => {
     expect(mockCopyToClipboard).not.toHaveBeenCalled();
   });
 
+  describe('"copy code" (F2)', () => {
+    it('copies only the last fenced code block, not the whole message', async () => {
+      if (!copyCommand.action) throw new Error('Command has no action');
+
+      const historyWithCode = [
+        {
+          role: 'model',
+          parts: [
+            {
+              text: 'Here you go:\n```ts\nconst x = 1;\n```\nHope that helps!',
+            },
+          ],
+        },
+      ];
+      mockGetHistory.mockReturnValue(historyWithCode);
+      mockCopyToClipboard.mockResolvedValue(undefined);
+
+      const result = await copyCommand.action(mockContext, 'code');
+
+      expect(mockCopyToClipboard).toHaveBeenCalledWith(
+        'const x = 1;',
+        expect.anything(),
+      );
+      expect(result).toEqual({
+        type: 'message',
+        messageType: 'info',
+        content: 'Last code block copied to the clipboard',
+      });
+    });
+
+    it('reports when there is no code block, without copying the whole message', async () => {
+      if (!copyCommand.action) throw new Error('Command has no action');
+
+      mockGetHistory.mockReturnValue([
+        { role: 'model', parts: [{ text: 'Just prose, no code here.' }] },
+      ]);
+
+      const result = await copyCommand.action(mockContext, 'code');
+
+      expect(result).toEqual({
+        type: 'message',
+        messageType: 'info',
+        content: 'No code block found in the last AI output.',
+      });
+      expect(mockCopyToClipboard).not.toHaveBeenCalled();
+    });
+
+    it('the "code" subcommand delegates to the same action with "code" args', async () => {
+      const codeSubCommand = copyCommand.subCommands?.find(
+        (c) => c.name === 'code',
+      );
+      expect(codeSubCommand).toBeDefined();
+
+      mockGetHistory.mockReturnValue([
+        { role: 'model', parts: [{ text: '```py\nprint(1)\n```' }] },
+      ]);
+      mockCopyToClipboard.mockResolvedValue(undefined);
+
+      await codeSubCommand!.action!(mockContext, '');
+
+      expect(mockCopyToClipboard).toHaveBeenCalledWith(
+        'print(1)',
+        expect.anything(),
+      );
+    });
+  });
+
   it('should handle unavailable config service', async () => {
     if (!copyCommand.action) throw new Error('Command has no action');
 
