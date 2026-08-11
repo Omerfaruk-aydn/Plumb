@@ -487,7 +487,8 @@
     "packages/provider/src/omp-catalog/provider-models/openai-compat.portkey.test.ts",
     "packages/provider/src/omp-ai/registry/sglang.ts",
     "packages/provider/src/omp-ai/registry/kilo.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.openrouter.test.ts"
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.openrouter.test.ts",
+    "packages/provider/src/omp-catalog/provider-models/openai-compat.opencode.test.ts"
   ],
   "adaptationDiffs": [
     {

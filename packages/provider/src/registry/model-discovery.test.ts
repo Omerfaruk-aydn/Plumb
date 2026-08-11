@@ -12,6 +12,20 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+// getClaudeSubscriptionModels() (transports/claudeSubscription.ts) spawns
+// the real installed Agent SDK's query() to call the live, account-aware
+// Query.supportedModels(). That's exactly right for production, but this
+// adapter-contract suite must stay fast/deterministic and must not depend
+// on a real subprocess/network round trip (or on whether this machine
+// happens to have an authenticated `claude` session) -- mock the SDK so
+// ClaudeSubscriptionDiscovery deterministically falls back to the pinned
+// OFFICIAL_STATIC_METADATA floor, which is exactly what these tests assert.
+vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
+  query: () => {
+    throw new Error('not available in this test environment');
+  },
+}));
+
 import {
   discoverProviderModels,
   discoverProviderModelsDetailed,
