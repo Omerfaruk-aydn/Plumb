@@ -1861,6 +1861,125 @@ export async function printToolSchemaDiagnostics(
   return failures.length > 0 ? 1 : 0;
 }
 
+// ─── Tool activity UI diagnostics (--diagnose-tool-ui) ────────────────
+//
+// Safe, static, credential-free audit of the wiring the interactive
+// terminal UI depends on to show real-time tool execution (list_directory,
+// read_file, grep, shell, MCP/extension tools, ...) instead of a bare
+// "Thinking..." spinner. This runs as a one-shot CLI invocation, not inside
+// a live interactive session, so it cannot report a live listener count or
+// the phase of an in-progress turn -- it reports whether the pieces that
+// make that possible are present and load cleanly in this build. This is
+// meant to distinguish "tools execute but the UI never subscribed to their
+// events" from "tools never execute" without ever printing a prompt, tool
+// argument, tool result, or credential.
+
+export interface ToolActivityUiDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+export async function buildToolActivityUiDiagnostics(): Promise<ToolActivityUiDiagnosticsResult> {
+  const lines: string[] = [
+    'PLUMB tool activity UI diagnostics (static build audit -- no live session, no prompts, no credentials)',
+    '',
+  ];
+  const failures: string[] = [];
+
+  // 1. Event authority: the TOOL_CALLS_UPDATE message type and the scheduler
+  // ID constants the interactive UI (useToolScheduler.ts) uses to decide
+  // whether a batch of tool calls is always-visible root-level activity or
+  // hidden background-subagent activity.
+  try {
+    const core = await import('@google/gemini-cli-core');
+    const hasEventType = core.MessageBusType?.TOOL_CALLS_UPDATE !== undefined;
+    lines.push(
+      `tool.activity.event.bus: ${hasEventType ? 'present' : 'MISSING'} (MessageBusType.TOOL_CALLS_UPDATE)`,
+    );
+    if (!hasEventType) {
+      failures.push(
+        'MessageBusType.TOOL_CALLS_UPDATE is not exported from core',
+      );
+    }
+
+    const rootId: unknown = core.ROOT_SCHEDULER_ID;
+    const providerInternalId: unknown = core.PROVIDER_INTERNAL_SCHEDULER_ID;
+    lines.push(
+      `scheduler.root_id: ${typeof rootId === 'string' ? rootId : 'MISSING'}`,
+    );
+    lines.push(
+      `scheduler.provider_internal_id: ${typeof providerInternalId === 'string' ? providerInternalId : 'MISSING'}`,
+    );
+    if (
+      typeof rootId !== 'string' ||
+      typeof providerInternalId !== 'string' ||
+      rootId === providerInternalId
+    ) {
+      failures.push(
+        'Scheduler ID constants are missing or colliding -- tool calls a provider executes via its own agentic loop (e.g. Claude Subscription) may be mis-classified as hidden background-subagent activity by the interactive UI',
+      );
+    }
+  } catch (err) {
+    lines.push(
+      'tool.activity.event.bus: UNAVAILABLE (failed to load @google/gemini-cli-core)',
+    );
+    failures.push(
+      `core import failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // 2. UI listener wiring: confirm the CLI's tool-activity rendering
+  // modules exist and load cleanly in this build. This proves the code is
+  // present and importable; it cannot prove a *running* session actually
+  // subscribed (that requires the user to run PLUMB interactively).
+  const uiModules: Array<[string, string]> = [
+    ['scheduler.listener', './ui/hooks/useToolScheduler.js'],
+    ['ui.tool_group', './ui/components/messages/ToolGroupMessage.js'],
+    ['ui.tool_message', './ui/components/messages/ToolMessage.js'],
+    ['ui.confirmation_queue', './ui/components/ToolConfirmationQueue.js'],
+  ];
+  for (const [label, relPath] of uiModules) {
+    try {
+      await import(relPath);
+      lines.push(`${label}.connected: true`);
+    } catch (err) {
+      lines.push(`${label}.connected: false`);
+      failures.push(
+        `${relPath} failed to load: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  // 3. Redaction posture. There is no separate redaction layer at the tool
+  // activity UI boundary -- displayed tool summaries (paths, command
+  // previews, match counts) come directly from each tool's own
+  // request/response shape. Report this honestly rather than claiming a
+  // redaction feature that does not exist at this layer.
+  lines.push(
+    "redaction.enabled: n/a (no separate redaction pass at the tool-activity UI boundary; displayed summaries come directly from each tool's request/response fields, the same as every other rendered tool call)",
+  );
+
+  lines.push('');
+  lines.push(
+    failures.length > 0
+      ? 'last.activity.phase: UNKNOWN (static diagnostic; run PLUMB interactively to observe a live phase)'
+      : 'last.activity.phase: UNKNOWN (static diagnostic only observes build wiring, never a live session)',
+  );
+
+  return { lines, failures };
+}
+
+export async function printToolActivityUiDiagnostics(): Promise<number> {
+  const { lines, failures } = await buildToolActivityUiDiagnostics();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-tool-ui: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
 // ─── Coding-plan auth diagnostics ────────────────────────────────────
 
 export interface PlanDiagnosticsResult {

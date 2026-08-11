@@ -124,6 +124,7 @@ export interface CliArgs {
   /** Shared `--provider` filter, aliased from diagnose-model-limits-provider; also read by --diagnose-tools. */
   provider: string | undefined;
   diagnoseTools: boolean | undefined;
+  diagnoseToolUi: boolean | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
   codingPlanStatus: boolean | undefined;
@@ -573,6 +574,11 @@ export async function parseArguments(
           type: 'boolean',
           description:
             'Print safe structural tool-schema diagnostics (canonical validity, root type, property/required counts, per-dialect serialization validity for openai/anthropic/gemini/mcp) for every built-in PLUMB tool. Never exposes credentials or prompt/file contents. Usage: plumb --diagnose-tools [--provider <id>] [--model <id>]',
+        })
+        .option('diagnose-tool-ui', {
+          type: 'boolean',
+          description:
+            'Print safe static diagnostics for the interactive terminal tool-activity UI (event bus/scheduler-ID wiring, whether the UI tool-activity components load cleanly in this build). A one-shot build audit, not a live-session check. Never exposes credentials, prompts, or tool results. Usage: plumb --diagnose-tool-ui',
         })
         .option('diagnose-auth-state', {
           type: 'boolean',

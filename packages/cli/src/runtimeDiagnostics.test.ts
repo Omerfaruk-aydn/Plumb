@@ -15,6 +15,7 @@ import {
   buildProviderModelsDiagnostics,
   buildModelLimitsDiagnostics,
   buildToolSchemaDiagnostics,
+  buildToolActivityUiDiagnostics,
 } from './runtimeDiagnostics.js';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { createTestMergedSettings } from './config/settings.js';
@@ -391,5 +392,46 @@ describe('buildToolSchemaDiagnostics (--diagnose-tools)', () => {
     expect(report).toContain('capability.source: UNKNOWN');
     expect(report).toContain('advertised.tool.count: 0');
     expect(report).toContain('tools.suppressed.reason: CAPABILITY_UNKNOWN');
+  });
+});
+
+describe('buildToolActivityUiDiagnostics (--diagnose-tool-ui)', () => {
+  it('reports the event bus and scheduler-ID wiring the interactive tool-activity UI depends on', async () => {
+    const { lines, failures } = await buildToolActivityUiDiagnostics();
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('PLUMB tool activity UI diagnostics');
+    expect(report).toContain(
+      'tool.activity.event.bus: present (MessageBusType.TOOL_CALLS_UPDATE)',
+    );
+    expect(report).toContain('scheduler.root_id: root');
+    expect(report).toContain(
+      'scheduler.provider_internal_id: provider-internal',
+    );
+  });
+
+  it('reports every tool-activity UI module as connected (loads cleanly in this build)', async () => {
+    const { lines, failures } = await buildToolActivityUiDiagnostics();
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('scheduler.listener.connected: true');
+    expect(report).toContain('ui.tool_group.connected: true');
+    expect(report).toContain('ui.tool_message.connected: true');
+    expect(report).toContain('ui.confirmation_queue.connected: true');
+  });
+
+  it('never prints prompts, tool arguments, tool results, or credentials', async () => {
+    const { lines } = await buildToolActivityUiDiagnostics();
+    const report = lines.join('\n');
+    expect(report).not.toMatch(/api[_-]?key/i);
+    expect(report).not.toMatch(/authorization/i);
+    expect(report).not.toMatch(/bearer /i);
+  });
+
+  it('is honest that this is a static build audit, not a live-session observation', async () => {
+    const { lines } = await buildToolActivityUiDiagnostics();
+    const report = lines.join('\n');
+    expect(report).toContain('last.activity.phase: UNKNOWN');
+    expect(report).toContain('static diagnostic');
   });
 });

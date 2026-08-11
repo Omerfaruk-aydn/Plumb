@@ -11,6 +11,7 @@ import {
   type CompletedToolCall,
   MessageBusType,
   ROOT_SCHEDULER_ID,
+  PROVIDER_INTERNAL_SCHEDULER_ID,
   Scheduler,
   type EditorType,
   type ToolCallsUpdateMessage,
@@ -123,7 +124,17 @@ export function useToolScheduler(
 
   useEffect(() => {
     const handler = (event: ToolCallsUpdateMessage) => {
-      const isRoot = event.schedulerId === ROOT_SCHEDULER_ID;
+      // PROVIDER_INTERNAL_SCHEDULER_ID marks tool calls a provider's own
+      // agentic loop (e.g. the Claude Agent SDK subprocess) made on behalf
+      // of the main turn via PLUMB's tool-authority bridge. They are not
+      // background subagent activity, so the UI must always show them, the
+      // same as ROOT_SCHEDULER_ID -- only real subagent schedulers get the
+      // "hidden unless awaiting approval" treatment below.
+      const isRoot =
+        event.schedulerId === ROOT_SCHEDULER_ID ||
+        event.schedulerId === PROVIDER_INTERNAL_SCHEDULER_ID;
+      const isProviderInternal =
+        event.schedulerId === PROVIDER_INTERNAL_SCHEDULER_ID;
 
       // Update output timer for UI spinners (Side Effect)
       const hasExecuting = event.toolCalls.some(
@@ -168,9 +179,25 @@ export function useToolScheduler(
 
         const adapted = internalAdaptToolCalls(filteredToolCalls, prevCalls);
 
+        // Provider-internal calls never flow back through this hook's own
+        // response-reinjection step (`markToolsAsSubmitted`) -- the
+        // provider's own agentic loop already consumed the result directly.
+        // Default them to "submitted" once terminal so streaming-state
+        // calculation (which treats an unsubmitted terminal call as "still
+        // responding") doesn't get stuck open after the turn finishes.
+        const finalized = isProviderInternal
+          ? adapted.map((tc) =>
+              tc.status === CoreToolCallStatus.Success ||
+              tc.status === CoreToolCallStatus.Error ||
+              tc.status === CoreToolCallStatus.Cancelled
+                ? { ...tc, responseSubmittedToGemini: true }
+                : tc,
+            )
+          : adapted;
+
         return {
           ...prev,
-          [event.schedulerId]: adapted,
+          [event.schedulerId]: finalized,
         };
       });
     };

@@ -14,13 +14,16 @@
  * `PlumbToolExecutionRequest`/`PlumbToolExecutionResult` types and delegate
  * to a caller-supplied `PlumbToolExecutor`. This module IS that caller: it
  * is the only place a real `PlumbToolExecutor` gets constructed, and it
- * does so by calling the exact same `scheduleAgentTools()` /
- * `Scheduler` real tool-execution pipeline every other agent-tool caller in
- * this codebase already uses (see `agents/agent-scheduler.ts`) — never a
- * second, Claude-specific execution engine, and never a bypass of the real
- * permission/confirmation pipeline.
+ * does so by driving the exact same `Scheduler` real tool-execution
+ * pipeline every other agent-tool caller in this codebase already uses (see
+ * `agents/agent-scheduler.ts`'s `scheduleAgentTools()`) — never a second,
+ * Claude-specific execution engine, and never a bypass of the real
+ * permission/confirmation pipeline. Unlike `scheduleAgentTools()`, this
+ * module keeps ONE `Scheduler` alive for the whole turn (see
+ * `createClaudeSubscriptionToolExecutor` below) so the interactive UI can
+ * see every tool call the turn makes, not just the most recent one.
  *
- * One call to the returned executor = one `scheduleAgentTools()` call with
+ * One call to the returned executor = one `Scheduler.schedule()` call with
  * exactly one request = one real `CoreToolCallStatus` outcome = one
  * translated `PlumbToolExecutionResult`.
  */
@@ -31,9 +34,10 @@ import type {
   PlumbToolExecutor,
 } from '@google/gemini-cli-provider';
 import type { Config } from '../config/config.js';
-import { scheduleAgentTools } from '../agents/agent-scheduler.js';
+import { Scheduler } from '../scheduler/scheduler.js';
 import {
   CoreToolCallStatus,
+  PROVIDER_INTERNAL_SCHEDULER_ID,
   type ToolCallRequestInfo,
 } from '../scheduler/types.js';
 
@@ -62,11 +66,24 @@ function extractResponseText(responseParts: Part[]): string {
 
 /**
  * Builds a `PlumbToolExecutor` bound to one real chat turn (`promptId`,
- * `signal`). Every invocation routes through `scheduleAgentTools()` — the
- * same real, single CoreToolScheduler-backed pipeline (permission
- * evaluation, confirmation UX, execution, cancellation) every other
- * agent/tool caller in this codebase already uses. This function does not
- * execute anything itself; it only adapts request/response shapes.
+ * `signal`). Every invocation routes through the real, single
+ * CoreToolScheduler-backed pipeline (permission evaluation, confirmation UX,
+ * execution, cancellation) every other agent/tool caller in this codebase
+ * already uses. This function does not execute anything itself; it only
+ * adapts request/response shapes.
+ *
+ * ONE Scheduler instance is created per turn and reused across every tool
+ * call the Claude Agent SDK subprocess makes during that turn (rather than a
+ * fresh one-shot Scheduler per call, as `scheduleAgentTools()` gives real
+ * background subagents). `SchedulerStateManager.getSnapshot()` accumulates
+ * completed/active/queued calls for the lifetime of the Scheduler instance,
+ * so reusing it is what lets the interactive UI display the whole turn's
+ * tool activity — not just the most recent call — under one scheduler ID.
+ * It is tagged `PROVIDER_INTERNAL_SCHEDULER_ID`, not `ROOT_SCHEDULER_ID`, so
+ * the UI can tell these calls apart from calls PLUMB's own top-level
+ * function-calling loop schedules (see `useToolScheduler.ts`), while still
+ * always showing them — unlike real subagent schedulers, which stay hidden
+ * unless awaiting approval.
  */
 export function createClaudeSubscriptionToolExecutor(
   config: Config,
@@ -74,6 +91,24 @@ export function createClaudeSubscriptionToolExecutor(
   signal: AbortSignal,
 ): PlumbToolExecutor {
   let callSeq = 0;
+  const toolRegistry = config.getToolRegistry();
+
+  const scheduler = new Scheduler({
+    context: {
+      config,
+      promptId: config.promptId,
+      toolRegistry,
+      promptRegistry: config.getPromptRegistry(),
+      resourceRegistry: config.getResourceRegistry(),
+      messageBus: toolRegistry.messageBus,
+      geminiClient: config.geminiClient,
+      sandboxManager: config.sandboxManager,
+    },
+    messageBus: toolRegistry.messageBus,
+    getPreferredEditor: () => undefined,
+    schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+  });
+  signal.addEventListener('abort', () => scheduler.dispose(), { once: true });
 
   return async (
     request: PlumbToolExecutionRequest,
@@ -88,11 +123,7 @@ export function createClaudeSubscriptionToolExecutor(
       prompt_id: promptId,
     };
 
-    const results = await scheduleAgentTools(config, [toolCallRequest], {
-      schedulerId: `claude-subscription:${callId}`,
-      toolRegistry: config.getToolRegistry(),
-      signal,
-    });
+    const results = await scheduler.schedule([toolCallRequest], signal);
 
     const result = results[0];
     if (!result) {

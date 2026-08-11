@@ -4,16 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Regression: createClaudeSubscriptionToolExecutor must route every call
- * through the REAL scheduleAgentTools()/Scheduler pipeline — the same one
- * every other agent-tool caller in this codebase uses — never a second,
- * Claude-specific execution path. Only the Scheduler class itself is
- * mocked (the true execution/network/UI boundary); scheduleAgentTools
- * runs for real, exercising the actual request-building logic.
+ * through the REAL Scheduler pipeline — the same one every other agent-tool
+ * caller in this codebase uses — never a second, Claude-specific execution
+ * path. Only the Scheduler class itself is mocked (the true
+ * execution/network/UI boundary); the executor's own request-building and
+ * scheduler-lifecycle logic runs for real.
+ *
+ * Also covers the interactive-UI visibility regression this bridge used to
+ * cause: a fresh, uniquely-IDed Scheduler per tool call made every call look
+ * like a brand-new, unrelated "subagent" scheduler to the CLI's
+ * useToolScheduler hook, which hides non-root schedulers unless they need
+ * approval — so ordinary auto-approved reads/searches during a Claude
+ * Subscription turn never appeared in the terminal UI at all, even though
+ * they executed for real. The fix is to reuse ONE Scheduler per turn under
+ * the shared `PROVIDER_INTERNAL_SCHEDULER_ID`, so the UI can recognize and
+ * always show them (see useToolScheduler.test.ts for the UI-side half).
  */
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { createClaudeSubscriptionToolExecutor } from './claudeSubscriptionToolBridge.js';
 import { Scheduler } from '../scheduler/scheduler.js';
-import { CoreToolCallStatus } from '../scheduler/types.js';
+import {
+  CoreToolCallStatus,
+  PROVIDER_INTERNAL_SCHEDULER_ID,
+} from '../scheduler/types.js';
 import type { Config } from '../config/config.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { CompletedToolCall } from '../scheduler/types.js';
@@ -27,6 +40,31 @@ vi.mock('../scheduler/scheduler.js', () => ({
     dispose: mockDispose,
   })),
 }));
+
+function successResult(
+  callId: string,
+  text = 'file contents',
+): CompletedToolCall {
+  return {
+    status: CoreToolCallStatus.Success,
+    request: {
+      callId,
+      name: 'read_file',
+      args: {},
+      isClientInitiated: false,
+      prompt_id: 'prompt-1',
+    },
+    tool: {} as never,
+    invocation: {} as never,
+    response: {
+      callId,
+      responseParts: [{ text }],
+      resultDisplay: undefined,
+      error: undefined,
+      errorType: undefined,
+    },
+  };
+}
 
 describe('createClaudeSubscriptionToolExecutor', () => {
   let mockConfig: Mocked<Config>;
@@ -51,27 +89,8 @@ describe('createClaudeSubscriptionToolExecutor', () => {
     signal = new AbortController().signal;
   });
 
-  it('routes exactly one real Scheduler invocation per executor call, with the request built from the given tool name/args', async () => {
-    const successResult: CompletedToolCall = {
-      status: CoreToolCallStatus.Success,
-      request: {
-        callId: 'x',
-        name: 'read_file',
-        args: {},
-        isClientInitiated: false,
-        prompt_id: 'prompt-1',
-      },
-      tool: {} as never,
-      invocation: {} as never,
-      response: {
-        callId: 'x',
-        responseParts: [{ text: 'file contents' }],
-        resultDisplay: undefined,
-        error: undefined,
-        errorType: undefined,
-      },
-    };
-    mockSchedule.mockResolvedValue([successResult]);
+  it('routes exactly one real Scheduler.schedule() invocation per executor call, with the request built from the given tool name/args', async () => {
+    mockSchedule.mockResolvedValue([successResult('x')]);
 
     const executor = createClaudeSubscriptionToolExecutor(
       mockConfig,
@@ -84,9 +103,8 @@ describe('createClaudeSubscriptionToolExecutor', () => {
       toolCallId: 'read_file:0',
     });
 
-    expect(Scheduler).toHaveBeenCalledTimes(1);
     expect(mockSchedule).toHaveBeenCalledTimes(1);
-    expect(mockDispose).toHaveBeenCalledTimes(1);
+    expect(mockDispose).not.toHaveBeenCalled();
 
     const [requests, scheduledSignal] = mockSchedule.mock.calls[0];
     expect(requests).toEqual([
@@ -180,28 +198,10 @@ describe('createClaudeSubscriptionToolExecutor', () => {
     expect(result.content).toContain('ENOENT');
   });
 
-  it('two calls to the executor produce two independent Scheduler instances, each disposed — no shared/leaked scheduler state', async () => {
-    mockSchedule.mockResolvedValue([
-      {
-        status: CoreToolCallStatus.Success,
-        request: {
-          callId: 'x',
-          name: 't',
-          args: {},
-          isClientInitiated: false,
-          prompt_id: 'prompt-1',
-        },
-        tool: {} as never,
-        invocation: {} as never,
-        response: {
-          callId: 'x',
-          responseParts: [],
-          resultDisplay: undefined,
-          error: undefined,
-          errorType: undefined,
-        },
-      },
-    ]);
+  it('reuses ONE Scheduler instance across every call from the same executor, tagged PROVIDER_INTERNAL_SCHEDULER_ID, so the UI sees the whole turn under one scheduler', async () => {
+    mockSchedule
+      .mockResolvedValueOnce([successResult('x')])
+      .mockResolvedValueOnce([successResult('y')]);
 
     const executor = createClaudeSubscriptionToolExecutor(
       mockConfig,
@@ -211,12 +211,48 @@ describe('createClaudeSubscriptionToolExecutor', () => {
     await executor({ toolName: 't', args: {}, toolCallId: 't:0' });
     await executor({ toolName: 't', args: {}, toolCallId: 't:1' });
 
+    // Exactly one Scheduler was constructed for the whole turn, not one per call.
+    expect(Scheduler).toHaveBeenCalledTimes(1);
+    expect(mockSchedule).toHaveBeenCalledTimes(2);
+
+    const options = vi.mocked(Scheduler).mock.calls[0][0] as {
+      schedulerId: string;
+    };
+    expect(options.schedulerId).toBe(PROVIDER_INTERNAL_SCHEDULER_ID);
+  });
+
+  it('disposes the turn Scheduler when the turn AbortSignal fires, never mid-turn', async () => {
+    mockSchedule.mockResolvedValue([successResult('x')]);
+    const controller = new AbortController();
+
+    const executor = createClaudeSubscriptionToolExecutor(
+      mockConfig,
+      'prompt-1',
+      controller.signal,
+    );
+    await executor({ toolName: 't', args: {}, toolCallId: 't:0' });
+    expect(mockDispose).not.toHaveBeenCalled();
+
+    controller.abort();
+    expect(mockDispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('two separate executors (e.g. two different turns) get two independent Scheduler instances', async () => {
+    mockSchedule.mockResolvedValue([successResult('x')]);
+
+    const executorA = createClaudeSubscriptionToolExecutor(
+      mockConfig,
+      'prompt-1',
+      signal,
+    );
+    const executorB = createClaudeSubscriptionToolExecutor(
+      mockConfig,
+      'prompt-2',
+      new AbortController().signal,
+    );
+    await executorA({ toolName: 't', args: {}, toolCallId: 't:0' });
+    await executorB({ toolName: 't', args: {}, toolCallId: 't:0' });
+
     expect(Scheduler).toHaveBeenCalledTimes(2);
-    expect(mockDispose).toHaveBeenCalledTimes(2);
-    // Distinct schedulerId per call — never reused across calls.
-    const ids = vi
-      .mocked(Scheduler)
-      .mock.calls.map((c) => (c[0] as { schedulerId: string }).schedulerId);
-    expect(new Set(ids).size).toBe(2);
   });
 });

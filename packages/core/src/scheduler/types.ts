@@ -21,6 +21,22 @@ import { type ApprovalMode } from '../policy/types.js';
 export const ROOT_SCHEDULER_ID = 'root';
 
 /**
+ * Scheduler ID used for tool calls that a provider's own agentic loop (e.g.
+ * the Claude Agent SDK subprocess backing "Claude Subscription") executes
+ * via PLUMB's tool-authority bridge instead of PLUMB's own top-level
+ * function-calling loop. These are NOT background subagent activity -- they
+ * are the main turn's own tool use, just reached through a different
+ * transport -- so the interactive UI must treat them like `ROOT_SCHEDULER_ID`
+ * (always visible) rather than the "hidden unless awaiting approval"
+ * treatment reserved for real subagents. Kept distinct from
+ * `ROOT_SCHEDULER_ID` because these calls never flow through PLUMB's own
+ * response-reinjection step (see `useGeminiStream`'s `markToolsAsSubmitted`),
+ * so the UI layer needs to tell them apart to avoid treating them as
+ * perpetually "not yet submitted".
+ */
+export const PROVIDER_INTERNAL_SCHEDULER_ID = 'provider-internal';
+
+/**
  * Internal core statuses for the tool call state machine.
  */
 export enum CoreToolCallStatus {

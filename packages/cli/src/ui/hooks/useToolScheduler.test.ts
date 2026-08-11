@@ -19,6 +19,7 @@ import {
   type AnyDeclarativeTool,
   type AnyToolInvocation,
   ROOT_SCHEDULER_ID,
+  PROVIDER_INTERNAL_SCHEDULER_ID,
   CoreToolCallStatus,
   type WaitingToolCall,
   SubagentState,
@@ -530,6 +531,154 @@ describe('useToolScheduler', () => {
     // The subagent list should now be empty because the previously approved tool
     // is gone from the current list, and the new tool doesn't need approval.
     expect(result.current[0]).toHaveLength(0);
+  });
+
+  it('shows PROVIDER_INTERNAL_SCHEDULER_ID tool calls immediately, even when auto-approved (never hidden like a subagent)', async () => {
+    // Regression: the Claude Subscription tool-authority bridge executes
+    // ordinary auto-approved reads/searches under PROVIDER_INTERNAL_SCHEDULER_ID.
+    // Before this fix, any non-ROOT_SCHEDULER_ID was treated as a background
+    // subagent and hidden unless it needed approval, so these never appeared
+    // in the terminal UI even though they really executed.
+    const { result } = await renderHook(() =>
+      useToolScheduler(
+        vi.fn().mockResolvedValue(undefined),
+        mockConfig,
+        () => undefined,
+      ),
+    );
+
+    const autoApprovedCall = {
+      status: CoreToolCallStatus.Executing as const,
+      request: {
+        callId: 'claude-subscription:p1:0:read_file',
+        name: 'read_file',
+        args: {},
+        isClientInitiated: false,
+        prompt_id: 'p1',
+      },
+      tool: createMockTool({ name: 'read_file' }),
+      invocation: createMockInvocation(),
+      schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+    } as ExecutingToolCall;
+
+    act(() => {
+      void mockMessageBus.publish({
+        type: MessageBusType.TOOL_CALLS_UPDATE,
+        toolCalls: [autoApprovedCall],
+        schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+      } as ToolCallsUpdateMessage);
+    });
+
+    const [toolCalls] = result.current;
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0].request.callId).toBe(
+      'claude-subscription:p1:0:read_file',
+    );
+  });
+
+  it('accumulates multiple PROVIDER_INTERNAL_SCHEDULER_ID calls across the turn instead of replacing the previous one', async () => {
+    const { result } = await renderHook(() =>
+      useToolScheduler(
+        vi.fn().mockResolvedValue(undefined),
+        mockConfig,
+        () => undefined,
+      ),
+    );
+
+    const call1 = {
+      status: CoreToolCallStatus.Success as const,
+      request: {
+        callId: 'call-1',
+        name: 'list_directory',
+        args: {},
+        isClientInitiated: false,
+        prompt_id: 'p1',
+      },
+      tool: createMockTool({ name: 'list_directory' }),
+      invocation: createMockInvocation(),
+      response: {
+        callId: 'call-1',
+        resultDisplay: 'OK',
+        responseParts: [],
+        error: undefined,
+        errorType: undefined,
+      },
+      schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+    };
+
+    const call2 = {
+      status: CoreToolCallStatus.Executing as const,
+      request: {
+        callId: 'call-2',
+        name: 'read_file',
+        args: {},
+        isClientInitiated: false,
+        prompt_id: 'p1',
+      },
+      tool: createMockTool({ name: 'read_file' }),
+      invocation: createMockInvocation(),
+      schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+    };
+
+    act(() => {
+      // The real Scheduler's snapshot accumulates completed + active + queued
+      // calls for the scheduler's lifetime, so a later broadcast includes both.
+      void mockMessageBus.publish({
+        type: MessageBusType.TOOL_CALLS_UPDATE,
+        toolCalls: [call1, call2],
+        schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+      } as ToolCallsUpdateMessage);
+    });
+
+    const [toolCalls] = result.current;
+    expect(toolCalls).toHaveLength(2);
+    expect(toolCalls.find((t) => t.request.callId === 'call-1')).toBeDefined();
+    expect(toolCalls.find((t) => t.request.callId === 'call-2')).toBeDefined();
+  });
+
+  it('auto-marks terminal PROVIDER_INTERNAL_SCHEDULER_ID calls as responseSubmittedToGemini so streaming state does not get stuck', async () => {
+    // These calls never flow through this hook's own markToolsAsSubmitted
+    // reinjection step (the provider's own agentic loop already consumed
+    // the result). Without the auto-mark, calculateStreamingState would
+    // treat them as forever "still responding".
+    const { result } = await renderHook(() =>
+      useToolScheduler(
+        vi.fn().mockResolvedValue(undefined),
+        mockConfig,
+        () => undefined,
+      ),
+    );
+
+    const completedCall = {
+      status: CoreToolCallStatus.Success as const,
+      request: {
+        callId: 'call-1',
+        name: 'read_file',
+        args: {},
+        isClientInitiated: false,
+        prompt_id: 'p1',
+      },
+      tool: createMockTool({ name: 'read_file' }),
+      invocation: createMockInvocation(),
+      response: {
+        callId: 'call-1',
+        resultDisplay: 'OK',
+        responseParts: [],
+        error: undefined,
+        errorType: undefined,
+      },
+      schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+    };
+
+    act(() => {
+      void mockMessageBus.publish({
+        type: MessageBusType.TOOL_CALLS_UPDATE,
+        toolCalls: [completedCall],
+        schedulerId: PROVIDER_INTERNAL_SCHEDULER_ID,
+      } as ToolCallsUpdateMessage);
+    });
+
+    expect(result.current[0][0].responseSubmittedToGemini).toBe(true);
   });
 
   it('adapts success/error status to executing when a tail call is present', async () => {
