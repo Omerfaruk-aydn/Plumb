@@ -73,6 +73,16 @@ export const RewindViewer: React.FC<RewindViewerProps> = ({
     [conversation.messages],
   );
 
+  // F9 (PLUMB-UI-DEVRIM-PROMPT.md): a compact "at a glance" scrubber bar
+  // above the existing turn list. Purely a summary of state RewindViewer
+  // already computes (getStats per turn, the highlighted turn) -- it adds
+  // no new interaction mode of its own, since the list below remains the
+  // one source of truth for navigation and selection.
+  const highlightedTurnIndex = useMemo(
+    () => interactions.findIndex((m) => m.id === highlightedMessageId),
+    [interactions, highlightedMessageId],
+  );
+
   const items = useMemo(() => {
     const interactionItems = interactions.map((msg, idx) => ({
       key: `${msg.id || 'msg'}-${idx}`,
@@ -231,6 +241,40 @@ export const RewindViewer: React.FC<RewindViewerProps> = ({
       <Box marginBottom={1}>
         <Text bold>{'> '}Rewind</Text>
       </Box>
+
+      {interactions.length > 0 && (
+        <Box marginBottom={1}>
+          <Text color={theme.text.secondary}>
+            Turn{' '}
+            {highlightedTurnIndex >= 0
+              ? highlightedTurnIndex + 1
+              : interactions.length}
+            /{interactions.length}
+            {'  '}
+          </Text>
+          <Text wrap="truncate-end">
+            {interactions.map((msg, i) => {
+              const hasChanges = !!getStats(msg);
+              const isCurrent = i === highlightedTurnIndex;
+              return (
+                <Text
+                  key={msg.id ?? i}
+                  bold={isCurrent}
+                  color={
+                    isCurrent
+                      ? theme.text.accent
+                      : hasChanges
+                        ? theme.status.success
+                        : theme.text.secondary
+                  }
+                >
+                  {isCurrent ? '◆' : hasChanges ? '●' : '·'}
+                </Text>
+              );
+            })}
+          </Text>
+        </Box>
+      )}
 
       <Box flexDirection="column" flexGrow={1}>
         <BaseSelectionList

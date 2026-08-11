@@ -141,6 +141,53 @@ describe('RewindViewer', () => {
     });
   });
 
+  describe('Timeline Scrubber (F9)', () => {
+    it('shows a glyph per turn, marking turns with file changes and the highlighted turn', async () => {
+      const conversation = createConversation([
+        { type: 'user', content: 'Q1 no edits', id: '1', timestamp: '1' },
+        { type: 'user', content: 'Q2 no edits', id: '2', timestamp: '1' },
+        { type: 'user', content: 'Q3 no edits', id: '3', timestamp: '1' },
+      ]);
+      const { lastFrame, stdin, waitUntilReady, unmount } =
+        await renderWithProviders(
+          <RewindViewer
+            conversation={conversation}
+            onExit={vi.fn()}
+            onRewind={vi.fn()}
+          />,
+        );
+
+      // Before any navigation, nothing is highlighted yet -- the counter
+      // falls back to the total turn count.
+      expect(lastFrame()).toContain('Turn 3/3');
+
+      // Move up once: highlights the last real turn (index 2, "Turn 3").
+      act(() => {
+        stdin.write('\x1b[A');
+      });
+      await waitUntilReady();
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('Turn 3/3');
+        expect(lastFrame()).toContain('◆');
+      });
+      unmount();
+    });
+
+    it('does not render a timeline bar for an empty conversation', async () => {
+      const conversation = createConversation([]);
+      const { lastFrame, unmount } = await renderWithProviders(
+        <RewindViewer
+          conversation={conversation}
+          onExit={vi.fn()}
+          onRewind={vi.fn()}
+        />,
+      );
+      expect(lastFrame()).not.toContain('Turn');
+      unmount();
+    });
+  });
+
   it('updates selection and expansion on navigation', async () => {
     const longText1 = 'Line A\nLine B\nLine C\nLine D\nLine E\nLine F\nLine G';
     const longText2 = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7';

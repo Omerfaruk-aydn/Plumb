@@ -5,6 +5,8 @@ exports[`RewindViewer > Content Filtering > 'removes reference markers' 1`] = `
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
+│                                                                                                  │
 │   some command @file                                                                             │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -23,6 +25,8 @@ exports[`RewindViewer > Content Filtering > 'strips expanded MCP resource conten
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
+│                                                                                                  │
 │   read @server3:mcp://demo-resource hello                                                        │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -40,6 +44,8 @@ exports[`RewindViewer > Content Filtering > 'uses displayContent if present and 
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
 │                                                                                                  │
 │   clean display content                                                                          │
 │   No files have been changed                                                                     │
@@ -91,6 +97,8 @@ exports[`RewindViewer > Navigation > handles 'down' navigation > after-down 1`] 
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 3/3  ···                                                                                    │
+│                                                                                                  │
 │   Q1                                                                                             │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -114,6 +122,8 @@ exports[`RewindViewer > Navigation > handles 'up' navigation > after-up 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 3/3  ··◆                                                                                    │
 │                                                                                                  │
 │   Q1                                                                                             │
 │   No files have been changed                                                                     │
@@ -139,6 +149,8 @@ exports[`RewindViewer > Navigation > handles cyclic navigation > cyclic-down 1`]
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 3/3  ···                                                                                    │
+│                                                                                                  │
 │   Q1                                                                                             │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -162,6 +174,8 @@ exports[`RewindViewer > Navigation > handles cyclic navigation > cyclic-up 1`] =
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 3/3  ··◆                                                                                    │
 │                                                                                                  │
 │   Q1                                                                                             │
 │   No files have been changed                                                                     │
@@ -187,6 +201,8 @@ exports[`RewindViewer > Rendering > renders 'a single interaction' 1`] = `
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
+│                                                                                                  │
 │   Hello                                                                                          │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -204,6 +220,8 @@ exports[`RewindViewer > Rendering > renders 'full text for selected item' 1`] = 
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
 │                                                                                                  │
 │   1                                                                                              │
 │   2...                                                                                           │
@@ -239,6 +257,8 @@ exports[`RewindViewer > updates content when conversation changes (background up
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 2/2  ··                                                                                     │
+│                                                                                                  │
 │   Message 1                                                                                      │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -260,6 +280,8 @@ exports[`RewindViewer > updates content when conversation changes (background up
 │                                                                                                  │
 │ > Rewind                                                                                         │
 │                                                                                                  │
+│ Turn 1/1  ·                                                                                      │
+│                                                                                                  │
 │   Message 1                                                                                      │
 │   No files have been changed                                                                     │
 │                                                                                                  │
@@ -277,6 +299,8 @@ exports[`RewindViewer > updates selection and expansion on navigation > after-do
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 2/2  ··                                                                                     │
 │                                                                                                  │
 │   Line A                                                                                         │
 │   Line B...                                                                                      │
@@ -300,6 +324,8 @@ exports[`RewindViewer > updates selection and expansion on navigation > initial-
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
 │ > Rewind                                                                                         │
+│                                                                                                  │
+│ Turn 2/2  ··                                                                                     │
 │                                                                                                  │
 │   Line A                                                                                         │
 │   Line B...                                                                                      │
