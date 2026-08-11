@@ -752,6 +752,7 @@ describe('getClaudeSubscriptionModels', () => {
         maxTokens: 32_000,
         reasoning: false,
         source: 'ACCOUNT_DYNAMIC',
+        limitsSource: 'GENERIC_FLOOR',
       },
     ]);
   });

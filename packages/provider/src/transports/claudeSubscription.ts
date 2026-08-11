@@ -473,6 +473,17 @@ export interface ClaudeSubscriptionModelMetadata {
   maxTokens: number;
   reasoning: boolean;
   source: 'OFFICIAL_STATIC_METADATA' | 'ACCOUNT_DYNAMIC';
+  /**
+   * Whether `contextWindow`/`maxTokens` above are a real, model-specific
+   * pinned reference (`PINNED_REFERENCE`, from this file's
+   * CLAUDE_SUBSCRIPTION_MODELS table) or the generic, non-model-specific
+   * generation floor (`GENERIC_FLOOR`, CLAUDE_GENERATION_CONTEXT_WINDOW /
+   * CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR) used only because a live-
+   * discovered id had no matching table entry. Consumers (the universal
+   * inventory) MUST NOT report a GENERIC_FLOOR value as the model's true
+   * contextWindow/maxOutputTokens — it is a safety budget, not metadata.
+   */
+  limitsSource: 'PINNED_REFERENCE' | 'GENERIC_FLOOR';
 }
 
 /**
@@ -491,6 +502,7 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
       maxTokens: 32_000,
       reasoning: true,
       source: 'OFFICIAL_STATIC_METADATA',
+      limitsSource: 'PINNED_REFERENCE',
     },
     {
       id: 'claude-sonnet-5',
@@ -499,6 +511,7 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
       maxTokens: 64_000,
       reasoning: true,
       source: 'OFFICIAL_STATIC_METADATA',
+      limitsSource: 'PINNED_REFERENCE',
     },
   ];
 
@@ -650,10 +663,17 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
         return {
           id: info.value,
           name: info.displayName ?? info.value,
+          // Not a per-model pinned reference — no table entry matched this
+          // live-discovered id. These are the generic Claude-4.x-generation
+          // floor values, kept here ONLY as a transport-side outbound
+          // safety budget. limitsSource: 'GENERIC_FLOOR' tells downstream
+          // consumers (universal inventory) to report UNKNOWN rather than
+          // this number as the model's true contextWindow/maxOutputTokens.
           contextWindow: CLAUDE_GENERATION_CONTEXT_WINDOW,
           maxTokens: CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR,
           reasoning: /reasoning|thinking/i.test(info.description ?? ''),
           source: 'ACCOUNT_DYNAMIC',
+          limitsSource: 'GENERIC_FLOOR',
         };
       });
     return { models, source: 'ACCOUNT_DYNAMIC' };

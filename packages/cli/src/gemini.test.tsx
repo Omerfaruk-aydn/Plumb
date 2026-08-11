@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
@@ -587,6 +587,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseCredentialScope: undefined,
       diagnoseProviderModels: undefined,
       diagnoseModelLimits: undefined,
+      diagnoseModelLimitsProvider: undefined,
+      diagnoseModelLimitsSummary: undefined,
     });
 
     await act(async () => {
@@ -665,6 +667,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseCredentialScope: undefined,
       diagnoseProviderModels: undefined,
       diagnoseModelLimits: undefined,
+      diagnoseModelLimitsProvider: undefined,
+      diagnoseModelLimitsSummary: undefined,
     });
 
     await act(async () => {

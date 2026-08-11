@@ -119,6 +119,8 @@ export interface CliArgs {
   diagnoseModels: string | undefined;
   diagnoseProviderModels: string | undefined;
   diagnoseModelLimits: boolean | undefined;
+  diagnoseModelLimitsProvider: string | undefined;
+  diagnoseModelLimitsSummary: boolean | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
   codingPlanStatus: boolean | undefined;
@@ -549,7 +551,20 @@ export async function parseArguments(
         .option('diagnose-model-limits', {
           type: 'boolean',
           description:
-            'Print safe per-model limits authority (contextWindow / maxOutputTokens, with provenance: REGISTRY_DISCOVERY | BUNDLED_CATALOG | PINNED_REFERENCE | BUILTIN_GEMINI | TOKEN_LIMIT_DEFAULT | UNKNOWN) for every active model. Never exposes credentials. Usage: plumb --diagnose-model-limits',
+            'Print safe per-model limits authority (contextWindow / maxOutputTokens, with provenance: REGISTRY_DISCOVERY | BUNDLED_CATALOG | PINNED_REFERENCE | BUILTIN_GEMINI | TOKEN_LIMIT_DEFAULT | UNKNOWN) for every active model. Never exposes credentials. Filters the already-built immutable inventory snapshot — never builds a second metadata authority. Usage: plumb --diagnose-model-limits [--provider <id>] [--model <id>] [--summary]',
+        })
+        .option('diagnose-model-limits-provider', {
+          alias: 'provider',
+          type: 'string',
+          nargs: 1,
+          description:
+            "With --diagnose-model-limits, restrict output to a single provider id. Prints that provider's header even when its model count is 0. Usage: plumb --diagnose-model-limits --provider <provider-id>",
+        })
+        .option('diagnose-model-limits-summary', {
+          alias: 'summary',
+          type: 'boolean',
+          description:
+            'With --diagnose-model-limits, print only the compact counts summary (registered/configured/selectable providers, models.context/output known+unknown, one provider=... line per provider) — no individual model rows. Usage: plumb --diagnose-model-limits --summary',
         })
         .option('diagnose-auth-state', {
           type: 'boolean',

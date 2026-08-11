@@ -1245,13 +1245,21 @@ async function runProviderLiveProbe(
     try {
       const sdk = await providerModule.getClaudeSubscriptionModels?.();
       if (sdk && Array.isArray(sdk.models)) {
-        liveModels = sdk.models.map((m) => ({
-          id: m.id,
-          name: m.name,
-          contextWindow: m.contextWindow,
-          maxTokens: m.maxTokens,
-          source: m.source,
-        }));
+        liveModels = sdk.models.map(
+          (m: {
+            id: string;
+            name: string;
+            contextWindow: number;
+            maxTokens: number;
+            source: string;
+          }) => ({
+            id: m.id,
+            name: m.name,
+            contextWindow: m.contextWindow,
+            maxTokens: m.maxTokens,
+            source: m.source,
+          }),
+        );
         liveSource =
           sdk.source === 'ACCOUNT_DYNAMIC'
             ? 'ACCOUNT_DYNAMIC'
@@ -1373,20 +1381,68 @@ export interface ModelLimitsDiagnosticsResult {
   failures: string[];
 }
 
-function fmtContext(
-  value: number | undefined,
-  source: string,
-): string {
+function fmtContext(value: number | undefined, source: string): string {
   return `${value ?? 'UNKNOWN'} (${source})`;
+}
+
+export interface ModelLimitsDiagnosticsFilter {
+  /** Filter to a single provider id. Filters the already-built immutable
+   * UniversalModelInventory snapshot — never builds a second metadata
+   * authority. */
+  provider?: string;
+  /** Filter to a single model id (exact match). */
+  model?: string;
+  /** Print only the compact summary (no individual model rows). */
+  summary?: boolean;
+}
+
+function summaryToLines(inv: UniversalModelInventory): string[] {
+  const lines: string[] = [];
+  lines.push('PLUMB universal model metadata diagnostics (summary)');
+  lines.push(`git.head.embedded: ${inv.build.gitHeadEmbedded}`);
+  lines.push('');
+  lines.push(`registered.providers: ${inv.counts.registeredProviders}`);
+  lines.push(`configured.providers: ${inv.counts.configuredProviders}`);
+  lines.push(`selectable.providers: ${inv.counts.selectableProviders}`);
+  lines.push('');
+  lines.push(`models.total: ${inv.counts.totalModels}`);
+  lines.push(`models.context.known: ${inv.counts.contextKnown}`);
+  lines.push(`models.context.unknown: ${inv.counts.contextUnknown}`);
+  lines.push(`models.output.known: ${inv.counts.outputKnown}`);
+  lines.push(`models.output.unknown: ${inv.counts.outputUnknown}`);
+  lines.push('');
+  const modelCountByProvider = new Map<string, number>();
+  for (const m of inv.models) {
+    modelCountByProvider.set(
+      m.providerId,
+      (modelCountByProvider.get(m.providerId) ?? 0) + 1,
+    );
+  }
+  // Declared provider order (same order the inventory emits) so the
+  // summary is byte-stable across two runs of the same state.
+  for (const p of inv.providers) {
+    const modelCount = modelCountByProvider.get(p.providerId) ?? 0;
+    lines.push(
+      `provider=${p.providerId} modelCount=${modelCount} configured=${p.configured} discovery=${p.authState ?? 'n/a'}`,
+    );
+  }
+  return lines;
 }
 
 function inventoryToLines(
   inv: UniversalModelInventory,
+  filter?: ModelLimitsDiagnosticsFilter,
 ): string[] {
   const lines: string[] = [];
   lines.push('PLUMB universal model metadata diagnostics');
   lines.push(`git.head.embedded: ${inv.build.gitHeadEmbedded}`);
   lines.push(`captured.at.ms: ${inv.build.capturedAt}`);
+  if (filter?.provider) {
+    lines.push(`filter.provider: ${filter.provider}`);
+  }
+  if (filter?.model) {
+    lines.push(`filter.model: ${filter.model}`);
+  }
   lines.push('');
   lines.push('summary:');
   lines.push(`  registered.providers: ${inv.counts.registeredProviders}`);
@@ -1394,23 +1450,16 @@ function inventoryToLines(
   lines.push(`  configured.providers: ${inv.counts.configuredProviders}`);
   lines.push('');
   lines.push('  models.total: ' + inv.counts.totalModels);
+  lines.push('  models.identity.bundled: ' + inv.counts.identityBundledCatalog);
+  lines.push('  models.identity.pinned: ' + inv.counts.identityPinnedReference);
   lines.push(
-    '  models.identity.bundled: ' + inv.counts.identityBundledCatalog,
+    '  models.identity.providerDynamic: ' + inv.counts.identityProviderDynamic,
   );
   lines.push(
-    '  models.identity.pinned: ' + inv.counts.identityPinnedReference,
+    '  models.identity.accountDynamic: ' + inv.counts.identityAccountDynamic,
   );
   lines.push(
-    '  models.identity.providerDynamic: ' +
-      inv.counts.identityProviderDynamic,
-  );
-  lines.push(
-    '  models.identity.accountDynamic: ' +
-      inv.counts.identityAccountDynamic,
-  );
-  lines.push(
-    '  models.identity.userConfigured: ' +
-      inv.counts.identityUserConfigured,
+    '  models.identity.userConfigured: ' + inv.counts.identityUserConfigured,
   );
   lines.push(
     '  models.identity.userConfiguredDeployment: ' +
@@ -1433,7 +1482,10 @@ function inventoryToLines(
   // Print providers in declared order (the same order the inventory
   // emits them) so the output is byte-stable across two runs of the
   // same state.
-  for (const p of inv.providers) {
+  const providersToPrint = filter?.provider
+    ? inv.providers.filter((p) => p.providerId === filter.provider)
+    : inv.providers;
+  for (const p of providersToPrint) {
     lines.push(`[${p.providerId}]`);
     lines.push(`  registered: ${p.registered}`);
     lines.push(`  configured: ${p.configured}`);
@@ -1442,7 +1494,10 @@ function inventoryToLines(
     lines.push(`  has.credential: ${p.hasCredential}`);
     lines.push(`  bundledModelCount: ${p.bundledModelCount}`);
     lines.push(`  knownModelCount: ${p.knownModelCount}`);
-    const list = byProvider.get(p.providerId) ?? [];
+    let list = byProvider.get(p.providerId) ?? [];
+    if (filter?.model) {
+      list = list.filter((m) => m.modelId === filter.model);
+    }
     if (list.length === 0) {
       lines.push('  models: (none)');
     } else {
@@ -1459,6 +1514,11 @@ function inventoryToLines(
         lines.push(
           `    maxOutput: ${fmtContext(m.maxOutputTokens, m.maxOutputSource)}`,
         );
+        if (typeof m.requestSafetyMaxOutput === 'number') {
+          lines.push(
+            `    requestSafetyMaxOutput: ${m.requestSafetyMaxOutput} (NOT the model's true maxOutputTokens)`,
+          );
+        }
         if (typeof m.maxInputTokens === 'number') {
           lines.push(
             `    maxInput: ${fmtContext(m.maxInputTokens, m.inputSource)}`,
@@ -1487,14 +1547,28 @@ function inventoryToLines(
   return lines;
 }
 
-export async function buildModelLimitsDiagnostics(): Promise<ModelLimitsDiagnosticsResult> {
+export async function buildModelLimitsDiagnostics(
+  filter?: ModelLimitsDiagnosticsFilter,
+): Promise<ModelLimitsDiagnosticsResult> {
   const lines: string[] = [];
   const failures: string[] = [];
   try {
     const inv = await buildUniversalModelInventory({
       build: { gitHead: BUILD_IDENTITY.gitHead },
     });
-    lines.push(...inventoryToLines(inv));
+    if (
+      filter?.provider &&
+      !inv.providers.some((p) => p.providerId === filter.provider)
+    ) {
+      failures.push(
+        `Unknown provider id: ${filter.provider} (not in the registered provider set)`,
+      );
+    }
+    lines.push(
+      ...(filter?.summary
+        ? summaryToLines(inv)
+        : inventoryToLines(inv, filter)),
+    );
   } catch (err) {
     failures.push(
       `Failed to build model-limits diagnostics: ${err instanceof Error ? err.message : String(err)}`,
@@ -1503,8 +1577,10 @@ export async function buildModelLimitsDiagnostics(): Promise<ModelLimitsDiagnost
   return { lines, failures };
 }
 
-export async function printModelLimitsDiagnostics(): Promise<number> {
-  const { lines, failures } = await buildModelLimitsDiagnostics();
+export async function printModelLimitsDiagnostics(
+  filter?: ModelLimitsDiagnosticsFilter,
+): Promise<number> {
+  const { lines, failures } = await buildModelLimitsDiagnostics(filter);
   for (const line of lines) {
     process.stdout.write(`${line}\n`);
   }

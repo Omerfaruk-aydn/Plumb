@@ -35,34 +35,38 @@ import {
   type PlumbProvider,
   type PlumbProviderId,
   type PlumbKnownApi,
-} from "../types.js";
+} from '../types.js';
 import {
   SELECTABLE_PROVIDERS,
   getPlumbProvider,
 } from '../catalog/providers.js';
-import { listCustomPlumbProviders, listCustomProviderDefinitions, customDefinitionToModels } from '../config/customProviderDefinitions.js';
-import { getCatalogModels } from "../catalog/model-catalog.js";
-import { getBundledProviders } from "../omp-catalog/models.js";
+import {
+  listCustomPlumbProviders,
+  listCustomProviderDefinitions,
+  customDefinitionToModels,
+} from '../config/customProviderDefinitions.js';
+import { getCatalogModels } from '../catalog/model-catalog.js';
+import { getBundledProviders } from '../omp-catalog/models.js';
 
 // Identity provenance enum
 export type ModelIdentitySource =
-  | "BUNDLED_CATALOG"
-  | "PINNED_REFERENCE"
-  | "PROVIDER_DYNAMIC"
-  | "ACCOUNT_DYNAMIC"
-  | "USER_CONFIGURED"
-  | "USER_CONFIGURED_DEPLOYMENT"
-  | "UNKNOWN";
+  | 'BUNDLED_CATALOG'
+  | 'PINNED_REFERENCE'
+  | 'PROVIDER_DYNAMIC'
+  | 'ACCOUNT_DYNAMIC'
+  | 'USER_CONFIGURED'
+  | 'USER_CONFIGURED_DEPLOYMENT'
+  | 'UNKNOWN';
 
 export type ModelLimitSource =
-  | "BUNDLED_CATALOG"
-  | "PINNED_REFERENCE"
-  | "REGISTRY_DISCOVERY"
-  | "OMP_CATALOG"
-  | "BUILTIN_GEMINI"
-  | "TOKEN_LIMIT_DEFAULT"
-  | "PROVIDER_DEFAULT"
-  | "UNKNOWN";
+  | 'BUNDLED_CATALOG'
+  | 'PINNED_REFERENCE'
+  | 'REGISTRY_DISCOVERY'
+  | 'OMP_CATALOG'
+  | 'BUILTIN_GEMINI'
+  | 'TOKEN_LIMIT_DEFAULT'
+  | 'PROVIDER_DEFAULT'
+  | 'UNKNOWN';
 
 // ResolvedModelMetadata
 export interface ResolvedModelMetadata {
@@ -86,6 +90,14 @@ export interface ResolvedModelMetadata {
   configured: boolean;
   discoveryAttempted: boolean;
   fetchedAt?: number;
+  /**
+   * Transport-side outbound safety budget for `maxOutputTokens` when the
+   * real value is UNKNOWN (e.g. Claude Subscription's generic
+   * Claude-4.x-generation floor for a live-discovered model id with no
+   * pinned reference entry). NEVER the model's true max output — only
+   * ever set alongside `maxOutputSource: 'UNKNOWN'`.
+   */
+  requestSafetyMaxOutput?: number;
 }
 
 export interface UniversalProviderEntry {
@@ -161,33 +173,53 @@ function isSelectableProvider(p: PlumbProvider): boolean {
 }
 
 // Build a per-model resolved metadata from a bundled-catalog PlumbModel
-// entry. The catalog is the source of truth for identity + contextWindow
-// + maxTokens + pricing. Provenance is recorded per-field, NOT
-// derived from the catalog-level source field.
+// entry. The catalog is the source of truth for contextWindow + maxTokens
+// + pricing. Provenance is recorded per-field, NOT derived from the
+// catalog-level source field.
+//
+// `providerId` is the canonical PLUMB presentation id the caller is
+// grouping under (e.g. "antigravity", "anthropic-api") -- NEVER `m.provider`
+// directly. The bundled/OMP catalog record's own `provider` field may carry
+// a different underlying OMP registry id (e.g. antigravity's OMP backing is
+// "google-antigravity", anthropic-api's is "anthropic") and using it here
+// would silently orphan the model under a provider section that either
+// doesn't exist in the inventory or belongs to a different PLUMB provider
+// entirely -- exactly the "model count shows 0 / models missing" bug this
+// resolver must not reproduce.
 function resolveFromBundledCatalog(
   m: PlumbModel,
+  providerId: string,
   providerName: string,
   registered: boolean,
   configured: boolean,
   discoveryAttempted: boolean,
+  identitySource: ModelIdentitySource = 'BUNDLED_CATALOG',
 ): ResolvedModelMetadata {
   return {
-    providerId: m.provider,
+    providerId: providerId as PlumbProviderId,
     providerName,
     modelId: m.id,
     wireModelId: m.requestModelId,
     api: m.api,
-    identitySource: 'BUNDLED_CATALOG',
+    identitySource,
     contextSource:
       typeof m.contextWindow === 'number' && m.contextWindow > 0
-        ? 'BUNDLED_CATALOG'
+        ? identitySource === 'PROVIDER_DYNAMIC'
+          ? 'REGISTRY_DISCOVERY'
+          : 'BUNDLED_CATALOG'
         : 'UNKNOWN',
     inputSource: 'UNKNOWN',
     maxOutputSource:
       typeof m.maxTokens === 'number' && m.maxTokens > 0
-        ? 'BUNDLED_CATALOG'
+        ? identitySource === 'PROVIDER_DYNAMIC'
+          ? 'REGISTRY_DISCOVERY'
+          : 'BUNDLED_CATALOG'
         : 'UNKNOWN',
-    pricingSource: m.pricing ? 'BUNDLED_CATALOG' : 'UNKNOWN',
+    pricingSource: m.pricing
+      ? identitySource === 'PROVIDER_DYNAMIC'
+        ? 'REGISTRY_DISCOVERY'
+        : 'BUNDLED_CATALOG'
+      : 'UNKNOWN',
     contextWindow:
       typeof m.contextWindow === 'number' && m.contextWindow > 0
         ? m.contextWindow
@@ -228,6 +260,14 @@ export interface ClaudeSubscriptionModelIdentity {
   contextWindow?: number;
   maxTokens?: number;
   source: 'ACCOUNT_DYNAMIC' | 'OFFICIAL_STATIC_METADATA';
+  /**
+   * Whether contextWindow/maxTokens are a real per-model pinned reference
+   * or the generic Claude-4.x-generation floor used only as a transport
+   * safety budget. Missing/undefined is treated as NOT pinned (safest
+   * default) — only an explicit 'PINNED_REFERENCE' unlocks reporting the
+   * numeric value as the model's true contextWindow/maxOutputTokens.
+   */
+  limitsSource?: 'PINNED_REFERENCE' | 'GENERIC_FLOOR';
 }
 
 function resolveClaudeSubscriptionModel(
@@ -236,6 +276,13 @@ function resolveClaudeSubscriptionModel(
   configured: boolean,
   discoveryAttempted: boolean,
 ): ResolvedModelMetadata {
+  const isPinned = entry.limitsSource === 'PINNED_REFERENCE';
+  const hasContext =
+    isPinned &&
+    typeof entry.contextWindow === 'number' &&
+    entry.contextWindow > 0;
+  const hasMaxOutput =
+    isPinned && typeof entry.maxTokens === 'number' && entry.maxTokens > 0;
   return {
     providerId: 'claude-subscription',
     providerName: 'Claude Subscription (Agent SDK)',
@@ -245,22 +292,16 @@ function resolveClaudeSubscriptionModel(
       entry.source === 'ACCOUNT_DYNAMIC'
         ? 'ACCOUNT_DYNAMIC'
         : 'PINNED_REFERENCE',
-    contextSource:
-      typeof entry.contextWindow === 'number' && entry.contextWindow > 0
-        ? 'PINNED_REFERENCE'
-        : 'UNKNOWN',
+    contextSource: hasContext ? 'PINNED_REFERENCE' : 'UNKNOWN',
     inputSource: 'UNKNOWN',
-    maxOutputSource:
-      typeof entry.maxTokens === 'number' && entry.maxTokens > 0
-        ? 'PINNED_REFERENCE'
-        : 'UNKNOWN',
+    maxOutputSource: hasMaxOutput ? 'PINNED_REFERENCE' : 'UNKNOWN',
     pricingSource: 'UNKNOWN',
-    contextWindow:
-      typeof entry.contextWindow === 'number' && entry.contextWindow > 0
-        ? entry.contextWindow
-        : undefined,
-    maxOutputTokens:
-      typeof entry.maxTokens === 'number' && entry.maxTokens > 0
+    contextWindow: hasContext ? entry.contextWindow : undefined,
+    maxOutputTokens: hasMaxOutput ? entry.maxTokens : undefined,
+    requestSafetyMaxOutput:
+      !hasMaxOutput &&
+      typeof entry.maxTokens === 'number' &&
+      entry.maxTokens > 0
         ? entry.maxTokens
         : undefined,
     registered,
@@ -319,221 +360,288 @@ export async function buildUniversalModelInventory(
         // Non-fatal: initialize() needs a credential store backend
         // which may not be available in some test environments.
       }
-      activeStates = providerRegistry
-        .getActiveProviderStates()
-        .map((s) => ({
-          provider: s.provider,
-          authState: s.authState,
-          hasCredential: s.credentials !== null,
-        }));
+      activeStates = providerRegistry.getActiveProviderStates().map((s) => ({
+        provider: s.provider,
+        authState: s.authState,
+        hasCredential: s.credentials !== null,
+      }));
     } catch {
       activeStates = [];
     }
   }
   const configuredById = new Map(activeStates.map((s) => [s.provider.id, s]));
 
-// main 3
+  // main 3
 
-
-// main 4: build per-provider bundled model map
-const bundledByProvider = new Map<string, PlumbModel[]>();
-for (const p of registered) {
-  try {
-    const list = context.overrideCatalogModels
-      ? context.overrideCatalogModels(p.id)
-      : getCatalogModels(p.id);
-    bundledByProvider.set(p.id, list);
-  } catch {
-    bundledByProvider.set(p.id, []);
+  // main 4: build per-provider model maps.
+  //
+  // `bundledByProvider` is the PURE static bundled-catalog list (used only
+  // for the `bundledModelCount` stat). `canonicalByProvider` is the SAME
+  // canonical authority the /model dialog itself reads
+  // (`PlumbModelRegistry.getModelsForProvider` -- bundled + any
+  // already-discovered/cached models + custom models). Diagnostics MUST NOT
+  // maintain a second, narrower aggregation: sourcing model rows from the
+  // bundled catalog alone is what silently reported 0 models for
+  // dynamic-discovery-only providers (e.g. antigravity) whose catalog has
+  // no static entries at all. `loadCache` is disk-only (no network, no
+  // credentials) so calling it here stays within this diagnostic's
+  // credential-free contract while still surfacing any discovery a prior,
+  // authenticated interactive session already cached to disk.
+  const bundledByProvider = new Map<string, PlumbModel[]>();
+  const canonicalByProvider = new Map<string, PlumbModel[]>();
+  let modelRegistryForInventory:
+    | import('./model-registry.js').PlumbModelRegistry
+    | undefined;
+  if (!context.overrideCatalogModels) {
+    try {
+      modelRegistryForInventory = (
+        await import('./model-registry.js')
+      ).getPlumbModelRegistry();
+    } catch {
+      modelRegistryForInventory = undefined;
+    }
   }
-}
+  for (const p of registered) {
+    let bundledList: PlumbModel[];
+    try {
+      bundledList = context.overrideCatalogModels
+        ? context.overrideCatalogModels(p.id)
+        : getCatalogModels(p.id);
+    } catch {
+      bundledList = [];
+    }
+    bundledByProvider.set(p.id, bundledList);
 
-// main 5: claude-subscription live models
-let claudeSubscriptionLive: ReadonlyArray<ClaudeSubscriptionModelIdentity> = [];
-if (context.overrideClaudeSubscriptionModels) {
-  claudeSubscriptionLive = context.overrideClaudeSubscriptionModels();
-} else {
-  try {
-    const m = await import("../transports/claudeSubscription.js");
-    const result = await m.getClaudeSubscriptionModels();
-    claudeSubscriptionLive = (result.models as ReadonlyArray<any>).map((mm) => ({
-      id: mm.id,
-      name: mm.name,
-      contextWindow: mm.contextWindow,
-      maxTokens: mm.maxTokens,
-      source: mm.source === "ACCOUNT_DYNAMIC" ? "ACCOUNT_DYNAMIC" as const : "OFFICIAL_STATIC_METADATA" as const,
-    }));
-  } catch {
-    claudeSubscriptionLive = [];
+    if (context.overrideCatalogModels) {
+      canonicalByProvider.set(p.id, bundledList);
+      continue;
+    }
+    if (!modelRegistryForInventory) {
+      canonicalByProvider.set(p.id, bundledList);
+      continue;
+    }
+    try {
+      modelRegistryForInventory.loadCache(p.id as PlumbProviderId);
+    } catch {
+      // Non-fatal: no cache file, or provider isn't cache-eligible.
+    }
+    try {
+      canonicalByProvider.set(
+        p.id,
+        modelRegistryForInventory.getModelsForProvider(p.id as PlumbProviderId),
+      );
+    } catch {
+      canonicalByProvider.set(p.id, bundledList);
+    }
   }
-}
 
-
-// main 6: assemble provider entries
-const providers: UniversalProviderEntry[] = registered.map((p) => {
-  const active = configuredById.get(p.id);
-  const bundledCount = bundledByProvider.get(p.id)?.length ?? 0;
-  // For claude-subscription, the known model count is the live
-  // probe result (if any), not the bundled catalog floor.
-  let knownCount = bundledCount;
-  if (p.id === 'claude-subscription') {
-    knownCount = claudeSubscriptionLive.length || bundledCount;
+  // main 5: claude-subscription live models
+  let claudeSubscriptionLive: ReadonlyArray<ClaudeSubscriptionModelIdentity> =
+    [];
+  if (context.overrideClaudeSubscriptionModels) {
+    claudeSubscriptionLive = context.overrideClaudeSubscriptionModels();
+  } else {
+    try {
+      const m = await import('../transports/claudeSubscription.js');
+      const result = await m.getClaudeSubscriptionModels();
+      claudeSubscriptionLive = (result.models as ReadonlyArray<any>).map(
+        (mm) => ({
+          id: mm.id,
+          name: mm.name,
+          contextWindow: mm.contextWindow,
+          maxTokens: mm.maxTokens,
+          source:
+            mm.source === 'ACCOUNT_DYNAMIC'
+              ? ('ACCOUNT_DYNAMIC' as const)
+              : ('OFFICIAL_STATIC_METADATA' as const),
+          limitsSource: mm.limitsSource,
+        }),
+      );
+    } catch {
+      claudeSubscriptionLive = [];
+    }
   }
-  return {
-    providerId: p.id,
-    providerName: p.name,
-    category: String(p.category ?? 'unknown'),
-    group: p.group ?? undefined,
-    selectable: isSelectableProvider(p),
-    configured: active !== undefined,
-    authState: active?.authState,
-    hasCredential: active?.hasCredential ?? false,
-    bundledModelCount: bundledCount,
-    knownModelCount: knownCount,
-    registered: true,
-  };
-});
 
+  // main 6: assemble provider entries
+  const providers: UniversalProviderEntry[] = registered.map((p) => {
+    const active = configuredById.get(p.id);
+    const bundledCount = bundledByProvider.get(p.id)?.length ?? 0;
+    // knownModelCount reflects the SAME canonical authority the model list
+    // below is built from (bundled + discovered/cached + custom), not the
+    // narrower bundled-only floor -- otherwise this count and the printed
+    // model rows for the same provider section would silently disagree.
+    let knownCount = canonicalByProvider.get(p.id)?.length ?? bundledCount;
+    if (p.id === 'claude-subscription') {
+      knownCount = claudeSubscriptionLive.length || knownCount;
+    }
+    return {
+      providerId: p.id,
+      providerName: p.name,
+      category: String(p.category ?? 'unknown'),
+      group: p.group ?? undefined,
+      selectable: isSelectableProvider(p),
+      configured: active !== undefined,
+      authState: active?.authState,
+      hasCredential: active?.hasCredential ?? false,
+      bundledModelCount: bundledCount,
+      knownModelCount: knownCount,
+      registered: true,
+    };
+  });
 
-// main 7: assemble models. For claude-subscription, the live probe
-// result is authoritative (identity + limits from pinned reference).
-// For all other providers, the bundled catalog is the source of
-// truth, optionally overlaid with whatever the in-memory registry
-// has for the configured subset.
-const models: ResolvedModelMetadata[] = [];
-const capturedAt = context.now ? context.now() : Date.now();
+  // main 7: assemble models. For claude-subscription, the live probe
+  // result is authoritative (identity + limits from pinned reference).
+  // For all other providers, the bundled catalog is the source of
+  // truth, optionally overlaid with whatever the in-memory registry
+  // has for the configured subset.
+  const models: ResolvedModelMetadata[] = [];
+  const capturedAt = context.now ? context.now() : Date.now();
 
-// Claude-subscription: live probe + pinned reference
-for (const entry of claudeSubscriptionLive) {
-  const p = registeredById.get("claude-subscription");
-  models.push(
-    resolveClaudeSubscriptionModel(
-      entry,
-      p !== undefined,
-      configuredById.has("claude-subscription"),
-      true,
-    ),
-  );
-}
-// All other providers: bundled catalog (deduplicated by id+provider)
-const seenModelIds = new Set<string>();
-for (const entry of claudeSubscriptionLive) {
-  seenModelIds.add("claude-subscription:" + entry.id);
-}
-for (const p of registered) {
-  if (p.id === "claude-subscription") continue;
-  const list = bundledByProvider.get(p.id) ?? [];
-  for (const m of list) {
-    const key = p.id + ":" + m.id;
-    if (seenModelIds.has(key)) continue;
-    seenModelIds.add(key);
+  // Claude-subscription: live probe + pinned reference
+  for (const entry of claudeSubscriptionLive) {
+    const p = registeredById.get('claude-subscription');
     models.push(
-      resolveFromBundledCatalog(
-        m,
-        p.name,
+      resolveClaudeSubscriptionModel(
+        entry,
+        p !== undefined,
+        configuredById.has('claude-subscription'),
         true,
-        configuredById.has(p.id),
-        false,
       ),
     );
   }
-}
-
-// User-configured (custom provider) models: source = USER_CONFIGURED
-try {
-  const customModels = listCustomProviderDefinitions()
-    .flatMap((definition) => {
-      try {
-        return customDefinitionToModels(definition);
-      } catch {
-        return [];
-      }
-    });
-  for (const m of customModels as PlumbModel[]) {
-    const key = m.provider + ":" + m.id;
-    if (seenModelIds.has(key)) continue;
-    seenModelIds.add(key);
-    models.push({
-      providerId: m.provider,
-      providerName:
-        registeredById.get(m.provider)?.name ?? m.provider,
-      modelId: m.id,
-      wireModelId: m.requestModelId,
-      identitySource: "USER_CONFIGURED",
-      contextSource:
-        typeof m.contextWindow === "number" && m.contextWindow > 0
-          ? "BUNDLED_CATALOG"
-          : "UNKNOWN",
-      inputSource: "UNKNOWN",
-      maxOutputSource:
-        typeof m.maxTokens === "number" && m.maxTokens > 0
-          ? "BUNDLED_CATALOG"
-          : "UNKNOWN",
-      pricingSource: m.pricing ? "BUNDLED_CATALOG" : "UNKNOWN",
-      contextWindow:
-        typeof m.contextWindow === "number" && m.contextWindow > 0
-          ? m.contextWindow
-          : undefined,
-      maxOutputTokens:
-        typeof m.maxTokens === "number" && m.maxTokens > 0
-          ? m.maxTokens
-          : undefined,
-      pricing: m.pricing,
-      reasoning: m.reasoning,
-      toolsSupported: m.toolsSupported,
-      registered: true,
-      configured: configuredById.has(m.provider),
-      discoveryAttempted: false,
-    });
+  // All other providers: canonical model-registry list (bundled + any
+  // already-discovered/cached models + custom), grouped under the PLUMB
+  // provider id `p.id` -- never the raw catalog record's own `provider`
+  // field, which may carry a different underlying OMP registry id (e.g.
+  // antigravity's OMP backing is "google-antigravity"). Deduplicated by
+  // id+provider.
+  const seenModelIds = new Set<string>();
+  for (const entry of claudeSubscriptionLive) {
+    seenModelIds.add('claude-subscription:' + entry.id);
   }
-} catch {
-  // Non-fatal: custom provider model surface is best-effort.
-}
+  for (const p of registered) {
+    if (p.id === 'claude-subscription') continue;
+    const bundledIds = new Set(
+      (bundledByProvider.get(p.id) ?? []).map((m) => m.id),
+    );
+    const list = canonicalByProvider.get(p.id) ?? [];
+    for (const m of list) {
+      const key = p.id + ':' + m.id;
+      if (seenModelIds.has(key)) continue;
+      seenModelIds.add(key);
+      models.push(
+        resolveFromBundledCatalog(
+          m,
+          p.id,
+          p.name,
+          true,
+          configuredById.has(p.id),
+          false,
+          bundledIds.has(m.id) ? 'BUNDLED_CATALOG' : 'PROVIDER_DYNAMIC',
+        ),
+      );
+    }
+  }
 
+  // User-configured (custom provider) models: source = USER_CONFIGURED
+  try {
+    const customModels = listCustomProviderDefinitions().flatMap(
+      (definition) => {
+        try {
+          return customDefinitionToModels(definition);
+        } catch {
+          return [];
+        }
+      },
+    );
+    for (const m of customModels as PlumbModel[]) {
+      const key = m.provider + ':' + m.id;
+      if (seenModelIds.has(key)) continue;
+      seenModelIds.add(key);
+      models.push({
+        providerId: m.provider,
+        providerName: registeredById.get(m.provider)?.name ?? m.provider,
+        modelId: m.id,
+        wireModelId: m.requestModelId,
+        identitySource: 'USER_CONFIGURED',
+        contextSource:
+          typeof m.contextWindow === 'number' && m.contextWindow > 0
+            ? 'BUNDLED_CATALOG'
+            : 'UNKNOWN',
+        inputSource: 'UNKNOWN',
+        maxOutputSource:
+          typeof m.maxTokens === 'number' && m.maxTokens > 0
+            ? 'BUNDLED_CATALOG'
+            : 'UNKNOWN',
+        pricingSource: m.pricing ? 'BUNDLED_CATALOG' : 'UNKNOWN',
+        contextWindow:
+          typeof m.contextWindow === 'number' && m.contextWindow > 0
+            ? m.contextWindow
+            : undefined,
+        maxOutputTokens:
+          typeof m.maxTokens === 'number' && m.maxTokens > 0
+            ? m.maxTokens
+            : undefined,
+        pricing: m.pricing,
+        reasoning: m.reasoning,
+        toolsSupported: m.toolsSupported,
+        registered: true,
+        configured: configuredById.has(m.provider),
+        discoveryAttempted: false,
+      });
+    }
+  } catch {
+    // Non-fatal: custom provider model surface is best-effort.
+  }
 
-// main 8: count summary
-const counts = {
-  registeredProviders: registered.length,
-  selectableProviders: providers.filter((p) => p.selectable).length,
-  configuredProviders: providers.filter((p) => p.configured).length,
-  totalModels: models.length,
-  identityBundledCatalog: 0,
-  identityPinnedReference: 0,
-  identityProviderDynamic: 0,
-  identityAccountDynamic: 0,
-  identityUserConfigured: 0,
-  identityUserConfiguredDeployment: 0,
-  identityUnknown: 0,
-  contextKnown: 0,
-  contextUnknown: 0,
-  inputKnown: 0,
-  inputUnknown: 0,
-  outputKnown: 0,
-  outputUnknown: 0,
-};
-for (const m of models) {
-  if (m.identitySource === "BUNDLED_CATALOG") counts.identityBundledCatalog++;
-  else if (m.identitySource === "PINNED_REFERENCE") counts.identityPinnedReference++;
-  else if (m.identitySource === "PROVIDER_DYNAMIC") counts.identityProviderDynamic++;
-  else if (m.identitySource === "ACCOUNT_DYNAMIC") counts.identityAccountDynamic++;
-  else if (m.identitySource === "USER_CONFIGURED") counts.identityUserConfigured++;
-  else if (m.identitySource === "USER_CONFIGURED_DEPLOYMENT") counts.identityUserConfiguredDeployment++;
-  else counts.identityUnknown++;
-  if (typeof m.contextWindow === "number") counts.contextKnown++;
-  else counts.contextUnknown++;
-  if (typeof m.maxInputTokens === "number") counts.inputKnown++;
-  else counts.inputUnknown++;
-  if (typeof m.maxOutputTokens === "number") counts.outputKnown++;
-  else counts.outputUnknown++;
-}
+  // main 8: count summary
+  const counts = {
+    registeredProviders: registered.length,
+    selectableProviders: providers.filter((p) => p.selectable).length,
+    configuredProviders: providers.filter((p) => p.configured).length,
+    totalModels: models.length,
+    identityBundledCatalog: 0,
+    identityPinnedReference: 0,
+    identityProviderDynamic: 0,
+    identityAccountDynamic: 0,
+    identityUserConfigured: 0,
+    identityUserConfiguredDeployment: 0,
+    identityUnknown: 0,
+    contextKnown: 0,
+    contextUnknown: 0,
+    inputKnown: 0,
+    inputUnknown: 0,
+    outputKnown: 0,
+    outputUnknown: 0,
+  };
+  for (const m of models) {
+    if (m.identitySource === 'BUNDLED_CATALOG') counts.identityBundledCatalog++;
+    else if (m.identitySource === 'PINNED_REFERENCE')
+      counts.identityPinnedReference++;
+    else if (m.identitySource === 'PROVIDER_DYNAMIC')
+      counts.identityProviderDynamic++;
+    else if (m.identitySource === 'ACCOUNT_DYNAMIC')
+      counts.identityAccountDynamic++;
+    else if (m.identitySource === 'USER_CONFIGURED')
+      counts.identityUserConfigured++;
+    else if (m.identitySource === 'USER_CONFIGURED_DEPLOYMENT')
+      counts.identityUserConfiguredDeployment++;
+    else counts.identityUnknown++;
+    if (typeof m.contextWindow === 'number') counts.contextKnown++;
+    else counts.contextUnknown++;
+    if (typeof m.maxInputTokens === 'number') counts.inputKnown++;
+    else counts.inputUnknown++;
+    if (typeof m.maxOutputTokens === 'number') counts.outputKnown++;
+    else counts.outputUnknown++;
+  }
 
-return {
-  build: {
-    gitHeadEmbedded: context.build.gitHead,
-    capturedAt,
-  },
-  providers,
-  models,
-  counts,
-};
+  return {
+    build: {
+      gitHeadEmbedded: context.build.gitHead,
+      capturedAt,
+    },
+    providers,
+    models,
+    counts,
+  };
 }

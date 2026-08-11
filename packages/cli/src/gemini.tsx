@@ -492,7 +492,11 @@ export async function main() {
         argv.diagnoseProviderModels,
       );
     } else if (argv.diagnoseModelLimits) {
-      exitCode = await printModelLimitsDiagnostics();
+      exitCode = await printModelLimitsDiagnostics({
+        provider: argv.diagnoseModelLimitsProvider,
+        model: argv.model,
+        summary: argv.diagnoseModelLimitsSummary,
+      });
     } else if (argv.diagnoseAuthState) {
       exitCode = await printAuthStateDiagnostics();
     } else if (argv.diagnosePlan) {

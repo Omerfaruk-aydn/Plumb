@@ -253,5 +253,62 @@ describe('buildModelLimitsDiagnostics', () => {
     for (const section of providerSections) {
       expect(section).toMatch(/^\[[\w-]+\]$/);
     }
-  });
+  }, 15000);
+
+  it('--summary prints only counts, no individual model rows, and is deterministic across two runs', async () => {
+    const run1 = await buildModelLimitsDiagnostics({ summary: true });
+    const run2 = await buildModelLimitsDiagnostics({ summary: true });
+    expect(run1.failures).toEqual([]);
+    const report1 = run1.lines.join('\n');
+    expect(report1).toContain('registered.providers:');
+    expect(report1).toContain('configured.providers:');
+    expect(report1).toContain('selectable.providers:');
+    expect(report1).toContain('models.total:');
+    expect(report1).toContain('models.context.known:');
+    expect(report1).toContain('models.context.unknown:');
+    expect(report1).toContain('models.output.known:');
+    expect(report1).toContain('models.output.unknown:');
+    expect(report1).toMatch(
+      /provider=[\w-]+ modelCount=\d+ configured=(true|false) discovery=/,
+    );
+    // No individual "model=..." rows in summary mode.
+    expect(report1).not.toMatch(/^\s*model=/m);
+    // Deterministic: two builds of the same static state hash-match.
+    expect(run1.lines.join('\n')).toBe(run2.lines.join('\n'));
+  }, 15000);
+
+  it.each([
+    'claude-subscription',
+    'antigravity',
+    'github-copilot',
+    'opencode-go',
+    'opencode-zen',
+    'anthropic',
+    'openai',
+    'ollama',
+    'sglang',
+    'watsonx',
+    'oci-genai',
+  ])(
+    '--provider %s prints a header even when model count is 0',
+    async (providerId) => {
+      const { lines, failures } = await buildModelLimitsDiagnostics({
+        provider: providerId,
+      });
+      expect(failures).toEqual([]);
+      const report = lines.join('\n');
+      expect(report).toContain(`[${providerId}]`);
+      // No other provider's section should be present.
+      const providerSections = lines.filter((l) => /^\[[\w-]+\]$/.test(l));
+      expect(providerSections).toEqual([`[${providerId}]`]);
+    },
+    15000,
+  );
+
+  it('reports a failure for an unknown provider id rather than fabricating a section', async () => {
+    const { failures } = await buildModelLimitsDiagnostics({
+      provider: 'not-a-real-provider-id',
+    });
+    expect(failures.length).toBeGreaterThan(0);
+  }, 15000);
 });
