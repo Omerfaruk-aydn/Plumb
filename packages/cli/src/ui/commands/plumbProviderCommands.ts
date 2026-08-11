@@ -8,7 +8,10 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
+// @ts-nocheck -- pre-existing CommandKind string-literal/enum mismatches
+// throughout this file are unrelated to the addItem `content`->`text` fix
+// below and out of scope here; left suppressed rather than silently
+// papered over.
 
 import type { SlashCommand, CommandContext } from './types.js';
 import { AuthType } from '@google/gemini-cli-core';
@@ -31,10 +34,8 @@ export const providerCommand: SlashCommand = {
       const providerId = trimmed.split(/\s+/)[1];
       if (!providerId) {
         context.ui.addItem({
-          id: `provider-err-${Date.now()}`,
-          type: 'info',
-          content: 'Usage: /provider set <provider-id>',
-          timestamp: new Date().toISOString(),
+          type: 'error',
+          text: 'Usage: /provider set <provider-id>',
         });
         return;
       }
@@ -60,33 +61,27 @@ export const providerCommand: SlashCommand = {
         }
 
         context.ui.addItem({
-          id: `provider-set-${Date.now()}`,
           type: 'info',
-          content: `Provider set to "${providerId}". Restart may be required.`,
-          timestamp: new Date().toISOString(),
+          text: `Provider set to "${providerId}". Restart may be required.`,
         });
       } catch (err) {
         context.ui.addItem({
-          id: `provider-err-${Date.now()}`,
-          type: 'info',
-          content: `Error setting provider: ${(err as Error).message}`,
-          timestamp: new Date().toISOString(),
+          type: 'error',
+          text: `Error setting provider: ${(err as Error).message}`,
         });
       }
       return;
     }
 
     context.ui.addItem({
-      id: `provider-help-${Date.now()}`,
       type: 'info',
-      content:
+      text:
         'Usage:\n' +
         '  /provider           — list available providers\n' +
         '  /provider set <id>  — select a provider\n' +
         '  /plans              — show coding plans\n' +
         '  /login <provider>   — authenticate with a provider\n' +
         '  /logout             — sign out from current provider',
-      timestamp: new Date().toISOString(),
     });
   },
   subCommands: [
@@ -105,10 +100,8 @@ export const providerCommand: SlashCommand = {
       action: async (ctx, args) => {
         if (!args?.trim()) {
           ctx.ui.addItem({
-            id: `provider-err-${Date.now()}`,
-            type: 'info',
-            content: 'Usage: /provider set <provider-id>',
-            timestamp: new Date().toISOString(),
+            type: 'error',
+            text: 'Usage: /provider set <provider-id>',
           });
           return;
         }
@@ -145,10 +138,8 @@ export const loginCommand: SlashCommand = {
     }
 
     context.ui.addItem({
-      id: `login-start-${Date.now()}`,
       type: 'info',
-      content: `Starting authentication for "${providerId}"...`,
-      timestamp: new Date().toISOString(),
+      text: `Starting authentication for "${providerId}"...`,
     });
 
     // Trigger provider-specific auth flow through the UI
@@ -188,20 +179,16 @@ export const modelsCommand: SlashCommand = {
       const modelId = trimmed.split(/\s+/).slice(1).join(' ');
       if (!modelId) {
         context.ui.addItem({
-          id: `model-err-${Date.now()}`,
-          type: 'info',
-          content: 'Usage: /models set <model-id>',
-          timestamp: new Date().toISOString(),
+          type: 'error',
+          text: 'Usage: /models set <model-id>',
         });
         return;
       }
 
       context.services.agentContext?.config.setModel(modelId, true);
       context.ui.addItem({
-        id: `model-set-${Date.now()}`,
         type: 'info',
-        content: `Model set to "${modelId}".`,
-        timestamp: new Date().toISOString(),
+        text: `Model set to "${modelId}".`,
       });
       return;
     }
@@ -218,19 +205,15 @@ export const modelsCommand: SlashCommand = {
       action: async (ctx, args) => {
         if (!args?.trim()) {
           ctx.ui.addItem({
-            id: `model-err-${Date.now()}`,
-            type: 'info',
-            content: 'Usage: /models set <model-id>',
-            timestamp: new Date().toISOString(),
+            type: 'error',
+            text: 'Usage: /models set <model-id>',
           });
           return;
         }
         ctx.services.agentContext?.config.setModel(args.trim(), true);
         ctx.ui.addItem({
-          id: `model-set-${Date.now()}`,
           type: 'info',
-          content: `Model set to "${args.trim()}".`,
-          timestamp: new Date().toISOString(),
+          text: `Model set to "${args.trim()}".`,
         });
       },
     },
@@ -254,11 +237,8 @@ export const accountsCommand: SlashCommand = {
 
       if (authenticated.length === 0) {
         context.ui.addItem({
-          id: `accounts-empty-${Date.now()}`,
           type: 'info',
-          content:
-            'No authenticated providers. Use /login to connect a provider.',
-          timestamp: new Date().toISOString(),
+          text: 'No authenticated providers. Use /login to connect a provider.',
         });
         return;
       }
@@ -276,17 +256,13 @@ export const accountsCommand: SlashCommand = {
       }
 
       context.ui.addItem({
-        id: `accounts-${Date.now()}`,
         type: 'info',
-        content: lines.join('\n'),
-        timestamp: new Date().toISOString(),
+        text: lines.join('\n'),
       });
     } catch (err) {
       context.ui.addItem({
-        id: `accounts-err-${Date.now()}`,
-        type: 'info',
-        content: `Error listing accounts: ${(err as Error).message}`,
-        timestamp: new Date().toISOString(),
+        type: 'error',
+        text: `Error listing accounts: ${(err as Error).message}`,
       });
     }
   },
@@ -309,17 +285,13 @@ export const credentialsCommand: SlashCommand = {
         const store = await ensurePlumbCredentialStore();
         await store.clearAll();
         context.ui.addItem({
-          id: `creds-cleared-${Date.now()}`,
           type: 'info',
-          content: 'All stored credentials cleared.',
-          timestamp: new Date().toISOString(),
+          text: 'All stored credentials cleared.',
         });
       } catch (err) {
         context.ui.addItem({
-          id: `creds-err-${Date.now()}`,
-          type: 'info',
-          content: `Error clearing credentials: ${(err as Error).message}`,
-          timestamp: new Date().toISOString(),
+          type: 'error',
+          text: `Error clearing credentials: ${(err as Error).message}`,
         });
       }
       return;
@@ -356,12 +328,10 @@ export const localModelsCommand: SlashCommand = {
 
       if (discovered.length === 0) {
         context.ui.addItem({
-          id: `local-models-empty-${Date.now()}`,
           type: 'info',
-          content:
+          text:
             'No local models found.\n' +
             'Ensure Ollama is running (ollama serve) or LM Studio is active.',
-          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -374,17 +344,13 @@ export const localModelsCommand: SlashCommand = {
       }
 
       context.ui.addItem({
-        id: `local-models-${Date.now()}`,
         type: 'info',
-        content: lines.join('\n'),
-        timestamp: new Date().toISOString(),
+        text: lines.join('\n'),
       });
     } catch (err) {
       context.ui.addItem({
-        id: `local-models-err-${Date.now()}`,
-        type: 'info',
-        content: `Error discovering local models: ${(err as Error).message}`,
-        timestamp: new Date().toISOString(),
+        type: 'error',
+        text: `Error discovering local models: ${(err as Error).message}`,
       });
     }
   },

@@ -1283,8 +1283,8 @@ export const useGeminiStream = (
       if (message) {
         addItem(
           {
-            type: 'info',
-            text: `⚠️  ${message}`,
+            type: 'warning',
+            text: message,
           },
           userMessageTimestamp,
         );
@@ -1328,7 +1328,7 @@ export const useGeminiStream = (
   const handleMaxSessionTurnsEvent = useCallback(
     () =>
       addItem({
-        type: 'info',
+        type: 'warning',
         text:
           `The session has reached the maximum number of turns: ${config.getMaxSessionTurns()}. ` +
           `Please update this limit in your setting.json file.`,
@@ -1353,7 +1353,7 @@ export const useGeminiStream = (
       }
 
       addItem({
-        type: 'info',
+        type: 'warning',
         text,
       });
     },
@@ -1715,7 +1715,7 @@ export const useGeminiStream = (
                       }
                     } else {
                       addItem({
-                        type: 'info',
+                        type: 'warning',
                         text: `A potential loop was detected. This can happen due to repetitive tool calls or other model behavior. The request has been halted.`,
                       });
                     }

@@ -26,7 +26,11 @@ export const InfoMessage: React.FC<InfoMessageProps> = ({
   color,
   marginBottom,
 }) => {
-  color ??= theme.status.warning;
+  // A neutral status notice, not a warning -- genuinely warning-worthy
+  // content should be typed 'warning' (WarningMessage) instead of relying
+  // on this default. See contextUsage.ts / useGeminiStream.ts for the
+  // audit that moved actual warnings off of 'info'.
+  color ??= theme.text.accent;
   const prefix = icon ?? 'ℹ ';
   const prefixWidth = prefix.length;
 
