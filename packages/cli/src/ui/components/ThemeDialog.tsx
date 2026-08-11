@@ -178,6 +178,36 @@ export function ThemeDialog({
 
   const [mode, setMode] = useState<'theme' | 'scope'>('theme');
 
+  // F10 (PLUMB-UI-DEVRIM-PROMPT.md) "Theme Studio", scoped to a
+  // preview-only quick tweak: cycle the preview pane through the other
+  // built-in themes that share the highlighted theme's light/dark type,
+  // without touching the actual radio selection. This does NOT edit
+  // individual color tokens -- Theme's per-syntax color map is built
+  // privately from raw react-syntax-highlighter CSS mappings at
+  // construction (see Theme's constructor/_colorMap in theme.ts), so
+  // there is no safe way to override a single accent token without
+  // reconstructing that map from scratch. Cycling between real,
+  // already-validated Theme instances keeps this genuinely zero-risk.
+  const [previewOffset, setPreviewOffset] = useState(0);
+  const highlightedThemeType =
+    themeManager.getTheme(highlightedThemeName)?.type;
+  const siblingThemeNames = themeManager
+    .getAvailableThemes()
+    .filter((t) => t.type === highlightedThemeType)
+    .map((t) => t.name);
+  const baseSiblingIndex = Math.max(
+    0,
+    siblingThemeNames.indexOf(highlightedThemeName),
+  );
+  const previewThemeName =
+    siblingThemeNames.length > 0
+      ? siblingThemeNames[
+          (baseSiblingIndex + previewOffset + siblingThemeNames.length) %
+            siblingThemeNames.length
+        ]
+      : highlightedThemeName;
+  const isPreviewingVariant = previewThemeName !== highlightedThemeName;
+
   useKeypress(
     (key) => {
       if (key.name === 'tab') {
@@ -188,10 +218,28 @@ export function ThemeDialog({
         onCancel();
         return true;
       }
+      if (mode === 'theme' && siblingThemeNames.length > 1) {
+        if (key.name === 'left') {
+          setPreviewOffset((o) => o - 1);
+          return true;
+        }
+        if (key.name === 'right') {
+          setPreviewOffset((o) => o + 1);
+          return true;
+        }
+      }
       return false;
     },
     { isActive: true },
   );
+
+  // Reset the preview cycle whenever the actual radio selection moves --
+  // otherwise the offset would silently keep pointing at an unrelated
+  // theme after the user navigates the list.
+  const handleThemeHighlightWithPreviewReset = (themeName: string) => {
+    setPreviewOffset(0);
+    handleThemeHighlight(themeName);
+  };
 
   // Generate scope message for theme setting
   const otherScopeModifiedMessage = getScopeMessageForSetting(
@@ -245,7 +293,7 @@ export function ThemeDialog({
   const diffHeight = Math.floor(availableHeightForPanes * 0.4);
 
   const previewTheme =
-    themeManager.getTheme(highlightedThemeName || DEFAULT_THEME.name) ||
+    themeManager.getTheme(previewThemeName || DEFAULT_THEME.name) ||
     DEFAULT_THEME;
 
   const leftColumnWidth = `${SELECTION_PANE_WIDTH_PERCENTAGE * 100}%`;
@@ -276,7 +324,7 @@ export function ThemeDialog({
               items={themeItems}
               initialIndex={safeInitialThemeIndex}
               onSelect={handleThemeSelect}
-              onHighlight={handleThemeHighlight}
+              onHighlight={handleThemeHighlightWithPreviewReset}
               isFocused={mode === 'theme'}
               maxItemsToShow={12}
               showScrollArrows={true}
@@ -342,6 +390,9 @@ export function ThemeDialog({
           <Box flexDirection="column" width={rightColumnWidth} paddingLeft={2}>
             <Text bold color={theme.text.primary}>
               Preview
+              {isPreviewingVariant && (
+                <Text color={theme.text.secondary}> ({previewThemeName})</Text>
+              )}
             </Text>
             <Box
               borderStyle="single"
@@ -398,7 +449,11 @@ def fibonacci(n):
       <Box marginTop={1}>
         <Text color={theme.text.secondary} wrap="truncate">
           (Use Enter to {mode === 'theme' ? 'select' : 'apply scope'}, Tab to{' '}
-          {mode === 'theme' ? 'configure scope' : 'select theme'}, Esc to close)
+          {mode === 'theme' ? 'configure scope' : 'select theme'}, Esc to close
+          {mode === 'theme' && siblingThemeNames.length > 1
+            ? ', ←/→ to preview similar themes'
+            : ''}
+          )
         </Text>
       </Box>
     </Box>

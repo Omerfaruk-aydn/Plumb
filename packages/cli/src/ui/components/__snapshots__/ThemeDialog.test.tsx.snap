@@ -19,7 +19,7 @@ exports[`Initial Theme Selection > should default to a dark theme when terminal 
 │   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
-│ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
+│ (Use Enter to select, Tab to configure scope, Esc to close, ←/→ to preview similar themes)       │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -44,7 +44,7 @@ exports[`Initial Theme Selection > should default to a light theme when terminal
 │   12. Default Dark (Incompatible)            └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
-│ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
+│ (Use Enter to select, Tab to configure scope, Esc to close, ←/→ to preview similar themes)       │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -108,7 +108,7 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │   12. Tokyo Night Dark                       └─────────────────────────────────────────────────┘ │
 │ ▼                                                                                                │
 │                                                                                                  │
-│ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
+│ (Use Enter to select, Tab to configure scope, Esc to close, ←/→ to preview similar themes)       │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -195,7 +195,7 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │                                              │  #C3677F                                        │ │
 │                                              ╰─────────────────────────────────────────────────╯ │
 │                                                                                                  │
-│ (Use Enter to select, Tab to configure scope, Esc to close)                                      │
+│ (Use Enter to select, Tab to configure scope, Esc to close, ←/→ to preview similar themes)       │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "

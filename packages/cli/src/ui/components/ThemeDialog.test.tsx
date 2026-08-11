@@ -128,6 +128,81 @@ describe('ThemeDialog Snapshots', () => {
     });
     unmount();
   });
+
+  describe('Theme Studio preview cycling (F10)', () => {
+    it('Right arrow cycles the preview to a sibling theme without changing the radio selection', async () => {
+      const onHighlight = vi.fn();
+      const settings = createMockSettings();
+      const { stdin, lastFrame, waitUntilReady, unmount } =
+        await renderWithProviders(
+          <ThemeDialog
+            {...baseProps}
+            onHighlight={onHighlight}
+            settings={settings}
+          />,
+          { settings },
+        );
+      await waitUntilReady();
+
+      expect(lastFrame()).toContain('preview similar themes');
+      const previewLineBefore = lastFrame()
+        ?.split('\n')
+        .find((line) => line.includes('Preview'));
+      expect(previewLineBefore).not.toContain('(');
+      // onHighlight only fires on an explicit list move, so the initially
+      // highlighted theme is whatever RadioButtonSelect started on.
+      expect(onHighlight).not.toHaveBeenCalled();
+
+      await act(async () => {
+        stdin.write('\x1b[C'); // right arrow: cycle preview, not selection
+      });
+      await waitUntilReady();
+
+      const previewLineAfter = lastFrame()
+        ?.split('\n')
+        .find((line) => line.includes('Preview'));
+      expect(previewLineAfter).toContain('(');
+      // Cycling the preview must not trigger the same callback list
+      // navigation would use.
+      expect(onHighlight).not.toHaveBeenCalled();
+      unmount();
+    });
+
+    it('Enter still applies the originally highlighted theme, not the previewed variant', async () => {
+      const onSelect = vi.fn();
+      const onHighlight = vi.fn();
+      const settings = createMockSettings();
+      const { stdin, waitUntilReady, unmount } = await renderWithProviders(
+        <ThemeDialog
+          {...baseProps}
+          onSelect={onSelect}
+          onHighlight={onHighlight}
+          settings={settings}
+        />,
+        { settings },
+      );
+      await waitUntilReady();
+
+      await act(async () => {
+        stdin.write('\x1b[C'); // browse away from the highlighted theme
+      });
+      await waitUntilReady();
+
+      await act(async () => {
+        stdin.write('\r');
+      });
+      await waitUntilReady();
+
+      await waitFor(() => {
+        expect(onSelect).toHaveBeenCalled();
+      });
+      // Since onHighlight was never called (no real list navigation
+      // happened), Enter must have applied the dialog's *initial*
+      // highlighted theme, not a preview-cycled one.
+      expect(onHighlight).not.toHaveBeenCalled();
+      unmount();
+    });
+  });
 });
 
 describe('Initial Theme Selection', () => {
