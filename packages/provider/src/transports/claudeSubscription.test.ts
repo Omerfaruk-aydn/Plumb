@@ -773,4 +773,82 @@ describe('getClaudeSubscriptionModels', () => {
       (await mod.getClaudeSubscriptionModels()).models.length,
     ).toBeGreaterThanOrEqual(floorCount);
   });
+
+  // ─── REGRESSION: empty cache_control 400 ───────────────────────────
+  //
+  // The first-turn HTTP 400 reported on real interactive Claude
+  // Subscription runs was: `cache_control cannot be set for empty
+  // text blocks` (Anthropic rejects any request whose last text
+  // content block has cache_control AND an empty/whitespace-only
+  // text). The Agent SDK auto-attaches cache_control to the last
+  // text block of every outbound request, so the literal `prompt:
+  // ''` this module used to pass to `sdk.query({...})` produced
+  // exactly the rejected shape. The fix is a non-empty, non-
+  // whitespace placeholder that survives the SDK's own
+  // normalize pass; the regression test asserts the placeholder is
+  // always passed to the SDK regardless of which discovery code
+  // path runs.
+  it('REGRESSION (empty cache_control 400): never passes an empty or whitespace-only prompt to the SDK', async () => {
+    const capturedPrompts: string[] = [];
+    const query = makeQueryWithSupportedModels([
+      { value: 'claude-sonnet-5' },
+    ]);
+    mockQuery.mockImplementation((args: { prompt?: string }) => {
+      if (typeof args?.prompt === 'string') capturedPrompts.push(args.prompt);
+      return query;
+    });
+    const mod = await importFresh();
+    await mod.getClaudeSubscriptionModels();
+    expect(capturedPrompts.length).toBeGreaterThan(0);
+    for (const prompt of capturedPrompts) {
+      expect(prompt.length).toBeGreaterThan(0);
+      // Must not be whitespace-only either: the SDK's own
+      // trim/normalize pass can collapse pure whitespace to empty
+      // and re-introduce the rejected shape.
+      expect(prompt.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('formatTranscriptPrompt (cache_control safety)', () => {
+  // REGRESSION: Anthropic's HTTP 400 `cache_control cannot be set
+  // for empty text blocks` was triggered in the live chat path by
+  // any caller that produced an empty / whitespace-only transcript
+  // — a regression here would surface as an instant chat-failure
+  // for the first user message. formatTranscriptPrompt is the
+  // canonical normalization boundary, so its invariants belong here.
+  it('returns a non-empty, non-whitespace prompt even with no systemPrompt and no messages', async () => {
+    const mod = await importFresh();
+    const prompt = mod.formatTranscriptPrompt({
+      model: subscriptionModel,
+      messages: [],
+      apiKey: 'unused-but-required-by-PlumbStreamOptions',
+    });
+    expect(prompt.length).toBeGreaterThan(0);
+    expect(prompt.trim().length).toBeGreaterThan(0);
+  });
+
+  it('keeps the user-supplied text verbatim and tags it with [user] role when systemPrompt is absent', async () => {
+    const mod = await importFresh();
+    const prompt = mod.formatTranscriptPrompt({
+      model: subscriptionModel,
+      messages: [{ role: 'user', content: 'Analyze this project' }],
+      apiKey: 'unused-but-required-by-PlumbStreamOptions',
+    });
+    expect(prompt).toContain('Analyze this project');
+  });
+
+  it('prepends [system] prefix when a systemPrompt is present', async () => {
+    const mod = await importFresh();
+    const prompt = mod.formatTranscriptPrompt({
+      model: subscriptionModel,
+      systemPrompt: 'You are a careful assistant.',
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'unused-but-required-by-PlumbStreamOptions',
+    });
+    expect(prompt).toContain('[system]');
+    expect(prompt).toContain('You are a careful assistant.');
+    expect(prompt).toContain('[user]');
+    expect(prompt).toContain('hi');
+  });
 });

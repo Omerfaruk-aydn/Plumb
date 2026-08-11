@@ -585,6 +585,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       testAntigravityRoute: undefined,
       diffAntigravityTrace: undefined,
       diagnoseCredentialScope: undefined,
+      diagnoseProviderModels: undefined,
+      diagnoseModelLimits: undefined,
     });
 
     await act(async () => {
@@ -661,6 +663,8 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       testAntigravityRoute: undefined,
       diffAntigravityTrace: undefined,
       diagnoseCredentialScope: undefined,
+      diagnoseProviderModels: undefined,
+      diagnoseModelLimits: undefined,
     });
 
     await act(async () => {

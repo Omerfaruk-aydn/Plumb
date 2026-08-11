@@ -51,7 +51,7 @@ describe('useModelDialogData', () => {
     await waitUntilReady();
     // Give the background-refresh microtask queue a tick even though it
     // should short-circuit before ever reaching discoverProviderModels.
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(discoverProviderModelsMock).not.toHaveBeenCalled();
   });
@@ -66,7 +66,11 @@ describe('useModelDialogData', () => {
     ];
     const { waitUntilReady } = await renderHook(() => useModelDialogData(true));
     await waitUntilReady();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    // Wait long enough for the post-render `setData` from the
+    // background refresh to complete too — the hook now does an
+    // extra state update after discovery, so the test must let
+    // the act() boundary settle.
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(discoverProviderModelsMock).toHaveBeenCalledWith(
       'google-vertex',
@@ -87,7 +91,7 @@ describe('useModelDialogData', () => {
     ];
     const { waitUntilReady } = await renderHook(() => useModelDialogData(true));
     await waitUntilReady();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(discoverProviderModelsMock).toHaveBeenCalledWith(
       'anthropic',
@@ -111,7 +115,7 @@ describe('useModelDialogData', () => {
       useModelDialogData(true),
     );
     await waitUntilReady();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(result.current.loading).toBe(false);
   });
@@ -125,5 +129,28 @@ describe('useModelDialogData', () => {
 
     expect(result.current).toEqual({ usableProviders: [], loading: true });
     expect(discoverProviderModelsMock).not.toHaveBeenCalled();
+  });
+
+  // ─── REGRESSION: claude-subscription must be in the refresh path ────
+  //
+  // Claude Subscription is a synthetic OAuth-only provider whose
+  // auth state is owned by the official Agent SDK (no PLUMB-side
+  // api_key or oauth token), so it never enters the credentialed
+  // refresh list. Without an explicit refresh entry the dialog
+  // would be stuck on the static 2-model OFFICIAL_STATIC_METADATA
+  // floor even when the live `Query.supportedModels()` call would
+  // return a different account/plan-aware list — the exact "still
+  // only 2 models" bug from the production report. The Agent SDK
+  // never receives PLUMB credentials, so refresh is a bare
+  // providerId (no apiKey, no oauthToken).
+  it('REGRESSION (claude-subscription refresh): calls discoverProviderModels for claude-subscription even when its state carries no PLUMB credentials', async () => {
+    activeStates = [makeState('claude-subscription', null)];
+    const { waitUntilReady } = await renderHook(() => useModelDialogData(true));
+    await waitUntilReady();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    expect(discoverProviderModelsMock).toHaveBeenCalledWith(
+      'claude-subscription',
+    );
   });
 });

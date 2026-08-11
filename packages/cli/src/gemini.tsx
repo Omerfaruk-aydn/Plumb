@@ -432,6 +432,8 @@ export async function main() {
     argv.diagnoseProviderRuntime ||
     argv.diagnoseAuth ||
     argv.diagnoseModels ||
+    argv.diagnoseProviderModels ||
+    argv.diagnoseModelLimits ||
     argv.diagnoseAuthState ||
     argv.diagnosePlan ||
     argv.codingPlanStatus ||
@@ -465,6 +467,8 @@ export async function main() {
       printProviderRuntimeDiagnostics,
       printAuthDiagnostics,
       printModelsDiagnostics,
+      printProviderModelsDiagnostics,
+      printModelLimitsDiagnostics,
       printAuthStateDiagnostics,
       printPlanDiagnostics,
       printCodingPlanLiveStatus,
@@ -483,6 +487,10 @@ export async function main() {
       exitCode = await printAuthDiagnostics(argv.diagnoseAuth);
     } else if (argv.diagnoseModels) {
       exitCode = await printModelsDiagnostics(argv.diagnoseModels);
+    } else if (argv.diagnoseProviderModels) {
+      exitCode = await printProviderModelsDiagnostics(argv.diagnoseProviderModels);
+    } else if (argv.diagnoseModelLimits) {
+      exitCode = await printModelLimitsDiagnostics();
     } else if (argv.diagnoseAuthState) {
       exitCode = await printAuthStateDiagnostics();
     } else if (argv.diagnosePlan) {

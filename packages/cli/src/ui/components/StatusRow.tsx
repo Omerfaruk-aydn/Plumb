@@ -29,6 +29,7 @@ import { RawMarkdownIndicator } from './RawMarkdownIndicator.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 import { MultiAgentStatus } from './MultiAgentStatus.js';
+import { tokenLimit } from '@google/gemini-cli-core';
 
 /**
  * Layout constants to prevent magic numbers.
@@ -485,7 +486,25 @@ export const StatusRow: React.FC<StatusRowProps> = ({
               <Box marginLeft={LAYOUT.INDICATOR_LEFT_MARGIN}>
                 <ContextVisualization
                   usedTokens={uiState.sessionStats.lastPromptTokenCount ?? 0}
-                  maxTokens={128000}
+                  // Resolve the active model's REAL context window through the
+                  // universal PLUMB model-limits authority (tokenLimit in
+                  // packages/core/src/core/tokenLimits.ts). The same resolver
+                  // is used by client-side token budgeting, model-picker
+                  // display, and outbound wire-dialect construction, so the
+                  // bottom status row can never silently disagree with the
+                  // rest of the product. Before this fix, a hardcoded 128000
+                  // here caused the bottom meter to show "128.0K remaining"
+                  // for every non-Gemini model whose registry-reported
+                  // context window hadn't already been pre-recorded into
+                  // tokenLimits — e.g. a freshly selected Claude Sonnet 5
+                  // (real 200,000) showed 128,000 until the first chat turn
+                  // (which records the registry value) ran. Switching models
+                  // re-bled this back to 128,000 every time.
+                  maxTokens={tokenLimit(
+                    typeof uiState.currentModel === 'string'
+                      ? uiState.currentModel
+                      : '',
+                  )}
                   modelName={
                     typeof uiState.currentModel === 'string'
                       ? uiState.currentModel

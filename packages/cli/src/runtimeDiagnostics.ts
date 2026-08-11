@@ -1055,6 +1055,448 @@ export async function printModelsDiagnostics(
   return failures.length > 0 ? 1 : 0;
 }
 
+// ─── Provider model discovery provenance (Claude Subscription focus) ───
+
+/**
+ * `plumb --diagnose-provider-models <provider-id>` — safe, credential-free
+ * model-discovery provenance report.
+ *
+ * Distinguishes the four real sources a model can come from:
+ *   ACCOUNT_DYNAMIC       — live, account/plan-aware probe
+ *                           (e.g. Claude Subscription's Query.supportedModels())
+ *   OFFICIAL_CLIENT_DYNAMIC — official client-driven discovery
+ *                           (e.g. an OMP-backed /models endpoint)
+ *   BUNDLED_FALLBACK      — static floor from a bundled catalog / pinned list
+ *   CACHE                 — last-known result replayed from the on-disk cache
+ *
+ * Designed so a user can answer, in one command, the exact question the
+ * "still only 2 models" bug needs answered: is the dialog showing
+ * what my account actually entitles me to, or is it showing a static
+ * floor because discovery failed?
+ *
+ * Never prints credentials, tokens, OAuth access strings, or any
+ * PlumbProviderState.credentials shape.
+ */
+export interface ProviderModelsDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+  rawSupportedModelCount: number;
+  filteredModelCount: number;
+  cacheHit: boolean;
+  cacheAge: number | null;
+  fallbackUsed: boolean;
+  provenance:
+    | 'ACCOUNT_DYNAMIC'
+    | 'OFFICIAL_CLIENT_DYNAMIC'
+    | 'BUNDLED_FALLBACK'
+    | 'CACHE'
+    | 'UNKNOWN';
+}
+
+export async function buildProviderModelsDiagnostics(
+  providerId: string,
+): Promise<ProviderModelsDiagnosticsResult> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+  let rawSupportedModelCount = 0;
+  let filteredModelCount = 0;
+  let cacheHit = false;
+  let cacheAge: number | null = null;
+  let fallbackUsed = false;
+  let provenance: ProviderModelsDiagnosticsResult['provenance'] = 'UNKNOWN';
+
+  lines.push(`PLUMB provider model discovery diagnostics: ${providerId}`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+
+    const resolveAlias = providerModule.resolveProviderAlias as
+      | ((id: string) => string)
+      | undefined;
+    const canonicalId = resolveAlias ? resolveAlias(providerId) : providerId;
+    lines.push(`requested.provider: ${providerId}`);
+    lines.push(`canonical.provider: ${canonicalId}`);
+
+    // Discovery path: which adapter / authority is this provider using?
+    let discoverySource:
+      | 'AGENT_SDK'
+      | 'OMP_CATALOG'
+      | 'PROVIDER_API'
+      | 'UNKNOWN' = 'UNKNOWN';
+    if (canonicalId === 'claude-subscription') {
+      discoverySource = 'AGENT_SDK';
+    } else {
+      const entry = providerModule.getCatalogProviderEntry?.(canonicalId);
+      if (typeof entry?.createModelManagerOptions === 'function') {
+        discoverySource = 'OMP_CATALOG';
+      } else if (typeof entry?.defaultModel === 'string') {
+        discoverySource = 'PROVIDER_API';
+      }
+    }
+    lines.push(`discovery.source: ${discoverySource}`);
+
+    // Cache state before any live call.
+    const cacheFn = (providerModule as Record<string, unknown>)[
+      'readModelCache'
+    ] as
+      | ((id: string) => {
+          models: unknown[];
+          fresh: boolean;
+          updatedAt: number;
+        } | null)
+      | undefined;
+    if (cacheFn) {
+      try {
+        const cached = cacheFn(canonicalId);
+        if (cached && Array.isArray(cached.models)) {
+          cacheHit = true;
+          cacheAge = Date.now() - cached.updatedAt;
+          lines.push(`cache.hit: yes`);
+          lines.push(`cache.age.ms: ${cacheAge}`);
+          lines.push(`cache.fresh: ${cached.fresh ? 'yes' : 'no'}`);
+          lines.push(`cache.model.count: ${cached.models.length}`);
+        } else {
+          lines.push(`cache.hit: no`);
+        }
+      } catch {
+        lines.push(`cache.hit: unknown (cache module unavailable)`);
+      }
+    } else {
+      lines.push(`cache.hit: unknown (cache module unavailable)`);
+    }
+    return await runProviderLiveProbe(
+      lines,
+      failures,
+      canonicalId,
+      providerModule,
+      rawSupportedModelCount,
+      filteredModelCount,
+      cacheHit,
+      cacheAge,
+      fallbackUsed,
+      provenance,
+    );
+  } catch (err) {
+    failures.push(
+      `Failed to build provider model diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return {
+    lines,
+    failures,
+    rawSupportedModelCount,
+    filteredModelCount,
+    cacheHit,
+    cacheAge,
+    fallbackUsed,
+    provenance,
+  };
+}
+
+interface ClaudeSubscriptionModule {
+  getClaudeSubscriptionModels?: () => Promise<{
+    models: ReadonlyArray<{
+      id: string;
+      name: string;
+      contextWindow: number;
+      maxTokens: number;
+      source: string;
+    }>;
+    source: string;
+  }>;
+  getCatalogModels?: (id: string) => Array<{ id: string }>;
+  getPlumbModelRegistry?: () => {
+    getModelsForProvider: (id: string) => Array<{ id: string }>;
+  };
+}
+
+async function runProviderLiveProbe(
+  lines: string[],
+  failures: string[],
+  canonicalId: string,
+  providerModule: Record<string, unknown> & ClaudeSubscriptionModule,
+  rawSupportedModelCount: number,
+  filteredModelCount: number,
+  cacheHit: boolean,
+  cacheAge: number | null,
+  fallbackUsed: boolean,
+  provenance: ProviderModelsDiagnosticsResult['provenance'],
+): Promise<ProviderModelsDiagnosticsResult> {
+  // Live probe: route through the strongest official authority
+  // available for the provider.
+  let liveModels: Array<{
+    id: string;
+    name?: string;
+    contextWindow?: number;
+    maxTokens?: number;
+    source?: string;
+  }> = [];
+  let liveSource:
+    | 'ACCOUNT_DYNAMIC'
+    | 'OFFICIAL_CLIENT_DYNAMIC'
+    | 'OFFICIAL_STATIC_METADATA'
+    | 'FAILED' = 'FAILED';
+
+  if (canonicalId === 'claude-subscription') {
+    try {
+      const sdk = await providerModule.getClaudeSubscriptionModels?.();
+      if (sdk && Array.isArray(sdk.models)) {
+        liveModels = sdk.models.map((m) => ({
+          id: m.id,
+          name: m.name,
+          contextWindow: m.contextWindow,
+          maxTokens: m.maxTokens,
+          source: m.source,
+        }));
+        liveSource =
+          sdk.source === 'ACCOUNT_DYNAMIC'
+            ? 'ACCOUNT_DYNAMIC'
+            : 'OFFICIAL_STATIC_METADATA';
+      }
+    } catch (err) {
+      lines.push(
+        `live.probe.error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  } else {
+    try {
+      const discoverFn = (providerModule as Record<string, unknown>)[
+        'discoverProviderModels'
+      ] as ((id: string) => Promise<unknown[]>) | undefined;
+      if (discoverFn) {
+        const result = await discoverFn(canonicalId);
+        if (Array.isArray(result)) {
+          liveModels = result as typeof liveModels;
+          liveSource = 'OFFICIAL_CLIENT_DYNAMIC';
+        }
+      }
+    } catch (err) {
+      lines.push(
+        `live.probe.error: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  rawSupportedModelCount = liveModels.length;
+  filteredModelCount = liveModels.length;
+  lines.push(`raw.supported.model.count: ${rawSupportedModelCount}`);
+  lines.push(`filtered.model.count: ${filteredModelCount}`);
+  lines.push(`live.source: ${liveSource}`);
+  for (const m of liveModels) {
+    lines.push(
+      `  model: ${m.id}` +
+        (typeof m.contextWindow === 'number'
+          ? ` context=${m.contextWindow}`
+          : '') +
+        (typeof m.maxTokens === 'number' ? ` max=${m.maxTokens}` : '') +
+        (m.source ? ` source=${m.source}` : ''),
+    );
+  }
+
+  // Bundled floor
+  const bundledModels = providerModule.getCatalogModels?.(canonicalId) ?? [];
+  lines.push(`bundled.model.count: ${bundledModels.length}`);
+  if (bundledModels.length > 0) {
+    lines.push(`bundled.first.model: ${bundledModels[0].id}`);
+  }
+
+  // UI picker count
+  const registry = providerModule.getPlumbModelRegistry?.();
+  let uiCount = 0;
+  if (registry) {
+    try {
+      const merged = registry.getModelsForProvider(canonicalId);
+      uiCount = merged.length;
+    } catch {
+      uiCount = bundledModels.length;
+    }
+  } else {
+    uiCount = bundledModels.length;
+  }
+  lines.push(`ui.picker.model.count: ${uiCount}`);
+
+  // Provenance classification.
+  if (liveSource === 'ACCOUNT_DYNAMIC' && rawSupportedModelCount > 0) {
+    provenance = 'ACCOUNT_DYNAMIC';
+  } else if (
+    liveSource === 'OFFICIAL_CLIENT_DYNAMIC' &&
+    rawSupportedModelCount > 0
+  ) {
+    provenance = 'OFFICIAL_CLIENT_DYNAMIC';
+  } else if (cacheHit && liveSource === 'FAILED') {
+    provenance = 'CACHE';
+  } else if (bundledModels.length > 0) {
+    provenance = 'BUNDLED_FALLBACK';
+    fallbackUsed = true;
+  }
+  lines.push(`provenance: ${provenance}`);
+  lines.push(`fallback.used: ${fallbackUsed ? 'yes' : 'no'}`);
+
+  return {
+    lines,
+    failures,
+    rawSupportedModelCount,
+    filteredModelCount,
+    cacheHit,
+    cacheAge,
+    fallbackUsed,
+    provenance,
+  };
+}
+
+/**
+ * `plumb --diagnose-provider-models <provider-id>` — print the safe
+ * provenance report to stdout. Returns the process exit code (1 when any
+ * required field could not be resolved).
+ */
+export async function printProviderModelsDiagnostics(
+  providerId: string,
+): Promise<number> {
+  const result = await buildProviderModelsDiagnostics(providerId);
+  for (const line of result.lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of result.failures) {
+    process.stderr.write(`diagnose-provider-models: FAIL: ${failure}\n`);
+  }
+  return result.failures.length > 0 ? 1 : 0;
+}
+
+// ─── Per-model limit provenance (every active model, every provider) ──
+
+/**
+ * `plumb --diagnose-model-limits` — safe model-limits authority report
+ * for every active provider. Reports, for every model the user can pick:
+ *
+ *   - display model id
+ *   - wire model id (requestModelId, for providers that rename at the
+ *     HTTP boundary)
+ *   - context window (or UNKNOWN)
+ *   - max output tokens (or UNKNOWN)
+ *   - context provenance: which authority reported the number
+ *     (REGISTRY_DISCOVERY, BUNDLED_CATALOG, PINNED_REFERENCE, BUILTIN_GEMINI)
+ *   - output provenance
+ *
+ * Lets a real user answer the "why is my model still 128K" question
+ * without inspecting code. Never prints credentials or tokens.
+ */
+export interface ModelLimitsDiagnosticsResult {
+  lines: string[];
+  failures: string[];
+}
+
+interface PlumbModelLike {
+  id: string;
+  name?: string;
+  provider: string;
+  requestModelId?: string;
+  contextWindow?: number;
+  maxTokens?: number;
+  source?: string;
+}
+
+export async function buildModelLimitsDiagnostics(): Promise<ModelLimitsDiagnosticsResult> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+
+  lines.push(`PLUMB model limits diagnostics`);
+  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
+
+  try {
+    const providerModule = await import('@google/gemini-cli-provider');
+    const registry = (
+      providerModule as unknown as {
+        getPlumbModelRegistry?: () => {
+          getAllAvailableModels?: () => PlumbModelLike[];
+        };
+      }
+    ).getPlumbModelRegistry?.();
+    if (!registry) {
+      failures.push('plumb model registry not available in this build');
+      return { lines, failures };
+    }
+    const models =
+      typeof registry.getAllAvailableModels === 'function'
+        ? registry.getAllAvailableModels()
+        : [];
+    lines.push(`active.model.count: ${models.length}`);
+
+    // For every active model, resolve its real limits through the
+    // universal authority (tokenLimit + the registry's own model record)
+    // and classify the provenance of the numbers.
+    const coreModule = await import('@google/gemini-cli-core');
+    const tokenLimit = (coreModule as { tokenLimit?: (id: string) => number })
+      .tokenLimit;
+    for (const m of models) {
+      const wireId = m.requestModelId ?? m.id;
+      const contextFromRegistry = m.contextWindow;
+      const maxFromRegistry = m.maxTokens;
+      const contextFromTokenLimit = tokenLimit
+        ? tokenLimit(m.id)
+        : undefined;
+
+      // Classify context provenance. Hierarchy:
+      //   1. registry.contextWindow — set by live discovery or bundled catalog
+      //   2. tokenLimit() — universal resolver
+      // We prefer registry first, then fall back to tokenLimit.
+      const context =
+        typeof contextFromRegistry === 'number' && contextFromRegistry > 0
+          ? contextFromRegistry
+          : typeof contextFromTokenLimit === 'number' &&
+              contextFromTokenLimit > 0
+            ? contextFromTokenLimit
+            : undefined;
+      const contextSource: string =
+        typeof contextFromRegistry === 'number' && contextFromRegistry > 0
+          ? m.source === 'ACCOUNT_DYNAMIC'
+            ? 'REGISTRY_DISCOVERY'
+            : m.source === 'OFFICIAL_STATIC_METADATA'
+              ? 'PINNED_REFERENCE'
+              : 'BUNDLED_CATALOG'
+          : typeof contextFromTokenLimit === 'number'
+            ? contextFromTokenLimit === 1_048_576
+              ? 'TOKEN_LIMIT_DEFAULT'
+              : 'BUILTIN_GEMINI'
+            : 'UNKNOWN';
+      const outputSource: string =
+        typeof maxFromRegistry === 'number' && maxFromRegistry > 0
+          ? m.source === 'ACCOUNT_DYNAMIC'
+            ? 'REGISTRY_DISCOVERY'
+            : m.source === 'OFFICIAL_STATIC_METADATA'
+              ? 'PINNED_REFERENCE'
+              : 'BUNDLED_CATALOG'
+          : 'UNKNOWN';
+      lines.push(
+        `  provider=${m.provider} model=${m.id}` +
+          ` wire=${wireId}` +
+          ` context=${context ?? 'UNKNOWN'}` +
+          ` (${contextSource})` +
+          ` maxOutput=${maxFromRegistry ?? 'UNKNOWN'}` +
+          ` (${outputSource})`,
+      );
+    }
+  } catch (err) {
+    failures.push(
+      `Failed to build model-limits diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  return { lines, failures };
+}
+
+export async function printModelLimitsDiagnostics(): Promise<number> {
+  const { lines, failures } = await buildModelLimitsDiagnostics();
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-model-limits: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
 // ─── Coding-plan auth diagnostics ────────────────────────────────────
 
 export interface PlanDiagnosticsResult {

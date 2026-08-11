@@ -90,9 +90,18 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
           (state) => !state.credentials,
         );
 
-        // Nothing to refresh (no credentialed provider, no local provider
-        // active): skip the extra render entirely.
-        if (refreshable.length === 0 && !hasUncredentialedActive) return;
+        // Nothing to refresh (no credentialed provider, no claude-subscription
+        // active, no local provider active): skip the extra render entirely.
+        const claudeSubscriptionActive = activeStates
+          .filter((state) => state.provider.id === 'claude-subscription')
+          .map((state) => ({ providerId: state.provider.id }));
+
+        if (
+          refreshable.length === 0 &&
+          claudeSubscriptionActive.length === 0 &&
+          !hasUncredentialedActive
+        )
+          return;
 
         await Promise.all([
           ...refreshable.map(async ({ providerId, apiKey, oauthToken }) => {
@@ -104,6 +113,24 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
               );
             } catch {
               // Best-effort refresh; a failed provider keeps its last-known models.
+            }
+          }),
+          // Claude Subscription is a synthetic OAuth-only provider whose auth
+          // state is owned by the official Agent SDK (no PLUMB-side api_key
+          // or oauth token), so it never enters `refreshable` above. Without
+          // an explicit refresh path here the dialog would be stuck on the
+          // static 2-model OFFICIAL_STATIC_METADATA floor even when the live
+          // `Query.supportedModels()` call would return a different
+          // account/plan-aware list. The Agent SDK never receives PLUMB
+          // credentials, so refresh is a bare providerId (matches
+          // ClaudeSubscriptionDiscovery.discover(context) which ignores
+          // apiKey/oauthToken and authenticates via its own subprocess).
+          ...claudeSubscriptionActive.map(async ({ providerId }) => {
+            try {
+              await modelRegistry.discoverProviderModels(providerId);
+            } catch {
+              // Best-effort refresh; a failed claude-subscription keeps its
+              // last-known models.
             }
           }),
           ...(hasUncredentialedActive

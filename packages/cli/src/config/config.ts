@@ -117,6 +117,8 @@ export interface CliArgs {
   diagnoseProviderRuntime: boolean | undefined;
   diagnoseAuth: string | undefined;
   diagnoseModels: string | undefined;
+  diagnoseProviderModels: string | undefined;
+  diagnoseModelLimits: boolean | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
   codingPlanStatus: boolean | undefined;
@@ -538,6 +540,16 @@ export async function parseArguments(
           type: 'string',
           description:
             'Print safe model discovery diagnostics for a specific provider (endpoint, HTTP method, parser, live/bundled/cached counts, safe error) without exposing credentials. Usage: plumb --diagnose-models <provider-id>',
+        })
+        .option('diagnose-provider-models', {
+          type: 'string',
+          description:
+            'Print safe provider-model provenance diagnostics (raw supportedModels count, filtered count, cache hit/age, fallback used, model provenance: ACCOUNT_DYNAMIC | OFFICIAL_CLIENT_DYNAMIC | BUNDLED_FALLBACK | CACHE) without exposing credentials. Usage: plumb --diagnose-provider-models <provider-id>',
+        })
+        .option('diagnose-model-limits', {
+          type: 'boolean',
+          description:
+            'Print safe per-model limits authority (contextWindow / maxOutputTokens, with provenance: REGISTRY_DISCOVERY | BUNDLED_CATALOG | PINNED_REFERENCE | BUILTIN_GEMINI | TOKEN_LIMIT_DEFAULT | UNKNOWN) for every active model. Never exposes credentials. Usage: plumb --diagnose-model-limits',
         })
         .option('diagnose-auth-state', {
           type: 'boolean',

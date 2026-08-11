@@ -284,6 +284,35 @@ describe('parseArguments', () => {
     expect(parsedArgs.runtimeIdentity).toBeUndefined();
   });
 
+  it('should recognize --diagnose-provider-models as a production flag', async () => {
+    process.argv = [
+      'node',
+      'script.js',
+      '--diagnose-provider-models',
+      'claude-subscription',
+    ];
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    const parsedArgs = await parseArguments(createTestMergedSettings());
+    expect(parsedArgs.diagnoseProviderModels).toBe('claude-subscription');
+    expect(parsedArgs.diagnoseLogo).toBeUndefined();
+    expect(parsedArgs.runtimeIdentity).toBeUndefined();
+  });
+
+  it('should recognize --diagnose-model-limits as a production flag', async () => {
+    process.argv = ['node', 'script.js', '--diagnose-model-limits'];
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+
+    const parsedArgs = await parseArguments(createTestMergedSettings());
+    expect(parsedArgs.diagnoseModelLimits).toBe(true);
+    expect(parsedArgs.diagnoseProviderModels).toBeUndefined();
+    expect(parsedArgs.runtimeIdentity).toBeUndefined();
+  });
+
   describe('worktree', () => {
     it('should parse --worktree flag when provided with a name', async () => {
       process.argv = ['node', 'script.js', '--worktree', 'my-feature'];

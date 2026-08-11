@@ -553,6 +553,22 @@ export const PlumbProviderSetupDialog: React.FC<
       // from the child process's exit code.
       const status = await getClaudeSubscriptionStatus();
       if (status.status === 'CONNECTED_SUBSCRIPTION') {
+        // A successful re-auth (different account, refreshed token, ...) is
+        // a real account-scope change for the Anthropic-backed Claude
+        // subscription: the previous `Query.supportedModels()` result is no
+        // longer authoritative and the static OFFICIAL_STATIC_METADATA floor
+        // (2 models) is the only safe fallback until live discovery
+        // re-runs. Invalidate the per-provider cache and the in-memory
+        // discovered-models map so the next `getModelsForProvider` call
+        // surfaces the new account's real list, not the previous one.
+        try {
+          const providerPkg = await import('@google/gemini-cli-provider');
+          providerPkg
+            .getPlumbModelRegistry?.()
+            ?.invalidateCache('claude-subscription');
+        } catch {
+          // Non-fatal: model-select still re-runs discovery below.
+        }
         setState((s) => ({
           ...s,
           step: 'model-select',

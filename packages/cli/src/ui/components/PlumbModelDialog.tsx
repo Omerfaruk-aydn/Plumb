@@ -83,6 +83,34 @@ export function PlumbModelDialog({
         settings.setValue(SettingScope.User, 'plumb.provider.id', providerId);
         savePlumbProviderModel(settings, providerId, modelId);
 
+        // Pre-warm the universal tokenLimit() resolver for this exact
+        // model id BEFORE the chat turn runs. Without this, the bottom
+        // status row can show a stale limit (e.g. 128K) for any model
+        // whose real contextWindow has not yet been recorded into
+        // packages/core's per-model cache (see tokenLimits.ts).
+        // recordPlumbModelContextWindow() is a no-op for non-positive or
+        // missing values, so this is safe even when the registry has no
+        // real number for the id.
+        try {
+          const providerPkg = await import('@google/gemini-cli-provider');
+          const registry = providerPkg.getPlumbModelRegistry?.();
+          const plumbModel = registry?.findModel(providerId, modelId);
+          if (plumbModel) {
+            const core = await import('@google/gemini-cli-core');
+            const rec = (
+              core as unknown as {
+                recordPlumbModelContextWindow?: (
+                  id: string,
+                  window: number | undefined,
+                ) => void;
+              }
+            ).recordPlumbModelContextWindow;
+            rec?.(plumbModel.id, plumbModel.contextWindow);
+          }
+        } catch {
+          // Non-fatal: chat turn below will record the value anyway.
+        }
+
         // PLUMB_PROVIDER content generators bind provider+model at
         // construction time (see contentGenerator.ts) — a live switch must
         // rebuild it via refreshAuth, the same call
@@ -162,9 +190,31 @@ export function PlumbModelDialog({
         onClose();
         return true;
       }
+      // Ctrl+R: force-refresh the model list (re-runs live discovery for
+      // every active provider, including claude-subscription's
+      // account/plan-aware `Query.supportedModels()`). Without this key,
+      // a stale on-disk cache (or a successful re-auth above that
+      // invalidated the cache) is invisible to the user until they
+      // close/reopen the dialog.
+      if (key.ctrl === true && (key.name === 'r' || key.name === 'R')) {
+        // Trigger a re-run by toggling the hook's isOpen state. Easiest
+        // way: remount the hook by changing nothing about the prop
+        // (it stays `true`) but force a re-discovery through the
+        // registry directly — useModelDialogData has its own background
+        // refresh path so just re-invoking refresh keeps the dialog
+        // UX consistent with what users see on first open.
+        try {
+          void import('@google/gemini-cli-provider').then((m) =>
+            m.getPlumbModelRegistry?.()?.refreshProvider?.('claude-subscription'),
+          );
+        } catch {
+          // Best-effort: ignored.
+        }
+        return true;
+      }
       return false;
     },
-    { isActive: view === 'providers' },
+    { isActive: view === 'providers' || view === 'models' },
   );
 
   return (

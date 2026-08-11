@@ -551,7 +551,31 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
 
   let query: SdkQuery | undefined;
   try {
-    query = sdk.query({ prompt: '', options: { tools: [], maxTurns: 0 } });
+    // CRITICAL INVARIANT — ANTHROPIC cache_control SAFETY:
+    //
+    // Anthropic's API rejects every request that attaches `cache_control` to
+    // a zero-length text content block (HTTP 400 `cache_control cannot be
+    // set for empty text blocks`). The Agent SDK auto-attaches a
+    // `cache_control: { type: "ephemeral" }` breakpoint to the LAST text
+    // content block it ships, so a literal `prompt: ''` becomes a user
+    // message with content: [{ type: 'text', text: '' }] carrying
+    // cache_control → the exact failure reported on the first interactive
+    // PLUMB turn. We must never feed the SDK a zero-length prompt; the
+    // discovery probe here only reads `supportedModels()` and never iterates
+    // the prompt stream, so a single non-empty placeholder char is both
+    // safe (never reaches the model) and required (keeps the SDK's
+    // outbound message non-empty and cache_control-legal).
+    //
+    // We use a single ASCII char "p" — short, non-whitespace, survives
+    // any reasonable SDK-side trim/normalize pass, and is meaningless
+    // to the model (the SDK never iterates the prompt because
+    // `maxTurns: 0` short-circuits before any assistant turn is
+    // generated). A real call to supportedModels() below runs BEFORE
+    // any prompt iteration starts, so the placeholder text is purely
+    // transport-shape filler for cache_control safety.
+    const PROBE_PROMPT = 'p';
+    query = sdk.query({ prompt: PROBE_PROMPT, options: { tools: [], maxTurns: 0 } });
+    const knownById = new Map(CLAUDE_SUBSCRIPTION_MODELS.map((m) => [m.id, m]));
     const supportedModels = (
       query as unknown as {
         supportedModels?: () => Promise<
@@ -596,7 +620,6 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
       };
     }
 
-    const knownById = new Map(CLAUDE_SUBSCRIPTION_MODELS.map((m) => [m.id, m]));
     const models: ClaudeSubscriptionModelMetadata[] = discovered
       .filter((info) => looksLikeRealModelId(info.value))
       .map((info) => {
@@ -626,7 +649,32 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
 
 // ─── Streaming transport ────────────────────────────────────────────────
 
-function formatTranscriptPrompt(options: PlumbStreamOptions): string {
+/**
+ * Render the user-visible transcript PLUMB's chat passes to the Agent SDK
+ * as a single prompt string.
+ *
+ * CRITICAL INVARIANT — ANTHROPIC cache_control SAFETY:
+ *
+ * Anthropic's API rejects every request that attaches `cache_control` to a
+ * zero-length text content block (HTTP 400 `cache_control cannot be set
+ * for empty text blocks`). The Agent SDK auto-attaches a
+ * `cache_control: { type: "ephemeral" }` breakpoint to the LAST text
+ * content block it ships, so the literal prompt string we hand to the
+ * SDK becomes the user-message text and inherits that breakpoint. A
+ * zero-length prompt — or one whose content is purely whitespace the
+ * SDK's own normalize pass collapses to empty — becomes an empty text
+ * block carrying cache_control and the request is rejected.
+ *
+ * This function MUST therefore guarantee a non-empty, non-whitespace-only
+ * prompt back to every caller. The chat path is normally safe (the user
+ * always typed at least one character into the input box), but defensive
+ * callers — disabled subsystems, broken message conversion, etc. —
+ * MUST NOT be allowed to silently regress this invariant. We refuse to
+ * return `''`; in the impossible "no system prompt and no messages" case
+ * we surface a single zero-width placeholder char that survives the
+ * SDK's normalize pass and is meaningless to the model.
+ */
+export function formatTranscriptPrompt(options: PlumbStreamOptions): string {
   const lines: string[] = [];
   if (options.systemPrompt) {
     lines.push(`[system]\n${options.systemPrompt}`);
@@ -637,7 +685,24 @@ function formatTranscriptPrompt(options: PlumbStreamOptions): string {
     if (!text) continue;
     lines.push(`[${msg.role}]\n${text}`);
   }
-  return lines.join('\n\n');
+  const prompt = lines.join('\n\n');
+  // Defense in depth: if the resulting prompt is empty or whitespace-only
+  // (e.g. a caller passed no systemPrompt and an empty messages array),
+  // return a single Unicode LINE SEPARATOR (U+2028) — a non-empty,
+  // non-whitespace code point that is semantically zero-width to the
+  // model. The SDK ships a real text block (cache_control-valid) and the
+  // model sees no input — safer than throwing, which would break the
+  // stream pipeline and produce a worse UX than a single empty turn.
+  if (prompt.length === 0 || /^\s*$/.test(prompt)) {
+    // Same invariant as getClaudeSubscriptionModels's probe placeholder
+    // — a single non-whitespace ASCII char that survives any
+    // SDK-side normalize pass. The text never reaches the model in
+    // the first place (a real chat turn is the only path that calls
+    // this, and a real chat turn always has a non-empty user
+    // message); this branch is purely defense in depth.
+    return '.';
+  }
+  return prompt;
 }
 
 // ─── Tool authority bridge (PLUMB owns execution) ──────────────────────
@@ -820,6 +885,28 @@ export async function* streamClaudeSubscription(
 
   const model = resolveSdkModelId(options.model);
   const prompt = formatTranscriptPrompt(options);
+
+  // CRITICAL INVARIANT — ANTHROPIC cache_control SAFETY (defense in depth):
+  //
+  // formatTranscriptPrompt() already guarantees a non-empty prompt, but
+  // a future regression there must NOT be allowed to silently ship a
+  // zero-length prompt to the SDK (Anthropic then rejects the request
+  // with HTTP 400: `cache_control cannot be set for empty text blocks`).
+  // Re-verify the invariant here at the exact Anthropic-boundary
+  // transition; this is the single point of egress to the Agent SDK in
+  // the whole chat pipeline, so guarding it here covers every caller.
+  if (prompt.length === 0 || /^\s*$/.test(prompt)) {
+    yield {
+      type: 'error',
+      error: {
+        code: 'INVALID_PROMPT',
+        message:
+          'PLUMB refused to send a zero-length prompt to the Claude subscription transport. ' +
+          'This is an internal invariant violation; please file a bug with the prompt that produced it.',
+      },
+    };
+    return;
+  }
 
   const mcpServer =
     options.tools && options.tools.length > 0 && options.toolExecutor
