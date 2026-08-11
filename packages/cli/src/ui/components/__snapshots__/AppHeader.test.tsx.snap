@@ -11,6 +11,8 @@ exports[`<AppHeader /> > should not render the banner when no flags are set 1`] 
  PLUMB CLI v1.0.0
 
 
+ Working late? Let’s build something.
+
 
 Tips for getting started:
 1. Create GEMINI.md files to customize your interactions
@@ -31,6 +33,8 @@ exports[`<AppHeader /> > should not render the default banner if shown count is 
  PLUMB CLI v1.0.0
 
 
+ Working late? Let’s build something.
+
 
 Tips for getting started:
 1. Create GEMINI.md files to customize your interactions
@@ -50,6 +54,8 @@ exports[`<AppHeader /> > should render the banner with default text 1`] = `
 
  PLUMB CLI v1.0.0
 
+
+ Working late? Let’s build something.
 
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ This is the default banner                                                                       │
@@ -74,6 +80,8 @@ exports[`<AppHeader /> > should render the banner with warning text 1`] = `
  PLUMB CLI v1.0.0
 
 
+ Working late? Let’s build something.
+
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ There are capacity issues                                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -95,5 +103,8 @@ exports[`<AppHeader /> > should render the full logo when logged out 1`] = `
  █    ████ ████ █   █ ████
 
  PLUMB CLI v1.0.0
+
+
+ Working late? Let’s build something.
 "
 `;

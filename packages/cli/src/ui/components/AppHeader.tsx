@@ -16,6 +16,7 @@ import { useTips } from '../hooks/useTips.js';
 import { theme } from '../semantic-colors.js';
 import { CliSpinner } from './CliSpinner.js';
 import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
+import { getTimeBasedGreeting } from '../utils/greeting.js';
 
 interface AppHeaderProps {
   version: string;
@@ -38,6 +39,7 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
     updateInfo,
     isConfigInitialized,
     isAuthenticating,
+    history,
   } = useUIState();
 
   const { bannerText } = useBanner(bannerData);
@@ -115,6 +117,17 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
           ) : (
             renderMetadata(false)
           )}
+        </Box>
+      )}
+
+      {/* F6 (PLUMB-UI-DEVRIM-PROMPT.md), scoped: a one-line greeting for
+          the true empty-history moment. Read once per render, not tied to
+          any timer -- this is not a live clock. */}
+      {showHeader && history.length === 0 && (
+        <Box paddingLeft={1} marginBottom={1}>
+          <Text color={theme.text.secondary} italic>
+            {getTimeBasedGreeting(new Date())}
+          </Text>
         </Box>
       )}
 
