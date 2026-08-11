@@ -10,6 +10,7 @@ import { MarkdownDisplay } from '../../utils/MarkdownDisplay.js';
 import { theme } from '../../semantic-colors.js';
 import { SCREEN_READER_MODEL_PREFIX } from '../../textConstants.js';
 import { useUIState } from '../../contexts/UIStateContext.js';
+import { GradientStreamCursor } from '../GradientStreamCursor.js';
 
 interface GeminiMessageProps {
   text: string;
@@ -47,6 +48,7 @@ export const GeminiMessage: React.FC<GeminiMessageProps> = ({
           terminalWidth={Math.max(terminalWidth - prefixWidth, 0)}
           renderMarkdown={renderMarkdown}
         />
+        {isPending && <GradientStreamCursor />}
       </Box>
     </Box>
   );

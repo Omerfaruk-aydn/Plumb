@@ -2,6 +2,7 @@
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should render a full gemini item when using availableTerminalHeightGemini 1`] = `
 "✦ Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -57,6 +58,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should 
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should render a full gemini_content item when using availableTerminalHeightGemini 1`] = `
 "  Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -112,6 +114,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should 
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should render a truncated gemini item 1`] = `
 "✦ Example code block:
+   python
    ... 42 hidden (Ctrl+O) ...
    43 Line 43
    44 Line 44
@@ -126,6 +129,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should 
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should render a truncated gemini_content item 1`] = `
 "  Example code block:
+   python
    ... 42 hidden (Ctrl+O) ...
    43 Line 43
    44 Line 44
@@ -140,6 +144,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=false) > should 
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should render a full gemini item when using availableTerminalHeightGemini 1`] = `
 "✦ Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -195,6 +200,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should r
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should render a full gemini_content item when using availableTerminalHeightGemini 1`] = `
 "  Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -250,6 +256,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should r
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should render a truncated gemini item 1`] = `
 "✦ Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -305,6 +312,7 @@ exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should r
 
 exports[`<HistoryItemDisplay /> > gemini items (alternateBuffer=true) > should render a truncated gemini_content item 1`] = `
 "  Example code block:
+   python
     1 Line 1
     2 Line 2
     3 Line 3
@@ -389,7 +397,7 @@ exports[`<HistoryItemDisplay /> > renders InfoMessage for "info" type with multi
 `;
 
 exports[`<HistoryItemDisplay /> > thinking items > renders "Thinking..." header when isFirstThinking is true 1`] = `
-" Thinking...
+" Thinking... 
  │
  │ Thinking
  │ test

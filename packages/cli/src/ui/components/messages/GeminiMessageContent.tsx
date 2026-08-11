@@ -8,6 +8,7 @@ import type React from 'react';
 import { Box } from 'ink';
 import { MarkdownDisplay } from '../../utils/MarkdownDisplay.js';
 import { useUIState } from '../../contexts/UIStateContext.js';
+import { GradientStreamCursor } from '../GradientStreamCursor.js';
 
 interface GeminiMessageContentProps {
   text: string;
@@ -45,6 +46,7 @@ export const GeminiMessageContent: React.FC<GeminiMessageContentProps> = ({
         terminalWidth={Math.max(terminalWidth - prefixWidth, 0)}
         renderMarkdown={renderMarkdown}
       />
+      {isPending && <GradientStreamCursor />}
     </Box>
   );
 };

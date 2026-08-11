@@ -6,6 +6,7 @@ exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders pending st
    \`\`\`javascript
    const x = 1;
    \`\`\`
+  ▌
 "
 `;
 
@@ -14,6 +15,7 @@ exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders pending st
 
    javascript
    1 const x = 1;
+  ▌
 "
 `;
 
