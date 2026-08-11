@@ -47,6 +47,7 @@ import { useProviderSetupData } from '../hooks/useProviderSetupData.js';
 import { CommandPalette } from './CommandPalette.js';
 import { DiffReviewScreen } from './DiffReviewScreen.js';
 import { AgentMissionControl } from './AgentMissionControl.js';
+import { MatrixScreensaverPanel } from './MatrixScreensaverPanel.js';
 
 interface DialogManagerProps {
   addItem: UseHistoryManagerReturn['addItem'];
@@ -470,6 +471,17 @@ export const DialogManager = ({
         onExit={uiActions.closePermissionsDialog}
         addItem={addItem}
         targetDirectory={uiState.permissionsDialogProps?.targetDirectory}
+      />
+    );
+  }
+
+  // F12: placed last so any other active dialog above always wins --
+  // the screensaver only ever appears when nothing else claimed this slot.
+  if (uiState.isIdleScreensaverActive) {
+    return (
+      <MatrixScreensaverPanel
+        terminalWidth={uiTerminalWidth}
+        seed={uiState.idleScreensaverSeed}
       />
     );
   }

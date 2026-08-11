@@ -124,6 +124,8 @@ export interface UIState {
   sessionAgentRuns: AgentRun[];
   lastTurnEdits: SessionEdit[];
   lastTurnAgentRuns: AgentRun[];
+  isIdleScreensaverActive: boolean;
+  idleScreensaverSeed: number;
   isModelDialogOpen: boolean;
   isVoiceModelDialogOpen: boolean;
   isAgentConfigDialogOpen: boolean;

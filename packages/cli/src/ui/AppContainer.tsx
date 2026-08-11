@@ -106,6 +106,7 @@ import { useDiffReviewCommand } from './hooks/useDiffReviewCommand.js';
 import { collectSessionEdits } from './utils/sessionEditHistory.js';
 import { useAgentMissionControlCommand } from './hooks/useAgentMissionControlCommand.js';
 import { collectSessionAgentRuns } from './utils/sessionAgentActivity.js';
+import { useIdleDetection } from './hooks/useIdleDetection.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -741,6 +742,25 @@ export const AppContainer = (props: AppContainerProps) => {
     () => collectSessionAgentRuns(lastTurnHistoryItems),
     [lastTurnHistoryItems],
   );
+
+  // F12 (PLUMB-UI-DEVRIM-PROMPT.md), scoped to a static pattern -- see
+  // MatrixScreensaverPanel.tsx's doc comment for why this never uses a
+  // repeating interval. Disabled for screen readers and NO_COLOR, per
+  // spec. Rendering is gated by DialogManager placing this check LAST in
+  // its if-chain, so any other active dialog naturally takes priority
+  // without needing this hook to know about dialog state.
+  const isIdleScreensaverEnabled =
+    !config.getScreenReader() && !process.env['NO_COLOR'];
+  const isIdleScreensaverActive = useIdleDetection(
+    60_000,
+    isIdleScreensaverEnabled,
+  );
+  const [idleScreensaverSeed, setIdleScreensaverSeed] = useState(0);
+  useEffect(() => {
+    if (isIdleScreensaverActive) {
+      setIdleScreensaverSeed(Date.now());
+    }
+  }, [isIdleScreensaverActive]);
 
   const {
     isThemeDialogOpen,
@@ -2745,6 +2765,8 @@ Logging in with Google... Restarting PLUMB to continue.
       sessionAgentRuns,
       lastTurnEdits,
       lastTurnAgentRuns,
+      isIdleScreensaverActive,
+      idleScreensaverSeed,
 
       themeError,
       isAuthenticating,
@@ -2871,6 +2893,8 @@ Logging in with Google... Restarting PLUMB to continue.
       sessionAgentRuns,
       lastTurnEdits,
       lastTurnAgentRuns,
+      isIdleScreensaverActive,
+      idleScreensaverSeed,
 
       themeError,
       isAuthenticating,

@@ -38,6 +38,9 @@ vi.mock('./DiffReviewScreen.js', () => ({
 vi.mock('./AgentMissionControl.js', () => ({
   AgentMissionControl: () => <Text>AgentMissionControl</Text>,
 }));
+vi.mock('./MatrixScreensaverPanel.js', () => ({
+  MatrixScreensaverPanel: () => <Text>MatrixScreensaverPanel</Text>,
+}));
 vi.mock('./SettingsDialog.js', () => ({
   SettingsDialog: () => <Text>SettingsDialog</Text>,
 }));
@@ -105,6 +108,8 @@ describe('DialogManager', () => {
     isDiffReviewOpen: false,
     sessionEdits: [],
     isAgentMissionControlOpen: false,
+    isIdleScreensaverActive: false,
+    idleScreensaverSeed: 0,
     sessionAgentRuns: [],
     isSettingsDialogOpen: false,
     isModelDialogOpen: false,
@@ -189,6 +194,7 @@ describe('DialogManager', () => {
     [{ isEditorDialogOpen: true }, 'EditorSettingsDialog'],
     [{ showPrivacyNotice: true }, 'PrivacyNotice'],
     [{ isPermissionsDialogOpen: true }, 'PermissionsModifyTrustDialog'],
+    [{ isIdleScreensaverActive: true }, 'MatrixScreensaverPanel'],
     [
       {
         isAgentConfigDialogOpen: true,
@@ -229,6 +235,23 @@ describe('DialogManager', () => {
       unmount();
     },
   );
+
+  it('F12: another active dialog takes priority over the idle screensaver', async () => {
+    const { lastFrame, unmount } = await renderWithProviders(
+      <DialogManager {...defaultProps} />,
+      {
+        uiState: {
+          ...baseUiState,
+          isIdleScreensaverActive: true,
+          isThemeDialogOpen: true,
+        } as Partial<UIState> as UIState,
+      },
+    );
+    const frame = lastFrame();
+    expect(frame).toContain('ThemeDialog');
+    expect(frame).not.toContain('MatrixScreensaverPanel');
+    unmount();
+  });
 
   it('mounts the provider-first setup dialog instead of the Google-first auth dialog', async () => {
     const { lastFrame, unmount } = await renderWithProviders(
