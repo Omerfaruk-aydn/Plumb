@@ -231,34 +231,27 @@ describe('buildProviderModelsDiagnostics', () => {
 });
 
 describe('buildModelLimitsDiagnostics', () => {
-  it('emits a header, an active-model count, and a per-model line for every active model', async () => {
+  it('emits a header, registered providers, models.total, and per-provider sections', async () => {
     const { lines, failures } = await buildModelLimitsDiagnostics();
     const report = lines.join('\n');
     expect(failures).toEqual([]);
-    expect(report).toContain('PLUMB model limits diagnostics');
-    expect(report).toMatch(/active\.model\.count: \d+/);
-    // Per-model lines have a stable "provider=... model=... context=...
-    // (provenance) maxOutput=... (provenance)" shape — the diagnostic
-    // must follow it for every model the registry reports.
-    const perModelLines = lines.filter(
-      (l) => l.includes('provider=') && l.includes('model='),
-    );
-    const countMatch = report.match(/active\.model\.count: (\d+)/);
-    expect(countMatch).not.toBeNull();
-    if (countMatch) {
-      const declared = Number(countMatch[1]);
-      // When the active model count is > 0, the per-model lines must
-      // cover it. When 0, the per-model list is empty (no providers
-      // authenticated in this test environment).
-      if (declared > 0) {
-        expect(perModelLines.length).toBeGreaterThan(0);
-        for (const line of perModelLines) {
-          expect(line).toMatch(/context=\S+/);
-          expect(line).toMatch(/maxOutput=\S+/);
-        }
-      } else {
-        expect(perModelLines.length).toBe(0);
-      }
+    expect(report).toContain('PLUMB universal model metadata diagnostics');
+    expect(report).toContain('git.head.embedded:');
+    expect(report).toContain('registered.providers:');
+    expect(report).toContain('models.total:');
+    expect(report).toContain('models.identity.bundled:');
+    expect(report).toContain('models.identity.pinned:');
+    expect(report).toContain('models.context.known:');
+    expect(report).toContain('models.output.known:');
+    // The universal inventory must include at least registered
+    // providers from the bundled catalog (even when no user is
+    // configured). Per-provider sections use [provider-id] format.
+    const providerSections = lines.filter((l) => /^\[[\w-]+\]$/.test(l));
+    expect(providerSections.length).toBeGreaterThan(0);
+    // Every registered provider section must have at least one model
+    // or a "(none)" entry.
+    for (const section of providerSections) {
+      expect(section).toMatch(/^\[[\w-]+\]$/);
     }
   });
 });

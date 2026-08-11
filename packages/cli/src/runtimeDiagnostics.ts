@@ -22,8 +22,10 @@ import { createRequire } from 'node:module';
 import { BRAND_CONSTANTS } from '@google/gemini-cli-core';
 import {
   installBunGlobal,
+  buildUniversalModelInventory,
   type PlumbMessage,
   type PlumbTool,
+  type UniversalModelInventory,
 } from '@google/gemini-cli-provider';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import type { MergedSettings } from './config/settings.js';
@@ -1364,123 +1366,140 @@ export async function printProviderModelsDiagnostics(
   return result.failures.length > 0 ? 1 : 0;
 }
 
-// ─── Per-model limit provenance (every active model, every provider) ──
+// ─── Universal model metadata diagnostic (every model, every provider) ──
 
-/**
- * `plumb --diagnose-model-limits` — safe model-limits authority report
- * for every active provider. Reports, for every model the user can pick:
- *
- *   - display model id
- *   - wire model id (requestModelId, for providers that rename at the
- *     HTTP boundary)
- *   - context window (or UNKNOWN)
- *   - max output tokens (or UNKNOWN)
- *   - context provenance: which authority reported the number
- *     (REGISTRY_DISCOVERY, BUNDLED_CATALOG, PINNED_REFERENCE, BUILTIN_GEMINI)
- *   - output provenance
- *
- * Lets a real user answer the "why is my model still 128K" question
- * without inspecting code. Never prints credentials or tokens.
- */
 export interface ModelLimitsDiagnosticsResult {
   lines: string[];
   failures: string[];
 }
 
-interface PlumbModelLike {
-  id: string;
-  name?: string;
-  provider: string;
-  requestModelId?: string;
-  contextWindow?: number;
-  maxTokens?: number;
-  source?: string;
+function fmtContext(
+  value: number | undefined,
+  source: string,
+): string {
+  return `${value ?? 'UNKNOWN'} (${source})`;
+}
+
+function inventoryToLines(
+  inv: UniversalModelInventory,
+): string[] {
+  const lines: string[] = [];
+  lines.push('PLUMB universal model metadata diagnostics');
+  lines.push(`git.head.embedded: ${inv.build.gitHeadEmbedded}`);
+  lines.push(`captured.at.ms: ${inv.build.capturedAt}`);
+  lines.push('');
+  lines.push('summary:');
+  lines.push(`  registered.providers: ${inv.counts.registeredProviders}`);
+  lines.push(`  selectable.providers: ${inv.counts.selectableProviders}`);
+  lines.push(`  configured.providers: ${inv.counts.configuredProviders}`);
+  lines.push('');
+  lines.push('  models.total: ' + inv.counts.totalModels);
+  lines.push(
+    '  models.identity.bundled: ' + inv.counts.identityBundledCatalog,
+  );
+  lines.push(
+    '  models.identity.pinned: ' + inv.counts.identityPinnedReference,
+  );
+  lines.push(
+    '  models.identity.providerDynamic: ' +
+      inv.counts.identityProviderDynamic,
+  );
+  lines.push(
+    '  models.identity.accountDynamic: ' +
+      inv.counts.identityAccountDynamic,
+  );
+  lines.push(
+    '  models.identity.userConfigured: ' +
+      inv.counts.identityUserConfigured,
+  );
+  lines.push(
+    '  models.identity.userConfiguredDeployment: ' +
+      inv.counts.identityUserConfiguredDeployment,
+  );
+  lines.push('  models.identity.unknown: ' + inv.counts.identityUnknown);
+  lines.push('  models.context.known: ' + inv.counts.contextKnown);
+  lines.push('  models.context.unknown: ' + inv.counts.contextUnknown);
+  lines.push('  models.input.known: ' + inv.counts.inputKnown);
+  lines.push('  models.input.unknown: ' + inv.counts.inputUnknown);
+  lines.push('  models.output.known: ' + inv.counts.outputKnown);
+  lines.push('  models.output.unknown: ' + inv.counts.outputUnknown);
+  lines.push('');
+  // Group models by provider for the per-provider breakdown
+  const byProvider = new Map<string, typeof inv.models>();
+  for (const m of inv.models) {
+    if (!byProvider.has(m.providerId)) byProvider.set(m.providerId, []);
+    byProvider.get(m.providerId)!.push(m);
+  }
+  // Print providers in declared order (the same order the inventory
+  // emits them) so the output is byte-stable across two runs of the
+  // same state.
+  for (const p of inv.providers) {
+    lines.push(`[${p.providerId}]`);
+    lines.push(`  registered: ${p.registered}`);
+    lines.push(`  configured: ${p.configured}`);
+    lines.push(`  selectable: ${p.selectable}`);
+    lines.push(`  auth.state: ${p.authState ?? 'n/a'}`);
+    lines.push(`  has.credential: ${p.hasCredential}`);
+    lines.push(`  bundledModelCount: ${p.bundledModelCount}`);
+    lines.push(`  knownModelCount: ${p.knownModelCount}`);
+    const list = byProvider.get(p.providerId) ?? [];
+    if (list.length === 0) {
+      lines.push('  models: (none)');
+    } else {
+      for (const m of list) {
+        lines.push(`  model=${m.modelId}`);
+        lines.push(`    display.model: ${m.modelId}`);
+        if (m.wireModelId && m.wireModelId !== m.modelId) {
+          lines.push(`    wire.model: ${m.wireModelId}`);
+        }
+        lines.push(`    identity.source: ${m.identitySource}`);
+        lines.push(
+          `    context: ${fmtContext(m.contextWindow, m.contextSource)}`,
+        );
+        lines.push(
+          `    maxOutput: ${fmtContext(m.maxOutputTokens, m.maxOutputSource)}`,
+        );
+        if (typeof m.maxInputTokens === 'number') {
+          lines.push(
+            `    maxInput: ${fmtContext(m.maxInputTokens, m.inputSource)}`,
+          );
+        }
+        if (m.pricing) {
+          lines.push(
+            `    pricing.source: ${m.pricingSource} (input=${m.pricing.input}, output=${m.pricing.output})`,
+          );
+        } else {
+          lines.push(`    pricing.source: ${m.pricingSource}`);
+        }
+        if (m.reasoning !== undefined) {
+          lines.push(`    reasoning: ${m.reasoning}`);
+        }
+        if (m.toolsSupported !== undefined) {
+          lines.push(`    toolsSupported: ${m.toolsSupported}`);
+        }
+        lines.push(`    registered: ${m.registered}`);
+        lines.push(`    configured: ${m.configured}`);
+        lines.push(`    discoveryAttempted: ${m.discoveryAttempted}`);
+      }
+    }
+    lines.push('');
+  }
+  return lines;
 }
 
 export async function buildModelLimitsDiagnostics(): Promise<ModelLimitsDiagnosticsResult> {
   const lines: string[] = [];
   const failures: string[] = [];
-
-  lines.push(`PLUMB model limits diagnostics`);
-  lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
-
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
-    const registry = (
-      providerModule as unknown as {
-        getPlumbModelRegistry?: () => {
-          getAllAvailableModels?: () => PlumbModelLike[];
-        };
-      }
-    ).getPlumbModelRegistry?.();
-    if (!registry) {
-      failures.push('plumb model registry not available in this build');
-      return { lines, failures };
-    }
-    const models =
-      typeof registry.getAllAvailableModels === 'function'
-        ? registry.getAllAvailableModels()
-        : [];
-    lines.push(`active.model.count: ${models.length}`);
-
-    // For every active model, resolve its real limits through the
-    // universal authority (tokenLimit + the registry's own model record)
-    // and classify the provenance of the numbers.
-    const coreModule = await import('@google/gemini-cli-core');
-    const tokenLimit = (coreModule as { tokenLimit?: (id: string) => number })
-      .tokenLimit;
-    for (const m of models) {
-      const wireId = m.requestModelId ?? m.id;
-      const contextFromRegistry = m.contextWindow;
-      const maxFromRegistry = m.maxTokens;
-      const contextFromTokenLimit = tokenLimit ? tokenLimit(m.id) : undefined;
-
-      // Classify context provenance. Hierarchy:
-      //   1. registry.contextWindow — set by live discovery or bundled catalog
-      //   2. tokenLimit() — universal resolver
-      // We prefer registry first, then fall back to tokenLimit.
-      const context =
-        typeof contextFromRegistry === 'number' && contextFromRegistry > 0
-          ? contextFromRegistry
-          : typeof contextFromTokenLimit === 'number' &&
-              contextFromTokenLimit > 0
-            ? contextFromTokenLimit
-            : undefined;
-      const contextSource: string =
-        typeof contextFromRegistry === 'number' && contextFromRegistry > 0
-          ? m.source === 'ACCOUNT_DYNAMIC'
-            ? 'REGISTRY_DISCOVERY'
-            : m.source === 'OFFICIAL_STATIC_METADATA'
-              ? 'PINNED_REFERENCE'
-              : 'BUNDLED_CATALOG'
-          : typeof contextFromTokenLimit === 'number'
-            ? contextFromTokenLimit === 1_048_576
-              ? 'TOKEN_LIMIT_DEFAULT'
-              : 'BUILTIN_GEMINI'
-            : 'UNKNOWN';
-      const outputSource: string =
-        typeof maxFromRegistry === 'number' && maxFromRegistry > 0
-          ? m.source === 'ACCOUNT_DYNAMIC'
-            ? 'REGISTRY_DISCOVERY'
-            : m.source === 'OFFICIAL_STATIC_METADATA'
-              ? 'PINNED_REFERENCE'
-              : 'BUNDLED_CATALOG'
-          : 'UNKNOWN';
-      lines.push(
-        `  provider=${m.provider} model=${m.id}` +
-          ` wire=${wireId}` +
-          ` context=${context ?? 'UNKNOWN'}` +
-          ` (${contextSource})` +
-          ` maxOutput=${maxFromRegistry ?? 'UNKNOWN'}` +
-          ` (${outputSource})`,
-      );
-    }
+    const inv = await buildUniversalModelInventory({
+      build: { gitHead: BUILD_IDENTITY.gitHead },
+    });
+    lines.push(...inventoryToLines(inv));
   } catch (err) {
     failures.push(
       `Failed to build model-limits diagnostics: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-
   return { lines, failures };
 }
 

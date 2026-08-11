@@ -406,3 +406,15 @@ export type {
   ClaudeSubscriptionModelMetadata,
   ClaudeSubscriptionModelsResult,
 } from './transports/claudeSubscription.js';
+
+// Universal model inventory — single canonical aggregation layer
+export {
+  buildUniversalModelInventory,
+  type BuildDescriptor,
+  type InventoryBuildContext,
+  type ModelIdentitySource,
+  type ModelLimitSource,
+  type ResolvedModelMetadata,
+  type UniversalProviderEntry,
+  type UniversalModelInventory,
+} from './registry/universal-model-inventory.js';
