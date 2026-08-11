@@ -1098,12 +1098,12 @@ export async function buildProviderModelsDiagnostics(
 ): Promise<ProviderModelsDiagnosticsResult> {
   const lines: string[] = [];
   const failures: string[] = [];
-  let rawSupportedModelCount = 0;
-  let filteredModelCount = 0;
+  const rawSupportedModelCount = 0;
+  const filteredModelCount = 0;
   let cacheHit = false;
   let cacheAge: number | null = null;
-  let fallbackUsed = false;
-  let provenance: ProviderModelsDiagnosticsResult['provenance'] = 'UNKNOWN';
+  const fallbackUsed = false;
+  const provenance: ProviderModelsDiagnosticsResult['provenance'] = 'UNKNOWN';
 
   lines.push(`PLUMB provider model discovery diagnostics: ${providerId}`);
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
@@ -1433,9 +1433,7 @@ export async function buildModelLimitsDiagnostics(): Promise<ModelLimitsDiagnost
       const wireId = m.requestModelId ?? m.id;
       const contextFromRegistry = m.contextWindow;
       const maxFromRegistry = m.maxTokens;
-      const contextFromTokenLimit = tokenLimit
-        ? tokenLimit(m.id)
-        : undefined;
+      const contextFromTokenLimit = tokenLimit ? tokenLimit(m.id) : undefined;
 
       // Classify context provenance. Hierarchy:
       //   1. registry.contextWindow — set by live discovery or bundled catalog

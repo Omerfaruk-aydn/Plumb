@@ -790,9 +790,7 @@ describe('getClaudeSubscriptionModels', () => {
   // path runs.
   it('REGRESSION (empty cache_control 400): never passes an empty or whitespace-only prompt to the SDK', async () => {
     const capturedPrompts: string[] = [];
-    const query = makeQueryWithSupportedModels([
-      { value: 'claude-sonnet-5' },
-    ]);
+    const query = makeQueryWithSupportedModels([{ value: 'claude-sonnet-5' }]);
     mockQuery.mockImplementation((args: { prompt?: string }) => {
       if (typeof args?.prompt === 'string') capturedPrompts.push(args.prompt);
       return query;

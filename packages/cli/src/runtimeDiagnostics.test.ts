@@ -182,8 +182,13 @@ describe('buildPlanDiagnostics', () => {
 
 describe('buildProviderModelsDiagnostics', () => {
   it('classifies a live agent-sdk probe as AGENT_SDK discovery with BUNDLED_FALLBACK floor', async () => {
-    const { lines, failures, provenance, fallbackUsed, rawSupportedModelCount } =
-      await buildProviderModelsDiagnostics('claude-subscription');
+    const {
+      lines,
+      failures,
+      provenance,
+      fallbackUsed,
+      rawSupportedModelCount,
+    } = await buildProviderModelsDiagnostics('claude-subscription');
     expect(failures).toEqual([]);
     const report = lines.join('\n');
     expect(report).toContain('PLUMB provider model discovery diagnostics');
@@ -196,15 +201,13 @@ describe('buildProviderModelsDiagnostics', () => {
     // Live probe may succeed or fall back depending on whether the
     // dev machine has an authenticated `claude` session; either way
     // the provenance field is one of the documented values.
-    expect(
-      [
-        'ACCOUNT_DYNAMIC',
-        'OFFICIAL_CLIENT_DYNAMIC',
-        'BUNDLED_FALLBACK',
-        'CACHE',
-        'UNKNOWN',
-      ],
-    ).toContain(provenance);
+    expect([
+      'ACCOUNT_DYNAMIC',
+      'OFFICIAL_CLIENT_DYNAMIC',
+      'BUNDLED_FALLBACK',
+      'CACHE',
+      'UNKNOWN',
+    ]).toContain(provenance);
     // A successful live probe must surface >0 raw count; a fallback
     // floor (no auth) must surface 0. Either is acceptable, but the
     // counter must be a real integer.
@@ -237,8 +240,8 @@ describe('buildModelLimitsDiagnostics', () => {
     // Per-model lines have a stable "provider=... model=... context=...
     // (provenance) maxOutput=... (provenance)" shape — the diagnostic
     // must follow it for every model the registry reports.
-    const perModelLines = lines.filter((l) =>
-      l.includes('provider=') && l.includes('model='),
+    const perModelLines = lines.filter(
+      (l) => l.includes('provider=') && l.includes('model='),
     );
     const countMatch = report.match(/active\.model\.count: (\d+)/);
     expect(countMatch).not.toBeNull();

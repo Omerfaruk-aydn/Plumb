@@ -202,6 +202,8 @@ describe('<StatusRow />', () => {
     expect(output).toContain('claude-sonnet-5');
     // And the visualization is actually rendered (one of the three
     // well-formed outputs is present).
-    expect(output).toMatch(/(\d+(?:\.\d+)?[KM]?)\s+tokens\s*\|\s*\S+\s+remaining/);
+    expect(output).toMatch(
+      /(\d+(?:\.\d+)?[KM]?)\s+tokens\s*\|\s*\S+\s+remaining/,
+    );
   });
 });

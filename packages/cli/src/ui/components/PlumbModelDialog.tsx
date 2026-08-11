@@ -205,7 +205,9 @@ export function PlumbModelDialog({
         // UX consistent with what users see on first open.
         try {
           void import('@google/gemini-cli-provider').then((m) =>
-            m.getPlumbModelRegistry?.()?.refreshProvider?.('claude-subscription'),
+            m
+              .getPlumbModelRegistry?.()
+              ?.refreshProvider?.('claude-subscription'),
           );
         } catch {
           // Best-effort: ignored.

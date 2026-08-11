@@ -488,7 +488,9 @@ export async function main() {
     } else if (argv.diagnoseModels) {
       exitCode = await printModelsDiagnostics(argv.diagnoseModels);
     } else if (argv.diagnoseProviderModels) {
-      exitCode = await printProviderModelsDiagnostics(argv.diagnoseProviderModels);
+      exitCode = await printProviderModelsDiagnostics(
+        argv.diagnoseProviderModels,
+      );
     } else if (argv.diagnoseModelLimits) {
       exitCode = await printModelLimitsDiagnostics();
     } else if (argv.diagnoseAuthState) {

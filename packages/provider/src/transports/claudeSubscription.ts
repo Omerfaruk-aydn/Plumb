@@ -574,7 +574,10 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
     // any prompt iteration starts, so the placeholder text is purely
     // transport-shape filler for cache_control safety.
     const PROBE_PROMPT = 'p';
-    query = sdk.query({ prompt: PROBE_PROMPT, options: { tools: [], maxTurns: 0 } });
+    query = sdk.query({
+      prompt: PROBE_PROMPT,
+      options: { tools: [], maxTurns: 0 },
+    });
     const knownById = new Map(CLAUDE_SUBSCRIPTION_MODELS.map((m) => [m.id, m]));
     const supportedModels = (
       query as unknown as {
