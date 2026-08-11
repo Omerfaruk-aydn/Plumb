@@ -324,6 +324,21 @@ interface RenderCodeBlockProps {
   terminalWidth: number;
 }
 
+/**
+ * Thin language-label chrome above a fenced code block, e.g. "python" --
+ * the same "name the block before you show it" convention Crush/GitHub use.
+ * Silent (renders nothing) for unlabeled fences so plain ``` blocks stay
+ * exactly as compact as before.
+ */
+const CodeBlockLangLabel: React.FC<{ lang: string | null }> = ({ lang }) =>
+  lang ? (
+    <Box paddingLeft={CODE_BLOCK_PREFIX_PADDING}>
+      <Text color={theme.text.secondary} dimColor>
+        {lang}
+      </Text>
+    </Box>
+  ) : null;
+
 const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
   content,
   lang,
@@ -386,13 +401,11 @@ const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
   });
 
   return (
-    <Box
-      paddingLeft={CODE_BLOCK_PREFIX_PADDING}
-      flexDirection="column"
-      width={terminalWidth}
-      flexShrink={0}
-    >
-      {colorizedCode}
+    <Box flexDirection="column" width={terminalWidth} flexShrink={0}>
+      <CodeBlockLangLabel lang={lang} />
+      <Box paddingLeft={CODE_BLOCK_PREFIX_PADDING} flexDirection="column">
+        {colorizedCode}
+      </Box>
     </Box>
   );
 };

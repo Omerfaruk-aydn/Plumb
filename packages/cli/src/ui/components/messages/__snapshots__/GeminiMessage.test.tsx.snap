@@ -12,6 +12,7 @@ exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders pending st
 exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders pending state with renderMarkdown=true 1`] = `
 "✦ Test bold and code markdown
 
+   javascript
    1 const x = 1;
 "
 `;
@@ -28,6 +29,7 @@ exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders with rende
 exports[`<GeminiMessage /> - Raw Markdown Display Snapshots > renders with renderMarkdown=true '(default)' 1`] = `
 "✦ Test bold and code markdown
 
+   javascript
    1 const x = 1;
 "
 `;
