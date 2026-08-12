@@ -40,11 +40,32 @@ const STATE_CONFIG: Record<
   error: { icon: ' ', label: 'Voice Error', color: theme.status.error },
 };
 
-function renderVolumeBar(volume: number, width: number = 10): string {
+// F15 (PLUMB-UI-DEVRIM-PROMPT.md): a waveform look instead of a flat
+// filled bar, without adding a timer of its own -- the varying column
+// heights come from a fixed pseudo-random offset per column index, so
+// the same (volume, width) always renders the same shape, and updates
+// only when the real `volume` prop changes (already reactive, driven by
+// actual audio level from the caller).
+const WAVEFORM_BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+function columnNoise(index: number): number {
+  // Deterministic pseudo-random in [0, 1), independent of any RNG state.
+  const x = Math.sin(index * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+export function renderVolumeBar(volume: number, width: number = 10): string {
   const normalizedVolume = Math.min(1, Math.max(0, volume));
-  const filled = Math.round(width * normalizedVolume);
-  const empty = width - filled;
-  return '▁'.repeat(filled) + '▁'.repeat(empty);
+  let bar = '';
+  for (let i = 0; i < width; i++) {
+    const jitter = 0.4 + 0.6 * columnNoise(i);
+    const level = Math.round(
+      normalizedVolume * (WAVEFORM_BLOCKS.length - 1) * jitter,
+    );
+    const clamped = Math.max(0, Math.min(WAVEFORM_BLOCKS.length - 1, level));
+    bar += WAVEFORM_BLOCKS[clamped];
+  }
+  return bar;
 }
 
 export const VoiceModeIndicator: React.FC<VoiceModeIndicatorProps> = ({
