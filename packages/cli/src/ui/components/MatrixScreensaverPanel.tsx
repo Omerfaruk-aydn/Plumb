@@ -3,25 +3,25 @@
  * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
- * F12 (PLUMB-UI-DEVRIM-PROMPT.md) idle screensaver, scoped to a single
- * static render rather than a continuously animated "falling rain"
- * effect: an animated version needs a repeating setInterval, which this
- * codebase has twice already found breaks any component rendered
- * directly/unmocked in its own test (see useColorCycle.ts's doc comment,
- * and GradientStreamCursor.tsx's F3 scoping note). A static pattern,
- * regenerated with a fresh seed each time the screensaver activates
- * (not on every render), still reads as "the matrix" without a timer.
- *
- * Whether to show this at all (idle timeout, screenReader/NO_COLOR
- * disabling) is the caller's responsibility via useIdleDetection's
- * `enabled` flag -- this component only renders the pattern.
+ * F12 (PLUMB-UI-DEVRIM-PROMPT.md) idle screensaver: a real animated
+ * "matrix flicker" -- each tick regenerates the pattern from a seed
+ * derived from the activation seed plus the current frame number, via a
+ * real setInterval. Same mechanism as GeminiSpinner/GradientStreamCursor
+ * (useColorCycle): screen-reader disables it, and this component's own
+ * test file mocks the animation rather than exercising the live
+ * interval directly, since rendering a real repeating interval under
+ * vi.useFakeTimers() hangs this project's test harness (Ink's async
+ * render scheduling and the fake-timer-driven interval fight each
+ * other -- confirmed empirically, see GradientStreamCursor.test.tsx).
  */
 import type React from 'react';
-import { useMemo } from 'react';
-import { Box, Text } from 'ink';
+import { useEffect, useMemo, useState } from 'react';
+import { Box, Text, useIsScreenReaderEnabled } from 'ink';
 import { theme } from '../semantic-colors.js';
 
 const CHARSET = '01ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ';
+const TICK_MS = 150;
+const FRAME_SEED_OFFSET = 104729; // an arbitrary large prime
 
 /** Deterministic PRNG (mulberry32) so a given seed always renders the same pattern. */
 function mulberry32(seed: number): () => number {
@@ -39,8 +39,10 @@ export interface MatrixScreensaverPanelProps {
   terminalWidth: number;
   /** Number of rows to render (caller decides how much vertical space to give this). */
   rows?: number;
-  /** Regenerate the pattern by changing this between activations; a stable seed re-renders identically. */
+  /** Regenerate the pattern by changing this between activations. */
   seed: number;
+  /** Test-only override; production always animates. */
+  frameOverride?: number;
 }
 
 const DEFAULT_ROWS = 8;
@@ -75,13 +77,26 @@ export const MatrixScreensaverPanel: React.FC<MatrixScreensaverPanelProps> = ({
   terminalWidth,
   rows = DEFAULT_ROWS,
   seed,
+  frameOverride,
 }) => {
+  const isScreenReaderEnabled = useIsScreenReaderEnabled();
   const cols = Math.max(1, Math.min(terminalWidth, MAX_COLS));
 
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    if (isScreenReaderEnabled || frameOverride !== undefined) return;
+    const interval = setInterval(() => {
+      setFrame((f) => f + 1);
+    }, TICK_MS);
+    return () => clearInterval(interval);
+  }, [isScreenReaderEnabled, frameOverride]);
+
+  const effectiveFrame = frameOverride ?? frame;
+
   const lines = useMemo(() => {
-    const rand = mulberry32(seed);
+    const rand = mulberry32(seed + effectiveFrame * FRAME_SEED_OFFSET);
     return Array.from({ length: rows }, () => buildRuns(rand, cols));
-  }, [seed, rows, cols]);
+  }, [seed, effectiveFrame, rows, cols]);
 
   return (
     <Box flexDirection="column">
