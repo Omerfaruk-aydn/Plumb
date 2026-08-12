@@ -9,9 +9,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useKeypress } from '../hooks/useKeypress.js';
 import type { PlumbModel } from '@google/gemini-cli-provider';
-import { theme } from '../semantic-colors.js';
-import { benchmarkKey, type BenchmarkEntry } from '../../bench/storage.js';
-import { formatBenchmarkBadge } from '../utils/benchmarkBadge.js';
 
 export interface SearchableModelPickerProps {
   models: PlumbModel[];
@@ -21,8 +18,6 @@ export interface SearchableModelPickerProps {
   initialQuery?: string;
   /** Pre-highlight (not auto-select) this model id if present in `models`. */
   initialSelectedId?: string;
-  /** F26: real /bench results, keyed by `benchmarkKey(provider, modelId)`. Omit/empty when none exist yet. */
-  benchmarkEntries?: Record<string, BenchmarkEntry>;
 }
 
 const MAX_VISIBLE_ROWS = 15;
@@ -96,7 +91,6 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
   onRefresh,
   initialQuery = '',
   initialSelectedId,
-  benchmarkEntries = {},
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const initialIndex = Math.max(
@@ -221,10 +215,6 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
                 ? `${formatTokenCount(model.maxTokens)} max output`
                 : null;
 
-            const benchmarkBadge = formatBenchmarkBadge(
-              benchmarkEntries[benchmarkKey(model.provider, model.id)],
-            );
-
             return (
               <Box key={`${model.provider}:${model.id}`}>
                 <Text color={isSelected ? 'cyan' : undefined}>
@@ -237,17 +227,6 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
                   {outStr ? ` · ${outStr}` : ''}
                   {badges.length > 0 ? ` ${badges.join(' ')}` : ''}
                 </Text>
-                {benchmarkBadge && (
-                  <Text
-                    dimColor={benchmarkBadge.stale}
-                    color={
-                      benchmarkBadge.stale ? undefined : theme.status.success
-                    }
-                  >
-                    {' '}
-                    · {benchmarkBadge.text}
-                  </Text>
-                )}
               </Box>
             );
           })}
@@ -257,21 +236,6 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
               ▼ {filteredModels.length - scrollOffset - MAX_VISIBLE_ROWS} more
             </Text>
           )}
-          {filteredModels[selectedIndex] &&
-            !formatBenchmarkBadge(
-              benchmarkEntries[
-                benchmarkKey(
-                  filteredModels[selectedIndex].provider,
-                  filteredModels[selectedIndex].id,
-                )
-              ],
-            ) && (
-              <Box marginTop={1}>
-                <Text dimColor>
-                  /bench to measure edit accuracy on this model
-                </Text>
-              </Box>
-            )}
         </Box>
       )}
 
