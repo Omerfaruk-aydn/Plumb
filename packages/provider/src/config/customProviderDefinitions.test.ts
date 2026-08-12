@@ -57,8 +57,47 @@ describe('custom provider definitions', () => {
         headers: { 'X-Tenant': 'acme' },
         source: 'USER_CONFIGURED',
         toolsSupported: true,
+        toolsCapabilitySource: 'USER_CONFIGURED',
       },
     ]);
+  });
+
+  // Phase-3 item 9: a user-configured custom provider model must be able
+  // to explicitly declare toolsSupported=true/false, and the resulting
+  // PlumbModel must carry toolsCapabilitySource='USER_CONFIGURED' -- the
+  // type contract (types.ts) requires a real source whenever toolsSupported
+  // is defined. Leaving toolsSupported unset must leave
+  // toolsCapabilitySource unset too (stays UNKNOWN downstream, never
+  // guessed).
+  it('propagates an explicit toolsSupported=true/false with source=USER_CONFIGURED, and leaves toolsCapabilitySource unset when toolsSupported is left unset', () => {
+    const definition = upsertCustomProviderDefinition({
+      id: 'custom:abcdefab-e89b-42d3-a456-426614174001',
+      displayName: 'Capability Matrix Gateway',
+      dialect: 'openai-completions',
+      baseUrl: 'https://gateway2.example.test/v1/',
+      credentialPlacement: 'bearer',
+      safeHeaders: {},
+      manualModels: [
+        { id: 'model-tools-true', toolsSupported: true },
+        { id: 'model-tools-false', toolsSupported: false },
+        { id: 'model-tools-unset' },
+      ],
+    });
+
+    const models = customDefinitionToModels(definition);
+    const byId = new Map(models.map((m) => [m.id, m]));
+
+    expect(byId.get('model-tools-true')).toMatchObject({
+      toolsSupported: true,
+      toolsCapabilitySource: 'USER_CONFIGURED',
+    });
+    expect(byId.get('model-tools-false')).toMatchObject({
+      toolsSupported: false,
+      toolsCapabilitySource: 'USER_CONFIGURED',
+    });
+    const unset = byId.get('model-tools-unset');
+    expect(unset?.toolsSupported).toBeUndefined();
+    expect(unset?.toolsCapabilitySource).toBeUndefined();
   });
 
   it('rejects reserved headers, CRLF, embedded URL credentials, and duplicate models', () => {

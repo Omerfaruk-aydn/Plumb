@@ -47,6 +47,34 @@ describe('opencodeZenModelManagerOptions', () => {
 		expect(free?.cost).toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 		expect(paid?.cost).not.toEqual({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 	});
+
+	// Phase-3 regression retest (opencode-zen/deepseek-v4-flash-free):
+	// the real live Zen /v1/models response format has no tool/function-
+	// calling capability field at all (id/object/created/owned_by only,
+	// same shape proven above), and this id has no bundled-catalog
+	// reference entry either, so mapModel's `!reference` branch returns
+	// `defaults` untouched -- `toolsSupported` is never assigned. This is
+	// not a special case for this specific model id; it is what the
+	// general discovery->mapModel mechanism produces for ANY id with no
+	// reference entry and a capability-less discovery payload. If a
+	// bundled reference for this id is ever added with a real
+	// toolsSupported value, this test's premise (`no reference entry`)
+	// will fail loudly (via the `reference` lookup below) rather than
+	// silently asserting a stale expectation.
+	it('deepseek-v4-flash-free: has no bundled-catalog reference and the live payload carries no capability field, so toolsSupported stays UNKNOWN (undefined) -- never guessed from provider/model naming', async () => {
+		const fetchImpl = vi.fn(async () =>
+			Response.json({
+				data: [{ id: 'deepseek-v4-flash-free', object: 'model', created: 1, owned_by: 'opencode' }],
+			}),
+		);
+		const options = opencodeZenModelManagerOptions({ apiKey: 'zen-key', fetch: fetchImpl });
+
+		const models = await options.fetchDynamicModels?.();
+		const model = models?.find((m) => m.id === 'deepseek-v4-flash-free');
+
+		expect(model).toBeDefined();
+		expect(model?.toolsSupported).toBeUndefined();
+	});
 });
 
 describe('opencodeGoModelManagerOptions', () => {

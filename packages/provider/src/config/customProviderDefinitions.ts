@@ -320,6 +320,14 @@ export function customDefinitionToModels(
     maxTokens: model.maxTokens ?? 32768,
     reasoning: model.reasoning,
     toolsSupported: model.toolsSupported,
+    // PlumbModel.toolsCapabilitySource is required whenever toolsSupported
+    // is defined (see types.ts) -- a user-configured custom provider model
+    // that explicitly declares toolsSupported=true/false must carry
+    // source=USER_CONFIGURED so getEffectiveToolsAdvertisable's downstream
+    // consumers can trust it; leaving toolsSupported unset must leave
+    // toolsCapabilitySource unset too (stays UNKNOWN, never guessed).
+    toolsCapabilitySource:
+      model.toolsSupported !== undefined ? 'USER_CONFIGURED' : undefined,
     input: model.input ?? 'text',
     source: 'USER_CONFIGURED',
   }));
