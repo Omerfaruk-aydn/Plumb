@@ -18,6 +18,7 @@ import type React from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { CONTEXT_USAGE_CRITICAL_THRESHOLD } from '../utils/contextUsage.js';
+import { renderSparkline } from '../utils/sparkline.js';
 
 interface ContextVisualizationProps {
   usedTokens: number;
@@ -31,6 +32,13 @@ interface ContextVisualizationProps {
   modelName?: string;
   terminalWidth: number;
   showDetails?: boolean;
+  /**
+   * F5 (PLUMB-UI-DEVRIM-PROMPT.md): recent per-turn prompt-token samples
+   * for a sparkline, oldest first. Reactive off real telemetry updates
+   * (see useTokenRateHistory.ts) — never a timer. Omit or pass fewer
+   * than 2 samples to render nothing.
+   */
+  tokenHistory?: readonly number[];
 }
 
 const PROGRESS_BAR_MIN_WIDTH = 20;
@@ -62,6 +70,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
   modelName,
   terminalWidth,
   showDetails = true,
+  tokenHistory,
 }) => {
   if (maxTokens === undefined) {
     // Confirmed-UNKNOWN real context window -- render an honest unknown
@@ -81,6 +90,12 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
             <Text color={theme.text.secondary}>
               {formatTokenCount(usedTokens)} / ? tokens
             </Text>
+            {tokenHistory && tokenHistory.length >= 2 && (
+              <Text color={theme.text.secondary}>
+                {'  '}
+                {renderSparkline(tokenHistory)}
+              </Text>
+            )}
           </Box>
         )}
       </Box>
@@ -126,6 +141,12 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
           >
             {remainingFormatted} remaining
           </Text>
+          {tokenHistory && tokenHistory.length >= 2 && (
+            <Text color={theme.text.secondary}>
+              {'  '}
+              {renderSparkline(tokenHistory)}
+            </Text>
+          )}
         </Box>
       )}
 

@@ -27,6 +27,7 @@ import { ApprovalModeIndicator } from './ApprovalModeIndicator.js';
 import { ShellModeIndicator } from './ShellModeIndicator.js';
 import { RawMarkdownIndicator } from './RawMarkdownIndicator.js';
 import { useComposerStatus } from '../hooks/useComposerStatus.js';
+import { useTokenRateHistory } from '../hooks/useTokenRateHistory.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 import { MultiAgentStatus } from './MultiAgentStatus.js';
 import { tokenLimit, hasKnownTokenLimit } from '@google/gemini-cli-core';
@@ -183,6 +184,10 @@ export const StatusRow: React.FC<StatusRowProps> = ({
   const isStreaming =
     uiState.streamingState === 'responding' ||
     uiState.streamingState === 'waiting_for_confirmation';
+
+  const tokenHistory = useTokenRateHistory(
+    uiState.sessionStats.lastPromptTokenCount,
+  );
 
   const [statusWidth, setStatusWidth] = useState(0);
   const [tipWidth, setTipWidth] = useState(0);
@@ -493,6 +498,7 @@ export const StatusRow: React.FC<StatusRowProps> = ({
               <Box marginLeft={LAYOUT.INDICATOR_LEFT_MARGIN}>
                 <ContextVisualization
                   usedTokens={uiState.sessionStats.lastPromptTokenCount ?? 0}
+                  tokenHistory={tokenHistory}
                   // Resolve the active model's REAL context window through the
                   // universal PLUMB model-limits authority (tokenLimit in
                   // packages/core/src/core/tokenLimits.ts). The same resolver

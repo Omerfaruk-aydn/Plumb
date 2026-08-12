@@ -44,6 +44,42 @@ describe('<ContextVisualization />', () => {
     expect(frame).toContain('remaining');
   });
 
+  it('renders a token-rate sparkline when history has 2+ samples (F5)', async () => {
+    const { lastFrame, waitUntilReady } = await renderContext({
+      tokenHistory: [100, 5000, 3000, 9_000_000],
+    });
+    await waitUntilReady();
+    // The lowest sample maps to the lowest block -- a character the
+    // progress bar (which only ever uses █/░) never produces, so this
+    // is unambiguously the sparkline.
+    expect(lastFrame()).toContain('▁');
+  });
+
+  it('does not render a sparkline with fewer than 2 samples', async () => {
+    const { lastFrame, waitUntilReady } = await renderContext({
+      tokenHistory: [1000],
+    });
+    await waitUntilReady();
+    expect(lastFrame()).not.toContain('▁');
+  });
+
+  it('does not render a sparkline when tokenHistory is omitted', async () => {
+    const { lastFrame, waitUntilReady } = await renderContext();
+    await waitUntilReady();
+    expect(lastFrame()).not.toContain('▁');
+  });
+
+  it('renders a sparkline in the unknown-max-tokens fallback state too', async () => {
+    const { lastFrame, waitUntilReady } = await renderContext({
+      maxTokens: undefined,
+      tokenHistory: [100, 5000, 9_000_000],
+    });
+    await waitUntilReady();
+    const frame = lastFrame();
+    expect(frame).toContain('? tokens');
+    expect(frame).toContain('▁');
+  });
+
   it('shows warning when usage is above 70%', async () => {
     const { lastFrame, waitUntilReady } = await renderContext({
       usedTokens: 100000,
