@@ -355,7 +355,7 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
   });
 
   // Thinking request body for reasoning models (OMP compat)
-  it('sends reasoning_effort for DeepSeek reasoning models when thinking config present', async () => {
+  it('sends reasoning_effort for reasoning models with thinking config (metadata-driven)', async () => {
     let capturedBody: Record<string, unknown> | undefined;
     const deepseekModel: PlumbModel = {
       ...openaiToolModel,
@@ -379,17 +379,19 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
       apiKey: 'sk-test',
     })) { /* drain */ }
 
+    // OMP compat: OpenCode Zen + DeepSeek uses reasoning_effort, NOT thinking object
     expect(capturedBody!['reasoning_effort']).toBe('max');
+    expect(capturedBody!['thinking']).toBeUndefined();
     expect(capturedBody!['tools']).toBeDefined();
   });
 
-  it('sends thinking object for ZAI-format reasoning models (Kimi/MiMo/HY/GLM)', async () => {
+  it('sends reasoning_effort for HY3/GLM/Qwen reasoning models (same thinkingFormat=openai)', async () => {
     let capturedBody: Record<string, unknown> | undefined;
-    const zaiModel: PlumbModel = {
+    const hyModel: PlumbModel = {
       ...openaiToolModel,
-      id: 'kimi-k2-free',
+      id: 'hy3-free',
       reasoning: true,
-      thinking: { mode: 'effort', supportedEfforts: ['low', 'medium', 'high'] },
+      thinking: { mode: 'effort', supportedEfforts: ['minimal', 'low', 'medium', 'high', 'xhigh'] },
     };
     globalThis.fetch = (async (_url, init) => {
       capturedBody = JSON.parse(String(init?.body));
@@ -401,14 +403,44 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
     }) as typeof fetch;
 
     for await (const _ of plumbModelStream({
-      model: zaiModel,
+      model: hyModel,
       messages: [{ role: 'user', content: 'test' }],
       tools: PLUMB_TOOLS,
       apiKey: 'sk-test',
     })) { /* drain */ }
 
-    expect(capturedBody!['thinking']).toEqual({ type: 'enabled' });
+    // OMP compat: OpenCode Zen + HY3 uses reasoning_effort (thinkingFormat=openai),
+    // NOT thinking: {type:"enabled"} (that's only for direct DeepSeek API extraBody)
+    expect(capturedBody!['reasoning_effort']).toBe('xhigh');
+    expect(capturedBody!['thinking']).toBeUndefined();
     expect(capturedBody!['tools']).toBeDefined();
+  });
+
+  it('does NOT send reasoning_effort when thinking config absent', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const noThinkingModel: PlumbModel = {
+      ...openaiToolModel,
+      id: 'some-model',
+      reasoning: false,
+    };
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
+        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseDone(),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: noThinkingModel,
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      apiKey: 'sk-test',
+    })) { /* drain */ }
+
+    expect(capturedBody!['reasoning_effort']).toBeUndefined();
+    expect(capturedBody!['thinking']).toBeUndefined();
   });
 
   // S16: Tools NOT sent when toolsSupported is not true

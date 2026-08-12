@@ -341,14 +341,23 @@ async function* openAICompatibleStream(
   // ── Thinking/reasoning request body (OMP compat layer) ────────────
   //
   // OMP resolves a full compat record (thinkingFormat, whenThinking,
-  // requiresReasoningContentForToolCalls, …) at model build time.
-  // PLUMB doesn't run OMP's buildModel, so we apply the critical
-  // subset here based on the model's catalog metadata.
+  // requiresReasoningContentForToolCalls, reasoningEffortMap, extraBody,
+  // ...) at model build time via buildOpenAICompat(). PLUMB doesn't run
+  // OMP's buildModel, so we apply the critical metadata-driven subset
+  // here based on the model's catalog metadata and the exact OMP compat
+  // resolution logic from packages/provider/src/omp-catalog/compat/openai.ts.
   //
-  // For reasoning-capable models on OpenAI-compatible endpoints, the
-  // provider may need explicit thinking parameters to enter reasoning
-  // mode. Without them, the model may produce text-only output even
-  // when tools are present.
+  // KEY OMP CONTRACT:
+  // - OpenCode providers (opencode-go, opencode-zen): thinkingFormat="openai",
+  //   reasoning_effort sent when supportsReasoningEffort=true, NO extraBody.
+  //   OPENCODE_WHEN_THINKING enables requiresReasoningContentForToolCalls
+  //   only when thinking is engaged.
+  // - Direct DeepSeek API: extraBody={thinking:{type:"enabled"}} in addition
+  //   to reasoning_effort, supportsToolChoice=false.
+  // - Kimi on OpenCode: supportsReasoningEffort=false (no reasoning_effort).
+  // - MiMo: reasoningEffortMap={minimal:"low", xhigh:"high"}.
+  //
+  // DO NOT generalize by model family regex. Use thinking metadata only.
   if (
     model.reasoning &&
     model.thinking?.mode === 'effort' &&
@@ -356,33 +365,22 @@ async function* openAICompatibleStream(
   ) {
     const efforts = model.thinking.supportedEfforts;
     if (efforts && efforts.length > 0) {
-      const isOpenCodeProvider =
-        model.provider === 'opencode-go' ||
-        model.provider === 'opencode-zen';
-      const isKimiModel = /kimi/i.test(model.id);
-      const isDeepseekModel = /deepseek/i.test(model.id);
-
-      if (isKimiModel || (!isDeepseekModel && isOpenCodeProvider)) {
-        // ZAI format: thinking: { type: "enabled" }
-        // Used by Kimi, MiMo, GLM, Qwen, HY on OpenCode gateways.
-        body.thinking = { type: 'enabled' };
-      } else if (isDeepseekModel || model.provider === 'deepseek') {
-        // OpenAI format: reasoning_effort
-        // Use the highest available effort for maximum tool-calling
-        // reliability.
-        body.reasoning_effort = efforts[efforts.length - 1];
-      }
+      // Use the highest available effort as default.
+      // TODO: consume compat.reasoningEffortMap when available.
+      body.reasoning_effort = efforts[efforts.length - 1];
     }
   }
 
-  // ── Disable reasoning on tool_choice for DeepSeek ─────────────────
+  // ── extraBody merge (OMP compat) ──────────────────────────────────
   //
-  // OMP compat: disableReasoningOnToolChoice = true for DeepSeek
-  // reasoning models. Some DeepSeek routes reject reasoning when
-  // tool_choice is set. Only applies when the caller explicitly sets
-  // tool_choice (not when it's omitted/auto).
-  // NOTE: PLUMB currently doesn't send tool_choice, so this is
-  // defensive for future use.
+  // OMP permits provider/model compat metadata to inject extra top-level
+  // request fields via compat.extraBody. For DeepSeek on direct API,
+  // this is {thinking: {type: "enabled"}}. For OpenCode providers,
+  // extraBody is undefined (no extra fields needed).
+  //
+  // Currently PLUMB doesn't have a model.extraBody field. This is a
+  // known gap for direct DeepSeek API support. For OpenCode providers,
+  // no extraBody is needed per the OMP contract.
 
   // A missing/empty credential must fail loudly here — falling through
   // silently produces `Authorization: Bearer ` (no token), which providers
