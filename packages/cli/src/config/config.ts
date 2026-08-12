@@ -14,6 +14,7 @@ import { extensionsCommand } from '../commands/extensions.js';
 import { skillsCommand } from '../commands/skills.js';
 import { hooksCommand } from '../commands/hooks.js';
 import { gemmaCommand } from '../commands/gemma.js';
+import { completionsCommand } from '../commands/completions.js';
 import {
   setGeminiMdFilename as setServerGeminiMdFilename,
   resetGeminiMdFilename,
@@ -303,6 +304,7 @@ export async function parseArguments(
   yargsInstance.command(skillsCommand);
   yargsInstance.command(hooksCommand);
   yargsInstance.command(gemmaCommand);
+  yargsInstance.command(completionsCommand);
 
   yargsInstance
     .command('$0 [query..]', 'Launch PLUMB', (yargsInstance) =>
@@ -1301,6 +1303,31 @@ export async function loadCliConfig(
     const persistedProviderId = readPlumbProviderId(settings);
     if (persistedProviderId) {
       config.setPlumbProvider(persistedProviderId);
+      // Pre-warm the tool-capability authority (see
+      // Config.setActiveModelToolsCapability) for a returning session so the
+      // very first system prompt built after cold start already gates
+      // tool-use instructions correctly, instead of relying on the first
+      // turn's PlumbContentGenerator resolve to self-correct one turn late.
+      if (specifiedModel) {
+        try {
+          const providerPkg = await import('@google/gemini-cli-provider');
+          const registry = providerPkg.getPlumbModelRegistry?.();
+          const plumbModel = registry?.findModel(
+            persistedProviderId,
+            specifiedModel,
+          );
+          if (plumbModel) {
+            config.setActiveModelToolsCapability(
+              (plumbModel as { toolsSupported?: boolean }).toolsSupported,
+              (plumbModel as { toolsCapabilitySource?: string })
+                .toolsCapabilitySource ?? 'UNKNOWN',
+            );
+          }
+        } catch {
+          // Non-fatal: PlumbContentGenerator resolves and records the real
+          // capability again on the first turn regardless.
+        }
+      }
     }
   }
 

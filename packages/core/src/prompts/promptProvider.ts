@@ -66,7 +66,16 @@ export class PromptProvider {
       topicUpdateNarrationOverride ??
       context.config.isTopicUpdateNarrationEnabled();
 
-    const enabledToolNames = new Set(toolNames);
+    // Single authority for tool-prompt coherence: a PLUMB-routed model
+    // without a verified toolsSupported === true never gets tool-use
+    // instructions, mirroring the identical gate the wire transport applies
+    // to tool declarations (resolveAdvertisedTools in
+    // packages/provider/src/transports/streaming.ts). Native Gemini (no
+    // PLUMB provider active) is unaffected — getEffectiveToolsAdvertisable()
+    // returns true unconditionally in that case.
+    const toolsAdvertisable =
+      context.config.getEffectiveToolsAdvertisable?.() ?? true;
+    const enabledToolNames = new Set(toolsAdvertisable ? toolNames : []);
 
     const approvedPlanPath = context.config.getApprovedPlanPath();
 
@@ -93,7 +102,7 @@ export class PromptProvider {
 
     // --- Context Gathering ---
     let planModeToolsList = '';
-    if (isPlanMode) {
+    if (isPlanMode && toolsAdvertisable) {
       const allTools = context.toolRegistry.getAllTools();
       planModeToolsList = allTools
         .map((t) => {
@@ -150,6 +159,7 @@ export class PromptProvider {
           hasHierarchicalMemory,
           contextFilenames,
           topicUpdateNarration: isTopicUpdateNarrationEnabled,
+          toolsAdvertisable,
         })),
         subAgents: this.withSection(
           'agentContexts',
@@ -181,6 +191,7 @@ export class PromptProvider {
             const agentRegistry = context.config.getAgentRegistry();
             return {
               interactive: interactiveMode,
+              enableToolInstructions: toolsAdvertisable,
               enableCodebaseInvestigator:
                 agentRegistry.getDefinition(CodebaseInvestigatorAgent.name) !==
                 undefined,
@@ -218,7 +229,7 @@ export class PromptProvider {
                 : undefined;
             })(),
           }),
-          isPlanMode,
+          isPlanMode && toolsAdvertisable,
         ),
         operationalGuidelines: this.withSection(
           'operationalGuidelines',
@@ -248,11 +259,12 @@ export class PromptProvider {
           () => ({ interactive: interactiveMode }),
           isGitRepository(process.cwd()) ? true : false,
         ),
-        finalReminder: isModernModel
-          ? undefined
-          : this.withSection('finalReminder', () => ({
-              readFileToolName: READ_FILE_TOOL_NAME,
-            })),
+        finalReminder:
+          isModernModel || !toolsAdvertisable
+            ? undefined
+            : this.withSection('finalReminder', () => ({
+                readFileToolName: READ_FILE_TOOL_NAME,
+              })),
       } as snippets.SystemPromptOptions;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion

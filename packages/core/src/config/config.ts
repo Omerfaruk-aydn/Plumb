@@ -830,6 +830,17 @@ export class Config implements McpContext, AgentLoopContext {
   private model: string;
   /** PLUMB multi-provider: the active provider ID when authType is PLUMB_PROVIDER. */
   private plumbProviderId: string | null = null;
+  /**
+   * PLUMB multi-provider: whether the active provider/model is known to
+   * support tool/function calling. `undefined` = UNKNOWN (no trustworthy
+   * capability metadata resolved yet). This is the single authority prompt
+   * generation, transports, and diagnostics all read — never derived from
+   * model name, vendor family, or any other guess. Irrelevant (and never
+   * consulted) outside PLUMB provider routing, where native Gemini tool
+   * calling is always available.
+   */
+  private activeModelToolsSupported: boolean | undefined = undefined;
+  private activeModelToolsCapabilitySource = 'UNKNOWN';
   private readonly disableLoopDetection: boolean;
   // null = unknown (quota not fetched); true = has access; false = definitively no access
   private hasAccessToPreviewModel: boolean | null = null;
@@ -1927,6 +1938,55 @@ export class Config implements McpContext, AgentLoopContext {
   /** Set the active PLUMB provider ID. */
   setPlumbProvider(providerId: string): void {
     this.plumbProviderId = providerId;
+  }
+
+  /**
+   * Read the resolved tool-calling capability for the active PLUMB
+   * provider/model. `supported` is `undefined` when UNKNOWN — never
+   * defaulted to `false` or `true`.
+   */
+  getActiveModelToolsCapability(): {
+    supported: boolean | undefined;
+    source: string;
+  } {
+    return {
+      supported: this.activeModelToolsSupported,
+      source: this.activeModelToolsCapabilitySource,
+    };
+  }
+
+  /**
+   * Record the resolved tool-calling capability for the active PLUMB
+   * provider/model. Callers (the PLUMB content-generator bridge, and the
+   * model-picker's pre-warm path) must call this with real, sourced
+   * capability metadata — never a guess — every time the active
+   * provider/model is resolved or switched, so prompt generation and every
+   * other consumer read the same authority.
+   */
+  setActiveModelToolsCapability(
+    supported: boolean | undefined,
+    source: string,
+  ): void {
+    this.activeModelToolsSupported = supported;
+    this.activeModelToolsCapabilitySource = source;
+  }
+
+  /**
+   * Single authority for whether tool-use instructions and tool
+   * declarations may be advertised to the model for the next request.
+   * Native Gemini (no PLUMB provider active) always advertises, matching
+   * pre-existing behavior. A PLUMB-routed model must have an explicit,
+   * sourced `toolsSupported === true` — UNSUPPORTED and UNKNOWN both
+   * resolve to `false` here, so prompt instructions and wire tool
+   * declarations stay coherent (see resolveAdvertisedTools in
+   * packages/provider/src/transports/streaming.ts, which gates the wire
+   * declarations on the identical `toolsSupported === true` condition).
+   */
+  getEffectiveToolsAdvertisable(): boolean {
+    if (this.plumbProviderId === null) {
+      return true;
+    }
+    return this.activeModelToolsSupported === true;
   }
 
   getDisableLoopDetection(): boolean {

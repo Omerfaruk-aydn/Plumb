@@ -16,6 +16,41 @@
 import type { SlashCommand, CommandContext } from './types.js';
 import { AuthType } from '@google/gemini-cli-core';
 
+/**
+ * Pre-warm Config's tool-capability authority (see
+ * Config.setActiveModelToolsCapability in packages/core) for the model a
+ * `/models set`/`/models select` switch is about to activate, using the
+ * active provider already recorded on Config. Without this, the system
+ * prompt for the very next turn would still reflect the previous model's
+ * gated/ungated tool-use instructions for one turn, until
+ * PlumbContentGenerator self-corrects on its own next resolve. Non-fatal:
+ * on any failure the content-generator's per-turn resolve still catches up.
+ */
+async function prewarmToolsCapability(
+  context: CommandContext,
+  modelId: string,
+): Promise<void> {
+  const config = context.services.agentContext?.config;
+  const providerId = config?.getPlumbProvider?.();
+  if (!config || !providerId || !modelId) {
+    return;
+  }
+  try {
+    const providerPkg = await import('@google/gemini-cli-provider');
+    const registry = providerPkg.getPlumbModelRegistry?.();
+    const plumbModel = registry?.findModel(providerId, modelId);
+    if (plumbModel) {
+      config.setActiveModelToolsCapability(
+        plumbModel.toolsSupported,
+        plumbModel.toolsCapabilitySource ?? 'UNKNOWN',
+      );
+    }
+  } catch {
+    // Non-fatal: PlumbContentGenerator resolves and records the real
+    // capability again on the next turn regardless.
+  }
+}
+
 // ─── /provider ──────────────────────────────────────────────────────────
 
 export const providerCommand: SlashCommand = {
@@ -185,6 +220,7 @@ export const modelsCommand: SlashCommand = {
         return;
       }
 
+      await prewarmToolsCapability(context, modelId);
       context.services.agentContext?.config.setModel(modelId, true);
       context.ui.addItem({
         type: 'info',
@@ -210,6 +246,7 @@ export const modelsCommand: SlashCommand = {
           });
           return;
         }
+        await prewarmToolsCapability(ctx, args.trim());
         ctx.services.agentContext?.config.setModel(args.trim(), true);
         ctx.ui.addItem({
           type: 'info',

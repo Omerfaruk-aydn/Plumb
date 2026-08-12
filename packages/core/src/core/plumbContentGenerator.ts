@@ -254,6 +254,18 @@ export class PlumbContentGenerator implements ContentGenerator {
     // switching models never bleeds one model's limit onto another.
     const realContextWindow = (registryModel as any)?.contextWindow;
     recordPlumbModelContextWindow(this.#modelId, realContextWindow);
+
+    // Keep Config's tool-capability authority (read by getCoreSystemPrompt /
+    // getEffectiveToolsAdvertisable and by the wire-level gate in
+    // resolveAdvertisedTools) in sync with what the registry actually
+    // resolved for this exact provider+model on every turn — not just at
+    // selection time — so a capability that only becomes known after a
+    // model-cache refresh (or a provider/model switch the UI layer didn't
+    // pre-warm) still self-corrects before the next system-prompt render.
+    this.#gcConfig?.setActiveModelToolsCapability?.(
+      (model as any).toolsSupported,
+      (model as any).toolsCapabilitySource ?? 'UNKNOWN',
+    );
     if (!(typeof realContextWindow === 'number' && realContextWindow > 0)) {
       // The registry itself has no real contextWindow for this exact model
       // id (e.g. a Claude Subscription generic alias with no pinned

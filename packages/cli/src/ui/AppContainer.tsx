@@ -197,6 +197,9 @@ import { useTimedMessage } from './hooks/useTimedMessage.js';
 import { useIsHelpDismissKey } from './utils/shortcutsHelp.js';
 import { useSuspend } from './hooks/useSuspend.js';
 import { useRunEventNotifications } from './hooks/useRunEventNotifications.js';
+import { useAttentionSound } from './hooks/useAttentionSound.js';
+import { useCollabBridge } from './hooks/useCollabBridge.js';
+import { resolveInitialMouseMode } from './utils/mouseSettings.js';
 import {
   isNotificationsEnabled,
   getNotificationMethod,
@@ -258,7 +261,10 @@ export const AppContainer = (props: AppContainerProps) => {
   useMemoryMonitor(historyManager);
   const isAlternateBuffer = config.getUseAlternateBuffer();
   const [mouseMode, setMouseMode] = useState(() =>
-    config.getUseAlternateBuffer(),
+    resolveInitialMouseMode(
+      settings.merged.ui?.mouse,
+      config.getUseAlternateBuffer(),
+    ),
   );
 
   useEffect(() => {
@@ -1055,6 +1061,29 @@ Logging in with Google... Restarting PLUMB to continue.
       // returns the correct value when createContentGenerator reads it.
       traceStage('committing-provider-to-config');
       config.setPlumbProvider(providerId);
+
+      // Pre-warm the tool-capability authority (see
+      // Config.setActiveModelToolsCapability) for the just-authenticated
+      // provider/model, so the first-ever system prompt built for this
+      // session already gates tool-use instructions correctly. Non-fatal:
+      // PlumbContentGenerator resolves and records the real capability
+      // again on the first turn regardless.
+      try {
+        const providerPkg = await import('@google/gemini-cli-provider');
+        const registry = providerPkg.getPlumbModelRegistry?.();
+        const plumbModel = registry?.findModel(providerId, modelId);
+        if (plumbModel) {
+          config.setActiveModelToolsCapability(
+            (plumbModel as { toolsSupported?: boolean }).toolsSupported,
+            (plumbModel as { toolsCapabilitySource?: string })
+              .toolsCapabilitySource ?? 'UNKNOWN',
+          );
+        }
+      } catch (e) {
+        debugLogger.warn(
+          `Failed to pre-warm tool-capability authority: ${getErrorMessage(e)}`,
+        );
+      }
 
       // --- Stage: verifying-config-readback ---
       traceStage('verifying-config-readback');
@@ -2668,6 +2697,21 @@ Logging in with Google... Restarting PLUMB to continue.
     hasConfirmUpdateExtensionRequests,
     hasLoopDetectionConfirmationRequest,
   });
+
+  useAttentionSound({
+    settings,
+    streamingState,
+    hasPendingActionRequired,
+    pendingHistoryItems,
+    history: historyManager.history,
+    commandConfirmationRequest,
+    authConsentRequest,
+    permissionConfirmationRequest,
+    hasConfirmUpdateExtensionRequests,
+    hasLoopDetectionConfirmationRequest,
+  });
+
+  useCollabBridge(historyManager.history);
 
   const isPassiveShortcutsHelpState =
     isInputActive &&

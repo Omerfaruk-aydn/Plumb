@@ -9,7 +9,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Box, Text } from 'ink';
 import {
   PlumbProviderCategory,
@@ -21,6 +21,10 @@ import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
+import {
+  loadAllBenchmarkEntries,
+  type BenchmarkEntry,
+} from '../../bench/storage.js';
 import { ConfigContext } from '../contexts/ConfigContext.js';
 import { useSettings } from '../contexts/SettingsContext.js';
 import {
@@ -66,6 +70,19 @@ export function PlumbModelDialog({
     useState<ModelDialogProviderEntry | null>(null);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [benchmarkEntries, setBenchmarkEntries] = useState<
+    Record<string, BenchmarkEntry>
+  >({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadAllBenchmarkEntries().then((entries) => {
+      if (!cancelled) setBenchmarkEntries(entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const activeProviderId = config?.getPlumbProvider() ?? null;
 
@@ -97,15 +114,24 @@ export function PlumbModelDialog({
           const plumbModel = registry?.findModel(providerId, modelId);
           if (plumbModel) {
             const core = await import('@google/gemini-cli-core');
-            const rec = (
-              core as unknown as {
-                recordPlumbModelContextWindow?: (
-                  id: string,
-                  window: number | undefined,
-                ) => void;
-              }
-            ).recordPlumbModelContextWindow;
-            rec?.(plumbModel.id, plumbModel.contextWindow);
+            const rec = (core as Record<string, unknown>)[
+              'recordPlumbModelContextWindow'
+            ];
+            if (typeof rec === 'function') {
+              rec.call(null, plumbModel.id, plumbModel.contextWindow);
+            }
+
+            // Pre-warm the tool-capability authority BEFORE refreshAuth()
+            // rebuilds the chat/system-prompt below, so the very first turn
+            // on the newly selected model already gates tool-use prompt
+            // instructions correctly instead of relying on the
+            // content-generator to self-correct on turn 2 (see
+            // Config.setActiveModelToolsCapability).
+            config.setActiveModelToolsCapability(
+              (plumbModel as { toolsSupported?: boolean }).toolsSupported,
+              (plumbModel as { toolsCapabilitySource?: string })
+                .toolsCapabilitySource ?? 'UNKNOWN',
+            );
           }
         } catch {
           // Non-fatal: chat turn below will record the value anyway.
@@ -267,6 +293,7 @@ export function PlumbModelDialog({
           <SearchableModelPicker
             models={selectedEntry.models}
             initialSelectedId={initialSelectedId}
+            benchmarkEntries={benchmarkEntries}
             onSelect={(model: PlumbModel) =>
               void applySelection(selectedEntry.provider.id, model.id)
             }
