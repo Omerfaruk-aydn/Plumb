@@ -9,6 +9,7 @@ import { EventEmitter } from 'node:events';
 export enum TransientMessageType {
   Warning = 'warning',
   Hint = 'hint',
+  Success = 'success',
 }
 
 export interface TransientMessagePayload {

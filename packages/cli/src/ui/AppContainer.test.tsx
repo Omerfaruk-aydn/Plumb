@@ -2921,6 +2921,74 @@ describe('AppContainer State Management', () => {
     });
   });
 
+  describe('Test-Success Celebration (F13)', () => {
+    it('shows a success toast once a passing test run appears in the last turn', async () => {
+      mockedUseHistory.mockReturnValue({
+        history: [
+          { id: 1, type: 'user', text: 'run the tests' },
+          {
+            id: 2,
+            type: 'tool_group',
+            tools: [
+              {
+                callId: 'call-1',
+                name: 'run_shell_command',
+                description: 'npm test',
+                resultDisplay: 'Tests:  4 passed, 4 total\nTime: 1.2s',
+                status: CoreToolCallStatus.Success,
+                confirmationDetails: undefined,
+              },
+            ],
+          },
+        ],
+        addItem: vi.fn(),
+        updateItem: vi.fn(),
+        clearItems: vi.fn(),
+        loadHistory: vi.fn(),
+      });
+
+      const { unmount } = await act(async () => renderAppContainer());
+
+      await waitFor(() => {
+        expect(capturedUIState.transientMessage).toEqual(
+          expect.objectContaining({ text: 'Tests passed!' }),
+        );
+      });
+      unmount();
+    });
+
+    it('does not celebrate when the tool output has no recognizable passing summary', async () => {
+      mockedUseHistory.mockReturnValue({
+        history: [
+          { id: 1, type: 'user', text: 'run the tests' },
+          {
+            id: 2,
+            type: 'tool_group',
+            tools: [
+              {
+                callId: 'call-1',
+                name: 'run_shell_command',
+                description: 'npm test',
+                resultDisplay: 'some unrelated output',
+                status: CoreToolCallStatus.Success,
+                confirmationDetails: undefined,
+              },
+            ],
+          },
+        ],
+        addItem: vi.fn(),
+        updateItem: vi.fn(),
+        clearItems: vi.fn(),
+        loadHistory: vi.fn(),
+      });
+
+      const { unmount } = await act(async () => renderAppContainer());
+
+      expect(capturedUIState.transientMessage).toBeNull();
+      unmount();
+    });
+  });
+
   describe('Agent Mission Control Integration (F8)', () => {
     it('starts closed and exposes an empty sessionAgentRuns list in UIStateContext', async () => {
       const { unmount } = await act(async () => renderAppContainer());

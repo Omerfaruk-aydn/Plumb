@@ -45,6 +45,18 @@ export const ToastDisplay: React.FC = () => {
     );
   }
 
+  if (
+    uiState.transientMessage?.type === TransientMessageType.Success &&
+    uiState.transientMessage.text
+  ) {
+    return (
+      <Text color={theme.status.success}>
+        {'🎉 '}
+        {uiState.transientMessage.text}
+      </Text>
+    );
+  }
+
   if (uiState.ctrlDPressedOnce) {
     return (
       <Text color={theme.status.warning}>Press Ctrl+D again to exit.</Text>

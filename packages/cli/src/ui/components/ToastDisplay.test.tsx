@@ -186,6 +186,16 @@ describe('ToastDisplay', () => {
     expect(lastFrame()).toMatchSnapshot();
   });
 
+  it('renders success message (F13)', async () => {
+    const { lastFrame } = await renderToastDisplay({
+      transientMessage: {
+        text: 'Tests passed!',
+        type: TransientMessageType.Success,
+      },
+    });
+    expect(lastFrame()).toContain('Tests passed!');
+  });
+
   it('renders Ctrl+D prompt', async () => {
     const { lastFrame } = await renderToastDisplay({
       ctrlDPressedOnce: true,

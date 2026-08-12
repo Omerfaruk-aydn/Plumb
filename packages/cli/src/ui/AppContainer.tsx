@@ -40,6 +40,7 @@ import {
   MessageType,
   StreamingState,
   type HistoryItemInfo,
+  CoreToolCallStatus,
 } from './types.js';
 import { checkPermissions } from './hooks/atCommandProcessor.js';
 import { ToolActionsProvider } from './contexts/ToolActionsContext.js';
@@ -107,6 +108,10 @@ import { collectSessionEdits } from './utils/sessionEditHistory.js';
 import { useAgentMissionControlCommand } from './hooks/useAgentMissionControlCommand.js';
 import { collectSessionAgentRuns } from './utils/sessionAgentActivity.js';
 import { useIdleDetection } from './hooks/useIdleDetection.js';
+import {
+  isTestSuccessOutput,
+  extractToolOutputText,
+} from './utils/testSuccessDetection.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
@@ -761,6 +766,27 @@ export const AppContainer = (props: AppContainerProps) => {
       setIdleScreensaverSeed(Date.now());
     }
   }, [isIdleScreensaverActive]);
+
+  // F13 (PLUMB-UI-DEVRIM-PROMPT.md): a conservative test-success detector
+  // over this turn's tool output -- see testSuccessDetection.ts for why
+  // it deliberately only recognizes a short allowlist of "all green"
+  // summary lines rather than trying to parse every framework's output.
+  // Identified by the triggering tool's callId so the celebration effect
+  // below (after showTransientMessage is defined) fires exactly once per
+  // detection, not on every re-render while it's still "the last turn".
+  const testSuccessCallId = useMemo(() => {
+    for (const item of lastTurnHistoryItems) {
+      if (item.type !== 'tool_group') continue;
+      for (const tool of item.tools) {
+        if (tool.status !== CoreToolCallStatus.Success) continue;
+        const text = extractToolOutputText(tool.resultDisplay);
+        if (text && isTestSuccessOutput(text)) {
+          return tool.callId;
+        }
+      }
+    }
+    return null;
+  }, [lastTurnHistoryItems]);
 
   const {
     isThemeDialogOpen,
@@ -1970,6 +1996,22 @@ Logging in with Google... Restarting PLUMB to continue.
     text: string;
     type: TransientMessageType;
   }>(WARNING_PROMPT_DURATION_MS);
+
+  // F13: fire the celebration exactly once per newly-detected passing
+  // test run, keyed by the triggering tool call's id.
+  const celebratedTestCallIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      testSuccessCallId &&
+      celebratedTestCallIdRef.current !== testSuccessCallId
+    ) {
+      celebratedTestCallIdRef.current = testSuccessCallId;
+      showTransientMessage({
+        text: 'Tests passed!',
+        type: TransientMessageType.Success,
+      });
+    }
+  }, [testSuccessCallId, showTransientMessage]);
 
   const {
     isFolderTrustDialogOpen,
