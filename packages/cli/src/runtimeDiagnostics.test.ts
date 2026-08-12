@@ -16,6 +16,7 @@ import {
   buildModelLimitsDiagnostics,
   buildToolSchemaDiagnostics,
   buildToolActivityUiDiagnostics,
+  buildAgentCapabilitiesDiagnostics,
 } from './runtimeDiagnostics.js';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { createTestMergedSettings } from './config/settings.js';
@@ -434,4 +435,83 @@ describe('buildToolActivityUiDiagnostics (--diagnose-tool-ui)', () => {
     expect(report).toContain('last.activity.phase: UNKNOWN');
     expect(report).toContain('static diagnostic');
   });
+});
+
+// Phase-3 item 10: diagnostic reconciliation. UniversalModelInventory is
+// the single canonical snapshot; --diagnose-tools --summary,
+// --diagnose-agent-capabilities --summary, and --diagnose-model-limits
+// --summary must all report the IDENTICAL tools.supported /
+// tools.unsupported / tools.unknown counts for the same build, and each
+// must independently sum to models.total.
+describe('DIAGNOSTIC_COUNT_RECONCILIATION: --diagnose-tools, --diagnose-agent-capabilities, --diagnose-model-limits agree', () => {
+  function extractCount(lines: string[], key: string): number {
+    const line = lines.find((l) => l.trim().startsWith(`${key}:`));
+    if (!line) throw new Error(`missing line for ${key}`);
+    const value = line.split(':').slice(1).join(':').trim();
+    return Number(value);
+  }
+
+  it('reports identical tools.supported/unsupported/unknown across all three diagnostic commands, each summing to models.total', async () => {
+    const [modelLimits, toolSchema, agentCapabilities] = await Promise.all([
+      buildModelLimitsDiagnostics({ summary: true }),
+      buildToolSchemaDiagnostics({ summary: true }),
+      buildAgentCapabilitiesDiagnostics({ summary: true }),
+    ]);
+
+    expect(modelLimits.failures).toEqual([]);
+    expect(toolSchema.failures).toEqual([]);
+    expect(agentCapabilities.failures).toEqual([]);
+
+    const modelLimitsSupported = extractCount(
+      modelLimits.lines,
+      'tools.supported',
+    );
+    const modelLimitsUnsupported = extractCount(
+      modelLimits.lines,
+      'tools.unsupported',
+    );
+    const modelLimitsUnknown = extractCount(modelLimits.lines, 'tools.unknown');
+    const modelLimitsTotal = extractCount(modelLimits.lines, 'models.total');
+
+    const toolSchemaSupported = extractCount(
+      toolSchema.lines,
+      'tools.supported',
+    );
+    const toolSchemaUnsupported = extractCount(
+      toolSchema.lines,
+      'tools.unsupported',
+    );
+    const toolSchemaUnknown = extractCount(toolSchema.lines, 'tools.unknown');
+    const toolSchemaTotal = extractCount(toolSchema.lines, 'models.total');
+
+    const agentSupported = extractCount(
+      agentCapabilities.lines,
+      'tools.supported',
+    );
+    const agentUnsupported = extractCount(
+      agentCapabilities.lines,
+      'tools.unsupported',
+    );
+    const agentUnknown = extractCount(agentCapabilities.lines, 'tools.unknown');
+    const agentTotal = extractCount(agentCapabilities.lines, 'models.total');
+
+    // Same numbers, every layer.
+    expect(toolSchemaSupported).toBe(modelLimitsSupported);
+    expect(agentSupported).toBe(modelLimitsSupported);
+    expect(toolSchemaUnsupported).toBe(modelLimitsUnsupported);
+    expect(agentUnsupported).toBe(modelLimitsUnsupported);
+    expect(toolSchemaUnknown).toBe(modelLimitsUnknown);
+    expect(agentUnknown).toBe(modelLimitsUnknown);
+    expect(toolSchemaTotal).toBe(modelLimitsTotal);
+    expect(agentTotal).toBe(modelLimitsTotal);
+
+    // SUPPORTED + UNSUPPORTED + UNKNOWN == TOTAL_MODELS, in each command.
+    expect(
+      modelLimitsSupported + modelLimitsUnsupported + modelLimitsUnknown,
+    ).toBe(modelLimitsTotal);
+    expect(
+      toolSchemaSupported + toolSchemaUnsupported + toolSchemaUnknown,
+    ).toBe(toolSchemaTotal);
+    expect(agentSupported + agentUnsupported + agentUnknown).toBe(agentTotal);
+  }, 20000);
 });
