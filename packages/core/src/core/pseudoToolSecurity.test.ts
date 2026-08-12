@@ -39,7 +39,9 @@ const { mockFindModel, mockResolveProviderAlias, mockPlumbModelStream } =
     return {
       mockFindModel: vi.fn(),
       mockResolveProviderAlias: vi.fn((id: string) => id),
-      mockPlumbModelStream: vi.fn(async function* () {
+      mockPlumbModelStream: vi.fn(async function* (): AsyncGenerator<
+        Record<string, unknown>
+      > {
         yield { type: 'text', text: queuedText };
         yield { type: 'done', finishReason: 'stop' };
       }),
