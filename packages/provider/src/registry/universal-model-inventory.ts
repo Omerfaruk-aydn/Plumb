@@ -47,6 +47,7 @@ import {
 } from '../config/customProviderDefinitions.js';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { getBundledProviders } from '../omp-catalog/models.js';
+import { PlumbModelRegistry } from './model-registry.js';
 
 // Identity provenance enum
 export type ModelIdentitySource =
@@ -411,6 +412,13 @@ export async function buildUniversalModelInventory(
   // credentials) so calling it here stays within this diagnostic's
   // credential-free contract while still surfacing any discovery a prior,
   // authenticated interactive session already cached to disk.
+  //
+  // DETERMINISM: we use a FRESH PlumbModelRegistry instance (not the
+  // process singleton) so that prior calls to buildUniversalModelInventory
+  // cannot leave accumulated #discoveredModels state that would make
+  // consecutive builds produce different model identity sets from the same
+  // repository/cache state. The fresh instance hydrates from disk cache
+  // exactly once per build and is discarded.
   const bundledByProvider = new Map<string, PlumbModel[]>();
   const canonicalByProvider = new Map<string, PlumbModel[]>();
   let modelRegistryForInventory:
@@ -418,9 +426,7 @@ export async function buildUniversalModelInventory(
     | undefined;
   if (!context.overrideCatalogModels) {
     try {
-      modelRegistryForInventory = (
-        await import('./model-registry.js')
-      ).getPlumbModelRegistry();
+      modelRegistryForInventory = new PlumbModelRegistry();
     } catch {
       modelRegistryForInventory = undefined;
     }

@@ -1,6 +1,5 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
 import { buildUniversalModelInventory } from './universal-model-inventory.js';
-import { getPlumbModelRegistry } from './model-registry.js';
 
 // Mock the provider registry to avoid real credential store access
 vi.mock('./provider-registry.js', () => ({
@@ -181,6 +180,10 @@ describe('buildUniversalModelInventory', () => {
   // reports must be sourced from (and therefore match) the exact same
   // canonical authority the /model dialog reads,
   // PlumbModelRegistry.getModelsForProvider.
+  //
+  // Both sides use a FRESH PlumbModelRegistry instance (matching the
+  // inventory's determinism fix) so disk-cache-hydrated models are
+  // visible to both.
   it.each([
     'antigravity',
     'github-copilot',
@@ -212,12 +215,85 @@ describe('buildUniversalModelInventory', () => {
         expect(inventoryIds.size).toBeGreaterThan(0);
         return;
       }
+      // Use a fresh registry + loadCache to match the inventory's own
+      // resolution path (determinism fix: no singleton state leakage).
+      const freshRegistry = new (
+        await import('./model-registry.js')
+      ).PlumbModelRegistry();
+      try {
+        freshRegistry.loadCache(providerId as never);
+      } catch {
+        // Non-fatal: no cache file.
+      }
       const registryIds = new Set(
-        getPlumbModelRegistry()
+        freshRegistry
           .getModelsForProvider(providerId as never)
           .map((m) => m.id),
       );
       expect(inventoryIds).toEqual(registryIds);
     },
   );
+});
+
+// ─── Determinism regression ──────────────────────────────────────────
+//
+// Two consecutive builds from the same initialization state must produce
+// bit-identical provider/model identity sets and counts. The inventory
+// builder uses a fresh PlumbModelRegistry instance (not the process
+// singleton) so prior calls cannot leak accumulated #discoveredModels
+// state into subsequent builds.
+
+describe('inventory determinism', () => {
+  it('two consecutive builds produce identical model identity sets', async () => {
+    const build = { gitHead: 'a'.repeat(40) };
+    const invA = await buildUniversalModelInventory({ build });
+    const invB = await buildUniversalModelInventory({ build });
+
+    // Exact provider key sets
+    const providerKeysA = invA.providers.map((p) => p.providerId).sort();
+    const providerKeysB = invB.providers.map((p) => p.providerId).sort();
+    expect(providerKeysA).toEqual(providerKeysB);
+
+    // Exact model key sets (provider:model)
+    const modelKeysA = invA.models
+      .map((m) => `${m.providerId}:${m.modelId}`)
+      .sort();
+    const modelKeysB = invB.models
+      .map((m) => `${m.providerId}:${m.modelId}`)
+      .sort();
+    expect(modelKeysA).toEqual(modelKeysB);
+
+    // Exact counts
+    expect(invA.counts.totalModels).toBe(invB.counts.totalModels);
+    expect(invA.counts.toolsSupported).toBe(invB.counts.toolsSupported);
+    expect(invA.counts.toolsUnsupported).toBe(invB.counts.toolsUnsupported);
+    expect(invA.counts.toolsUnknown).toBe(invB.counts.toolsUnknown);
+  });
+
+  it('three consecutive builds: reset/reinitialize yields the same result', async () => {
+    const build = { gitHead: 'a'.repeat(40) };
+    const invA = await buildUniversalModelInventory({ build });
+    const invB = await buildUniversalModelInventory({ build });
+    const invC = await buildUniversalModelInventory({ build });
+
+    const keys = (inv: typeof invA) =>
+      inv.models.map((m) => `${m.providerId}:${m.modelId}`).sort();
+
+    expect(keys(invA)).toEqual(keys(invB));
+    expect(keys(invB)).toEqual(keys(invC));
+  });
+
+  it('CANONICAL_TOTAL_MODELS + tools breakdown: SUPPORTED + UNSUPPORTED + UNKNOWN == TOTAL', async () => {
+    const inv = await buildUniversalModelInventory({
+      build: { gitHead: 'a'.repeat(40) },
+    });
+    const { totalModels, toolsSupported, toolsUnsupported, toolsUnknown } =
+      inv.counts;
+    expect(toolsSupported + toolsUnsupported + toolsUnknown).toBe(totalModels);
+    // Report exact canonical values (no ranges)
+    console.log('CANONICAL_TOTAL_MODELS:', totalModels);
+    console.log('TOOLS_SUPPORTED:', toolsSupported);
+    console.log('TOOLS_UNSUPPORTED:', toolsUnsupported);
+    console.log('TOOLS_UNKNOWN:', toolsUnknown);
+  });
 });
