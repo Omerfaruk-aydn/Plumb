@@ -448,6 +448,46 @@ describe('Discovery Adapter Contract: Local OpenAI-compatible', () => {
     ).toBe(true);
   });
 
+  // Phase-3 item 1: LM Studio's real /api/v0/models response format
+  // (confirmed above: id/type/state/loaded_context_length) has no
+  // tool/function-calling capability field at all -- unlike Ollama's
+  // /api/show, which does expose a `capabilities` array. This proves the
+  // adapter preserves UNKNOWN (never guesses true/false from the model id
+  // or `type` field) when the real payload has no such signal.
+  it('11c. preserves toolsSupported=UNKNOWN (undefined) for LM Studio -- its real /api/v0/models payload carries no capability field', async () => {
+    mockFetch.mockImplementation(async (url: string) => {
+      if (url.endsWith('/api/v0/models')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'lmstudio-community/llama-3-8b',
+                type: 'llm',
+                state: 'loaded',
+                loaded_context_length: 32768,
+              },
+            ],
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [{ id: 'lmstudio-community/llama-3-8b' }],
+        }),
+      };
+    });
+
+    const models = await discoverProviderModels('lm-studio', {
+      providerId: 'lm-studio',
+    });
+
+    const model = models.find((m) => m.id === 'lmstudio-community/llama-3-8b');
+    expect(model).toBeDefined();
+    expect(model?.toolsSupported).toBeUndefined();
+  });
+
   it('11a. distinguishes auth, protocol, and successful-empty outcomes', async () => {
     mockFetch.mockResolvedValueOnce({ status: 401, ok: false });
     await expect(
