@@ -591,6 +591,7 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseModelLimitsSummary: undefined,
       provider: undefined,
       diagnoseTools: undefined,
+      diagnoseAgentCapabilities: undefined,
       diagnoseToolUi: undefined,
     });
 
@@ -674,6 +675,7 @@ describe('gemini.tsx main function kitty protocol', { timeout: 30000 }, () => {
       diagnoseModelLimitsSummary: undefined,
       provider: undefined,
       diagnoseTools: undefined,
+      diagnoseAgentCapabilities: undefined,
       diagnoseToolUi: undefined,
     });
 

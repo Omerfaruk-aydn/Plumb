@@ -24,6 +24,9 @@ import {
   WRITE_TODOS_TOOL_NAME,
   ENTER_PLAN_MODE_TOOL_NAME,
   AGENT_TOOL_NAME,
+  SHELL_TOOL_NAME,
+  EDIT_TOOL_NAME,
+  WRITE_FILE_TOOL_NAME,
 } from '../tools/tool-names.js';
 import { ApprovalMode } from '../policy/types.js';
 
@@ -38,6 +41,14 @@ const ALL_CLIENT_TOOL_NAMES = [
   WRITE_TODOS_TOOL_NAME,
   ENTER_PLAN_MODE_TOOL_NAME,
   AGENT_TOOL_NAME,
+  // operationalGuidelines' "Security and Safety Rules" / "Tool Usage"
+  // subsections reference these by name -- phase-2 UNIVERSAL_TOOL_CAPABILITY
+  // fix. Included here so a regression on that gate fails this suite
+  // directly instead of silently passing because the original, narrower
+  // tool-name list never touched that prompt section.
+  SHELL_TOOL_NAME,
+  EDIT_TOOL_NAME,
+  WRITE_FILE_TOOL_NAME,
 ];
 
 /** Minimal real-Config-shaped stand-in with the exact surface promptProvider reads. */

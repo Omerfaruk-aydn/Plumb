@@ -243,6 +243,7 @@ export class PromptProvider {
               getProjectMemoryIndexFilePath(context.config.storage),
             ),
             globalMemoryPath: normalizePromptPath(getGlobalMemoryFilePath()),
+            toolsAdvertisable,
           }),
         ),
         sandbox: this.withSection('sandbox', () => ({

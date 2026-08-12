@@ -87,6 +87,20 @@ describe('buildUniversalModelInventory', () => {
     expect(sonnet!.maxOutputSource).toBe('PINNED_REFERENCE');
   });
 
+  it('Claude Subscription models report toolsSupported=true/PINNED_REFERENCE -- the Agent SDK MCP bridge is a verified, product-specific pin, not vendor-family inference. Phase-2 UNIVERSAL_TOOL_CAPABILITY regression: resolveClaudeSubscriptionModel used to silently drop this known capability.', async () => {
+    const inv = await buildUniversalModelInventory({
+      build: { gitHead: 'a'.repeat(40) },
+    });
+    const claudeModels = inv.models.filter(
+      (m) => m.providerId === 'claude-subscription',
+    );
+    expect(claudeModels.length).toBe(2);
+    for (const m of claudeModels) {
+      expect(m.toolsSupported).toBe(true);
+      expect(m.toolsCapabilitySource).toBe('PINNED_REFERENCE');
+    }
+  });
+
   it('Claude Subscription models with NO pinned-table match (GENERIC_FLOOR) report UNKNOWN limits, never the floor as truth', async () => {
     const inv = await buildUniversalModelInventory({
       build: { gitHead: 'a'.repeat(40) },

@@ -1646,6 +1646,66 @@ export async function printModelLimitsDiagnostics(
 export interface ToolSchemaDiagnosticsFilter {
   provider?: string;
   model?: string;
+  /** Print only the compact ecosystem-wide capability summary. */
+  summary?: boolean;
+}
+
+/**
+ * `--diagnose-tools --summary` aggregate: reuses the exact same
+ * `buildUniversalModelInventory` snapshot `--diagnose-model-limits`
+ * consumes -- never a second, diagnostic-only capability universe -- and
+ * adds the prompt/wire coherence check specific to tool capability: for
+ * every model in the inventory, `toolsSupported !== true` must resolve to
+ * an advertised tool count of 0 (see `Config.getEffectiveToolsAdvertisable`
+ * / `resolveAdvertisedTools`, which both gate on the identical condition).
+ * A model fails coherence only if this repo's own invariant is violated,
+ * not because of a model's capability status itself.
+ */
+async function buildToolCapabilitySummaryLines(
+  totalCanonicalTools: number,
+): Promise<{ lines: string[]; coherenceFailCount: number }> {
+  const inv = await buildUniversalModelInventory({
+    build: { gitHead: BUILD_IDENTITY.gitHead },
+  });
+  const lines: string[] = [];
+  lines.push('PLUMB tool capability summary');
+  lines.push(`git.head.embedded: ${inv.build.gitHeadEmbedded}`);
+  lines.push('');
+  lines.push(`registered.providers: ${inv.counts.registeredProviders}`);
+  lines.push(`selectable.providers: ${inv.counts.selectableProviders}`);
+  lines.push(`models.total: ${inv.counts.totalModels}`);
+  lines.push('');
+  lines.push(`tools.supported: ${inv.counts.toolsSupported}`);
+  lines.push(`tools.unsupported: ${inv.counts.toolsUnsupported}`);
+  lines.push(`tools.unknown: ${inv.counts.toolsUnknown}`);
+  lines.push(`total.registered.tools: ${totalCanonicalTools}`);
+  lines.push('');
+  lines.push('capability.source.counts:');
+  const bySource = new Map<string, number>();
+  for (const m of inv.models) {
+    const key = m.toolsCapabilitySource ?? 'UNKNOWN';
+    bySource.set(key, (bySource.get(key) ?? 0) + 1);
+  }
+  for (const [source, count] of [...bySource.entries()].sort()) {
+    lines.push(`  ${source}: ${count}`);
+  }
+  lines.push('');
+  // Structural coherence: a model whose toolsSupported isn't literally
+  // `true` must have an advertised tool count of 0. This mirrors, not
+  // duplicates, `Config.getEffectiveToolsAdvertisable()` — every model row
+  // here comes from the same canonical inventory the product itself reads.
+  let coherencePass = 0;
+  let coherenceFail = 0;
+  for (const m of inv.models) {
+    const advertised = m.toolsSupported === true ? totalCanonicalTools : 0;
+    const coherent =
+      m.toolsSupported === true ? advertised > 0 : advertised === 0;
+    if (coherent) coherencePass++;
+    else coherenceFail++;
+  }
+  lines.push(`coherence.pass: ${coherencePass}`);
+  lines.push(`coherence.fail: ${coherenceFail}`);
+  return { lines, coherenceFailCount: coherenceFail };
 }
 
 export interface ToolSchemaDiagnosticsResult {
@@ -1767,6 +1827,21 @@ export async function buildToolSchemaDiagnostics(
       };
     });
 
+    if (filter?.summary) {
+      const { lines: summaryLines, coherenceFailCount } =
+        await buildToolCapabilitySummaryLines(rows.length);
+      lines.push(...summaryLines);
+      lines.push(
+        `invalid.canonical.schemas: ${rows.filter((r) => !r.valid).length}`,
+      );
+      if (coherenceFailCount > 0) {
+        failures.push(
+          `${coherenceFailCount} model(s) violate prompt/wire tool-capability coherence`,
+        );
+      }
+      return { lines, failures };
+    }
+
     lines.push('PLUMB tool schema diagnostics');
     lines.push(`tool.family: ${family ?? 'default-legacy'}`);
     if (filter?.provider) lines.push(`filter.provider: ${filter.provider}`);
@@ -1864,6 +1939,141 @@ export async function printToolSchemaDiagnostics(
   }
   for (const failure of failures) {
     process.stderr.write(`diagnose-tools: FAIL: ${failure}\n`);
+  }
+  return failures.length > 0 ? 1 : 0;
+}
+
+// ─── Agent capability diagnostics (--diagnose-agent-capabilities) ─────
+//
+// Per-model prompt<->wire tool-capability coherence report. Reuses the same
+// canonical UniversalModelInventory the product's own capability gate
+// (Config.getEffectiveToolsAdvertisable / resolveAdvertisedTools) is built
+// from -- no diagnostic-only model/capability universe. `--summary` reuses
+// buildToolCapabilitySummaryLines (identical to `--diagnose-tools
+// --summary`) since both commands report the same ecosystem-wide numbers
+// from the same authority; the two flags exist because the audit asked for
+// both, not because they compute anything differently.
+
+export type AgentCapabilitiesDiagnosticsFilter = ToolSchemaDiagnosticsFilter;
+
+/**
+ * Count of prompt sections that are actually gated by
+ * `Config.getEffectiveToolsAdvertisable()` today: coreMandates' "Context
+ * Efficiency" block, primaryWorkflows' tool-instruction narration,
+ * operationalGuidelines' "Security and Safety Rules" + "Tool Usage"
+ * subsections, the entire planningWorkflow section (only rendered in Plan
+ * Mode when tools are advertisable), and the Agent-tool description. Kept
+ * as an explicit, documented constant rather than derived at runtime
+ * because prompt assembly does not expose a generic "which sections did I
+ * gate" trace -- if a new tool-referencing section is added without wiring
+ * it to the same gate, this number will silently go stale, which is a
+ * known limitation, not a hidden one.
+ */
+const GATED_TOOL_PROMPT_SECTION_COUNT = 5;
+
+export async function buildAgentCapabilitiesDiagnostics(
+  filter?: AgentCapabilitiesDiagnosticsFilter,
+): Promise<ToolSchemaDiagnosticsResult> {
+  const lines: string[] = [];
+  const failures: string[] = [];
+  try {
+    // Reuse the exact tool enumeration `--diagnose-tools` builds (20
+    // canonical PLUMB tools) rather than re-deriving a second count that
+    // could silently drift from it.
+    const { lines: schemaLines } = await buildToolSchemaDiagnostics({});
+    const totalToolsLine = schemaLines.find((l) =>
+      l.startsWith('total.tools: '),
+    );
+    const totalCanonicalTools = totalToolsLine
+      ? Number(totalToolsLine.slice('total.tools: '.length))
+      : 0;
+
+    if (filter?.summary) {
+      const { lines: summaryLines, coherenceFailCount } =
+        await buildToolCapabilitySummaryLines(totalCanonicalTools);
+      lines.push(...summaryLines);
+      if (coherenceFailCount > 0) {
+        failures.push(
+          `${coherenceFailCount} model(s) violate prompt/wire tool-capability coherence`,
+        );
+      }
+      return { lines, failures };
+    }
+
+    const inv = await buildUniversalModelInventory({
+      build: { gitHead: BUILD_IDENTITY.gitHead },
+    });
+    lines.push('PLUMB agent capability diagnostics');
+    lines.push(`git.head.embedded: ${inv.build.gitHeadEmbedded}`);
+    if (filter?.provider) lines.push(`filter.provider: ${filter.provider}`);
+    if (filter?.model) lines.push(`filter.model: ${filter.model}`);
+    lines.push('');
+
+    let models = inv.models;
+    if (filter?.provider) {
+      models = models.filter((m) => m.providerId === filter.provider);
+    }
+    if (filter?.model) {
+      models = models.filter((m) => m.modelId === filter.model);
+    }
+    if (filter?.provider && models.length === 0) {
+      failures.push(
+        `Unknown provider id or no matching model: ${filter.provider}${filter.model ? '/' + filter.model : ''}`,
+      );
+    }
+
+    for (const m of models) {
+      const advertisedToolCount =
+        m.toolsSupported === true ? totalCanonicalTools : 0;
+      const promptToolInstructionCount =
+        advertisedToolCount > 0 ? GATED_TOOL_PROMPT_SECTION_COUNT : 0;
+      const suppressedReason =
+        m.toolsSupported === true
+          ? 'NONE'
+          : m.toolsSupported === false
+            ? 'MODEL_UNSUPPORTED'
+            : 'CAPABILITY_UNKNOWN';
+      const coherent =
+        m.toolsSupported === true
+          ? advertisedToolCount > 0
+          : advertisedToolCount === 0;
+      lines.push(`provider=${m.providerId} model=${m.modelId}`);
+      lines.push(`  wire.model: ${m.wireModelId ?? m.modelId}`);
+      lines.push(
+        `  toolsSupported: ${m.toolsSupported === undefined ? 'UNKNOWN' : m.toolsSupported}`,
+      );
+      lines.push(
+        `  capability.source: ${m.toolsCapabilitySource ?? 'UNKNOWN'}`,
+      );
+      lines.push(`  advertised.tool.count: ${advertisedToolCount}`);
+      lines.push(
+        `  prompt.toolInstruction.count: ${promptToolInstructionCount}`,
+      );
+      lines.push(`  coherence: ${coherent ? 'PASS' : 'FAIL'}`);
+      lines.push(`  suppression.reason: ${suppressedReason}`);
+      if (!coherent) {
+        failures.push(
+          `${m.providerId}/${m.modelId}: prompt/wire tool-capability coherence FAIL`,
+        );
+      }
+    }
+  } catch (err) {
+    failures.push(
+      `Failed to build agent capability diagnostics: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  return { lines, failures };
+}
+
+export async function printAgentCapabilitiesDiagnostics(
+  filter?: AgentCapabilitiesDiagnosticsFilter,
+): Promise<number> {
+  const { lines, failures } = await buildAgentCapabilitiesDiagnostics(filter);
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
+  for (const failure of failures) {
+    process.stderr.write(`diagnose-agent-capabilities: FAIL: ${failure}\n`);
   }
   return failures.length > 0 ? 1 : 0;
 }

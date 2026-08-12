@@ -435,6 +435,7 @@ export async function main() {
     argv.diagnoseProviderModels ||
     argv.diagnoseModelLimits ||
     argv.diagnoseTools ||
+    argv.diagnoseAgentCapabilities ||
     argv.diagnoseToolUi ||
     argv.diagnoseAuthState ||
     argv.diagnosePlan ||
@@ -472,6 +473,7 @@ export async function main() {
       printProviderModelsDiagnostics,
       printModelLimitsDiagnostics,
       printToolSchemaDiagnostics,
+      printAgentCapabilitiesDiagnostics,
       printToolActivityUiDiagnostics,
       printAuthStateDiagnostics,
       printPlanDiagnostics,
@@ -505,6 +507,13 @@ export async function main() {
       exitCode = await printToolSchemaDiagnostics({
         provider: argv.provider,
         model: argv.model,
+        summary: argv.diagnoseModelLimitsSummary,
+      });
+    } else if (argv.diagnoseAgentCapabilities) {
+      exitCode = await printAgentCapabilitiesDiagnostics({
+        provider: argv.provider,
+        model: argv.model,
+        summary: argv.diagnoseModelLimitsSummary,
       });
     } else if (argv.diagnoseToolUi) {
       exitCode = await printToolActivityUiDiagnostics();

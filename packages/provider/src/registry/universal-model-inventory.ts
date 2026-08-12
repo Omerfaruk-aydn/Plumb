@@ -319,6 +319,15 @@ function resolveClaudeSubscriptionModel(
       entry.maxTokens > 0
         ? entry.maxTokens
         : undefined,
+    // The Claude Subscription surface is intentionally exactly two
+    // aliases (opus, haiku) and its Agent SDK's in-process MCP bridge is
+    // the documented client-tool execution mechanism for both -- the same
+    // pinned fact `packages/provider/src/catalog/model-catalog.ts`
+    // already encodes for these ids. Do not extrapolate this to other
+    // Anthropic API models; this is a verified, product-specific pin, not
+    // a vendor-family inference.
+    toolsSupported: true,
+    toolsCapabilitySource: 'PINNED_REFERENCE',
     registered,
     configured,
     discoveryAttempted,

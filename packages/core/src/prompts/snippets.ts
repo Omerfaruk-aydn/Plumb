@@ -114,6 +114,16 @@ export interface OperationalGuidelinesOptions {
    * agent can edit it directly.
    */
   globalMemoryPath?: string;
+  /**
+   * Whether any client tool may be advertised for this request (see
+   * Config.getEffectiveToolsAdvertisable). Defaults to true so every
+   * existing non-PLUMB caller renders the exact same "Security and Safety
+   * Rules" / "Tool Usage" guidance as before. When false, those two
+   * subsections — which instruct the model to invoke specific tools by name
+   * — are omitted rather than referencing tools with zero declarations on
+   * the wire.
+   */
+  toolsAdvertisable?: boolean;
 }
 
 export type SandboxMode = 'macos-seatbelt' | 'generic' | 'outside';
@@ -375,8 +385,12 @@ export function renderPrimaryWorkflows(
 ): string {
   if (!options) return '';
 
+  const toolsOn = options.enableToolInstructions !== false;
   const transitionOverride = options.approvedPlan
     ? `\n\n**State Transition Override:** You are now in **Execution Mode**. All previous "Read-Only", "Plan Mode", and "ONLY FOR PLANS" constraints are **immediately lifted**. You are explicitly authorized and required to use tools to modify source code and environment files to implement the approved plan. Begin executing the steps of the plan immediately.`
+    : '';
+  const executionActSentence = toolsOn
+    ? ` Use the available tools (e.g., ${formatToolName(EDIT_TOOL_NAME)}, ${formatToolName(WRITE_FILE_TOOL_NAME)}, ${formatToolName(SHELL_TOOL_NAME)}).`
     : '';
 
   return `
@@ -389,7 +403,7 @@ ${workflowStepResearch(options)}
 ${workflowStepStrategy(options)}
 3. **Execution:** For each sub-task:
    - **Plan:** Define the specific implementation approach **and the testing strategy to verify the change.**
-   - **Act:** Apply targeted, surgical changes strictly related to the sub-task. Use the available tools (e.g., ${formatToolName(EDIT_TOOL_NAME)}, ${formatToolName(WRITE_FILE_TOOL_NAME)}, ${formatToolName(SHELL_TOOL_NAME)}). Ensure changes are idiomatically complete and follow all workspace standards, even if it requires multiple tool calls. **Include necessary automated tests; a change is incomplete without verification logic.** Avoid unrelated refactoring or "cleanup" of outside code. Before making manual code changes, check if an ecosystem tool (like 'eslint --fix', 'prettier --write', 'go fmt', 'cargo fmt') is available in the project to perform the task automatically.
+   - **Act:** Apply targeted, surgical changes strictly related to the sub-task.${executionActSentence} Ensure changes are idiomatically complete and follow all workspace standards, even if it requires multiple tool calls. **Include necessary automated tests; a change is incomplete without verification logic.** Avoid unrelated refactoring or "cleanup" of outside code. Before making manual code changes, check if an ecosystem tool (like 'eslint --fix', 'prettier --write', 'go fmt', 'cargo fmt') is available in the project to perform the task automatically.
    - **Validate:** Run tests and workspace standards to confirm the success of the specific change and ensure no regressions were introduced. After making code changes, execute the project-specific build, linting and type-checking commands (e.g., 'tsc', 'npm run lint', 'ruff check .') that you have identified for this project.${workflowVerifyStandardsSuffix(options.interactive)}
 
 **Validation is the only path to finality.** Never assume success or settle for unverified changes. Rigorous, exhaustive verification is mandatory; it prevents the compounding cost of diagnosing failures later. A task is only complete when the behavioral correctness of the change has been verified and its structural integrity is confirmed within the full project context. Prioritize comprehensive validation above all else, utilizing redirection and focused analysis to manage high-output tasks without sacrificing depth. Never sacrifice validation rigor for the sake of brevity or to minimize tool-call overhead; partial or isolated checks are insufficient when more comprehensive validation is possible.
@@ -411,6 +425,26 @@ export function renderOperationalGuidelines(
   options?: OperationalGuidelinesOptions,
 ): string {
   if (!options) return '';
+  const toolsAdvertisable = options.toolsAdvertisable ?? true;
+  const toolSections = toolsAdvertisable
+    ? `
+
+## Security and Safety Rules
+- **Explain Critical Commands:** Before executing commands with ${formatToolName(SHELL_TOOL_NAME)} that modify the file system, codebase, or system state, you *must* provide a brief explanation of the command's purpose and potential impact. Prioritize user understanding and safety. You should not ask permission to use the tool; the user will be presented with a confirmation dialogue upon use (you do not need to tell them this). You MUST NOT use ${formatToolName(ASK_USER_TOOL_NAME)} to ask for permission to run a command.
+- **Security First:** Always apply security best practices. Never introduce code that exposes, logs, or commits secrets, API keys, or other sensitive information.
+
+## Tool Usage
+- **Parallelism & Sequencing:** Tools execute in parallel by default. Execute multiple independent tool calls in parallel when feasible (e.g., searching, reading files, independent shell commands, or editing *different* files). If a tool depends on the output or side-effects of a previous tool in the same turn (e.g., running a shell command that depends on the success of a previous command), you MUST set the \`wait_for_previous\` parameter to \`true\` on the dependent tool to ensure sequential execution.
+- **File Editing Collisions:** Do NOT make multiple calls to the ${formatToolName(EDIT_TOOL_NAME)} tool for the SAME file in a single turn. To make multiple edits to the same file, you MUST perform them sequentially across multiple conversational turns to prevent race conditions and ensure the file state is accurate before each edit.
+- **Command Execution:** Use the ${formatToolName(SHELL_TOOL_NAME)} tool for running shell commands, remembering the safety rule to explain modifying commands first.${toolUsageInteractive(
+        options.interactive,
+        options.interactiveShellEnabled,
+      )}${toolUsageRememberingFacts(options)}
+- **Confirmation Protocol:** If a tool call is declined or cancelled, respect the decision immediately. Do not re-attempt the action or "negotiate" for the same tool call unless the user explicitly directs you to. Offer an alternative technical path if possible.`
+    : `
+
+## Security and Safety Rules
+- **Security First:** Always apply security best practices. Never suggest code that exposes, logs, or commits secrets, API keys, or other sensitive information.`;
   return `
 # Operational Guidelines
 
@@ -430,22 +464,13 @@ export function renderOperationalGuidelines(
       : "part of the 'Explain Before Acting' mandate."
   }
 - **No Repetition:** Once you have provided a final synthesis of your work, do not repeat yourself or provide additional summaries. For simple or direct requests, prioritize extreme brevity.
-- **Formatting:** Use GitHub-flavored Markdown. Responses will be rendered in monospace.
-- **Tools vs. Text:** Use tools for actions, text output *only* for communication. Do not add explanatory comments within tool calls.
+- **Formatting:** Use GitHub-flavored Markdown. Responses will be rendered in monospace.${
+    toolsAdvertisable
+      ? '\n- **Tools vs. Text:** Use tools for actions, text output *only* for communication. Do not add explanatory comments within tool calls.'
+      : ''
+  }
 - **Handling Inability:** If unable/unwilling to fulfill a request, state so briefly without excessive justification. Offer alternatives if appropriate.
-
-## Security and Safety Rules
-- **Explain Critical Commands:** Before executing commands with ${formatToolName(SHELL_TOOL_NAME)} that modify the file system, codebase, or system state, you *must* provide a brief explanation of the command's purpose and potential impact. Prioritize user understanding and safety. You should not ask permission to use the tool; the user will be presented with a confirmation dialogue upon use (you do not need to tell them this). You MUST NOT use ${formatToolName(ASK_USER_TOOL_NAME)} to ask for permission to run a command.
-- **Security First:** Always apply security best practices. Never introduce code that exposes, logs, or commits secrets, API keys, or other sensitive information.
-
-## Tool Usage
-- **Parallelism & Sequencing:** Tools execute in parallel by default. Execute multiple independent tool calls in parallel when feasible (e.g., searching, reading files, independent shell commands, or editing *different* files). If a tool depends on the output or side-effects of a previous tool in the same turn (e.g., running a shell command that depends on the success of a previous command), you MUST set the \`wait_for_previous\` parameter to \`true\` on the dependent tool to ensure sequential execution.
-- **File Editing Collisions:** Do NOT make multiple calls to the ${formatToolName(EDIT_TOOL_NAME)} tool for the SAME file in a single turn. To make multiple edits to the same file, you MUST perform them sequentially across multiple conversational turns to prevent race conditions and ensure the file state is accurate before each edit.
-- **Command Execution:** Use the ${formatToolName(SHELL_TOOL_NAME)} tool for running shell commands, remembering the safety rule to explain modifying commands first.${toolUsageInteractive(
-    options.interactive,
-    options.interactiveShellEnabled,
-  )}${toolUsageRememberingFacts(options)}
-- **Confirmation Protocol:** If a tool call is declined or cancelled, respect the decision immediately. Do not re-attempt the action or "negotiate" for the same tool call unless the user explicitly directs you to. Offer an alternative technical path if possible.
+${toolSections}
 
 ## Interaction Details
 - **Help Command:** The user can use '/help' to display help information.
@@ -789,11 +814,15 @@ function workflowVerifyStandardsSuffix(interactive: boolean): string {
 
 function newApplicationSteps(options: PrimaryWorkflowsOptions): string {
   const interactive = options.interactive;
+  const toolsOn = options.enableToolInstructions !== false;
+  const scaffoldClause = toolsOn
+    ? ` using ${formatToolName(SHELL_TOOL_NAME)}`
+    : '';
 
   if (options.approvedPlan) {
     return `
 1. **Understand:** Read the approved plan. Treat this file as your single source of truth.
-2. **Implement:** Implement the application according to the plan. When starting, scaffold the application using ${formatToolName(SHELL_TOOL_NAME)}. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, CSS animations, icons) to ensure a complete, rich, and coherent experience. Never link to external services or assume local paths for assets that have not been created. If you discover new requirements or need to change the approach, confirm with the user and update the plan file.
+2. **Implement:** Implement the application according to the plan. When starting, scaffold the application${scaffoldClause}. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, CSS animations, icons) to ensure a complete, rich, and coherent experience. Never link to external services or assume local paths for assets that have not been created. If you discover new requirements or need to change the approach, confirm with the user and update the plan file.
 3. **Verify:** Review work against the original request and the approved plan. Fix bugs, deviations, and ensure placeholders are visually adequate. **Ensure styling and interactions produce a high-quality, polished, and beautiful prototype.** Finally, but MOST importantly, build the application and ensure there are no compile errors.
 4. **Finish:** Provide a brief summary of what was built.`.trim();
   }
@@ -828,7 +857,7 @@ function newApplicationSteps(options: PrimaryWorkflowsOptions): string {
      - **Mobile:** Compose Multiplatform or Flutter.
      - **Games:** HTML/CSS/JS (Three.js for 3D).
      - **CLIs:** Python or Go.
-3. **Implementation:** Autonomously implement each feature per the approved plan. When starting, scaffold the application using ${formatToolName(SHELL_TOOL_NAME)} for commands like 'npm init', 'npx create-react-app'. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, icons) to ensure a complete, coherent experience. Never link to external services or assume local paths for assets that have not been created.
+3. **Implementation:** Autonomously implement each feature per the approved plan. When starting, scaffold the application${scaffoldClause} for commands like 'npm init', 'npx create-react-app'. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, icons) to ensure a complete, coherent experience. Never link to external services or assume local paths for assets that have not been created.
 4. **Verify:** Review work against the original request. Fix bugs and deviations. Ensure styling and interactions produce a high-quality, functional, and beautiful prototype. **Build the application and ensure there are no compile errors.**
 5. **Solicit Feedback:** Provide instructions on how to start the application and request user feedback on the prototype.`.trim();
   }
@@ -843,7 +872,7 @@ function newApplicationSteps(options: PrimaryWorkflowsOptions): string {
      - **Mobile:** Compose Multiplatform or Flutter.
      - **Games:** HTML/CSS/JS (Three.js for 3D).
      - **CLIs:** Python or Go.
-3. **Implementation:** Autonomously implement each feature per the approved plan. When starting, scaffold the application using ${formatToolName(SHELL_TOOL_NAME)}. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, icons). Never link to external services or assume local paths for assets that have not been created.
+3. **Implementation:** Autonomously implement each feature per the approved plan. When starting, scaffold the application${scaffoldClause}. For interactive scaffolding tools (like create-react-app, create-vite, or npm create), you MUST use the corresponding non-interactive flag (e.g. '--yes', '-y', or specific template flags) to prevent the environment from hanging waiting for user input. For visual assets, utilize **platform-native primitives** (e.g., stylized shapes, gradients, icons). Never link to external services or assume local paths for assets that have not been created.
 4. **Verify:** Review work against the original request. Fix bugs and deviations. **Build the application and ensure there are no compile errors.**`.trim();
 }
 

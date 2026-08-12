@@ -125,6 +125,7 @@ export interface CliArgs {
   /** Shared `--provider` filter, aliased from diagnose-model-limits-provider; also read by --diagnose-tools. */
   provider: string | undefined;
   diagnoseTools: boolean | undefined;
+  diagnoseAgentCapabilities: boolean | undefined;
   diagnoseToolUi: boolean | undefined;
   diagnoseAuthState: boolean | undefined;
   diagnosePlan: string | undefined;
@@ -575,7 +576,12 @@ export async function parseArguments(
         .option('diagnose-tools', {
           type: 'boolean',
           description:
-            'Print safe structural tool-schema diagnostics (canonical validity, root type, property/required counts, per-dialect serialization validity for openai/anthropic/gemini/mcp) for every built-in PLUMB tool. Never exposes credentials or prompt/file contents. Usage: plumb --diagnose-tools [--provider <id>] [--model <id>]',
+            'Print safe structural tool-schema diagnostics (canonical validity, root type, property/required counts, per-dialect serialization validity for openai/anthropic/gemini/mcp) for every built-in PLUMB tool. Never exposes credentials or prompt/file contents. Usage: plumb --diagnose-tools [--provider <id>] [--model <id>] [--summary]',
+        })
+        .option('diagnose-agent-capabilities', {
+          type: 'boolean',
+          description:
+            'Print safe per-model agent-capability diagnostics: provider, display/wire model, toolsSupported, capability.source, advertised.tool.count, prompt/wire coherence, suppression reason -- sourced from the exact same canonical UniversalModelInventory the product itself reads (never a diagnostic-only capability universe). Never exposes credentials or prompt contents. Usage: plumb --diagnose-agent-capabilities [--provider <id>] [--model <id>] [--summary]',
         })
         .option('diagnose-tool-ui', {
           type: 'boolean',
