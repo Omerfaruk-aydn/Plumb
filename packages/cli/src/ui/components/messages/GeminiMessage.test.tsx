@@ -7,7 +7,14 @@
 import { GeminiMessage } from './GeminiMessage.js';
 import { StreamingState } from '../../types.js';
 import { renderWithProviders } from '../../../test-utils/render.js';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// GradientStreamCursor (F3) drives a real setInterval via useColorCycle,
+// the same reason GeminiSpinner is always mocked wherever it's rendered
+// directly and unmocked -- see GradientStreamCursor.tsx's own doc comment.
+vi.mock('../GradientStreamCursor.js', () => ({
+  GradientStreamCursor: () => null,
+}));
 
 describe('<GeminiMessage /> - Raw Markdown Display Snapshots', () => {
   const baseProps = {

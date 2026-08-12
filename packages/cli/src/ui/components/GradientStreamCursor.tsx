@@ -3,32 +3,33 @@
  * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  *
- * F3 (PLUMB-UI-DEVRIM-PROMPT.md) -- scoped down after a real test failure.
- *
- * The spec wanted a continuously gradient-cycling cursor. First attempt
- * used useColorCycle (a real setInterval, same as GeminiSpinner) here, but
- * unlike GeminiSpinner -- which is mocked away in essentially every test
- * that renders a component near it -- GeminiMessage/GeminiMessageContent
- * are rendered directly and unmocked in their own tests. That produced the
- * exact leaked-timer act() failures the ToolStatusIndicator attempt hit
- * earlier (see useColorCycle's own doc comment): "renders correctly" tests
- * failed with `act(...)` warnings and mismatched snapshots because the
- * interval kept ticking after assertions ran.
- *
- * A static accent-colored cursor still reads as "generation is still
- * happening" (this is exactly what a plain terminal cursor does) without
- * a repeating timer anywhere near a directly-tested component.
+ * F3 (PLUMB-UI-DEVRIM-PROMPT.md): a gradient-cycling cursor, same
+ * mechanism as GeminiSpinner (useColorCycle -- a real setInterval).
+ * GeminiMessage.tsx and GeminiMessageContent.tsx, the only places this
+ * mounts, must mock this component away in their own test files (the
+ * way GeminiSpinner is mocked wherever it's rendered directly and
+ * unmocked) -- otherwise the leaked interval produces act() warnings.
+ * See GeminiMessage.test.tsx / HistoryItemDisplay.test.tsx for the mock.
  */
 import type React from 'react';
 import { Text, useIsScreenReaderEnabled } from 'ink';
-import { theme } from '../semantic-colors.js';
+import { Colors } from '../colors.js';
+import { useColorCycle } from '../hooks/useColorCycle.js';
 
 export const GradientStreamCursor: React.FC = () => {
   const isScreenReaderEnabled = useIsScreenReaderEnabled();
+  const brandColors = [
+    Colors.AccentPurple,
+    Colors.AccentBlue,
+    Colors.AccentCyan,
+    Colors.AccentGreen,
+    Colors.AccentYellow,
+    Colors.AccentRed,
+  ];
+  const currentColor = useColorCycle(brandColors, { tickMs: 30 });
 
   if (isScreenReaderEnabled) {
     return null;
   }
-
-  return <Text color={theme.text.accent}>▌</Text>;
+  return <Text color={currentColor}>▌</Text>;
 };
