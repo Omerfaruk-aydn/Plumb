@@ -354,6 +354,63 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
     expect(events.at(-1)).toMatchObject({ type: 'done', finishReason: 'stop' });
   });
 
+  // Thinking request body for reasoning models (OMP compat)
+  it('sends reasoning_effort for DeepSeek reasoning models when thinking config present', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const deepseekModel: PlumbModel = {
+      ...openaiToolModel,
+      id: 'deepseek-v4-flash-free',
+      reasoning: true,
+      thinking: { mode: 'effort', supportedEfforts: ['high', 'max'] },
+    };
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
+        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseDone(),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: deepseekModel,
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      apiKey: 'sk-test',
+    })) { /* drain */ }
+
+    expect(capturedBody!['reasoning_effort']).toBe('max');
+    expect(capturedBody!['tools']).toBeDefined();
+  });
+
+  it('sends thinking object for ZAI-format reasoning models (Kimi/MiMo/HY/GLM)', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    const zaiModel: PlumbModel = {
+      ...openaiToolModel,
+      id: 'kimi-k2-free',
+      reasoning: true,
+      thinking: { mode: 'effort', supportedEfforts: ['low', 'medium', 'high'] },
+    };
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
+        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseDone(),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: zaiModel,
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      apiKey: 'sk-test',
+    })) { /* drain */ }
+
+    expect(capturedBody!['thinking']).toEqual({ type: 'enabled' });
+    expect(capturedBody!['tools']).toBeDefined();
+  });
+
   // S16: Tools NOT sent when toolsSupported is not true
   it('does NOT send tools when model.toolsSupported is absent', async () => {
     let capturedBody: Record<string, unknown> | undefined;

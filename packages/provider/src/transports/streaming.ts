@@ -318,7 +318,7 @@ async function* openAICompatibleStream(
 
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
-    messages: buildOpenAIMessages(messages, systemPrompt),
+    messages: buildOpenAIMessages(messages, systemPrompt, !!model.reasoning),
     stream: true,
     stream_options: { include_usage: true },
   };
@@ -337,6 +337,52 @@ async function* openAICompatibleStream(
     body.temperature = temperature;
   if (responseFormat) body.response_format = responseFormat;
   if (reasoningEffort) body.reasoning_effort = reasoningEffort;
+
+  // ── Thinking/reasoning request body (OMP compat layer) ────────────
+  //
+  // OMP resolves a full compat record (thinkingFormat, whenThinking,
+  // requiresReasoningContentForToolCalls, …) at model build time.
+  // PLUMB doesn't run OMP's buildModel, so we apply the critical
+  // subset here based on the model's catalog metadata.
+  //
+  // For reasoning-capable models on OpenAI-compatible endpoints, the
+  // provider may need explicit thinking parameters to enter reasoning
+  // mode. Without them, the model may produce text-only output even
+  // when tools are present.
+  if (
+    model.reasoning &&
+    model.thinking?.mode === 'effort' &&
+    !reasoningEffort
+  ) {
+    const efforts = model.thinking.supportedEfforts;
+    if (efforts && efforts.length > 0) {
+      const isOpenCodeProvider =
+        model.provider === 'opencode-go' ||
+        model.provider === 'opencode-zen';
+      const isKimiModel = /kimi/i.test(model.id);
+      const isDeepseekModel = /deepseek/i.test(model.id);
+
+      if (isKimiModel || (!isDeepseekModel && isOpenCodeProvider)) {
+        // ZAI format: thinking: { type: "enabled" }
+        // Used by Kimi, MiMo, GLM, Qwen, HY on OpenCode gateways.
+        body.thinking = { type: 'enabled' };
+      } else if (isDeepseekModel || model.provider === 'deepseek') {
+        // OpenAI format: reasoning_effort
+        // Use the highest available effort for maximum tool-calling
+        // reliability.
+        body.reasoning_effort = efforts[efforts.length - 1];
+      }
+    }
+  }
+
+  // ── Disable reasoning on tool_choice for DeepSeek ─────────────────
+  //
+  // OMP compat: disableReasoningOnToolChoice = true for DeepSeek
+  // reasoning models. Some DeepSeek routes reject reasoning when
+  // tool_choice is set. Only applies when the caller explicitly sets
+  // tool_choice (not when it's omitted/auto).
+  // NOTE: PLUMB currently doesn't send tool_choice, so this is
+  // defensive for future use.
 
   // A missing/empty credential must fail loudly here — falling through
   // silently produces `Authorization: Bearer ` (no token), which providers
@@ -1794,7 +1840,7 @@ async function* ollamaCompatibleStream(
 
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
-    messages: buildOpenAIMessages(messages, systemPrompt),
+    messages: buildOpenAIMessages(messages, systemPrompt, !!model.reasoning),
     stream: true,
   };
 
@@ -2031,6 +2077,7 @@ function buildOpenAIUserContent(
 export function buildOpenAIMessages(
   messages: PlumbStreamOptions['messages'],
   systemPrompt?: string,
+  reasoningCapable?: boolean,
 ): Record<string, unknown>[] {
   const result: Record<string, unknown>[] = [];
   if (systemPrompt) {
@@ -2051,6 +2098,36 @@ export function buildOpenAIMessages(
           type: 'function',
           function: { name: tc.name, arguments: tc.arguments },
         }));
+      }
+      // ── Reasoning content replay (OMP compat) ────────────────────
+      //
+      // OMP compat: requiresReasoningContentForToolCalls / requires
+      // ReasoningContentForAllAssistantTurns for DeepSeek/Kimi
+      // reasoning models. Without reasoning_content on assistant
+      // tool-call messages, the provider may reject the request or
+      // the model may not continue with structured tool calls.
+      if (
+        reasoningCapable &&
+        typeof msg.content !== 'string' &&
+        Array.isArray(msg.content)
+      ) {
+        const thinkingParts = msg.content.filter(
+          (p) => p.type === 'thinking' && 'text' in p && p.text,
+        );
+        if (thinkingParts.length > 0) {
+          entry['reasoning_content'] = thinkingParts
+            .map((p) => ('text' in p ? p.text : ''))
+            .join('\n');
+        } else if (toolCalls.length > 0) {
+          // Tier 2: no thinking blocks but provider requires
+          // reasoning_content on tool-call turns. Emit empty string.
+          entry['reasoning_content'] = '';
+        }
+      }
+      // Some backends require non-null content on assistant tool-call
+      // messages (OMP compat: requiresAssistantContentForToolCalls).
+      if (entry.content === null && entry['tool_calls']) {
+        entry.content = '';
       }
       result.push(entry);
     } else if (msg.role === 'user') {

@@ -25,6 +25,7 @@ import type {
   PlumbProviderId,
   PlumbKnownApi,
   PlumbModelPricing,
+  PlumbThinkingConfig,
 } from '../types.js';
 import { resolveProviderAlias } from './providers.js';
 import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';
@@ -130,6 +131,25 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     isOAuth: model.isOAuth,
     toolsSupported,
     toolsCapabilitySource,
+    thinking: model.thinking
+      ? {
+          mode: model.thinking.mode as PlumbThinkingConfig['mode'],
+          supportedEfforts: model.thinking.efforts
+            ? [...model.thinking.efforts]
+            : undefined,
+          effortMap: model.thinking.effortMap
+            ? { ...model.thinking.effortMap }
+            : undefined,
+          effortRouting: model.thinking.effortRouting
+            ? { ...model.thinking.effortRouting }
+            : undefined,
+          effortBudgets: model.thinking.effortBudgets
+            ? { ...model.thinking.effortBudgets }
+            : undefined,
+          suppressWhenOff: model.thinking.suppressWhenOff,
+          requiresEffort: model.thinking.requiresEffort,
+        }
+      : undefined,
   };
 }
 
