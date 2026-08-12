@@ -14,7 +14,6 @@ import { extensionsCommand } from '../commands/extensions.js';
 import { skillsCommand } from '../commands/skills.js';
 import { hooksCommand } from '../commands/hooks.js';
 import { gemmaCommand } from '../commands/gemma.js';
-import { completionsCommand } from '../commands/completions.js';
 import {
   setGeminiMdFilename as setServerGeminiMdFilename,
   resetGeminiMdFilename,
@@ -305,7 +304,6 @@ export async function parseArguments(
   yargsInstance.command(skillsCommand);
   yargsInstance.command(hooksCommand);
   yargsInstance.command(gemmaCommand);
-  yargsInstance.command(completionsCommand);
 
   yargsInstance
     .command('$0 [query..]', 'Launch PLUMB', (yargsInstance) =>

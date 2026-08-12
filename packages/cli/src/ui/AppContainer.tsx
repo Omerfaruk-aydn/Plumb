@@ -197,9 +197,6 @@ import { useTimedMessage } from './hooks/useTimedMessage.js';
 import { useIsHelpDismissKey } from './utils/shortcutsHelp.js';
 import { useSuspend } from './hooks/useSuspend.js';
 import { useRunEventNotifications } from './hooks/useRunEventNotifications.js';
-import { useAttentionSound } from './hooks/useAttentionSound.js';
-import { useCollabBridge } from './hooks/useCollabBridge.js';
-import { resolveInitialMouseMode } from './utils/mouseSettings.js';
 import {
   isNotificationsEnabled,
   getNotificationMethod,
@@ -261,10 +258,7 @@ export const AppContainer = (props: AppContainerProps) => {
   useMemoryMonitor(historyManager);
   const isAlternateBuffer = config.getUseAlternateBuffer();
   const [mouseMode, setMouseMode] = useState(() =>
-    resolveInitialMouseMode(
-      settings.merged.ui?.mouse,
-      config.getUseAlternateBuffer(),
-    ),
+    config.getUseAlternateBuffer(),
   );
 
   useEffect(() => {
@@ -2697,21 +2691,6 @@ Logging in with Google... Restarting PLUMB to continue.
     hasConfirmUpdateExtensionRequests,
     hasLoopDetectionConfirmationRequest,
   });
-
-  useAttentionSound({
-    settings,
-    streamingState,
-    hasPendingActionRequired,
-    pendingHistoryItems,
-    history: historyManager.history,
-    commandConfirmationRequest,
-    authConsentRequest,
-    permissionConfirmationRequest,
-    hasConfirmUpdateExtensionRequests,
-    hasLoopDetectionConfirmationRequest,
-  });
-
-  useCollabBridge(historyManager.history);
 
   const isPassiveShortcutsHelpState =
     isInputActive &&

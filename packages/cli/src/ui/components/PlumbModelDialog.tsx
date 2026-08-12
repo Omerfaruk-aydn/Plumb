@@ -9,7 +9,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { Box, Text } from 'ink';
 import {
   PlumbProviderCategory,
@@ -21,10 +21,6 @@ import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
-import {
-  loadAllBenchmarkEntries,
-  type BenchmarkEntry,
-} from '../../bench/storage.js';
 import { ConfigContext } from '../contexts/ConfigContext.js';
 import { useSettings } from '../contexts/SettingsContext.js';
 import {
@@ -70,19 +66,6 @@ export function PlumbModelDialog({
     useState<ModelDialogProviderEntry | null>(null);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [benchmarkEntries, setBenchmarkEntries] = useState<
-    Record<string, BenchmarkEntry>
-  >({});
-
-  useEffect(() => {
-    let cancelled = false;
-    void loadAllBenchmarkEntries().then((entries) => {
-      if (!cancelled) setBenchmarkEntries(entries);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const activeProviderId = config?.getPlumbProvider() ?? null;
 
@@ -293,7 +276,6 @@ export function PlumbModelDialog({
           <SearchableModelPicker
             models={selectedEntry.models}
             initialSelectedId={initialSelectedId}
-            benchmarkEntries={benchmarkEntries}
             onSelect={(model: PlumbModel) =>
               void applySelection(selectedEntry.provider.id, model.id)
             }
