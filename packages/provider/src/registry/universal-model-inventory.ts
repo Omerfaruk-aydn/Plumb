@@ -148,6 +148,12 @@ export interface UniversalModelInventory {
     inputUnknown: number;
     outputKnown: number;
     outputUnknown: number;
+    /** toolsSupported === true, across every model in this inventory snapshot. */
+    toolsSupported: number;
+    /** toolsSupported === false, across every model in this inventory snapshot. */
+    toolsUnsupported: number;
+    /** toolsSupported === undefined (no trustworthy capability metadata) — never guessed. */
+    toolsUnknown: number;
   };
 }
 
@@ -623,6 +629,9 @@ export async function buildUniversalModelInventory(
     inputUnknown: 0,
     outputKnown: 0,
     outputUnknown: 0,
+    toolsSupported: 0,
+    toolsUnsupported: 0,
+    toolsUnknown: 0,
   };
   for (const m of models) {
     if (m.identitySource === 'BUNDLED_CATALOG') counts.identityBundledCatalog++;
@@ -643,6 +652,9 @@ export async function buildUniversalModelInventory(
     else counts.inputUnknown++;
     if (typeof m.maxOutputTokens === 'number') counts.outputKnown++;
     else counts.outputUnknown++;
+    if (m.toolsSupported === true) counts.toolsSupported++;
+    else if (m.toolsSupported === false) counts.toolsUnsupported++;
+    else counts.toolsUnknown++;
   }
 
   return {

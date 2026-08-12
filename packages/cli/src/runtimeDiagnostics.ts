@@ -1446,6 +1446,10 @@ function summaryToLines(inv: UniversalModelInventory): string[] {
   lines.push(`models.output.known: ${inv.counts.outputKnown}`);
   lines.push(`models.output.unknown: ${inv.counts.outputUnknown}`);
   lines.push('');
+  lines.push(`tools.supported: ${inv.counts.toolsSupported}`);
+  lines.push(`tools.unsupported: ${inv.counts.toolsUnsupported}`);
+  lines.push(`tools.unknown: ${inv.counts.toolsUnknown}`);
+  lines.push('');
   const modelCountByProvider = new Map<string, number>();
   for (const m of inv.models) {
     modelCountByProvider.set(
@@ -1501,6 +1505,9 @@ function inventoryToLines(
       inv.counts.identityUserConfiguredDeployment,
   );
   lines.push('  models.identity.unknown: ' + inv.counts.identityUnknown);
+  lines.push('  tools.supported: ' + inv.counts.toolsSupported);
+  lines.push('  tools.unsupported: ' + inv.counts.toolsUnsupported);
+  lines.push('  tools.unknown: ' + inv.counts.toolsUnknown);
   lines.push('  models.context.known: ' + inv.counts.contextKnown);
   lines.push('  models.context.unknown: ' + inv.counts.contextUnknown);
   lines.push('  models.input.known: ' + inv.counts.inputKnown);
