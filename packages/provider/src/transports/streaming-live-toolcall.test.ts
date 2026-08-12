@@ -22,6 +22,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { PlumbStreamEvent, PlumbModel } from '../types.js';
 import { plumbModelStream } from './streaming.js';
+import { enableToolRouteDiag, getLastToolRouteDiag } from './streaming.js';
 
 // --- Helpers ---
 
@@ -100,6 +101,163 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
   const originalFetch = globalThis.fetch;
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  it('emits tool_choice:auto only for a NVIDIA NIM route that requires activation', async () => {
+    enableToolRouteDiag();
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(
+          JSON.stringify({
+            choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          }),
+        ),
+        sseDone(),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: {
+        ...openaiToolModel,
+        provider: 'nvidia',
+        baseUrl: 'https://integrate.api.nvidia.com/v1',
+      },
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      apiKey: 'nvapi-test',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody?.['tools']).toHaveLength(2);
+    expect(capturedBody?.['tool_choice']).toBe('auto');
+    expect(getLastToolRouteDiag()).toMatchObject({
+      toolProtocolStatus: 'structured_tools_advertised',
+      toolChoicePolicy: 'REQUIRED_WHEN_TOOLS_PRESENT',
+      toolChoiceSent: true,
+      toolChoiceValueCategory: 'auto',
+    });
+  });
+
+  it('does not emit tool_choice for a forbidden DeepSeek reasoning route', async () => {
+    enableToolRouteDiag();
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(
+          JSON.stringify({
+            choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          }),
+        ),
+        sseDone(),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: {
+        ...openaiToolModel,
+        provider: 'deepseek',
+        baseUrl: 'https://api.deepseek.com',
+        toolPolicy: {
+          emission: 'FORBIDDEN',
+          forcedToolChoiceSupported: false,
+          namedToolChoiceSupported: false,
+          source: 'OMP_COMPAT',
+        },
+      },
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      toolChoice: { mode: 'auto' },
+      apiKey: 'sk-test',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody?.['tools']).toHaveLength(2);
+    expect(capturedBody?.['tool_choice']).toBeUndefined();
+    expect(getLastToolRouteDiag()).toMatchObject({
+      toolProtocolStatus: 'structured_tools_advertised',
+      toolChoicePolicy: 'FORBIDDEN',
+      toolChoiceSent: false,
+      toolChoiceValueCategory: 'absent',
+    });
+  });
+
+  it('serializes a named choice with Anthropic native tool_choice', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(
+          JSON.stringify({
+            type: 'message_delta',
+            delta: { stop_reason: 'end_turn' },
+          }),
+        ),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: {
+        ...openaiToolModel,
+        provider: 'anthropic',
+        api: 'anthropic-messages',
+        baseUrl: 'https://api.anthropic.com',
+      },
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      toolChoice: { mode: 'named', name: 'read_file' },
+      apiKey: 'sk-ant-test',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody?.['tool_choice']).toEqual({
+      type: 'tool',
+      name: 'read_file',
+    });
+  });
+
+  it('serializes a named choice with Gemini native functionCallingConfig', async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    globalThis.fetch = (async (_url, init) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return makeResponse([
+        sseChunk(
+          JSON.stringify({
+            candidates: [
+              { content: { role: 'model', parts: [] }, finishReason: 'STOP' },
+            ],
+          }),
+        ),
+      ]);
+    }) as typeof fetch;
+
+    for await (const _ of plumbModelStream({
+      model: {
+        ...openaiToolModel,
+        provider: 'google',
+        api: 'google-generative-ai',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+      },
+      messages: [{ role: 'user', content: 'test' }],
+      tools: PLUMB_TOOLS,
+      toolChoice: { mode: 'named', name: 'read_file' },
+      apiKey: 'google-test',
+    })) {
+      // drain
+    }
+
+    expect(capturedBody?.['tool_choice']).toBeUndefined();
+    expect(capturedBody?.['toolConfig']).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['read_file'],
+      },
+    });
   });
 
   // S1: Verify outbound request contains tools when toolsSupported=true
@@ -366,8 +524,14 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
     globalThis.fetch = (async (_url, init) => {
       capturedBody = JSON.parse(String(init?.body));
       return makeResponse([
-        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
-        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseChunk(
+          JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] }),
+        ),
+        sseChunk(
+          JSON.stringify({
+            choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          }),
+        ),
         sseDone(),
       ]);
     }) as typeof fetch;
@@ -377,7 +541,9 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
       messages: [{ role: 'user', content: 'test' }],
       tools: PLUMB_TOOLS,
       apiKey: 'sk-test',
-    })) { /* drain */ }
+    })) {
+      /* drain */
+    }
 
     // OMP compat: OpenCode Zen + DeepSeek uses reasoning_effort, NOT thinking object
     expect(capturedBody!['reasoning_effort']).toBe('max');
@@ -391,13 +557,22 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
       ...openaiToolModel,
       id: 'hy3-free',
       reasoning: true,
-      thinking: { mode: 'effort', supportedEfforts: ['minimal', 'low', 'medium', 'high', 'xhigh'] },
+      thinking: {
+        mode: 'effort',
+        supportedEfforts: ['minimal', 'low', 'medium', 'high', 'xhigh'],
+      },
     };
     globalThis.fetch = (async (_url, init) => {
       capturedBody = JSON.parse(String(init?.body));
       return makeResponse([
-        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
-        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseChunk(
+          JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] }),
+        ),
+        sseChunk(
+          JSON.stringify({
+            choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          }),
+        ),
         sseDone(),
       ]);
     }) as typeof fetch;
@@ -407,7 +582,9 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
       messages: [{ role: 'user', content: 'test' }],
       tools: PLUMB_TOOLS,
       apiKey: 'sk-test',
-    })) { /* drain */ }
+    })) {
+      /* drain */
+    }
 
     // OMP compat: OpenCode Zen + HY3 uses reasoning_effort (thinkingFormat=openai),
     // NOT thinking: {type:"enabled"} (that's only for direct DeepSeek API extraBody)
@@ -426,8 +603,14 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
     globalThis.fetch = (async (_url, init) => {
       capturedBody = JSON.parse(String(init?.body));
       return makeResponse([
-        sseChunk(JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] })),
-        sseChunk(JSON.stringify({ choices: [{ delta: {}, finish_reason: 'stop', index: 0 }] })),
+        sseChunk(
+          JSON.stringify({ choices: [{ delta: { content: 'ok' }, index: 0 }] }),
+        ),
+        sseChunk(
+          JSON.stringify({
+            choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          }),
+        ),
         sseDone(),
       ]);
     }) as typeof fetch;
@@ -437,7 +620,9 @@ describe('live structured tool-call route — OpenAI-compatible transport', () =
       messages: [{ role: 'user', content: 'test' }],
       tools: PLUMB_TOOLS,
       apiKey: 'sk-test',
-    })) { /* drain */ }
+    })) {
+      /* drain */
+    }
 
     expect(capturedBody!['reasoning_effort']).toBeUndefined();
     expect(capturedBody!['thinking']).toBeUndefined();

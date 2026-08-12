@@ -85,6 +85,33 @@ export type PlumbKnownApi =
   | 'watsonx-chat'
   | 'oci-openai-responses';
 
+/** Whether a route must, may, or must not emit its native tool-choice field. */
+export type ToolChoiceEmissionPolicy =
+  | 'REQUIRED_WHEN_TOOLS_PRESENT'
+  | 'OPTIONAL'
+  | 'FORBIDDEN';
+
+/**
+ * Tool activation capabilities for one resolved provider/model/dialect/endpoint
+ * route. These flags intentionally remain orthogonal: accepting an `auto`
+ * selector does not prove that a route accepts `required`, a named function,
+ * or parallel calls.
+ */
+export interface PlumbRouteToolPolicy {
+  readonly emission: ToolChoiceEmissionPolicy;
+  readonly forcedToolChoiceSupported: boolean;
+  readonly namedToolChoiceSupported: boolean;
+  readonly parallelToolCallsSupported?: boolean;
+  readonly source: 'OMP_COMPAT' | 'PROVIDER_CONTRACT' | 'DIALECT_DEFAULT';
+}
+
+/** Provider-neutral intent; transports serialize this in their native dialect. */
+export type PlumbToolChoice =
+  | { readonly mode: 'auto' }
+  | { readonly mode: 'required' }
+  | { readonly mode: 'none' }
+  | { readonly mode: 'named'; readonly name: string };
+
 // ─── Thinking control ─────────────────────────────────────────────────
 
 export type PlumbThinkingControlMode =
@@ -198,6 +225,7 @@ export interface PlumbModel {
   readonly openaiCompat?: PlumbOpenAICompat;
   readonly anthropicCompat?: PlumbAnthropicCompat;
   readonly bedrockCompat?: PlumbBedrockCompat;
+  readonly toolPolicy?: PlumbRouteToolPolicy;
   readonly baseUrl?: string;
   /**
    * Optional default request headers that the transport must apply in
@@ -352,6 +380,8 @@ export interface PlumbStreamOptions {
   model: PlumbModel;
   messages: PlumbMessage[];
   tools?: PlumbTool[];
+  /** Request-level selection intent, normalized from the caller's native config. */
+  toolChoice?: PlumbToolChoice;
   apiKey: string;
   signal?: AbortSignal;
   maxTokens?: number;

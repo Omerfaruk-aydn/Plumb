@@ -147,6 +147,7 @@ export {
   PRIORITY_YOLO_ALLOW_ALL,
 } from './policy/types.js';
 export * from './utils/tool-utils.js';
+export * from './tools/plumbToolProbe.js';
 export * from './utils/tool-visibility.js';
 export * from './utils/terminalSerializer.js';
 export * from './utils/textUtils.js';

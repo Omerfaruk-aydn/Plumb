@@ -173,6 +173,7 @@ export class PlumbContentGenerator implements ContentGenerator {
     const reasoningEffort = this.#resolveReasoningEffort(
       requestConfig.thinkingConfig?.thinkingLevel,
     );
+    const toolChoice = this.#convertToolChoice(requestConfig.toolConfig);
 
     // Look up the full model from the registry to get baseUrl and other metadata.
     // The registry's OMP catalog carries the provider-specific base URL
@@ -324,6 +325,7 @@ export class PlumbContentGenerator implements ContentGenerator {
         temperature: requestConfig.temperature,
         responseFormat,
         reasoningEffort,
+        toolChoice,
         traceSource: 'NORMAL_CHAT',
         generatorInstance: {
           instanceId: this.#instanceId,
@@ -417,6 +419,7 @@ export class PlumbContentGenerator implements ContentGenerator {
   }
 
   #chunk(part: Record<string, unknown>): GenerateContentResponse {
+    const functionCall = part['functionCall'];
     return {
       candidates: [
         {
@@ -425,6 +428,7 @@ export class PlumbContentGenerator implements ContentGenerator {
           index: 0,
         },
       ],
+      ...(functionCall ? { functionCalls: [functionCall] } : {}),
     } as unknown as GenerateContentResponse;
   }
 
@@ -659,6 +663,25 @@ export class PlumbContentGenerator implements ContentGenerator {
       | undefined;
     if (!instruction?.parts) return undefined;
     return instruction.parts.map((p) => p.text ?? '').join('\n') || undefined;
+  }
+
+  #convertToolChoice(
+    toolConfig: any,
+  ):
+    | { mode: 'auto' | 'required' | 'none' }
+    | { mode: 'named'; name: string }
+    | undefined {
+    const functionConfig = toolConfig?.functionCallingConfig ?? toolConfig;
+    const mode = String(functionConfig?.mode ?? '').toUpperCase();
+    const allowed = functionConfig?.allowedFunctionNames;
+    if (mode === 'NONE') return { mode: 'none' };
+    if (mode === 'AUTO' || mode === 'VALIDATED') return { mode: 'auto' };
+    if (mode === 'ANY') {
+      return Array.isArray(allowed) && allowed.length === 1
+        ? { mode: 'named', name: String(allowed[0]) }
+        : { mode: 'required' };
+    }
+    return undefined;
   }
 }
 

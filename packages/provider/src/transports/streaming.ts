@@ -21,7 +21,13 @@ import {
   type PlumbStreamEvent,
   type PlumbStreamOptions,
   type PlumbKnownApi,
+  type PlumbToolChoice,
 } from '../types.js';
+import {
+  describeToolChoiceValue,
+  resolveEffectiveToolChoice,
+  resolveRouteToolPolicy,
+} from '../tool-policy.js';
 import { EventStream } from '../omp-ai/utils/event-stream.js';
 import {
   classifyGenericHttpError,
@@ -67,6 +73,11 @@ function resetToolRouteDiag(): void {
     requestToolsCount: 0,
     requestModelId: '',
     requestToolChoice: 'absent',
+    toolProtocolStatus: 'not_evaluated',
+    toolChoicePolicy: 'OPTIONAL',
+    toolChoiceSent: false,
+    toolChoiceValueCategory: 'absent',
+    parallelToolsPolicy: 'unknown',
     responseTextDeltaCount: 0,
     responseToolCallDeltaCount: 0,
     responseFinishReason: 'none',
@@ -75,11 +86,71 @@ function resetToolRouteDiag(): void {
   };
 }
 
-function recordToolRouteRequest(toolsCount: number, modelId: string): void {
+function recordToolRouteRequest(
+  toolsCount: number,
+  modelId: string,
+  options?: PlumbStreamOptions,
+  sentChoice?: PlumbToolChoice,
+): void {
   if (!toolRouteDiagEnabled) return;
   resetToolRouteDiag();
   lastToolRouteDiag!['requestToolsCount'] = toolsCount;
   lastToolRouteDiag!['requestModelId'] = modelId;
+  if (options) {
+    const policy = resolveRouteToolPolicy(options.model);
+    lastToolRouteDiag!['toolProtocolStatus'] =
+      toolsCount > 0 ? 'structured_tools_advertised' : 'no_tools_advertised';
+    lastToolRouteDiag!['toolChoicePolicy'] = policy.emission;
+    lastToolRouteDiag!['toolChoiceSent'] = sentChoice !== undefined;
+    lastToolRouteDiag!['toolChoiceValueCategory'] =
+      describeToolChoiceValue(sentChoice);
+    lastToolRouteDiag!['requestToolChoice'] =
+      describeToolChoiceValue(sentChoice);
+    lastToolRouteDiag!['parallelToolsPolicy'] =
+      policy.parallelToolCallsSupported === undefined
+        ? 'unknown'
+        : policy.parallelToolCallsSupported
+          ? 'supported'
+          : 'unsupported';
+  }
+}
+
+function serializeOpenAIToolChoice(choice: PlumbToolChoice): unknown {
+  switch (choice.mode) {
+    case 'auto':
+    case 'required':
+    case 'none':
+      return choice.mode;
+    case 'named':
+      return { type: 'function', function: { name: choice.name } };
+  }
+}
+
+function serializeAnthropicToolChoice(choice: PlumbToolChoice): unknown {
+  switch (choice.mode) {
+    case 'auto':
+    case 'none':
+      return { type: choice.mode };
+    case 'required':
+      return { type: 'any' };
+    case 'named':
+      return { type: 'tool', name: choice.name };
+  }
+}
+
+function serializeGeminiFunctionCallingConfig(
+  choice: PlumbToolChoice,
+): unknown {
+  switch (choice.mode) {
+    case 'auto':
+      return { mode: 'AUTO' };
+    case 'required':
+      return { mode: 'ANY' };
+    case 'none':
+      return { mode: 'NONE' };
+    case 'named':
+      return { mode: 'ANY', allowedFunctionNames: [choice.name] };
+  }
 }
 
 function recordToolRouteTextDelta(): void {
@@ -328,9 +399,22 @@ async function* openAICompatibleStream(
       type: 'function',
       function: t.function,
     }));
-    recordToolRouteRequest(tools.length, String(body.model));
+    const effectiveChoice = resolveEffectiveToolChoice(
+      resolveRouteToolPolicy(model),
+      options.toolChoice,
+      tools.length,
+    );
+    if (effectiveChoice.value) {
+      body.tool_choice = serializeOpenAIToolChoice(effectiveChoice.value);
+    }
+    recordToolRouteRequest(
+      tools.length,
+      String(body.model),
+      options,
+      effectiveChoice.value,
+    );
   } else {
-    recordToolRouteRequest(0, String(body.model));
+    recordToolRouteRequest(0, String(body.model), options);
   }
   if (maxTokens) body.max_tokens = maxTokens;
   if (temperature !== undefined && temperature >= 0)
@@ -717,6 +801,14 @@ async function* anthropicMessagesStream(
       description: t.function.description,
       input_schema: t.function.parameters,
     }));
+    const effectiveChoice = resolveEffectiveToolChoice(
+      resolveRouteToolPolicy(model),
+      options.toolChoice,
+      tools.length,
+    );
+    if (effectiveChoice.value) {
+      body.tool_choice = serializeAnthropicToolChoice(effectiveChoice.value);
+    }
   }
 
   if (hasThinking) {
@@ -1687,6 +1779,18 @@ async function* googleGenerativeAiStream(
         })),
       },
     ];
+    const effectiveChoice = resolveEffectiveToolChoice(
+      resolveRouteToolPolicy(model),
+      options.toolChoice,
+      tools.length,
+    );
+    if (effectiveChoice.value) {
+      body.toolConfig = {
+        functionCallingConfig: serializeGeminiFunctionCallingConfig(
+          effectiveChoice.value,
+        ),
+      };
+    }
   }
 
   let response: Response;

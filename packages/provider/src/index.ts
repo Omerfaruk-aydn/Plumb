@@ -20,6 +20,9 @@ export {
   type PlumbModel,
   type PlumbModelSpec,
   type PlumbKnownApi,
+  type ToolChoiceEmissionPolicy,
+  type PlumbRouteToolPolicy,
+  type PlumbToolChoice,
   type PlumbStreamEvent,
   type PlumbStreamOptions,
   type PlumbStreamFunction,
@@ -45,6 +48,12 @@ export {
   type PlumbBedrockCompat,
   PlumbProviderCategory,
 } from './types.js';
+
+export {
+  resolveRouteToolPolicy,
+  resolveEffectiveToolChoice,
+  describeToolChoiceValue,
+} from './tool-policy.js';
 
 // Provider catalog
 export {
@@ -339,6 +348,8 @@ export type {
 // Streaming transport
 export {
   plumbModelStream,
+  enableToolRouteDiag,
+  getLastToolRouteDiag,
   registerPlumbTransport,
   hasPlumbTransport,
   buildAntigravityRequest,

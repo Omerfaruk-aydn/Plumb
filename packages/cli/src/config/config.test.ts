@@ -214,6 +214,23 @@ describe('parseArguments', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  it('parses the safe provider tool-route probe with an optional model', async () => {
+    process.argv = [
+      'node',
+      'script.js',
+      '--test-tool-route',
+      'nvidia',
+      '--model',
+      'deepseek-ai/deepseek-v4',
+    ];
+
+    const result = await parseArguments({} as MergedSettings);
+
+    expect(result.testToolRoute).toBe('nvidia');
+    expect(result.model).toBe('deepseek-ai/deepseek-v4');
+  });
+
   it('should fail if multiple session flags are provided', async () => {
     process.argv = [
       'node',

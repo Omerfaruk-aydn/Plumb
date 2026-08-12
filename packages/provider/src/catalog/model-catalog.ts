@@ -116,6 +116,38 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     toolsCapabilitySource = 'BUNDLED_CATALOG';
   }
 
+  const compat = 'compat' in model ? model.compat : undefined;
+  const hasToolChoiceCompat =
+    compat &&
+    ('supportsToolChoice' in compat ||
+      'supportsForcedToolChoice' in compat ||
+      'supportsNamedToolChoice' in compat);
+  const supportsToolChoice =
+    compat && 'supportsToolChoice' in compat
+      ? compat.supportsToolChoice !== false
+      : true;
+  const supportsForcedToolChoice =
+    compat && 'supportsForcedToolChoice' in compat
+      ? compat.supportsForcedToolChoice !== false
+      : true;
+  const supportsNamedToolChoice =
+    compat && 'supportsNamedToolChoice' in compat
+      ? compat.supportsNamedToolChoice !== false
+      : true;
+  const toolPolicy: PlumbModel['toolPolicy'] = hasToolChoiceCompat
+    ? {
+        emission:
+          model.provider === 'nvidia' && model.api === 'openai-completions'
+            ? 'REQUIRED_WHEN_TOOLS_PRESENT'
+            : !supportsToolChoice
+              ? 'FORBIDDEN'
+              : 'OPTIONAL',
+        forcedToolChoiceSupported: supportsForcedToolChoice,
+        namedToolChoiceSupported: supportsNamedToolChoice,
+        source: 'OMP_COMPAT',
+      }
+    : undefined;
+
   return {
     id: model.id,
     provider: model.provider as PlumbProviderId,
@@ -131,6 +163,7 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     isOAuth: model.isOAuth,
     toolsSupported,
     toolsCapabilitySource,
+    toolPolicy,
     thinking: model.thinking
       ? {
           mode: model.thinking.mode as PlumbThinkingConfig['mode'],

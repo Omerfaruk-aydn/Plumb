@@ -443,6 +443,7 @@ export async function main() {
     argv.testProvider ||
     argv.testProviderList ||
     argv.testProviderNext ||
+    argv.testToolRoute ||
     argv.diagnoseAntigravityRoute ||
     argv.testAntigravityRoute ||
     argv.diffAntigravityTrace ||
@@ -540,6 +541,9 @@ export async function main() {
         './providerAcceptanceHarness.js'
       );
       exitCode = await printProviderTestNext();
+    } else if (argv.testToolRoute) {
+      const { runToolRouteProbe } = await import('./toolRouteProbe.js');
+      exitCode = await runToolRouteProbe(argv.testToolRoute, argv.model);
     } else if (argv.diagnoseAntigravityRoute) {
       exitCode = await printAntigravityRouteDiagnostics();
     } else if (argv.testAntigravityRoute) {
