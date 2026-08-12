@@ -73,7 +73,14 @@ describe('opencodeZenModelManagerOptions', () => {
 		const model = models?.find((m) => m.id === 'deepseek-v4-flash-free');
 
 		expect(model).toBeDefined();
-		expect(model?.toolsSupported).toBeUndefined();
+		// The OMP-internal ModelSpec type (src/omp-catalog/types.ts) has no
+		// tools/function-calling capability field at all -- there is
+		// structurally nowhere for mapModel to have put a value, which is
+		// itself the proof: the discovery->mapModel step can only ever
+		// preserve UNKNOWN for capability, it cannot introduce a guess. Cast
+		// through `unknown` (not `any`) to read the absent field without
+		// widening the checked type anywhere else in this test.
+		expect((model as unknown as { toolsSupported?: boolean }).toolsSupported).toBeUndefined();
 	});
 });
 
