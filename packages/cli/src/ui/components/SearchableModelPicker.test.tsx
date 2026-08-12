@@ -312,4 +312,37 @@ describe('SearchableModelPicker', () => {
     expect(opusLine).toContain('32K max output');
     expect(sonnetLine).toContain('64K max output');
   });
+
+  it('14. shows an honest, compact tool-calling capability label per model: "tools" / "no tools" / "tools ?" -- reading model.toolsSupported directly, never guessed', async () => {
+    const models = [
+      makeModel('supported-model', 'opencode-zen', { toolsSupported: true }),
+      makeModel('unsupported-model', 'opencode-zen', {
+        toolsSupported: false,
+      }),
+      makeModel('unknown-model', 'opencode-zen', {
+        toolsSupported: undefined,
+      }),
+    ];
+    const { lastFrame } = await renderWithProviders(
+      <SearchableModelPicker
+        models={models}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    const lines = frame.split('\n');
+    const supportedLine = lines.find((l) => l.includes('supported-model'));
+    const unsupportedLine = lines.find((l) => l.includes('unsupported-model'));
+    const unknownLine = lines.find((l) => l.includes('unknown-model'));
+
+    expect(supportedLine).toContain('tools');
+    expect(supportedLine).not.toContain('no tools');
+    expect(supportedLine).not.toContain('tools ?');
+
+    expect(unsupportedLine).toContain('no tools');
+
+    expect(unknownLine).toContain('tools ?');
+    expect(unknownLine).not.toContain('no tools');
+  });
 });

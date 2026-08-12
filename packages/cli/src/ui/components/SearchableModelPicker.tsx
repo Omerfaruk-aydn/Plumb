@@ -9,6 +9,9 @@ import { useState, useMemo, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useKeypress } from '../hooks/useKeypress.js';
 import type { PlumbModel } from '@google/gemini-cli-provider';
+import { theme } from '../semantic-colors.js';
+import { benchmarkKey, type BenchmarkEntry } from '../../bench/storage.js';
+import { formatBenchmarkBadge } from '../utils/benchmarkBadge.js';
 
 export interface SearchableModelPickerProps {
   models: PlumbModel[];
@@ -18,6 +21,8 @@ export interface SearchableModelPickerProps {
   initialQuery?: string;
   /** Pre-highlight (not auto-select) this model id if present in `models`. */
   initialSelectedId?: string;
+  /** F26: real /bench results, keyed by `benchmarkKey(provider, modelId)`. Omit/empty when none exist yet. */
+  benchmarkEntries?: Record<string, BenchmarkEntry>;
 }
 
 const MAX_VISIBLE_ROWS = 15;
@@ -52,11 +57,26 @@ function isFreeModel(model: PlumbModel): boolean {
   );
 }
 
+/**
+ * Compact, honest tool-calling capability label for the model picker row.
+ * Reads `model.toolsSupported` directly -- the same canonical field the
+ * registry/inventory/prompt-and-wire gate (getEffectiveToolsAdvertisable)
+ * already resolve, no second cache. `undefined` (UNKNOWN) is never
+ * displayed as either "tools" or "no tools" -- it gets its own honest
+ * "tools ?" label so the user isn't misled into thinking absence of
+ * evidence is evidence of absence.
+ */
+function toolsCapabilityLabel(model: PlumbModel): string {
+  if (model.toolsSupported === true) return 'tools';
+  if (model.toolsSupported === false) return 'no tools';
+  return 'tools ?';
+}
+
 function getCapabilityBadges(model: PlumbModel): string[] {
   const badges: string[] = [];
   if (isFreeModel(model)) badges.push('FREE');
   if (model.reasoning) badges.push('reasoning');
-  if (model.toolsSupported) badges.push('tools');
+  badges.push(toolsCapabilityLabel(model));
   if (model.input === 'text+image') badges.push('vision');
   if (model.input === 'text+image+audio') badges.push('multimodal');
   if (model.isPreview) badges.push('preview');
@@ -76,6 +96,7 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
   onRefresh,
   initialQuery = '',
   initialSelectedId,
+  benchmarkEntries = {},
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const initialIndex = Math.max(
@@ -200,6 +221,10 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
                 ? `${formatTokenCount(model.maxTokens)} max output`
                 : null;
 
+            const benchmarkBadge = formatBenchmarkBadge(
+              benchmarkEntries[benchmarkKey(model.provider, model.id)],
+            );
+
             return (
               <Box key={`${model.provider}:${model.id}`}>
                 <Text color={isSelected ? 'cyan' : undefined}>
@@ -212,6 +237,17 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
                   {outStr ? ` · ${outStr}` : ''}
                   {badges.length > 0 ? ` ${badges.join(' ')}` : ''}
                 </Text>
+                {benchmarkBadge && (
+                  <Text
+                    dimColor={benchmarkBadge.stale}
+                    color={
+                      benchmarkBadge.stale ? undefined : theme.status.success
+                    }
+                  >
+                    {' '}
+                    · {benchmarkBadge.text}
+                  </Text>
+                )}
               </Box>
             );
           })}
@@ -221,6 +257,21 @@ export const SearchableModelPicker: React.FC<SearchableModelPickerProps> = ({
               ▼ {filteredModels.length - scrollOffset - MAX_VISIBLE_ROWS} more
             </Text>
           )}
+          {filteredModels[selectedIndex] &&
+            !formatBenchmarkBadge(
+              benchmarkEntries[
+                benchmarkKey(
+                  filteredModels[selectedIndex].provider,
+                  filteredModels[selectedIndex].id,
+                )
+              ],
+            ) && (
+              <Box marginTop={1}>
+                <Text dimColor>
+                  /bench to measure edit accuracy on this model
+                </Text>
+              </Box>
+            )}
         </Box>
       )}
 
