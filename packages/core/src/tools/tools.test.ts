@@ -9,6 +9,7 @@ import {
   BaseToolInvocation,
   DeclarativeTool,
   hasCycleInSchema,
+  isImageResultDisplay,
   Kind,
   type ToolInvocation,
   type ToolResult,
@@ -244,6 +245,32 @@ describe('hasCycleInSchema', () => {
 
   it('should return false for an empty schema', () => {
     expect(hasCycleInSchema({})).toBe(false);
+  });
+});
+
+describe('isImageResultDisplay (F14)', () => {
+  it('returns true for a well-formed ImageResultDisplay', () => {
+    expect(
+      isImageResultDisplay({
+        type: 'image',
+        mimeType: 'image/png',
+        data: 'BASE64',
+        toolName: 'screenshot',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for a plain string resultDisplay', () => {
+    expect(isImageResultDisplay('some text')).toBe(false);
+  });
+
+  it('returns false for an unrelated object', () => {
+    expect(isImageResultDisplay({ type: 'other' })).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(isImageResultDisplay(null)).toBe(false);
+    expect(isImageResultDisplay(undefined)).toBe(false);
   });
 });
 

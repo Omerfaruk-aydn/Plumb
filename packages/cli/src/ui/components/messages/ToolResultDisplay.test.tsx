@@ -169,6 +169,31 @@ describe('ToolResultDisplay', () => {
     unmount();
   });
 
+  it('renders an image result as a fallback line when ui.enableInlineImages is off (F14, default)', async () => {
+    const imageResult = {
+      type: 'image' as const,
+      mimeType: 'image/png',
+      data: 'AAAA',
+      toolName: 'screenshot',
+    };
+    const { lastFrame, waitUntilReady, unmount } = await renderWithProviders(
+      <ToolResultDisplay
+        resultDisplay={imageResult}
+        terminalWidth={80}
+        availableTerminalHeight={20}
+      />,
+      {
+        config: makeFakeConfig({ useAlternateBuffer: false }),
+        settings: createMockSettings({ ui: { useAlternateBuffer: false } }),
+      },
+    );
+    await waitUntilReady();
+
+    expect(lastFrame()).toContain('image/png');
+    expect(lastFrame()).toContain('enable ui.enableInlineImages');
+    unmount();
+  });
+
   it('renders ANSI output result', async () => {
     const ansiResult: AnsiOutput = [
       [

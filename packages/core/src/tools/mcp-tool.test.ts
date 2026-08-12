@@ -507,6 +507,47 @@ describe('DiscoveredMCPTool', () => {
       expect(toolResult.returnDisplay).toBe('[Audio: audio/mp3]');
     });
 
+    it('surfaces a single ImageBlock response as a structured ImageResultDisplay (F14)', async () => {
+      const params = { param: 'screenshot' };
+      mockCallTool.mockResolvedValue(
+        createSdkResponse(serverToolName, {
+          content: [
+            {
+              type: 'image',
+              data: 'BASE64_IMAGE_DATA',
+              mimeType: 'image/png',
+            },
+          ],
+        }),
+      );
+
+      const invocation = tool.build(params);
+      const toolResult = await invocation.execute({
+        abortSignal: new AbortController().signal,
+      });
+
+      // llmContent (what the model sees) is unchanged by this.
+      expect(toolResult.llmContent).toEqual([
+        {
+          text: `[Tool '${serverToolName}' provided the following image data with mime-type: image/png]`,
+        },
+        {
+          inlineData: {
+            mimeType: 'image/png',
+            data: 'BASE64_IMAGE_DATA',
+          },
+        },
+      ]);
+      // returnDisplay (what the CLI renders) now carries the real bytes
+      // instead of a text placeholder.
+      expect(toolResult.returnDisplay).toEqual({
+        type: 'image',
+        mimeType: 'image/png',
+        data: 'BASE64_IMAGE_DATA',
+        toolName: serverToolName,
+      });
+    });
+
     it('should handle a ResourceLinkBlock response', async () => {
       const params = { param: 'get' };
       mockCallTool.mockResolvedValue(

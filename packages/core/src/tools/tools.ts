@@ -932,7 +932,32 @@ export type ToolResultDisplay =
   | SubagentProgress
   | GrepResult
   | ListDirectoryResult
-  | ReadManyFilesResult;
+  | ReadManyFilesResult
+  | ImageResultDisplay;
+
+/**
+ * F14 (PLUMB-UI-DEVRIM-PROMPT.md): carries an inline image's raw bytes
+ * through to the CLI display layer. Previously an MCP tool's image
+ * content block was summarized into a text placeholder before it ever
+ * reached resultDisplay -- the base64 data only flowed to the model, not
+ * to the UI -- so there was nothing for a terminal image renderer to
+ * render. This type is the minimal, additive fix: it sits alongside the
+ * existing text summary (see mcp-tool.ts), it does not replace it.
+ */
+export interface ImageResultDisplay {
+  type: 'image';
+  mimeType: string;
+  /** Base64-encoded image bytes. */
+  data: string;
+  toolName: string;
+}
+
+export const isImageResultDisplay = (res: unknown): res is ImageResultDisplay =>
+  typeof res === 'object' &&
+  res !== null &&
+  (res as { type?: unknown }).type === 'image' &&
+  'mimeType' in res &&
+  'data' in res;
 
 export type TodoStatus =
   | 'pending'

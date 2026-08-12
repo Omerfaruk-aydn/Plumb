@@ -15,6 +15,7 @@ import {
   type ToolInvocation,
   type ToolMcpConfirmationDetails,
   type ToolResult,
+  type ToolResultDisplay,
   type PolicyUpdateOptions,
   type ExecuteOptions,
 } from './tools.js';
@@ -328,7 +329,9 @@ export class DiscoveredMCPToolInvocation extends BaseToolInvocation<
 
     return {
       llmContent: transformedParts,
-      returnDisplay: getStringifiedResultForDisplay(rawResponseParts),
+      returnDisplay:
+        getSingleImageResultDisplay(rawResponseParts, this.serverToolName) ??
+        getStringifiedResultForDisplay(rawResponseParts),
     };
   }
 
@@ -538,6 +541,40 @@ function transformMcpContentToParts(sdkResponse: Part[]): Part[] {
   );
 
   return transformed.filter((part): part is Part => part !== null);
+}
+
+/**
+ * F14 (PLUMB-UI-DEVRIM-PROMPT.md): when an MCP tool's response is a
+ * single image block (the common shape for e.g. a screenshot tool) with
+ * no other content, surface the raw bytes as a structured
+ * ImageResultDisplay so the CLI can render it inline instead of the
+ * usual "[Image: image/png]" text placeholder. Deliberately narrow --
+ * any response with additional/mixed content blocks keeps falling back
+ * to getStringifiedResultForDisplay's text summary unchanged, so this
+ * cannot regress the existing behavior for anything but the new case.
+ */
+function getSingleImageResultDisplay(
+  rawResponse: Part[],
+  toolName: string,
+): ToolResultDisplay | null {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const mcpContent = rawResponse?.[0]?.functionResponse?.response?.[
+    'content'
+  ] as McpContentBlock[];
+
+  if (!Array.isArray(mcpContent) || mcpContent.length !== 1) {
+    return null;
+  }
+  const [block] = mcpContent;
+  if (block.type !== 'image') {
+    return null;
+  }
+  return {
+    type: 'image',
+    mimeType: block.mimeType,
+    data: block.data,
+    toolName,
+  };
 }
 
 /**

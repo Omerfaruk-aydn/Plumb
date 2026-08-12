@@ -652,6 +652,16 @@ const SETTINGS_SCHEMA = {
           'Once a batch of tool calls in a turn has finished, collapse it into a single summary line (e.g. "3 files read, 1 search - 1.2s") instead of leaving every tool card expanded. Press Ctrl+O to expand/collapse the last turn.',
         showInDialog: true,
       },
+      enableInlineImages: {
+        type: 'boolean',
+        label: 'Inline Images (Kitty/iTerm2)',
+        category: 'UI',
+        requiresRestart: false,
+        default: false,
+        description:
+          'When a tool returns a single image (e.g. a screenshot), render it inline using the Kitty or iTerm2 terminal graphics protocol instead of a text placeholder. Requires a supporting terminal; falls back to text automatically when unsupported. Off by default since this writes raw escape sequences directly to the terminal outside the normal render path.',
+        showInDialog: true,
+      },
       animatedLogo: {
         type: 'boolean',
         label: 'Animated RGB Logo',

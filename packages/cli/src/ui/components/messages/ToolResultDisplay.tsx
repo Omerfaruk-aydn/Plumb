@@ -17,8 +17,11 @@ import {
   type AnsiLine,
   isSubagentProgress,
   isStructuredToolResult,
+  isImageResultDisplay,
 } from '@google/gemini-cli-core';
+import { InlineImage } from '../InlineImage.js';
 import { useUIState } from '../../contexts/UIStateContext.js';
+import { useSettings } from '../../contexts/SettingsContext.js';
 import { tryParseJSON } from '../../../utils/jsonoutput.js';
 import { useAlternateBuffer } from '../../hooks/useAlternateBuffer.js';
 import { Scrollable } from '../shared/Scrollable.js';
@@ -53,6 +56,7 @@ export const ToolResultDisplay: React.FC<ToolResultDisplayProps> = ({
   overflowDirection = 'top',
 }) => {
   const { renderMarkdown, constrainHeight } = useUIState();
+  const settings = useSettings();
   const isAlternateBuffer = useAlternateBuffer();
 
   const availableHeight = calculateToolContentMaxLines({
@@ -102,6 +106,18 @@ export const ToolResultDisplay: React.FC<ToolResultDisplayProps> = ({
         <Text wrap="wrap" color={theme.text.primary}>
           {formattedJSON}
         </Text>
+      );
+    } else if (isImageResultDisplay(contentData)) {
+      // F14 (PLUMB-UI-DEVRIM-PROMPT.md): opt-in inline image rendering
+      // via terminal graphics protocols -- see InlineImage.tsx for why
+      // this needs live verification and stays off by default.
+      content = (
+        <InlineImage
+          mimeType={contentData.mimeType}
+          data={contentData.data}
+          toolName={contentData.toolName}
+          enabled={settings.merged.ui.enableInlineImages === true}
+        />
       );
     } else if (isSubagentProgress(contentData)) {
       content = (
