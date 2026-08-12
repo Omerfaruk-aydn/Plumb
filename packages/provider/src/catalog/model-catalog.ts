@@ -81,6 +81,40 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
         )
       : model.baseUrl;
 
+  // ── Upstream tool capability propagation ──────────────────────────────
+  //
+  // The OMP catalog uses a sparse encoding for `supportsTools`:
+  //   - `false` is the ONLY unsupported signal.
+  //   - `true` and `undefined` (absent) BOTH mean callers may use native tools.
+  //
+  // PLUMB's tristate `toolsSupported` is:
+  //   - `true`  → SUPPORTED  (tools may be advertised)
+  //   - `false` → UNSUPPORTED (tools must not be advertised)
+  //   - `undefined` → UNKNOWN (fail-closed: tools suppressed)
+  //
+  // The correct mapping from OMP's sparse convention to PLUMB's explicit tristate:
+  //   OMP `false`     → PLUMB `false`  (UNSUPPORTED)
+  //   OMP `true`      → PLUMB `true`   (SUPPORTED)
+  //   OMP `undefined` → PLUMB `true`   (SUPPORTED — OMP spec: absent means supported)
+  //
+  // This is NOT a guess from the model name — it is the authoritative upstream
+  // catalog's declared convention. The catalog intentionally encodes sparsely:
+  // only explicitly unsupported models carry `supportsTools: false`.
+  //
+  // Previous behavior: this field was not mapped at all, causing ALL ~3900
+  // bundled catalog models to be UNKNOWN, which suppressed tools even for
+  // models the upstream catalog considers tool-capable.
+  let toolsSupported: boolean | undefined;
+  let toolsCapabilitySource: PlumbModel['toolsCapabilitySource'];
+  if (model.supportsTools === false) {
+    toolsSupported = false;
+    toolsCapabilitySource = 'BUNDLED_CATALOG';
+  } else {
+    // `true` or `undefined` (absent) — OMP: both mean "callers may use native tools"
+    toolsSupported = true;
+    toolsCapabilitySource = 'BUNDLED_CATALOG';
+  }
+
   return {
     id: model.id,
     provider: model.provider as PlumbProviderId,
@@ -94,6 +128,8 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     pricing,
     baseUrl,
     isOAuth: model.isOAuth,
+    toolsSupported,
+    toolsCapabilitySource,
   };
 }
 
