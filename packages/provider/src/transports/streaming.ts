@@ -44,6 +44,68 @@ import {
   type CustomCredentialPlacement,
 } from '../config/customProviderDefinitions.js';
 
+// ─── Safe tool-call route diagnostics ─────────────────────────────────
+//
+// Opt-in only (PLUMB_TOOL_ROUTE_DIAG=1), off by default, zero behavior
+// change when unset. Exists so a live request can prove whether the
+// upstream provider actually returned structured tool_call deltas.
+
+let toolRouteDiagEnabled = false;
+let lastToolRouteDiag: Record<string, unknown> | undefined;
+
+export function enableToolRouteDiag(): void {
+  toolRouteDiagEnabled = true;
+}
+
+export function getLastToolRouteDiag(): Record<string, unknown> | undefined {
+  return lastToolRouteDiag;
+}
+
+function resetToolRouteDiag(): void {
+  if (!toolRouteDiagEnabled) return;
+  lastToolRouteDiag = {
+    requestToolsCount: 0,
+    requestModelId: '',
+    requestToolChoice: 'absent',
+    responseTextDeltaCount: 0,
+    responseToolCallDeltaCount: 0,
+    responseFinishReason: 'none',
+    normalizedToolCallCount: 0,
+    normalizedToolCallNames: [] as string[],
+  };
+}
+
+function recordToolRouteRequest(toolsCount: number, modelId: string): void {
+  if (!toolRouteDiagEnabled) return;
+  resetToolRouteDiag();
+  lastToolRouteDiag!['requestToolsCount'] = toolsCount;
+  lastToolRouteDiag!['requestModelId'] = modelId;
+}
+
+function recordToolRouteTextDelta(): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['responseTextDeltaCount'] =
+    (lastToolRouteDiag['responseTextDeltaCount'] as number) + 1;
+}
+
+function recordToolRouteToolCallDelta(): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['responseToolCallDeltaCount'] =
+    (lastToolRouteDiag['responseToolCallDeltaCount'] as number) + 1;
+}
+
+function recordToolRouteFinishReason(reason: string): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['responseFinishReason'] = reason;
+}
+
+function recordToolRouteNormalizedCall(name: string): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['normalizedToolCallCount'] =
+    (lastToolRouteDiag['normalizedToolCallCount'] as number) + 1;
+  (lastToolRouteDiag['normalizedToolCallNames'] as string[]).push(name);
+}
+
 // ─── Safe Antigravity request/response tracing ────────────────────────
 //
 // Opt-in only (PLUMB_ANTIGRAVITY_TRACE_SAFE=1), off by default, zero
@@ -266,6 +328,9 @@ async function* openAICompatibleStream(
       type: 'function',
       function: t.function,
     }));
+    recordToolRouteRequest(tools.length, String(body.model));
+  } else {
+    recordToolRouteRequest(0, String(body.model));
   }
   if (maxTokens) body.max_tokens = maxTokens;
   if (temperature !== undefined && temperature >= 0)
@@ -414,6 +479,7 @@ async function* openAICompatibleStream(
       ([a], [b]) => a - b,
     )) {
       yield { type: 'tool_call', toolCall };
+      recordToolRouteNormalizedCall(toolCall.name);
     }
     pendingToolCalls.clear();
   };
@@ -464,12 +530,14 @@ async function* openAICompatibleStream(
                   current.arguments += tc.function.arguments;
                 }
                 pendingToolCalls.set(index, current);
+                recordToolRouteToolCallDelta();
               }
             }
           }
 
           if (choice?.finish_reason) {
             finishReason = normalizePlumbFinishReason(choice.finish_reason);
+            recordToolRouteFinishReason(finishReason ?? 'unknown');
             yield* flushToolCalls();
           }
 
