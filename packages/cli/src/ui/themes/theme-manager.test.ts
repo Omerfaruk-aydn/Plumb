@@ -106,6 +106,15 @@ describe('ThemeManager', () => {
     expect(themeManager.getTheme('MyCustomTheme')).toBeDefined();
   });
 
+  it('registers the CRT theme (F17) with a valid dark palette', () => {
+    const crt = themeManager.getTheme('CRT');
+    expect(crt).toBeDefined();
+    expect(crt?.type).toBe('dark');
+    expect(crt?.colors.Background).not.toBe(crt?.colors.Foreground);
+    expect(themeManager.setActiveTheme('CRT')).toBe(true);
+    expect(themeManager.getActiveTheme().name).toBe('CRT');
+  });
+
   it('should fall back to default theme if active theme is invalid', () => {
     (themeManager as unknown as { activeTheme: unknown }).activeTheme = {
       name: 'NonExistent',
