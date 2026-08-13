@@ -41,6 +41,15 @@ import {
 
 // ─── Model registry ───────────────────────────────────────────────────
 
+/** Live-vs-bundled authority counts for one provider. Used by the honest
+ * batch tool-route probe so a provider whose only models are bundled
+ * fallbacks is never silently treated as live authority. */
+export interface PlumbModelAuthorityStats {
+  readonly liveDiscoveryCount: number;
+  readonly bundledFallbackCount: number;
+  readonly customCount: number;
+}
+
 export class PlumbModelRegistry {
   #customModels = new Map<string, PlumbModel>();
   #discoveredModels = new Map<string, PlumbModel>();
@@ -85,6 +94,30 @@ export class PlumbModelRegistry {
     }
 
     return models;
+  }
+
+  /**
+   * Per-provider authority counts: how many models were live-discovered for
+   * this provider vs. how many exist only as bundled catalog fallbacks.
+   * `liveDiscoveryCount === 0 && bundledFallbackCount > 0` means the route
+   * has NO live model authority and must not be probed as if it did.
+   */
+  getModelAuthorityStats(
+    providerId: PlumbProviderId,
+  ): PlumbModelAuthorityStats {
+    let liveDiscoveryCount = 0;
+    let customCount = 0;
+    for (const model of this.#discoveredModels.values()) {
+      if (model.provider === providerId) liveDiscoveryCount++;
+    }
+    for (const model of this.#customModels.values()) {
+      if (model.provider === providerId) customCount++;
+    }
+    return {
+      liveDiscoveryCount,
+      bundledFallbackCount: getCatalogModels(providerId).length,
+      customCount,
+    };
   }
 
   /** Get all models including unauthenticated providers. */

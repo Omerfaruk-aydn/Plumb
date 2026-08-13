@@ -7,7 +7,10 @@
 import { describe, expect, it } from 'vitest';
 import type { PlumbModel, PlumbRouteToolPolicy } from './types.js';
 import {
+  deriveDialectToolChoiceCapability,
+  deriveRouteToolChoiceCapability,
   resolveEffectiveToolChoice,
+  resolveHonestProbeToolChoice,
   resolveRouteToolPolicy,
 } from './tool-policy.js';
 import { getCatalogModel } from './catalog/model-catalog.js';
@@ -101,5 +104,41 @@ describe('route-level tool protocol policy', () => {
       sent: true,
       downgraded: true,
     });
+  });
+
+  const forcedCapable: PlumbRouteToolPolicy = {
+    emission: 'OPTIONAL',
+    forcedToolChoiceSupported: true,
+    namedToolChoiceSupported: true,
+    source: 'DIALECT_DEFAULT',
+  };
+
+  it('never fabricates named/required for an unverified Copilot route', () => {
+    const dialect = deriveDialectToolChoiceCapability(forcedCapable);
+    const route = deriveRouteToolChoiceCapability('github-copilot', dialect);
+    expect(route.providerProof).toBe('UNVERIFIED');
+    expect(route.routeVerified).toBe(false);
+    expect(route.required).toBe('UNKNOWN');
+    expect(route.named).toBe('UNKNOWN');
+    const choice = resolveHonestProbeToolChoice(
+      route,
+      forcedCapable.forcedToolChoiceSupported,
+      forcedCapable.namedToolChoiceSupported,
+    );
+    // Dialect SUPPORTED must not leak into a forced selector on an
+    // unverified route — the honest probe degrades to auto.
+    expect(choice).toEqual({ mode: 'auto' });
+  });
+
+  it('keeps the verified named selector for the OpenCode Go golden route', () => {
+    const dialect = deriveDialectToolChoiceCapability(forcedCapable);
+    const route = deriveRouteToolChoiceCapability('opencode-go', dialect);
+    expect(route.routeVerified).toBe(true);
+    const choice = resolveHonestProbeToolChoice(
+      route,
+      forcedCapable.forcedToolChoiceSupported,
+      forcedCapable.namedToolChoiceSupported,
+    );
+    expect(choice).toEqual({ mode: 'named', name: 'plumb_tool_probe' });
   });
 });

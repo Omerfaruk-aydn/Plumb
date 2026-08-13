@@ -86,7 +86,46 @@ function resetToolRouteDiag(): void {
     responseFinishReason: 'none',
     normalizedToolCallCount: 0,
     normalizedToolCallNames: [] as string[],
+    // Wire-proof structural facts (never prompt/credential/arguments).
+    requestFamily: 'not_recorded',
+    endpointPath: 'not_recorded',
+    toolSerializationShape: 'none',
+    functionDeclarationCount: 0,
+    functionDeclarationNames: [] as string[],
+    functionCallingMode: 'absent',
+    allowedFunctionNamesCount: 0,
+    allowedFunctionNames: [] as string[],
+    toolConfigPresent: false,
+    toolsPresent: false,
+    httpStatus: 0,
+    upstreamErrorCode: 'none',
+    upstreamErrorFieldViolations: [] as string[],
   };
+}
+
+/** Structural wire facts a transport may record alongside a request. Every
+ * field is a shape/path/count — never prompt text, credentials, or tool
+ * arguments. */
+export interface ToolRouteRequestWireDetails {
+  readonly requestFamily:
+    | 'openai-chat-completions'
+    | 'openai-responses'
+    | 'anthropic-messages'
+    | 'google-gemini'
+    | 'other';
+  readonly endpointPath: string;
+  readonly toolSerializationShape:
+    | 'CHAT_WRAPPED'
+    | 'RESPONSES_FLAT'
+    | 'ANTHROPIC_TOOLS'
+    | 'GEMINI_FUNCTION_DECLARATIONS'
+    | 'none';
+  readonly functionDeclarationCount?: number;
+  readonly functionDeclarationNames?: readonly string[];
+  readonly functionCallingMode?: string;
+  readonly allowedFunctionNames?: readonly string[];
+  readonly toolConfigPresent?: boolean;
+  readonly toolsPresent?: boolean;
 }
 
 export function recordToolRouteRequest(
@@ -94,6 +133,7 @@ export function recordToolRouteRequest(
   modelId: string,
   options?: PlumbStreamOptions,
   sentChoice?: PlumbToolChoice,
+  details?: ToolRouteRequestWireDetails,
 ): void {
   if (!toolRouteDiagEnabled) return;
   resetToolRouteDiag();
@@ -116,6 +156,44 @@ export function recordToolRouteRequest(
           ? 'supported'
           : 'unsupported';
   }
+  if (details) {
+    lastToolRouteDiag!['requestFamily'] = details.requestFamily;
+    lastToolRouteDiag!['endpointPath'] = details.endpointPath;
+    lastToolRouteDiag!['toolSerializationShape'] =
+      details.toolSerializationShape;
+    lastToolRouteDiag!['functionDeclarationCount'] =
+      details.functionDeclarationCount ?? 0;
+    lastToolRouteDiag!['functionDeclarationNames'] = [
+      ...(details.functionDeclarationNames ?? []),
+    ];
+    lastToolRouteDiag!['functionCallingMode'] =
+      details.functionCallingMode ?? 'absent';
+    lastToolRouteDiag!['allowedFunctionNamesCount'] = (
+      details.allowedFunctionNames ?? []
+    ).length;
+    lastToolRouteDiag!['allowedFunctionNames'] = [
+      ...(details.allowedFunctionNames ?? []),
+    ];
+    lastToolRouteDiag!['toolConfigPresent'] =
+      details.toolConfigPresent ?? false;
+    lastToolRouteDiag!['toolsPresent'] = details.toolsPresent ?? false;
+  }
+}
+
+/**
+ * Record the structural result of an upstream HTTP failure (status +
+ * canonical classification + sanitized field violations) into the active
+ * diagnostic snapshot. Never stores the raw error body.
+ */
+export function recordToolRouteHttpFailure(
+  httpStatus: number,
+  upstreamErrorCode: string,
+  fieldViolations: readonly string[] = [],
+): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['httpStatus'] = httpStatus;
+  lastToolRouteDiag['upstreamErrorCode'] = upstreamErrorCode;
+  lastToolRouteDiag['upstreamErrorFieldViolations'] = [...fieldViolations];
 }
 
 function serializeOpenAIToolChoice(choice: PlumbToolChoice): unknown {
@@ -511,9 +589,24 @@ async function* openAICompatibleStream(
       String(body.model),
       options,
       effectiveChoice.value,
+      {
+        requestFamily: isResponses
+          ? 'openai-responses'
+          : 'openai-chat-completions',
+        endpointPath: '/chat/completions',
+        toolSerializationShape: isResponses ? 'RESPONSES_FLAT' : 'CHAT_WRAPPED',
+        toolsPresent: true,
+      },
     );
   } else {
-    recordToolRouteRequest(0, String(body.model), options);
+    recordToolRouteRequest(0, String(body.model), options, undefined, {
+      requestFamily: isResponsesApiFamily(model.api)
+        ? 'openai-responses'
+        : 'openai-chat-completions',
+      endpointPath: '/chat/completions',
+      toolSerializationShape: 'none',
+      toolsPresent: false,
+    });
   }
   if (maxTokens) body.max_tokens = maxTokens;
   if (temperature !== undefined && temperature >= 0)
@@ -676,6 +769,7 @@ async function* openAICompatibleStream(
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     const classified = classifyGenericHttpError(response.status, errorText);
+    recordToolRouteHttpFailure(response.status, classified.code);
     yield {
       type: 'error',
       error: classified,
@@ -894,21 +988,45 @@ async function* anthropicMessagesStream(
     body.system = systemMessages;
   }
 
-  if (tools && tools.length > 0 && model.toolsSupported === true) {
-    body.tools = tools.map((t) => ({
+  const toolsSerialized =
+    tools !== undefined && tools.length > 0 && model.toolsSupported === true;
+  let anthropicEffectiveChoice: {
+    readonly value?: PlumbToolChoice;
+    readonly sent: boolean;
+    readonly downgraded: boolean;
+  } = { sent: false, downgraded: false };
+  if (toolsSerialized) {
+    body.tools = tools!.map((t) => ({
       name: t.function.name,
       description: t.function.description,
       input_schema: t.function.parameters,
     }));
-    const effectiveChoice = resolveEffectiveToolChoice(
+    anthropicEffectiveChoice = resolveEffectiveToolChoice(
       resolveRouteToolPolicy(model),
       options.toolChoice,
-      tools.length,
+      tools!.length,
     );
-    if (effectiveChoice.value) {
-      body.tool_choice = serializeAnthropicToolChoice(effectiveChoice.value);
+    if (anthropicEffectiveChoice.value) {
+      body.tool_choice = serializeAnthropicToolChoice(
+        anthropicEffectiveChoice.value,
+      );
     }
   }
+  recordToolRouteRequest(
+    toolsSerialized ? tools!.length : 0,
+    String(model.requestModelId ?? model.id),
+    options,
+    anthropicEffectiveChoice.value,
+    {
+      requestFamily: 'anthropic-messages',
+      endpointPath:
+        model.provider === 'google-vertex'
+          ? ':streamRawPredict'
+          : '/v1/messages',
+      toolSerializationShape: toolsSerialized ? 'ANTHROPIC_TOOLS' : 'none',
+      toolsPresent: toolsSerialized,
+    },
+  );
 
   if (hasThinking) {
     const budget = thinkingConfig!.effortBudgets?.['high'] ?? 16000;
@@ -1020,9 +1138,11 @@ async function* anthropicMessagesStream(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
+    const classified = classifyAnthropicHttpError(response.status, errorText);
+    recordToolRouteHttpFailure(response.status, classified.code);
     yield {
       type: 'error',
-      error: classifyAnthropicHttpError(response.status, errorText),
+      error: classified,
     };
     return;
   }
@@ -1910,13 +2030,14 @@ async function* googleGenerativeAiStream(
   }
 
   if (tools && tools.length > 0 && model.toolsSupported === true) {
+    const functionDeclarations = tools.map((t) => ({
+      name: t.function.name,
+      description: t.function.description,
+      parameters: t.function.parameters,
+    }));
     body.tools = [
       {
-        functionDeclarations: tools.map((t) => ({
-          name: t.function.name,
-          description: t.function.description,
-          parameters: t.function.parameters,
-        })),
+        functionDeclarations,
       },
     ];
     const effectiveChoice = resolveEffectiveToolChoice(
@@ -1924,21 +2045,48 @@ async function* googleGenerativeAiStream(
       options.toolChoice,
       tools.length,
     );
-    if (effectiveChoice.value) {
+    const geminiCallingConfig = effectiveChoice.value
+      ? (serializeGeminiFunctionCallingConfig(effectiveChoice.value) as {
+          mode?: string;
+          allowedFunctionNames?: string[];
+        })
+      : undefined;
+    if (geminiCallingConfig) {
       body.toolConfig = {
-        functionCallingConfig: serializeGeminiFunctionCallingConfig(
-          effectiveChoice.value,
-        ),
+        functionCallingConfig: geminiCallingConfig,
       };
     }
     recordToolRouteRequest(
       tools.length,
-      String(body.model),
+      String(model.requestModelId ?? model.id),
       options,
       effectiveChoice.value,
+      {
+        requestFamily: 'google-gemini',
+        endpointPath: `/models/${model.requestModelId ?? model.id}:streamGenerateContent`,
+        toolSerializationShape: 'GEMINI_FUNCTION_DECLARATIONS',
+        functionDeclarationCount: functionDeclarations.length,
+        functionDeclarationNames: functionDeclarations.map((d) => d.name),
+        functionCallingMode: geminiCallingConfig?.mode ?? 'absent',
+        allowedFunctionNames: geminiCallingConfig?.allowedFunctionNames ?? [],
+        toolConfigPresent: geminiCallingConfig !== undefined,
+        toolsPresent: true,
+      },
     );
   } else {
-    recordToolRouteRequest(0, String(body.model), options);
+    recordToolRouteRequest(
+      0,
+      String(model.requestModelId ?? model.id),
+      options,
+      undefined,
+      {
+        requestFamily: 'google-gemini',
+        endpointPath: `/models/${model.requestModelId ?? model.id}:streamGenerateContent`,
+        toolSerializationShape: 'none',
+        toolConfigPresent: false,
+        toolsPresent: false,
+      },
+    );
   }
 
   let response: Response;
@@ -1971,13 +2119,20 @@ async function* googleGenerativeAiStream(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
+    const safeDetails = extractSafeGoogleErrorDetails(errorText);
+    const classified = classifyGoogleHttpError(
+      response.status,
+      errorText,
+      safeDetails,
+    );
+    recordToolRouteHttpFailure(
+      response.status,
+      classified.code,
+      safeDetails.fieldViolations.map((violation) => violation.field),
+    );
     yield {
       type: 'error',
-      error: classifyGoogleHttpError(
-        response.status,
-        errorText,
-        extractSafeGoogleErrorDetails(errorText),
-      ),
+      error: classified,
     };
     return;
   }
@@ -2654,7 +2809,6 @@ export async function* plumbModelStream(
     // never an unexamined default.
     case 'openai-completions':
     case 'openrouter':
-    case 'openai-codex-responses':
     case 'cursor-agent':
     case 'devin-agent':
     case 'gitlab-duo-agent':
@@ -2662,6 +2816,7 @@ export async function* plumbModelStream(
       break;
     case 'claude-agent-sdk':
     case 'openai-responses':
+    case 'openai-codex-responses':
     case 'watsonx-chat':
     case 'oci-openai-responses':
     case 'bedrock-converse-stream':
@@ -2697,6 +2852,11 @@ export async function* plumbModelStream(
 registerPlumbTransport('openai-completions', openAICompatibleStream);
 registerPlumbTransport('openrouter', openAICompatibleStream);
 registerPlumbTransport('openai-responses', streamOpenAIResponses);
+// Codex/Copilot Responses-family routes must use the native `/responses`
+// envelope (input + flat tools + Responses-native tool_choice) — NOT the
+// Chat-Completions envelope, which rejects both the flat tool shape and the
+// object-form selector as INVALID_REQUEST.
+registerPlumbTransport('openai-codex-responses', streamOpenAIResponses);
 
 // Anthropic
 registerPlumbTransport('anthropic-messages', anthropicMessagesStream);
@@ -2716,8 +2876,10 @@ registerPlumbTransport('google-generative-ai', googleGenerativeAiStream);
 // structured-output controls, timeout classification, and mid-stream aborts.
 registerPlumbTransport('ollama-chat', openAICompatibleStream);
 
-// Passthrough for specialized APIs (handled by downstream code)
-registerPlumbTransport('openai-codex-responses', openAICompatibleStream);
+// Passthrough for specialized APIs (handled by downstream code).
+// openai-codex-responses is deliberately NOT here: it is registered above to
+// the native Responses transport so the Codex/Copilot route gets the real
+// `/responses` envelope instead of the Chat-Completions one.
 registerPlumbTransport('cursor-agent', openAICompatibleStream);
 registerPlumbTransport('devin-agent', openAICompatibleStream);
 registerPlumbTransport('gitlab-duo-agent', openAICompatibleStream);

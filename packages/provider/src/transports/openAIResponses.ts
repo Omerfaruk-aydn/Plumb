@@ -20,6 +20,7 @@ import {
   contentToText,
   splitAssistantContent,
   recordToolRouteRequest,
+  recordToolRouteHttpFailure,
   recordToolRouteTextDelta,
   recordToolRouteToolCallDelta,
   recordToolRouteFinishReason,
@@ -173,9 +174,19 @@ export async function* streamOpenAIResponses(
     );
     if (effective.value)
       body['tool_choice'] = serializeToolChoice(effective.value);
-    recordToolRouteRequest(tools.length, wireModel, options, effective.value);
+    recordToolRouteRequest(tools.length, wireModel, options, effective.value, {
+      requestFamily: 'openai-responses',
+      endpointPath: '/responses',
+      toolSerializationShape: 'RESPONSES_FLAT',
+      toolsPresent: true,
+    });
   } else {
-    recordToolRouteRequest(0, wireModel, options);
+    recordToolRouteRequest(0, wireModel, options, undefined, {
+      requestFamily: 'openai-responses',
+      endpointPath: '/responses',
+      toolSerializationShape: 'none',
+      toolsPresent: false,
+    });
   }
   if (options.maxTokens) body['max_output_tokens'] = options.maxTokens;
   if (options.temperature !== undefined && !model.reasoning) {
@@ -207,9 +218,11 @@ export async function* streamOpenAIResponses(
   }
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unknown error');
+    const classified = classifyGenericHttpError(response.status, text);
+    recordToolRouteHttpFailure(response.status, classified.code);
     yield {
       type: 'error',
-      error: classifyGenericHttpError(response.status, text),
+      error: classified,
     };
     return;
   }

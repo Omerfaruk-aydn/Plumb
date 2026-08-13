@@ -217,4 +217,19 @@ describe('PlumbModelRegistry', () => {
     expect(stats.discovered).toBe(1);
     expect(stats.custom).toBe(1);
   });
+
+  it('13. getModelAuthorityStats splits live discovery from bundled fallback per provider', () => {
+    registry.addDiscoveredModels([
+      makeModel('live-a', 'authority-provider'),
+      makeModel('live-b', 'authority-provider'),
+    ]);
+    const withLive = registry.getModelAuthorityStats('authority-provider');
+    expect(withLive.liveDiscoveryCount).toBe(2);
+    expect(withLive.bundledFallbackCount).toBe(0);
+    expect(withLive.customCount).toBe(0);
+
+    const bundledOnly = registry.getModelAuthorityStats('openai');
+    expect(bundledOnly.liveDiscoveryCount).toBe(0);
+    expect(bundledOnly.bundledFallbackCount).toBeGreaterThan(0);
+  });
 });

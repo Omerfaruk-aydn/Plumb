@@ -11,7 +11,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { installBunGlobal } from '../omp-shims/bun-runtime.js';
 import {
   createNormalizationStream,
+  enableToolRouteDiag,
+  getLastToolRouteDiag,
   plumbModelStream,
+  recordToolRouteHttpFailure,
+  recordToolRouteRequest,
   resolveAdvertisedTools,
 } from './streaming.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
@@ -2266,5 +2270,225 @@ describe('multi-turn tool-call/tool-result wire shape (regression: previously fl
         'id'
       ],
     ).toBe('call_abc123');
+  });
+});
+
+describe('tool-route wire-proof diagnostics (safe structural facts)', () => {
+  const wireModel: PlumbModel = {
+    id: 'gemini-2.5-pro',
+    provider: 'google-vertex',
+    api: 'google-vertex',
+    contextWindow: 1_000_000,
+    maxTokens: 65_536,
+    reasoning: false,
+    input: 'text',
+  };
+
+  it('records truthful Vertex structural request facts', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(
+      1,
+      'gemini-2.5-pro',
+      undefined,
+      { mode: 'auto' },
+      {
+        requestFamily: 'google-gemini',
+        endpointPath: '/models/gemini-2.5-pro:streamGenerateContent',
+        toolSerializationShape: 'GEMINI_FUNCTION_DECLARATIONS',
+        functionDeclarationCount: 1,
+        functionDeclarationNames: ['plumb_tool_probe'],
+        functionCallingMode: 'AUTO',
+        allowedFunctionNames: [],
+        toolConfigPresent: true,
+        toolsPresent: true,
+      },
+    );
+
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['requestModelId']).toBe('gemini-2.5-pro');
+    expect(diag?.['functionDeclarationCount']).toBe(1);
+    expect(diag?.['functionDeclarationNames']).toEqual(['plumb_tool_probe']);
+    expect(diag?.['functionCallingMode']).toBe('AUTO');
+    expect(diag?.['allowedFunctionNamesCount']).toBe(0);
+    expect(diag?.['allowedFunctionNames']).toEqual([]);
+    expect(diag?.['toolConfigPresent']).toBe(true);
+    expect(diag?.['toolsPresent']).toBe(true);
+    expect(diag?.['requestFamily']).toBe('google-gemini');
+    expect(diag?.['endpointPath']).toBe(
+      '/models/gemini-2.5-pro:streamGenerateContent',
+    );
+  });
+
+  it('records the sent tool-choice category and wire shape truthfully', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(
+      1,
+      'gpt-5.5',
+      {
+        model: { ...wireModel, provider: 'openai', api: 'openai-completions' },
+        messages: [{ role: 'user', content: 'hi' }],
+      } as PlumbStreamOptions,
+      { mode: 'named', name: 'plumb_tool_probe' },
+      {
+        requestFamily: 'openai-chat-completions',
+        endpointPath: '/chat/completions',
+        toolSerializationShape: 'CHAT_WRAPPED',
+        toolsPresent: true,
+      },
+    );
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['toolChoiceValueCategory']).toBe('named');
+    expect(diag?.['toolChoiceSent']).toBe(true);
+    expect(diag?.['toolSerializationShape']).toBe('CHAT_WRAPPED');
+    expect(diag?.['requestFamily']).toBe('openai-chat-completions');
+  });
+
+  it('records a safe HTTP failure classification without the raw body', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(1, 'gemini-2.5-pro', undefined);
+    recordToolRouteHttpFailure(400, 'INVALID_REQUEST', [
+      'toolConfig.functionCallingConfig',
+    ]);
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['httpStatus']).toBe(400);
+    expect(diag?.['upstreamErrorCode']).toBe('INVALID_REQUEST');
+    expect(diag?.['upstreamErrorFieldViolations']).toEqual([
+      'toolConfig.functionCallingConfig',
+    ]);
+  });
+
+  it('never stores prompt or credential text in the diagnostic snapshot', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(
+      1,
+      'gemini-2.5-pro',
+      {
+        model: wireModel,
+        messages: [{ role: 'user', content: 'Run the diagnostic tool.' }],
+        apiKey: 'secret-canary-token',
+      } as PlumbStreamOptions,
+      { mode: 'auto' },
+      {
+        requestFamily: 'google-gemini',
+        endpointPath: '/models/gemini-2.5-pro:streamGenerateContent',
+        toolSerializationShape: 'GEMINI_FUNCTION_DECLARATIONS',
+        toolsPresent: true,
+      },
+    );
+    const snapshot = JSON.stringify(getLastToolRouteDiag());
+    expect(snapshot).not.toContain('secret-canary-token');
+    expect(snapshot).not.toContain('Run the diagnostic tool');
+  });
+});
+
+describe('plumbModelStream — openai-codex-responses native /responses dispatch', () => {
+  const codexModel: PlumbModel = {
+    id: 'gpt-5.5',
+    provider: 'openai-codex',
+    api: 'openai-codex-responses',
+    baseUrl: 'https://chatgpt.com/backend-api',
+    contextWindow: 272_000,
+    maxTokens: 128_000,
+    reasoning: false,
+    input: 'text',
+    toolsSupported: true,
+  };
+
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('posts the native /responses envelope (input + flat tools), not /chat/completions', async () => {
+    let capturedUrl = '';
+    let capturedBody: Record<string, unknown> = {};
+    globalThis.fetch = (async (
+      url: string | URL | Request,
+      init?: RequestInit,
+    ) => {
+      capturedUrl = String(url);
+      capturedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response(null, { status: 200, headers: {} });
+    }) as typeof fetch;
+
+    for await (const _event of plumbModelStream({
+      model: codexModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'plumb_tool_probe',
+            description: 'probe',
+            parameters: { type: 'object' },
+          },
+        },
+      ],
+      toolChoice: { mode: 'auto' },
+      apiKey: 'codex-oauth-token',
+    })) {
+      // drain
+    }
+
+    expect(capturedUrl).toBe('https://chatgpt.com/backend-api/responses');
+    expect(capturedBody['input']).toBeDefined();
+    expect(capturedBody['tools']).toEqual([
+      {
+        type: 'function',
+        name: 'plumb_tool_probe',
+        description: 'probe',
+        parameters: { type: 'object' },
+      },
+    ]);
+    expect(capturedBody['tool_choice']).toBe('auto');
+    expect(capturedBody['messages']).toBeUndefined();
+  });
+});
+
+describe('plumbModelStream — Gemini truthful request-model recording (never "undefined")', () => {
+  const geminiModel: PlumbModel = {
+    id: 'gemini-2.5-pro',
+    provider: 'google',
+    api: 'google-generative-ai',
+    contextWindow: 1_000_000,
+    maxTokens: 65_536,
+    reasoning: false,
+    input: 'text',
+    toolsSupported: true,
+  };
+
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('records the real model id in the diagnostic snapshot', async () => {
+    enableToolRouteDiag();
+    globalThis.fetch = (async () =>
+      new Response('', { status: 200, headers: {} })) as typeof fetch;
+    for await (const _event of plumbModelStream({
+      model: geminiModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'plumb_tool_probe',
+            description: 'probe',
+            parameters: { type: 'object' },
+          },
+        },
+      ],
+      toolChoice: { mode: 'auto' },
+      apiKey: 'AIza-test-key',
+    })) {
+      // drain
+    }
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['requestModelId']).toBe('gemini-2.5-pro');
+    expect(diag?.['functionDeclarationCount']).toBe(1);
+    expect(diag?.['functionDeclarationNames']).toEqual(['plumb_tool_probe']);
+    expect(diag?.['functionCallingMode']).toBe('AUTO');
+    expect(diag?.['toolsPresent']).toBe(true);
   });
 });

@@ -6,118 +6,141 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { output, initialize, getApiKey, getActiveProviderStates, model } =
-  vi.hoisted(() => ({
-    output: [] as string[],
-    initialize: vi.fn(async () => undefined),
-    getApiKey: vi.fn(async () => 'must-not-be-read'),
-    getActiveProviderStates: vi.fn(() => [
-      { provider: { id: 'z-provider' }, authState: 'authenticated' },
-      { provider: { id: 'a-provider' }, authState: 'authenticated' },
-    ]),
-    model: {
-      id: 'safe-model',
-      name: 'Safe model',
-      provider: 'safe-provider',
-      api: 'openai-completions',
-      baseUrl: 'https://secret-host.example/v1',
-      contextWindow: 1000,
-      maxTokens: 100,
-      input: 'text',
-    },
-  }));
-
-vi.mock('@google/gemini-cli-provider', () => ({
-  buildEffectiveToolRouteContract: vi.fn(() => ({
-    scope: {
-      providerId: 'safe-provider',
-      modelId: 'safe-model',
-      wireModelId: 'wire-model',
-      dialect: 'openai-completions',
-      endpoint: {
-        baseUrl: 'https://secret-host.example/v1',
-        path: '/chat/completions',
-        family: 'OPENAI_CHAT_COMPLETIONS',
-        source: 'MODEL',
-      },
-      cacheKey: 'must-not-print-cache-key',
-    },
-    baseModelTools: { status: 'SUPPORTED', source: 'OMP_CATALOG' },
-    structuredProtocol: {
-      kind: 'OPENAI_CHAT_FUNCTION_TOOLS',
-      capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
-    },
-    toolChoice: {
-      emission: 'omit',
-      auto: { status: 'UNKNOWN', source: 'UNKNOWN' },
-      required: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
-      named: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
-    },
-    strictToolSchema: { status: 'UNKNOWN', source: 'UNKNOWN' },
-    parallelToolCalls: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
-    reasoningWithTools: { status: 'UNKNOWN', source: 'UNKNOWN' },
-    parser: {
-      capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
-      output: 'NORMALIZED_TOOL_CALL_EVENT',
-      fragmentAssembly: {
-        status: 'SUPPORTED',
-        source: 'DIALECT_IMPLEMENTATION',
-      },
-      callIdPreservation: {
-        status: 'SUPPORTED',
-        source: 'DIALECT_IMPLEMENTATION',
-      },
-    },
-    replay: {
-      capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
-      assistantToolCalls: {
-        status: 'SUPPORTED',
-        source: 'DIALECT_IMPLEMENTATION',
-      },
-      toolResults: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
-    },
+const {
+  output,
+  initialize,
+  getApiKey,
+  getActiveProviderStates,
+  authorityStats,
+  model,
+} = vi.hoisted(() => ({
+  output: [] as string[],
+  initialize: vi.fn(async () => undefined),
+  getApiKey: vi.fn(async () => 'must-not-be-read'),
+  getActiveProviderStates: vi.fn(() => [
+    { provider: { id: 'z-provider' }, authState: 'authenticated' },
+    { provider: { id: 'a-provider' }, authState: 'authenticated' },
+  ]),
+  authorityStats: vi.fn((_providerId: string) => ({
+    liveDiscoveryCount: 2,
+    bundledFallbackCount: 1,
+    customCount: 0,
   })),
-  getPlumbProviderProtocolMatrix: vi.fn(() => ({
-    counts: {
-      registeredProviders: 70,
-      selectableProviders: 60,
-      providerRows: 70,
-      modelRoutes: 1200,
-    },
-    providers: [
-      {
-        providerId: 'safe-provider',
-        selectable: true,
-        modelRouteCount: 3,
-        baseModelTools: { supported: 1, unsupported: 1, unknown: 1 },
-      },
-    ],
-  })),
-  getPlumbProvider: vi.fn((id: string) =>
-    id === 'safe-provider' ? { id } : undefined,
-  ),
-  getPlumbProviderRegistry: vi.fn(() => ({
-    initialize,
-    getApiKey,
-    getProviderState: vi.fn(() => undefined),
-    getActiveProviderStates,
-  })),
-  getLastToolRouteDiag: vi.fn(() => ({
-    requestToolsCount: 1,
-    toolChoiceSent: true,
-  })),
-  getPlumbModelRegistry: vi.fn(() => ({
-    findModel: vi.fn(() => model),
-    resolveDefaultModel: vi.fn(() => model),
-    refreshProvider: vi.fn(() => {
-      throw new Error('diagnosis must not discover models');
-    }),
-  })),
-  plumbModelStream: vi.fn(),
-  enableToolRouteDiag: vi.fn(),
-  resolveEffectiveToolChoice: vi.fn(),
-  resolveRouteToolPolicy: vi.fn(),
+  model: {
+    id: 'safe-model',
+    name: 'Safe model',
+    provider: 'safe-provider',
+    api: 'openai-completions',
+    baseUrl: 'https://secret-host.example/v1',
+    contextWindow: 1000,
+    maxTokens: 100,
+    input: 'text',
+  },
 }));
+
+vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+  return {
+    // Keep the honest classification helpers (classifyBatchResult,
+    // computeBatchBreakdown, resolveLiveModelAuthority) REAL so the batch
+    // wiring is tested against the true contract, never a mock of it.
+    ...actual,
+    buildEffectiveToolRouteContract: vi.fn(() => ({
+      scope: {
+        providerId: 'safe-provider',
+        modelId: 'safe-model',
+        wireModelId: 'wire-model',
+        dialect: 'openai-completions',
+        endpoint: {
+          baseUrl: 'https://secret-host.example/v1',
+          path: '/chat/completions',
+          family: 'OPENAI_CHAT_COMPLETIONS',
+          source: 'MODEL',
+        },
+        cacheKey: 'must-not-print-cache-key',
+      },
+      baseModelTools: { status: 'SUPPORTED', source: 'OMP_CATALOG' },
+      structuredProtocol: {
+        kind: 'OPENAI_CHAT_FUNCTION_TOOLS',
+        capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
+      },
+      toolChoice: {
+        emission: 'omit',
+        auto: { status: 'UNKNOWN', source: 'UNKNOWN' },
+        required: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
+        named: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
+      },
+      strictToolSchema: { status: 'UNKNOWN', source: 'UNKNOWN' },
+      parallelToolCalls: { status: 'SUPPORTED', source: 'OMP_COMPAT' },
+      reasoningWithTools: { status: 'UNKNOWN', source: 'UNKNOWN' },
+      parser: {
+        capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
+        output: 'NORMALIZED_TOOL_CALL_EVENT',
+        fragmentAssembly: {
+          status: 'SUPPORTED',
+          source: 'DIALECT_IMPLEMENTATION',
+        },
+        callIdPreservation: {
+          status: 'SUPPORTED',
+          source: 'DIALECT_IMPLEMENTATION',
+        },
+      },
+      replay: {
+        capability: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
+        assistantToolCalls: {
+          status: 'SUPPORTED',
+          source: 'DIALECT_IMPLEMENTATION',
+        },
+        toolResults: { status: 'SUPPORTED', source: 'DIALECT_IMPLEMENTATION' },
+      },
+    })),
+    getPlumbProviderProtocolMatrix: vi.fn(() => ({
+      counts: {
+        registeredProviders: 70,
+        selectableProviders: 60,
+        providerRows: 70,
+        modelRoutes: 1200,
+      },
+      providers: [
+        {
+          providerId: 'safe-provider',
+          selectable: true,
+          modelRouteCount: 3,
+          baseModelTools: { supported: 1, unsupported: 1, unknown: 1 },
+        },
+      ],
+    })),
+    getPlumbProvider: vi.fn((id: string) =>
+      id === 'safe-provider' ? { id } : undefined,
+    ),
+    getPlumbProviderRegistry: vi.fn(() => ({
+      initialize,
+      getApiKey,
+      getProviderState: vi.fn(() => undefined),
+      getActiveProviderStates,
+    })),
+    getLastToolRouteDiag: vi.fn(() => ({
+      requestToolsCount: 1,
+      toolChoiceSent: true,
+    })),
+    getPlumbModelRegistry: vi.fn(() => ({
+      findModel: vi.fn(() => model),
+      resolveDefaultModel: vi.fn(() => model),
+      refreshProvider: vi.fn(() => {
+        throw new Error('diagnosis must not discover models');
+      }),
+      getModelAuthorityStats: authorityStats,
+    })),
+    plumbModelStream: vi.fn(),
+    enableToolRouteDiag: vi.fn(),
+    resolveEffectiveToolChoice: vi.fn(),
+    resolveRouteToolPolicy: vi.fn(),
+    deriveDialectToolChoiceCapability: vi.fn(),
+    deriveRouteToolChoiceCapability: vi.fn(),
+    resolveHonestProbeToolChoice: vi.fn(),
+  };
+});
 
 vi.mock('@google/gemini-cli-core', () => ({
   writeToStdout: vi.fn((value: string) => output.push(value)),
@@ -136,6 +159,8 @@ import {
   diagnoseToolRoute,
   isCompletedToolContinuationEvent,
   runConfiguredToolRouteProbes,
+  toolChoiceSentSource,
+  type ToolRouteProbeOutcome,
 } from './toolRouteProbe.js';
 
 function rendered(): string {
@@ -148,6 +173,12 @@ describe('tool route diagnostics', () => {
     initialize.mockClear();
     getApiKey.mockClear();
     getActiveProviderStates.mockClear();
+    authorityStats.mockClear();
+    authorityStats.mockImplementation(() => ({
+      liveDiscoveryCount: 2,
+      bundledFallbackCount: 1,
+      customCount: 0,
+    }));
   });
 
   it('prints the safe auto-route contract and exact matrix counters', async () => {
@@ -193,19 +224,240 @@ describe('tool route diagnostics', () => {
     ).toBe(false);
   });
 
-  it('runs configured providers sequentially and reports exact counters', async () => {
+  it('runs configured providers sequentially and reports honest mutually-exclusive counters', async () => {
     const order: string[] = [];
-    const probe = vi.fn(async (providerId: string) => {
-      order.push(providerId);
-      return providerId === 'a-provider' ? 0 : 1;
-    });
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => {
+        order.push(providerId);
+        return providerId === 'a-provider'
+          ? {
+              provider: providerId,
+              exitCode: 0,
+              code: 'OK',
+              structuredToolCalls: true,
+            }
+          : {
+              provider: providerId,
+              exitCode: 1,
+              code: 'AUTH_REQUIRED',
+              structuredToolCalls: false,
+            };
+      },
+    );
 
     await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
 
     expect(order).toEqual(['a-provider', 'z-provider']);
-    expect(rendered()).toContain('batch.configured.count: 2');
-    expect(rendered()).toContain('batch.passed.count: 1');
-    expect(rendered()).toContain('batch.failed.count: 1');
-    expect(rendered()).toContain('result: CONFIGURED_ROUTE_FAILURES');
+    const text = rendered();
+    expect(text).toContain('batch.configured.count: 2');
+    expect(text).toContain('batch.pass.count: 1');
+    expect(text).toContain('batch.authBlocked.count: 1');
+    expect(text).toContain('batch.requestFailed.count: 0');
+    expect(text).toContain('batch.modelUnavailable.count: 0');
+    expect(text).toContain('batch.liveModelUnresolved.count: 0');
+    expect(text).toContain('BATCH_SUM: 2');
+    expect(text).toContain('BATCH_SUM_MATCHES_CONFIGURED: true');
+    expect(text).toContain('result: CONFIGURED_ROUTE_FAILURES');
+    // The old passed/failed lumping must be gone.
+    expect(text).not.toContain('batch.passed.count');
+    expect(text).not.toContain('batch.failed.count');
+  });
+
+  it('classifies AUTH_REQUIRED as authBlocked, never requestFailed', async () => {
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'authy' }, authState: 'authenticated' },
+    ]);
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 1,
+        code: 'AUTH_REQUIRED',
+        structuredToolCalls: false,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    const text = rendered();
+    expect(text).toContain('batch.authBlocked.count: 1');
+    expect(text).toContain('batch.requestFailed.count: 0');
+    expect(text).toContain('batch.provider.class: AUTH_BLOCKED');
+    expect(text).toContain('BATCH_SUM: 1');
+  });
+
+  it('classifies MODEL_NOT_AVAILABLE as modelUnavailable', async () => {
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'nvidia' }, authState: 'authenticated' },
+    ]);
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 1,
+        code: 'MODEL_NOT_AVAILABLE',
+        structuredToolCalls: false,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    const text = rendered();
+    expect(text).toContain('batch.modelUnavailable.count: 1');
+    expect(text).toContain('batch.requestFailed.count: 0');
+    expect(text).toContain('batch.provider.class: MODEL_UNAVAILABLE');
+  });
+
+  it('classifies NETWORK_ERROR on a local server as serverUnavailable, not a tool failure', async () => {
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'ollama' }, authState: 'authenticated' },
+    ]);
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 1,
+        code: 'NETWORK_ERROR',
+        structuredToolCalls: false,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    const text = rendered();
+    expect(text).toContain('batch.serverUnavailable.count: 1');
+    expect(text).toContain('batch.requestFailed.count: 0');
+    expect(text).toContain('batch.provider.class: SERVER_UNAVAILABLE');
+  });
+});
+
+describe('batch live-model authority (LIVE_MODEL_UNRESOLVED honesty)', () => {
+  it('never performs a live request for a bundled-fallback-only provider', async () => {
+    output.length = 0;
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'bundled-only' }, authState: 'authenticated' },
+      { provider: { id: 'live' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockImplementation((providerId: string) =>
+      providerId === 'bundled-only'
+        ? { liveDiscoveryCount: 0, bundledFallbackCount: 161, customCount: 0 }
+        : { liveDiscoveryCount: 3, bundledFallbackCount: 2, customCount: 0 },
+    );
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 0,
+        code: 'OK',
+        structuredToolCalls: false,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    // Zero network: the bundled-only provider is never probed.
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(probe).toHaveBeenCalledWith('live', undefined);
+    const text = rendered();
+    expect(text).toContain(
+      'batch.provider.liveModelAuthority: LIVE_MODEL_UNRESOLVED',
+    );
+    expect(text).toContain(
+      'batch.provider.result: LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST',
+    );
+    expect(text).toContain('batch.liveModelUnresolved.count: 1');
+    expect(text).toContain('BATCH_SUM: 2');
+    expect(text).toContain('BATCH_SUM_MATCHES_CONFIGURED: true');
+  });
+
+  it('allows an explicit --model on a bundled-fallback-only provider', async () => {
+    output.length = 0;
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'bundled-only' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockReturnValue({
+      liveDiscoveryCount: 0,
+      bundledFallbackCount: 161,
+      customCount: 0,
+    });
+    const probe = vi.fn(
+      async (
+        providerId: string,
+        _requestedModel?: string,
+      ): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 1,
+        code: 'MODEL_NOT_AVAILABLE',
+        structuredToolCalls: false,
+      }),
+    );
+
+    await expect(
+      runConfiguredToolRouteProbes(probe, { explicitModel: 'gpt-5.5' }),
+    ).resolves.toBe(1);
+
+    expect(probe).toHaveBeenCalledWith('bundled-only', 'gpt-5.5');
+    const text = rendered();
+    expect(text).toContain('batch.modelUnavailable.count: 1');
+    expect(text).toContain('batch.liveModelUnresolved.count: 0');
+    expect(text).not.toContain('LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST');
+  });
+});
+
+describe('toolChoiceSentSource (honest selector provenance)', () => {
+  it('reports the honest auto fallback for an unverified route and never pretends to force', () => {
+    expect(
+      toolChoiceSentSource(
+        { mode: 'auto' },
+        { value: { mode: 'auto' }, sent: true, downgraded: false },
+        false,
+      ),
+    ).toBe('HONEST_AUTO_FALLBACK_UNVERIFIED_ROUTE');
+  });
+
+  it('never fabricates named/required sources for an unverified Copilot route', () => {
+    // Dialect supports forced+named, but the Copilot route is UNVERIFIED:
+    // the honest probe requested auto, and the source must say so.
+    const source = toolChoiceSentSource(
+      { mode: 'auto' },
+      { value: { mode: 'auto' }, sent: true, downgraded: false },
+      false,
+    );
+    expect(source).toBe('HONEST_AUTO_FALLBACK_UNVERIFIED_ROUTE');
+    expect(source).not.toMatch(/NAMED|REQUIRED/);
+  });
+
+  it('reports verified named/required sources for a proven route', () => {
+    expect(
+      toolChoiceSentSource(
+        { mode: 'named', name: 'plumb_tool_probe' },
+        {
+          value: { mode: 'named', name: 'plumb_tool_probe' },
+          sent: true,
+          downgraded: false,
+        },
+        true,
+      ),
+    ).toBe('VERIFIED_ROUTE_NAMED');
+    expect(
+      toolChoiceSentSource(
+        { mode: 'required' },
+        { value: { mode: 'required' }, sent: true, downgraded: false },
+        true,
+      ),
+    ).toBe('VERIFIED_ROUTE_REQUIRED');
+  });
+
+  it('reports absent selectors and policy-driven auto fallbacks', () => {
+    expect(
+      toolChoiceSentSource(
+        undefined,
+        { sent: false, downgraded: false },
+        false,
+      ),
+    ).toBe('ABSENT');
+    expect(
+      toolChoiceSentSource(
+        undefined,
+        { value: { mode: 'auto' }, sent: true, downgraded: false },
+        false,
+      ),
+    ).toBe('POLICY_AUTO_FALLBACK');
   });
 });

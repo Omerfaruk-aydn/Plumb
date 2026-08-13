@@ -125,7 +125,10 @@ export interface ClassifiedBatchResult {
   readonly isToolRuntimeFailure: boolean;
 }
 export function classifyBatchResult(
-  result: Pick<BatchProbeResult, 'code'> & { provider?: string },
+  result: Pick<BatchProbeResult, 'code'> &
+    Partial<Pick<BatchProbeResult, 'structuredToolCalls'>> & {
+      provider?: string;
+    },
 ): ClassifiedBatchResult {
   const provider = result.provider ?? '';
   const className = classifyCode(result.code, {

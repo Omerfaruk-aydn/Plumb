@@ -206,10 +206,16 @@ describe('wire integration: Responses-family tool_choice shape on the actual req
     expect(tools[0]['function']?.['name']).toBe('plumb_tool_probe');
   });
 
-  it('openai-codex-responses required selector is Responses-shaped', async () => {
-    const { body } = await captureBody('openai-codex-responses', {
+  it('openai-codex-responses required selector hits the native /responses envelope (string form, input-based)', async () => {
+    const { url, body } = await captureBody('openai-codex-responses', {
       mode: 'required',
     });
-    expect(body['tool_choice']).toEqual({ type: 'required' });
+    // The codex route now uses the native Responses transport: the selector
+    // is the Responses-native string form (never the Chat-shaped
+    // `{type:'required'}` object, which a real /responses endpoint rejects).
+    expect(url).toContain('/responses');
+    expect(body['tool_choice']).toBe('required');
+    expect(body['input']).toBeDefined();
+    expect(body['messages']).toBeUndefined();
   });
 });

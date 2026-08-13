@@ -20,6 +20,11 @@ import {
   deriveDialectToolChoiceCapability,
   deriveRouteToolChoiceCapability,
   resolveHonestProbeToolChoice,
+  describeToolChoiceValue,
+  classifyBatchResult,
+  computeBatchBreakdown,
+  resolveLiveModelAuthority,
+  type ClassifiedBatchResult,
   type PlumbContentPart,
   type PlumbEffectiveToolRouteContract,
   type PlumbModel,
@@ -43,6 +48,52 @@ import {
 
 function line(key: string, value: unknown): void {
   writeToStdout(`${key}: ${String(value)}\n`);
+}
+
+/**
+ * Honest provenance of the tool-choice selector actually emitted by a probe.
+ * `HONEST_AUTO_FALLBACK_UNVERIFIED_ROUTE` is the critical case: the route has
+ * no VERIFIED forced/named proof, so the probe deliberately degrades to auto
+ * and must never pretend the FORCED probe actually forced anything.
+ */
+export function toolChoiceSentSource(
+  requested: PlumbToolChoice | undefined,
+  effective: {
+    readonly value?: PlumbToolChoice;
+    readonly sent: boolean;
+    readonly downgraded: boolean;
+  },
+  routeVerified: boolean,
+): string {
+  if (!effective.sent) return 'ABSENT';
+  if (effective.downgraded) return 'DOWNGRADED';
+  switch (effective.value?.mode) {
+    case 'named':
+      return routeVerified ? 'VERIFIED_ROUTE_NAMED' : 'UNVERIFIED_ROUTE_NAMED';
+    case 'required':
+      return routeVerified
+        ? 'VERIFIED_ROUTE_REQUIRED'
+        : 'UNVERIFIED_ROUTE_REQUIRED';
+    case 'auto':
+      if (requested?.mode === 'auto') {
+        return routeVerified
+          ? 'VERIFIED_ROUTE_AUTO'
+          : 'HONEST_AUTO_FALLBACK_UNVERIFIED_ROUTE';
+      }
+      return 'POLICY_AUTO_FALLBACK';
+    case 'none':
+      return 'REQUESTED_NONE';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+/** Structured probe outcome consumed by the honest batch classification. */
+export interface ToolRouteProbeOutcome {
+  readonly provider: string;
+  readonly exitCode: number;
+  readonly code: string;
+  readonly structuredToolCalls: boolean;
 }
 
 interface ResolvedToolRoute {
@@ -191,10 +242,10 @@ function printToolRouteContract(
   capabilityLines('replay.toolResults', contract.replay.toolResults);
 }
 
-export async function runToolRouteProbe(
+export async function runToolRouteProbeResult(
   providerId: string,
   requestedModel?: string,
-): Promise<number> {
+): Promise<ToolRouteProbeOutcome> {
   let resolved: ResolvedToolRoute | undefined;
   try {
     resolved = await resolveToolRoute(providerId, requestedModel, true);
@@ -202,13 +253,23 @@ export async function runToolRouteProbe(
     line('diagnostic.mode', 'FORCED_STRUCTURED_TOOL_PROBE');
     line('provider', providerId);
     line('result', 'ROUTE_RESOLUTION_FAILED');
-    return 1;
+    return {
+      provider: providerId,
+      exitCode: 1,
+      code: 'ROUTE_RESOLUTION_FAILED',
+      structuredToolCalls: false,
+    };
   }
   if (!resolved) {
     line('diagnostic.mode', 'FORCED_STRUCTURED_TOOL_PROBE');
     line('provider', providerId);
     line('result', 'ROUTE_NOT_FOUND');
-    return 1;
+    return {
+      provider: providerId,
+      exitCode: 1,
+      code: 'ROUTE_NOT_FOUND',
+      structuredToolCalls: false,
+    };
   }
   const { model, apiKey } = resolved;
   const routeContract = buildEffectiveToolRouteContract({ providerId, model });
@@ -392,7 +453,71 @@ export async function runToolRouteProbe(
     'toolChoiceSent',
     firstResponseDiag?.['toolChoiceSent'] ?? effective.sent,
   );
+  // Honest selector provenance: what category was actually serialized and
+  // where the decision came from. Never prompt/credential content.
+  line(
+    'toolChoice.sent.category',
+    firstResponseDiag?.['toolChoiceValueCategory'] ??
+      describeToolChoiceValue(effective.value),
+  );
+  line(
+    'toolChoice.sent.source',
+    toolChoiceSentSource(requestedChoice, effective, route.routeVerified),
+  );
+  line(
+    'probe.forced',
+    requestedChoice?.mode === 'required' || requestedChoice?.mode === 'named',
+  );
   line('request.tools.count', firstResponseDiag?.['requestToolsCount'] ?? 0);
+  // Safe wire-proof structural facts recorded by the transport immediately
+  // before network. Counts/paths/shapes only — no prompt, credential, or
+  // arguments.
+  line(
+    'wire.requestFamily',
+    firstResponseDiag?.['requestFamily'] ?? 'not_recorded',
+  );
+  line(
+    'wire.endpointPath',
+    firstResponseDiag?.['endpointPath'] ?? 'not_recorded',
+  );
+  line(
+    'wire.toolSerializationShape',
+    firstResponseDiag?.['toolSerializationShape'] ?? 'not_recorded',
+  );
+  line('wire.httpStatus', firstResponseDiag?.['httpStatus'] ?? 0);
+  line(
+    'wire.upstreamErrorCode',
+    firstResponseDiag?.['upstreamErrorCode'] ?? 'none',
+  );
+  line(
+    'wire.upstreamFieldViolations',
+    JSON.stringify(firstResponseDiag?.['upstreamErrorFieldViolations'] ?? []),
+  );
+  line(
+    'vertex.functionDeclarationCount',
+    firstResponseDiag?.['functionDeclarationCount'] ?? 0,
+  );
+  line(
+    'vertex.functionDeclarationNames',
+    JSON.stringify(firstResponseDiag?.['functionDeclarationNames'] ?? []),
+  );
+  line(
+    'vertex.functionCallingMode',
+    firstResponseDiag?.['functionCallingMode'] ?? 'absent',
+  );
+  line(
+    'vertex.allowedFunctionNamesCount',
+    firstResponseDiag?.['allowedFunctionNamesCount'] ?? 0,
+  );
+  line(
+    'vertex.allowedFunctionNames',
+    JSON.stringify(firstResponseDiag?.['allowedFunctionNames'] ?? []),
+  );
+  line(
+    'vertex.toolConfigPresent',
+    firstResponseDiag?.['toolConfigPresent'] ?? false,
+  );
+  line('vertex.toolsPresent', firstResponseDiag?.['toolsPresent'] ?? false);
   // plumbModelStream emits one normalized event per native structured call;
   // delta fragments are intentionally not counted here.
   line('response.structuredToolCalls', calls.length);
@@ -412,12 +537,26 @@ export async function runToolRouteProbe(
   );
   line('AUTO_TOOL_SELECTION_WORKS', 'NOT_TESTED_BY_FORCED_PROBE');
   line('safeError', safeError);
-  return calls.length > 0 &&
+  const succeeded =
+    calls.length > 0 &&
     completed.length === calls.length &&
     resultReinjected &&
-    continuationCompleted
-    ? 0
-    : 1;
+    continuationCompleted;
+  return {
+    provider: providerId,
+    exitCode: succeeded ? 0 : 1,
+    code: safeError !== 'none' ? safeError : 'OK',
+    structuredToolCalls: calls.length > 0,
+  };
+}
+
+/** Single-provider CLI entry point (`--test-tool-route`). */
+export async function runToolRouteProbe(
+  providerId: string,
+  requestedModel?: string,
+): Promise<number> {
+  const outcome = await runToolRouteProbeResult(providerId, requestedModel);
+  return outcome.exitCode;
 }
 
 export function isCompletedToolContinuationEvent(
@@ -439,9 +578,32 @@ function safeParseArgs(raw: string): Record<string, unknown> {
   }
 }
 
-/** Run the forced live probe sequentially for every configured provider. */
+export interface ConfiguredToolRouteProbeOptions {
+  /** User-supplied `--model`; when present the LIVE_MODEL_UNRESOLVED rule is
+   * bypassed (explicit selection remains allowed). */
+  readonly explicitModel?: string;
+}
+
+/**
+ * Run the forced live probe sequentially for every configured provider with
+ * honest classification. Two universal rules are wired here (the cde
+ * toolRouteContract helpers are the single authority for both):
+ *
+ *  1. LIVE_MODEL_UNRESOLVED — a provider with zero live-discovered models and
+ *     bundled-only fallbacks is NEVER probed unless the user explicitly passed
+ *     `--model` (zero network, classified, reported).
+ *  2. Mutually-exclusive classification — every outcome is classified into
+ *     exactly one of PASS / REQUEST_FAILED / AUTH_BLOCKED / MODEL_UNAVAILABLE /
+ *     SERVER_UNAVAILABLE / ROUTE_UNRESOLVED / PROTOCOL_UNSUPPORTED /
+ *     LIVE_MODEL_UNRESOLVED / UNKNOWN, and BATCH_SUM must equal the configured
+ *     count.
+ */
 export async function runConfiguredToolRouteProbes(
-  probe: (providerId: string) => Promise<number> = runToolRouteProbe,
+  probe: (
+    providerId: string,
+    requestedModel?: string,
+  ) => Promise<ToolRouteProbeOutcome> = runToolRouteProbeResult,
+  options: ConfiguredToolRouteProbeOptions = {},
 ): Promise<number> {
   const providerRegistry = getPlumbProviderRegistry();
   try {
@@ -449,8 +611,7 @@ export async function runConfiguredToolRouteProbes(
   } catch {
     line('batch.mode', 'CONFIGURED_PROVIDERS_FORCED_PROBE');
     line('batch.configured.count', 0);
-    line('batch.passed.count', 0);
-    line('batch.failed.count', 0);
+    line('BATCH_SUM', 0);
     line('result', 'PROVIDER_REGISTRY_UNAVAILABLE');
     return 1;
   }
@@ -461,28 +622,80 @@ export async function runConfiguredToolRouteProbes(
   line('batch.mode', 'CONFIGURED_PROVIDERS_FORCED_PROBE');
   line('batch.configured.count', providerIds.length);
 
-  let passed = 0;
-  let failed = 0;
+  const modelRegistry = getPlumbModelRegistry();
+  const explicitModel = options.explicitModel?.trim() || undefined;
+  const results: ClassifiedBatchResult[] = [];
   for (const providerId of providerIds) {
     line('batch.provider', providerId);
+    const stats = modelRegistry.getModelAuthorityStats(providerId);
+    const authority = resolveLiveModelAuthority({
+      liveDiscoveryCount: stats.liveDiscoveryCount,
+      bundledFallbackCount: stats.bundledFallbackCount,
+      explicitModelRequested: explicitModel !== undefined,
+      fallbackUsed:
+        stats.liveDiscoveryCount === 0 && stats.bundledFallbackCount > 0,
+    });
+    line('batch.provider.liveModelAuthority', authority);
+    line('batch.provider.liveDiscoveredModels', stats.liveDiscoveryCount);
+    line('batch.provider.bundledFallbackModels', stats.bundledFallbackCount);
+    if (authority === 'LIVE_MODEL_UNRESOLVED') {
+      // Universal honesty rule: never trust bundled fallbacks as live
+      // authority. No request is made for this provider.
+      const classified = classifyBatchResult({
+        provider: providerId,
+        code: 'LIVE_MODEL_UNRESOLVED',
+        structuredToolCalls: false,
+      });
+      results.push(classified);
+      line(
+        'batch.provider.result',
+        'LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST',
+      );
+      line('batch.provider.class', classified.className);
+      continue;
+    }
     try {
-      const result = await probe(providerId);
-      if (result === 0) passed++;
-      else failed++;
+      const outcome = await probe(providerId, explicitModel);
+      const classified = classifyBatchResult({
+        provider: providerId,
+        code: outcome.code,
+        structuredToolCalls: outcome.structuredToolCalls,
+      });
+      results.push(classified);
+      line('batch.provider.result', outcome.code);
+      line('batch.provider.class', classified.className);
     } catch {
-      failed++;
+      const classified = classifyBatchResult({
+        provider: providerId,
+        code: 'PROBE_FAILED',
+        structuredToolCalls: false,
+      });
+      results.push(classified);
       line('batch.provider.result', 'PROBE_FAILED');
+      line('batch.provider.class', classified.className);
     }
   }
-  line('batch.passed.count', passed);
-  line('batch.failed.count', failed);
+
+  const breakdown = computeBatchBreakdown(results, providerIds.length);
+  line('batch.pass.count', breakdown.pass);
+  line('batch.requestFailed.count', breakdown.requestFailure);
+  line('batch.authBlocked.count', breakdown.authBlocked);
+  line('batch.modelUnavailable.count', breakdown.modelUnavailable);
+  line('batch.serverUnavailable.count', breakdown.serverUnavailable);
+  line('batch.routeUnresolved.count', breakdown.routeUnresolved);
+  line('batch.protocolUnsupported.count', breakdown.protocolUnsupported);
+  line('batch.liveModelUnresolved.count', breakdown.liveModelUnresolved);
+  line('batch.unknown.count', breakdown.unknown);
+  line('BATCH_SUM', breakdown.sum);
+  line('BATCH_SUM_MATCHES_CONFIGURED', breakdown.sumMatchesConfigured);
+  const allPassed = results.every((result) => result.className === 'PASS');
   line(
     'result',
     providerIds.length === 0
       ? 'NO_CONFIGURED_PROVIDERS'
-      : failed === 0
+      : allPassed
         ? 'ALL_CONFIGURED_ROUTES_PASSED'
         : 'CONFIGURED_ROUTE_FAILURES',
   );
-  return providerIds.length > 0 && failed === 0 ? 0 : 1;
+  return providerIds.length > 0 && allPassed ? 0 : 1;
 }

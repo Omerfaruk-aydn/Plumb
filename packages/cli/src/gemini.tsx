@@ -553,7 +553,9 @@ export async function main() {
       const { runConfiguredToolRouteProbes } = await import(
         './toolRouteProbe.js'
       );
-      exitCode = await runConfiguredToolRouteProbes();
+      exitCode = await runConfiguredToolRouteProbes(undefined, {
+        explicitModel: argv.model,
+      });
     } else if (argv.diagnoseAntigravityRoute) {
       exitCode = await printAntigravityRouteDiagnostics();
     } else if (argv.testAntigravityRoute) {

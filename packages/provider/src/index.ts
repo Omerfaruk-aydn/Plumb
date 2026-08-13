@@ -174,6 +174,7 @@ export {
   PlumbModelRegistry,
   getPlumbModelRegistry,
   resetPlumbModelRegistry,
+  type PlumbModelAuthorityStats,
 } from './registry/model-registry.js';
 
 // Auto-mode model-routing policy
@@ -410,6 +411,8 @@ export {
   buildAntigravityRequest,
   extractSafeGoogleErrorDetails,
   formatSafeGoogleErrorSummary,
+  recordToolRouteHttpFailure,
+  type ToolRouteRequestWireDetails,
   type SafeGoogleErrorDetails,
   type SafeFieldViolation,
   type AntigravityRequestDescriptor,
