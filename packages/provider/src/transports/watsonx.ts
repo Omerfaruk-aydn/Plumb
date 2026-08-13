@@ -133,7 +133,12 @@ interface WatsonxTool {
 }
 
 function buildTools(options: PlumbStreamOptions): WatsonxTool[] | undefined {
-  if (!options.tools || options.tools.length === 0) return undefined;
+  if (
+    !options.tools ||
+    options.tools.length === 0 ||
+    options.toolChoice?.mode === 'none'
+  )
+    return undefined;
   return options.tools.map((t) => ({
     type: 'function',
     function: t.function,
@@ -286,9 +291,28 @@ export async function* streamWatsonx(
   }
 
   let finishReason: string | undefined;
+  const pendingToolCalls = new Map<
+    number,
+    { id?: string; name: string; arguments: string; emitted: boolean }
+  >();
+  function* takePendingToolCalls(): Generator<PlumbStreamEvent> {
+    for (const [index, pending] of pendingToolCalls) {
+      if (pending.emitted) continue;
+      pending.emitted = true;
+      yield {
+        type: 'tool_call',
+        toolCall: {
+          id: pending.id ?? `call_${index}`,
+          name: pending.name,
+          arguments: pending.arguments,
+        },
+      };
+    }
+  }
   try {
     for await (const chunk of stream) {
       if (options.signal?.aborted) {
+        for (const event of takePendingToolCalls()) yield event;
         yield { type: 'done', finishReason: 'cancelled' };
         return;
       }
@@ -299,18 +323,22 @@ export async function* streamWatsonx(
       if (choice?.delta?.tool_calls) {
         for (const tc of choice.delta.tool_calls) {
           if (tc.function) {
-            yield {
-              type: 'tool_call',
-              toolCall: {
-                id: tc.id ?? `call_${tc.index ?? 0}`,
-                name: tc.function.name ?? '',
-                arguments: tc.function.arguments ?? '',
-              },
+            const index = tc.index ?? 0;
+            const pending = pendingToolCalls.get(index) ?? {
+              name: '',
+              arguments: '',
+              emitted: false,
             };
+            if (tc.id) pending.id = tc.id;
+            if (tc.function.name) pending.name += tc.function.name;
+            if (tc.function.arguments)
+              pending.arguments += tc.function.arguments;
+            pendingToolCalls.set(index, pending);
           }
         }
       }
       if (choice?.finish_reason) {
+        for (const event of takePendingToolCalls()) yield event;
         finishReason = choice.finish_reason;
       }
       if (chunk.data.usage) {
@@ -333,5 +361,6 @@ export async function* streamWatsonx(
     return;
   }
 
+  for (const event of takePendingToolCalls()) yield event;
   yield { type: 'done', finishReason: finishReason ?? 'stop' };
 }

@@ -23,6 +23,20 @@ export {
   type ToolChoiceEmissionPolicy,
   type PlumbRouteToolPolicy,
   type PlumbToolChoice,
+  type PlumbProtocolCapabilityStatus,
+  type PlumbProtocolCapabilitySource,
+  type PlumbProtocolCapability,
+  type PlumbStructuredToolProtocol,
+  type PlumbRouteEndpointFamily,
+  type PlumbEffectiveRouteEndpoint,
+  type PlumbEffectiveToolRouteScope,
+  type PlumbEffectiveToolChoiceContract,
+  type PlumbEffectiveToolParserContract,
+  type PlumbEffectiveToolReplayContract,
+  type PlumbEffectiveToolRouteContract,
+  type PlumbEffectiveToolRouteInput,
+  type PlumbProviderProtocolMatrixRow,
+  type PlumbProviderProtocolMatrix,
   type PlumbStreamEvent,
   type PlumbStreamOptions,
   type PlumbStreamFunction,
@@ -54,6 +68,19 @@ export {
   resolveEffectiveToolChoice,
   describeToolChoiceValue,
 } from './tool-policy.js';
+
+// Canonical effective provider + model + route tool contract and generated
+// protocol inventory. Cache helpers require the complete route by construction.
+export {
+  resolveEffectiveWireModelId,
+  makeEffectiveToolRouteKey,
+  buildEffectiveToolRouteContract,
+  createEffectiveToolRouteCache,
+  generatePlumbProviderProtocolMatrix,
+  PLUMB_PROVIDER_PROTOCOL_MATRIX,
+  getPlumbProviderProtocolMatrix,
+  type PlumbEffectiveToolRouteCache,
+} from './route-contract.js';
 
 // Provider catalog
 export {

@@ -92,6 +92,7 @@ export class PlumbContentGenerator implements ContentGenerator {
     role: LlmRole,
   ): Promise<GenerateContentResponse> {
     const parts: any[] = [];
+    const functionCalls: any[] = [];
     let usageMetadata: any;
     let finishReason = 'STOP';
 
@@ -105,6 +106,7 @@ export class PlumbContentGenerator implements ContentGenerator {
       if (candidate?.content?.parts) {
         for (const part of candidate.content.parts) {
           parts.push(part);
+          if (part?.functionCall) functionCalls.push(part.functionCall);
         }
       }
       if (candidate?.finishReason) {
@@ -124,6 +126,7 @@ export class PlumbContentGenerator implements ContentGenerator {
         },
       ],
       usageMetadata,
+      ...(functionCalls.length > 0 ? { functionCalls } : {}),
     } as unknown as GenerateContentResponse;
   }
 

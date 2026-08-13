@@ -132,7 +132,9 @@ export interface CliArgs {
   testProvider: string | undefined;
   testProviderList: boolean | undefined;
   testProviderNext: boolean | undefined;
+  diagnoseToolRoute?: boolean;
   testToolRoute?: string;
+  testToolRoutes?: boolean;
   traceSafe: boolean | undefined;
   diagnoseAntigravityRoute: boolean | undefined;
   testAntigravityRoute: string | undefined;
@@ -617,10 +619,20 @@ export async function parseArguments(
           description:
             'Choose the next unverified provider for live acceptance testing.',
         })
+        .option('diagnose-tool-route', {
+          type: 'boolean',
+          description:
+            'Print the safe effective structured-tool route contract for --provider <id> and optional --model. Sends no request and never prints credentials, prompts, or arguments.',
+        })
         .option('test-tool-route', {
           type: 'string',
           description:
             'Run a safe structured-tool protocol probe for a provider and optional --model. Advertises only plumb_tool_probe and never prints credentials or arguments.',
+        })
+        .option('test-tool-routes', {
+          type: 'boolean',
+          description:
+            'Noninteractively run the safe forced structured-tool probe sequentially for every configured provider. Never prints credentials, prompts, or arguments.',
         })
         .option('trace-safe', {
           type: 'boolean',

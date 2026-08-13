@@ -220,8 +220,21 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(mcpOptions.tools).toBeDefined();
   });
 
-  it('2. OpenAI-compatible family tool authority & single call normalization', async () => {
-    const model = registry.getModelsForProvider('openai')[0];
+  it('2. OpenAI Chat Completions family tool authority & single call normalization', async () => {
+    // Force Chat Completions dialect for this specific assertion — OpenAI's first
+    // model is now Responses, which has its own separate native test coverage.
+    const chatModel = registry
+      .getModelsForProvider('openai')
+      .find((m) => m.api === 'openai-completions') ?? {
+      id: 'gpt-4o',
+      provider: 'openai',
+      api: 'openai-completions' as const,
+      baseUrl: 'https://api.openai.com/v1',
+      contextWindow: 128000,
+      maxTokens: 16384,
+      input: 'text' as const,
+    };
+    const model = { ...chatModel, toolsSupported: true as const };
     const { events, toolCallCount } = await drainWithTools(model, 'key-8');
 
     expect(events.some((e) => e.type === 'error')).toBe(false);
@@ -233,7 +246,45 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(toolCall.id).toBe('call_123');
   });
 
-  it('3. Anthropic-compatible family tool authority & single call normalization', async () => {
+  it('3. OpenAI Responses family native tool authority', async () => {
+    const responsesModel = registry
+      .getModelsForProvider('openai')
+      .find((m) => m.api === 'openai-responses') ?? {
+      id: 'gpt-5-mini',
+      provider: 'openai',
+      api: 'openai-responses' as const,
+      baseUrl: 'https://api.openai.com/v1',
+      contextWindow: 400_000,
+      maxTokens: 128_000,
+      input: 'text' as const,
+    };
+    const model = { ...responsesModel, toolsSupported: true as const };
+
+    // Override fetch to return native Responses SSE with a single structured call
+    const responsesFetchSpy = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          'data: {"type":"response.output_item.added","output_index":0,"item":{"id":"resp_item_1","type":"function_call","call_id":"call_resp_1","name":"execute_command","arguments":""}}\n\n' +
+            'data: {"type":"response.function_call_arguments.done","item_id":"resp_item_1","name":"execute_command","arguments":"{\\"command\\":\\"ls\\"}"}\n\n' +
+            'data: {"type":"response.completed","response":{"output":[{"type":"function_call"}],"usage":{"input_tokens":10,"output_tokens":2,"total_tokens":12}}}\n\n' +
+            'data: [DONE]\n\n',
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+      );
+    vi.stubGlobal('fetch', responsesFetchSpy);
+
+    const { events, toolCallCount } = await drainWithTools(model, 'key-8');
+    expect(events.some((e) => e.type === 'error')).toBe(false);
+    expect(toolCallCount).toBe(1);
+    const toolCallEvent = events.find((e) => e.type === 'tool_call');
+    expect(toolCallEvent).toBeDefined();
+    const toolCall = (toolCallEvent as any).toolCall ?? toolCallEvent;
+    expect(toolCall.name).toBe('execute_command');
+    expect(toolCall.id).toBe('call_resp_1');
+  });
+
+  it('4. Anthropic-compatible family tool authority & single call normalization', async () => {
     const catalogModel = registry.getModelsForProvider('anthropic-api')[0];
     const model = { ...catalogModel, toolsSupported: true as const };
     const { events } = await drainWithTools(model, 'key-8');
@@ -241,7 +292,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(calls[0].body).toContain('execute_command');
   });
 
-  it('4. Gemini-compatible family tool authority & single call normalization', async () => {
+  it('5. Gemini-compatible family tool authority & single call normalization', async () => {
     const catalogModel = registry.getModelsForProvider('google')[0];
     const model = { ...catalogModel, toolsSupported: true as const };
     const { events } = await drainWithTools(model, 'key-8');
@@ -249,7 +300,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(calls[0].body).toContain('execute_command');
   });
 
-  it('5. Antigravity tool authority & single call normalization', async () => {
+  it('6. Antigravity tool authority & single call normalization', async () => {
     const model: PlumbModel = {
       id: 'gpt-oss-120b-medium',
       provider: 'google-antigravity',
@@ -265,7 +316,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(calls[0].body).toContain('execute_command');
   });
 
-  it('6. Cloud family tool authority (Azure OpenAI)', async () => {
+  it('7. Cloud family tool authority (Azure OpenAI)', async () => {
     const [azureCatalogModel] = getCatalogModels('azure');
     const model = { ...azureCatalogModel, toolsSupported: true as const };
     const { events } = await drainWithTools(model, 'azure-key-8');
@@ -273,7 +324,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(calls[0].body).toContain('execute_command');
   });
 
-  it('7. Local family tool authority (Ollama)', async () => {
+  it('8. Local family tool authority (Ollama)', async () => {
     const ollamaModel: PlumbModel = {
       id: 'llama3:8b',
       provider: 'ollama',
@@ -289,7 +340,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(toolCallCount).toBe(1);
   });
 
-  it('8. Gateway family tool authority (OpenRouter)', async () => {
+  it('9. Gateway family tool authority (OpenRouter)', async () => {
     const catalogModel = registry.getModelsForProvider('openrouter')[0];
     const model = catalogModel
       ? { ...catalogModel, toolsSupported: true as const }
@@ -308,7 +359,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
     expect(toolCallCount).toBe(1);
   });
 
-  it('9. Custom family tool authority (Custom OpenAI)', async () => {
+  it('10. Custom family tool authority (Custom OpenAI)', async () => {
     setCustomProviderDefinitions(CUSTOM_DEFS);
     registry.hydrateCustomProviderModels();
     const catalogModel = registry.findModel(CUSTOM_ID, 'custom-tool-model')!;

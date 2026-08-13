@@ -312,6 +312,48 @@ describe('PlumbContentGenerator', () => {
     ]);
   });
 
+  it('projects aggregated structured calls to top-level functionCalls in non-streaming responses', async () => {
+    mockFindModel.mockReturnValue({
+      id: 'gpt-5-mini',
+      provider: 'openai',
+      api: 'openai-responses',
+      toolsSupported: true,
+    });
+    mockPlumbModelStream.mockImplementationOnce(async function* () {
+      yield {
+        type: 'tool_call',
+        toolCall: {
+          id: 'call_1',
+          name: 'plumb_tool_probe',
+          arguments: '{}',
+        },
+      };
+      yield { type: 'done', finishReason: 'tool_calls' };
+    } as never);
+    const generator = new PlumbContentGenerator(
+      'openai',
+      'gpt-5-mini',
+      'api-key',
+    );
+
+    const response = await generator.generateContent(
+      testRequest,
+      'prompt-id',
+      testRole,
+    );
+
+    expect(response.functionCalls).toEqual([
+      { id: 'call_1', name: 'plumb_tool_probe', args: {} },
+    ]);
+    expect(response.candidates?.[0]?.content?.parts).toContainEqual({
+      functionCall: {
+        id: 'call_1',
+        name: 'plumb_tool_probe',
+        args: {},
+      },
+    });
+  });
+
   it('forwards output, JSON-schema, temperature, and reasoning controls', async () => {
     mockFindModel.mockReturnValue({
       id: 'local-model',

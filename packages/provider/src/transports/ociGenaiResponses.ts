@@ -57,6 +57,10 @@ import {
   getOciIamAuthProvider,
   signOciGenaiRequest,
 } from './ociGenaiIamAuth.js';
+import {
+  resolveEffectiveToolChoice,
+  resolveRouteToolPolicy,
+} from '../tool-policy.js';
 
 /**
  * Responses API `input` items are flat (unlike Chat Completions' nested
@@ -118,13 +122,27 @@ interface ResponsesTool {
 function buildResponsesTools(
   options: PlumbStreamOptions,
 ): ResponsesTool[] | undefined {
-  if (!options.tools || options.tools.length === 0) return undefined;
+  if (
+    !options.tools ||
+    options.tools.length === 0 ||
+    options.toolChoice?.mode === 'none'
+  )
+    return undefined;
   return options.tools.map((t) => ({
     type: 'function',
     name: t.function.name,
     description: t.function.description,
     parameters: t.function.parameters,
   }));
+}
+
+function serializeResponsesToolChoice(
+  choice: NonNullable<PlumbStreamOptions['toolChoice']>,
+): unknown {
+  if (choice.mode === 'named') {
+    return { type: 'function', name: choice.name };
+  }
+  return choice.mode;
 }
 
 function classifyOciResponsesError(
@@ -207,12 +225,20 @@ export async function* streamOciGenaiResponses(
   const url = `${baseUrl.replace(/\/+$/, '')}/responses`;
 
   const tools = buildResponsesTools(options);
+  const effectiveChoice = resolveEffectiveToolChoice(
+    resolveRouteToolPolicy(model),
+    options.toolChoice,
+    tools?.length ?? 0,
+  ).value;
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
     input: buildResponsesInput(messages),
     stream: true,
     ...(systemPrompt ? { instructions: systemPrompt } : {}),
     ...(tools ? { tools } : {}),
+    ...(effectiveChoice
+      ? { tool_choice: serializeResponsesToolChoice(effectiveChoice) }
+      : {}),
     ...(maxTokens ? { max_output_tokens: maxTokens } : {}),
     ...(temperature !== undefined && temperature >= 0 ? { temperature } : {}),
   };
@@ -268,13 +294,28 @@ export async function* streamOciGenaiResponses(
   const decoder = new TextDecoder();
   let buffer = '';
   let finishReason: string | undefined;
-  // item_id -> {callId, name, emittedAny} -- correlates argument deltas
-  // (keyed by the internal item_id) back to the call_id the eventual
-  // function_call_output must reference.
+  // item_id -> native call metadata + accumulated arguments. Argument deltas
+  // are fragments, not independent calls, so each item is emitted once.
+  // The map also preserves the call_id the eventual function_call_output
+  // must reference.
   const pendingFunctionCalls = new Map<
     string,
-    { callId: string; name: string; emittedAny: boolean }
+    { callId: string; name: string; arguments: string; emitted: boolean }
   >();
+  function* emitPendingCalls(): Generator<PlumbStreamEvent> {
+    for (const pending of pendingFunctionCalls.values()) {
+      if (pending.emitted) continue;
+      pending.emitted = true;
+      yield {
+        type: 'tool_call',
+        toolCall: {
+          id: pending.callId,
+          name: pending.name,
+          arguments: pending.arguments,
+        },
+      };
+    }
+  }
 
   try {
     while (true) {
@@ -311,7 +352,8 @@ export async function* streamOciGenaiResponses(
             pendingFunctionCalls.set(item.id, {
               callId: item.call_id,
               name: item.name ?? '',
-              emittedAny: false,
+              arguments: '',
+              emitted: false,
             });
           }
         } else if (eventType === 'response.function_call_arguments.delta') {
@@ -320,15 +362,7 @@ export async function* streamOciGenaiResponses(
           if (typeof itemId === 'string' && typeof delta === 'string') {
             const pending = pendingFunctionCalls.get(itemId);
             if (pending) {
-              pending.emittedAny = true;
-              yield {
-                type: 'tool_call',
-                toolCall: {
-                  id: pending.callId,
-                  name: pending.name,
-                  arguments: delta,
-                },
-              };
+              pending.arguments += delta;
             }
           }
         } else if (eventType === 'response.output_item.done') {
@@ -343,17 +377,14 @@ export async function* streamOciGenaiResponses(
             | undefined;
           if (item?.type === 'function_call' && item.id) {
             const pending = pendingFunctionCalls.get(item.id);
-            // Only some models stream argument deltas incrementally; others
-            // deliver the full arguments string only once, on the `done`
-            // event. Emit exactly one tool_call event in that case, never a
-            // duplicate on top of already-streamed deltas.
-            if (pending && !pending.emittedAny && item.call_id) {
+            if (pending && !pending.emitted) {
+              pending.emitted = true;
               yield {
                 type: 'tool_call',
                 toolCall: {
-                  id: item.call_id,
+                  id: pending.callId,
                   name: item.name ?? pending.name,
-                  arguments: item.arguments ?? '',
+                  arguments: item.arguments ?? pending.arguments,
                 },
               };
             }
@@ -363,6 +394,7 @@ export async function* streamOciGenaiResponses(
             | { usage?: Record<string, number>; status?: string }
             | undefined;
           const usage = responseObj?.usage;
+          for (const pending of emitPendingCalls()) yield pending;
           if (usage) {
             yield {
               type: 'usage',
@@ -407,5 +439,6 @@ export async function* streamOciGenaiResponses(
     return;
   }
 
+  for (const pending of emitPendingCalls()) yield pending;
   yield { type: 'done', finishReason: finishReason ?? 'stop' };
 }

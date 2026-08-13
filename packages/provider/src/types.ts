@@ -112,6 +112,195 @@ export type PlumbToolChoice =
   | { readonly mode: 'none' }
   | { readonly mode: 'named'; readonly name: string };
 
+/** Four-state capability used by route diagnostics and the protocol matrix. */
+export type PlumbProtocolCapabilityStatus =
+  | 'SUPPORTED'
+  | 'UNSUPPORTED'
+  | 'UNKNOWN'
+  | 'NOT_APPLICABLE';
+
+/**
+ * Normalized provenance for an effective route claim. `UNKNOWN` is deliberate:
+ * absence of evidence must not be upgraded to provider- or family-wide support.
+ */
+export type PlumbProtocolCapabilitySource =
+  | NonNullable<PlumbModel['toolsCapabilitySource']>
+  | PlumbRouteToolPolicy['source']
+  | 'MODEL_METADATA'
+  | 'DIALECT_IMPLEMENTATION'
+  | 'CALLER_OVERRIDE'
+  | 'UNKNOWN';
+
+export interface PlumbProtocolCapability {
+  readonly status: PlumbProtocolCapabilityStatus;
+  readonly source: PlumbProtocolCapabilitySource;
+}
+
+/** Native structured tool envelope used on the selected wire route. */
+export type PlumbStructuredToolProtocol =
+  | 'OPENAI_CHAT_FUNCTION_TOOLS'
+  | 'OPENAI_RESPONSES_FUNCTION_TOOLS'
+  | 'ANTHROPIC_MESSAGES_TOOLS'
+  | 'BEDROCK_CONVERSE_TOOL_USE'
+  | 'GOOGLE_FUNCTION_DECLARATIONS'
+  | 'OLLAMA_CHAT_TOOLS'
+  | 'CLAUDE_AGENT_SDK_MCP'
+  | 'WATSONX_CHAT_TOOLS'
+  | 'PROVIDER_AGENT_TOOLS'
+  | 'UNKNOWN';
+
+/** Endpoint family is separate from dialect: several dialects share a family. */
+export type PlumbRouteEndpointFamily =
+  | 'OPENAI_CHAT_COMPLETIONS'
+  | 'OPENAI_RESPONSES'
+  | 'ANTHROPIC_MESSAGES'
+  | 'AWS_BEDROCK_CONVERSE'
+  | 'GOOGLE_GENERATIVE_LANGUAGE'
+  | 'GOOGLE_VERTEX_PREDICTION'
+  | 'OLLAMA_CHAT'
+  | 'CLAUDE_AGENT_SDK'
+  | 'IBM_WATSONX_CHAT'
+  | 'PROVIDER_AGENT'
+  | 'UNKNOWN';
+
+export interface PlumbEffectiveRouteEndpoint {
+  /** Effective configured base URL, when it is present in the route. */
+  readonly baseUrl?: string;
+  /** Non-secret endpoint path/operation selected by the dialect. */
+  readonly path: string;
+  readonly family: PlumbRouteEndpointFamily;
+  readonly source: 'CALLER_OVERRIDE' | 'MODEL' | 'DIALECT_DEFAULT' | 'UNKNOWN';
+}
+
+/** Complete identity required to key an effective tool route. */
+export interface PlumbEffectiveToolRouteScope {
+  readonly providerId: PlumbProviderId;
+  /** Local/selectable model id. This is never replaced by the wire id. */
+  readonly modelId: string;
+  /** Actual request model after requestModelId / effort routing is applied. */
+  readonly wireModelId: string;
+  readonly dialect: PlumbKnownApi;
+  readonly endpoint: PlumbEffectiveRouteEndpoint;
+  /** Canonical provider + model + dialect + endpoint + wire-model cache key. */
+  readonly cacheKey: string;
+}
+
+export interface PlumbEffectiveToolChoiceContract {
+  readonly emission: ToolChoiceEmissionPolicy;
+  /** Auto-selection support is UNKNOWN unless route metadata proves it. */
+  readonly auto: PlumbProtocolCapability;
+  readonly required: PlumbProtocolCapability;
+  readonly named: PlumbProtocolCapability;
+}
+
+export interface PlumbEffectiveToolParserContract {
+  readonly capability: PlumbProtocolCapability;
+  readonly output: 'NORMALIZED_TOOL_CALL_EVENT';
+  readonly fragmentAssembly: PlumbProtocolCapability;
+  readonly callIdPreservation: PlumbProtocolCapability;
+}
+
+export interface PlumbEffectiveToolReplayContract {
+  readonly capability: PlumbProtocolCapability;
+  readonly assistantToolCalls: PlumbProtocolCapability;
+  readonly toolResults: PlumbProtocolCapability;
+}
+
+/**
+ * Canonical effective tool contract. It intentionally separates the base
+ * model's advertised capability from the selected route's structured wire
+ * protocol; neither fact alone proves end-to-end tool support.
+ */
+export interface PlumbEffectiveToolRouteContract {
+  readonly scope: PlumbEffectiveToolRouteScope;
+  readonly baseModelTools: PlumbProtocolCapability;
+  readonly structuredProtocol: {
+    readonly kind: PlumbStructuredToolProtocol;
+    readonly capability: PlumbProtocolCapability;
+  };
+  readonly toolChoice: PlumbEffectiveToolChoiceContract;
+  readonly strictToolSchema: PlumbProtocolCapability;
+  readonly parallelToolCalls: PlumbProtocolCapability;
+  readonly reasoningWithTools: PlumbProtocolCapability;
+  readonly replay: PlumbEffectiveToolReplayContract;
+  readonly parser: PlumbEffectiveToolParserContract;
+  readonly provenance: {
+    readonly baseModelTools: PlumbProtocolCapabilitySource;
+    readonly routePolicy: PlumbRouteToolPolicy['source'];
+    readonly structuredProtocol: PlumbProtocolCapabilitySource;
+  };
+}
+
+export interface PlumbEffectiveToolRouteInput {
+  /** Selected PLUMB provider id; required because model.provider may be an OMP alias. */
+  readonly providerId: PlumbProviderId;
+  readonly model: PlumbModel;
+  readonly endpointOverride?: string;
+  readonly reasoningEffort?: string;
+}
+
+export type PlumbProviderArchitectureFamily =
+  | 'SUBSCRIPTION'
+  | 'CODING_PLAN'
+  | 'OAUTH'
+  | 'DIRECT_API'
+  | 'CLOUD'
+  | 'GATEWAY'
+  | 'LOCAL'
+  | 'CUSTOM';
+
+/** Safe structural wire facts for one active PLUMB dialect adapter. */
+export interface PlumbDialectToolProtocolFacts {
+  readonly dialect: PlumbKnownApi;
+  readonly activeAdapter: string;
+  readonly toolDeclarationSerialization: string;
+  readonly toolChoiceSerialization: string;
+  readonly structuredResponseShape: string;
+  readonly streamParser: string;
+  readonly toolResultRepresentation: string;
+  readonly continuationRepresentation: string;
+  readonly providerNativeToolsPolicy:
+    | 'PLUMB_CLIENT_TOOLS_ONLY'
+    | 'OFFICIAL_MCP_BRIDGE_ONLY'
+    | 'SEPARATE_NOT_ADVERTISED'
+    | 'UNKNOWN';
+  readonly reasoningCompatibility: PlumbProtocolCapabilityStatus;
+  readonly parallelCalls: PlumbProtocolCapabilityStatus;
+}
+
+export interface PlumbProviderProtocolMatrixRow {
+  readonly providerId: PlumbProviderId;
+  readonly providerName: string;
+  readonly architectureFamily: PlumbProviderArchitectureFamily;
+  readonly registered: true;
+  readonly selectable: boolean;
+  readonly availabilityStatus: 'SELECTABLE' | 'REGISTERED_NOT_SELECTABLE';
+  readonly availabilityReason?: string;
+  readonly modelRouteCount: number;
+  readonly representativeModel?: string;
+  readonly dialects: readonly PlumbKnownApi[];
+  readonly endpointFamilies: readonly PlumbRouteEndpointFamily[];
+  readonly structuredProtocols: readonly PlumbStructuredToolProtocol[];
+  readonly toolChoicePolicies: readonly ToolChoiceEmissionPolicy[];
+  readonly protocolFacts: readonly PlumbDialectToolProtocolFacts[];
+  readonly baseModelTools: Readonly<{
+    supported: number;
+    unsupported: number;
+    unknown: number;
+  }>;
+}
+
+export interface PlumbProviderProtocolMatrix {
+  readonly source: 'PLUMB_PROVIDERS';
+  readonly counts: Readonly<{
+    registeredProviders: number;
+    selectableProviders: number;
+    providerRows: number;
+    modelRoutes: number;
+  }>;
+  readonly providers: readonly PlumbProviderProtocolMatrixRow[];
+}
+
 // ─── Thinking control ─────────────────────────────────────────────────
 
 export type PlumbThinkingControlMode =

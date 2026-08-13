@@ -40,6 +40,10 @@ import {
 } from '../omp-ai/providers/aws-credentials.js';
 import { signRequest } from '../omp-ai/providers/aws-sigv4.js';
 import { decodeEventStream } from '../omp-ai/providers/aws-eventstream.js';
+import {
+  resolveEffectiveToolChoice,
+  resolveRouteToolPolicy,
+} from '../tool-policy.js';
 
 const BEDROCK_PROVIDER_ID = 'amazon-bedrock';
 const DEFAULT_REGION = 'us-east-1';
@@ -179,17 +183,40 @@ function buildBedrockToolConfig(options: PlumbStreamOptions):
           inputSchema: { json: Record<string, unknown> };
         };
       }>;
+      toolChoice?:
+        | { auto: Record<string, never> }
+        | { any: Record<string, never> }
+        | { tool: { name: string } };
     }
   | undefined {
   if (!options.tools || options.tools.length === 0) return undefined;
+  const tools =
+    options.toolChoice?.mode === 'none'
+      ? []
+      : options.tools.map((t) => ({
+          toolSpec: {
+            name: t.function.name,
+            description: t.function.description,
+            inputSchema: { json: t.function.parameters },
+          },
+        }));
+  if (tools.length === 0) return undefined;
+  const effectiveChoice = resolveEffectiveToolChoice(
+    resolveRouteToolPolicy(options.model),
+    options.toolChoice,
+    options.tools.length,
+  ).value;
+  const toolChoice =
+    effectiveChoice?.mode === 'auto'
+      ? { auto: {} }
+      : effectiveChoice?.mode === 'required'
+        ? { any: {} }
+        : effectiveChoice?.mode === 'named'
+          ? { tool: { name: effectiveChoice.name } }
+          : undefined;
   return {
-    tools: options.tools.map((t) => ({
-      toolSpec: {
-        name: t.function.name,
-        description: t.function.description,
-        inputSchema: { json: t.function.parameters },
-      },
-    })),
+    tools,
+    ...(toolChoice ? { toolChoice } : {}),
   };
 }
 
@@ -341,7 +368,10 @@ export async function* streamBedrockConverse(
     return;
   }
 
-  const toolNamesById = new Map<number, { id: string; name: string }>();
+  const pendingToolCalls = new Map<
+    number,
+    { id: string; name: string; arguments: string; emitted: boolean }
+  >();
   let finishReason = 'stop';
 
   try {
@@ -392,9 +422,11 @@ export async function* streamBedrockConverse(
             | undefined;
           const index = payload['contentBlockIndex'] as number;
           if (start?.toolUse?.toolUseId && start.toolUse.name) {
-            toolNamesById.set(index, {
+            pendingToolCalls.set(index, {
               id: start.toolUse.toolUseId,
               name: start.toolUse.name,
+              arguments: '',
+              emitted: false,
             });
           }
           break;
@@ -408,19 +440,40 @@ export async function* streamBedrockConverse(
             yield { type: 'text', text: delta.text };
           }
           if (delta?.toolUse?.input !== undefined) {
-            const info = toolNamesById.get(index);
+            const pending = pendingToolCalls.get(index);
+            if (pending) pending.arguments += delta.toolUse.input;
+          }
+          break;
+        }
+        case 'contentBlockStop': {
+          const index = payload['contentBlockIndex'] as number;
+          const pending = pendingToolCalls.get(index);
+          if (pending && !pending.emitted) {
+            pending.emitted = true;
             yield {
               type: 'tool_call',
               toolCall: {
-                id: info?.id ?? `call_${index}`,
-                name: info?.name ?? '',
-                arguments: delta.toolUse.input,
+                id: pending.id,
+                name: pending.name,
+                arguments: pending.arguments,
               },
             };
           }
           break;
         }
         case 'messageStop': {
+          for (const pending of pendingToolCalls.values()) {
+            if (pending.emitted) continue;
+            pending.emitted = true;
+            yield {
+              type: 'tool_call',
+              toolCall: {
+                id: pending.id,
+                name: pending.name,
+                arguments: pending.arguments,
+              },
+            };
+          }
           const reason = payload['stopReason'] as string | undefined;
           finishReason =
             reason === 'tool_use'

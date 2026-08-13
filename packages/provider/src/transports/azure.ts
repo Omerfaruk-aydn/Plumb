@@ -39,6 +39,10 @@
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';
 import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
 import { parseAzureDeploymentNameMap } from '../omp-ai/providers/openai-shared.js';
+import {
+  resolveEffectiveToolChoice,
+  resolveRouteToolPolicy,
+} from '../tool-policy.js';
 
 const AZURE_PROVIDER_ID = 'azure';
 const DEFAULT_API_VERSION = 'v1';
@@ -177,13 +181,27 @@ function buildResponsesTools(options: PlumbStreamOptions):
       parameters: Record<string, unknown>;
     }>
   | undefined {
-  if (!options.tools || options.tools.length === 0) return undefined;
+  if (
+    !options.tools ||
+    options.tools.length === 0 ||
+    options.toolChoice?.mode === 'none'
+  )
+    return undefined;
   return options.tools.map((t) => ({
     type: 'function',
     name: t.function.name,
     description: t.function.description,
     parameters: t.function.parameters,
   }));
+}
+
+function serializeResponsesToolChoice(
+  choice: NonNullable<PlumbStreamOptions['toolChoice']>,
+): unknown {
+  if (choice.mode === 'named') {
+    return { type: 'function', name: choice.name };
+  }
+  return choice.mode;
 }
 
 function classifyAzureHttpError(
@@ -243,6 +261,11 @@ export async function* streamAzureResponses(
 
   const inputItems = buildResponsesInputItems(messages);
   const tools = buildResponsesTools(options);
+  const effectiveChoice = resolveEffectiveToolChoice(
+    resolveRouteToolPolicy(model),
+    options.toolChoice,
+    tools?.length ?? 0,
+  ).value;
   const body: Record<string, unknown> = {
     model: deploymentName,
     input: inputItems,
@@ -250,6 +273,9 @@ export async function* streamAzureResponses(
     ...(systemPrompt ? { instructions: systemPrompt } : {}),
     ...(maxTokens ? { max_output_tokens: maxTokens } : {}),
     ...(tools ? { tools } : {}),
+    ...(effectiveChoice
+      ? { tool_choice: serializeResponsesToolChoice(effectiveChoice) }
+      : {}),
   };
 
   let response: Response;
@@ -297,7 +323,24 @@ export async function* streamAzureResponses(
   const decoder = new TextDecoder();
   let buffer = '';
   let finishReason = 'stop';
-  const pendingCallNames = new Map<string, string>();
+  const pendingCalls = new Map<
+    string,
+    { callId: string; name: string; arguments: string; emitted: boolean }
+  >();
+  function* emitPendingCalls(): Generator<PlumbStreamEvent> {
+    for (const pending of pendingCalls.values()) {
+      if (pending.emitted) continue;
+      pending.emitted = true;
+      yield {
+        type: 'tool_call',
+        toolCall: {
+          id: pending.callId,
+          name: pending.name,
+          arguments: pending.arguments,
+        },
+      };
+    }
+  }
 
   try {
     while (true) {
@@ -331,26 +374,73 @@ export async function* streamAzureResponses(
           }
           case 'response.output_item.added': {
             const item = event['item'] as
-              | { type?: string; call_id?: string; name?: string }
+              | {
+                  id?: string;
+                  type?: string;
+                  call_id?: string;
+                  name?: string;
+                  arguments?: string;
+                }
               | undefined;
-            if (item?.type === 'function_call' && item.call_id && item.name) {
-              pendingCallNames.set(item.call_id, item.name);
+            if (item?.type === 'function_call' && item.id && item.call_id) {
+              pendingCalls.set(item.id, {
+                callId: item.call_id,
+                name: item.name ?? '',
+                arguments: item.arguments ?? '',
+                emitted: false,
+              });
             }
             break;
           }
+          case 'response.function_call_arguments.delta': {
+            const itemId = event['item_id'] as string | undefined;
+            const delta = event['delta'] as string | undefined;
+            const pending = itemId ? pendingCalls.get(itemId) : undefined;
+            if (pending && typeof delta === 'string')
+              pending.arguments += delta;
+            break;
+          }
           case 'response.function_call_arguments.done': {
-            const callId = event['item_id'] as string | undefined;
+            const itemId = event['item_id'] as string | undefined;
             const name = event['name'] as string | undefined;
             const args = event['arguments'] as string | undefined;
-            if (callId) {
+            const pending = itemId ? pendingCalls.get(itemId) : undefined;
+            if (pending && !pending.emitted) {
+              pending.emitted = true;
               yield {
                 type: 'tool_call',
                 toolCall: {
-                  id: callId,
-                  name: name ?? pendingCallNames.get(callId) ?? '',
-                  arguments: args ?? '',
+                  id: pending.callId,
+                  name: name ?? pending.name,
+                  arguments: args ?? pending.arguments,
                 },
               };
+            }
+            break;
+          }
+          case 'response.output_item.done': {
+            const item = event['item'] as
+              | {
+                  id?: string;
+                  type?: string;
+                  call_id?: string;
+                  name?: string;
+                  arguments?: string;
+                }
+              | undefined;
+            if (item?.type === 'function_call' && item.id) {
+              const pending = pendingCalls.get(item.id);
+              if (pending && !pending.emitted) {
+                pending.emitted = true;
+                yield {
+                  type: 'tool_call',
+                  toolCall: {
+                    id: pending.callId,
+                    name: item.name ?? pending.name,
+                    arguments: item.arguments ?? pending.arguments,
+                  },
+                };
+              }
             }
             break;
           }
@@ -369,6 +459,7 @@ export async function* streamAzureResponses(
             if (resp?.output?.some((o) => o.type === 'function_call')) {
               finishReason = 'tool_calls';
             }
+            for (const pending of emitPendingCalls()) yield pending;
             if (resp?.usage) {
               yield {
                 type: 'usage',
@@ -421,5 +512,6 @@ export async function* streamAzureResponses(
     reader.releaseLock();
   }
 
+  for (const pending of emitPendingCalls()) yield pending;
   yield { type: 'done', finishReason };
 }

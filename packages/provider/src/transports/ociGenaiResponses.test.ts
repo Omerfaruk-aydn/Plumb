@@ -87,9 +87,7 @@ describe('streamOciGenaiResponses', () => {
       },
     ]);
     expect(fetchSpy).not.toHaveBeenCalled();
-  }, // This is the first test in the file to call importFresh(), which does
-  // vi.resetModules() + a cold re-import of the oci-common SDK graph.
-  // That's cheap in isolation (<50ms) but under the full provider suite's
+  }, // That's cheap in isolation (<50ms) but under the full provider suite's // vi.resetModules() + a cold re-import of the oci-common SDK graph. // This is the first test in the file to call importFresh(), which does
   // parallel worker-thread contention it has been observed to exceed the
   // default 5000ms -- not a hang (isolated runs are fast and correct),
   // just legitimate CPU contention from many concurrent heavy test files.
@@ -128,7 +126,7 @@ describe('streamOciGenaiResponses', () => {
     ]);
   });
 
-  it("emits a tool_call event per streamed function_call_arguments.delta, correlated to the item's call_id", async () => {
+  it('accumulates fragmented function_call arguments and emits exactly one call with the native call_id', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
       sseResponse([
         {
@@ -189,21 +187,11 @@ describe('streamOciGenaiResponses', () => {
         toolCall: {
           id: 'call_abc',
           name: 'get_weather',
-          arguments: '{"location":',
-        },
-      },
-      {
-        type: 'tool_call',
-        toolCall: {
-          id: 'call_abc',
-          name: 'get_weather',
-          arguments: '"Paris"}',
+          arguments: '{"location":"Paris"}',
         },
       },
     ]);
-    // Already streamed via deltas -- output_item.done must not re-emit a
-    // duplicate third tool_call event on top of the two deltas.
-    expect(toolCallEvents.length).toBe(2);
+    expect(toolCallEvents.length).toBe(1);
   });
 
   it('emits exactly one tool_call event from output_item.done when a model delivers arguments only once, without deltas', async () => {
@@ -341,6 +329,38 @@ describe('streamOciGenaiResponses', () => {
         parameters: { type: 'object' },
       },
     ]);
+  });
+
+  it('serializes the effective named Responses tool choice', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(sseResponse([]));
+    vi.stubGlobal('fetch', fetchSpy);
+    const mod = await importFresh();
+    const routedModel: PlumbModel = {
+      ...model,
+      toolPolicy: {
+        emission: 'OPTIONAL',
+        forcedToolChoiceSupported: true,
+        namedToolChoiceSupported: true,
+        source: 'PROVIDER_CONTRACT',
+      },
+    };
+    await drain(
+      mod.streamOciGenaiResponses({
+        model: routedModel,
+        messages: [{ role: 'user', content: 'search' }],
+        apiKey: 'k',
+        toolChoice: { mode: 'named', name: 'search' },
+        tools: [
+          {
+            type: 'function',
+            function: { name: 'search', description: '', parameters: {} },
+          },
+        ],
+      }),
+    );
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string);
+    expect(body.tool_choice).toEqual({ type: 'function', name: 'search' });
   });
 
   it('classifies a 401 response as AUTH_REQUIRED', async () => {

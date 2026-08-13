@@ -62,6 +62,85 @@ describe('transport/stream activation', () => {
   });
 });
 
+describe('Gemini structured response call correlation', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('preserves a native functionCall id', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            'data: {"candidates":[{"content":{"parts":[{"functionCall":{"id":"native_1","name":"probe","args":{}}}]},"finishReason":"STOP"}]}\n\n',
+            { status: 200 },
+          ),
+        ),
+    );
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: {
+        id: 'gemini-test',
+        provider: 'google',
+        api: 'google-generative-ai',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        contextWindow: 100_000,
+        maxTokens: 4096,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'probe' }],
+      apiKey: 'not-a-real-key',
+    })) {
+      events.push(event);
+    }
+    expect(events).toContainEqual({
+      type: 'tool_call',
+      toolCall: { id: 'native_1', name: 'probe', arguments: '{}' },
+    });
+  });
+
+  it('assigns distinct fallback ids to parallel same-name calls without native ids', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"probe","args":{"n":1}}},{"functionCall":{"name":"probe","args":{"n":2}}}]},"finishReason":"STOP"}]}\n\n',
+            { status: 200 },
+          ),
+        ),
+    );
+    const calls: Array<{ id: string; arguments: string }> = [];
+    for await (const event of plumbModelStream({
+      model: {
+        id: 'gemini-test',
+        provider: 'google',
+        api: 'google-generative-ai',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        contextWindow: 100_000,
+        maxTokens: 4096,
+        input: 'text',
+      },
+      messages: [{ role: 'user', content: 'probe twice' }],
+      apiKey: 'not-a-real-key',
+    })) {
+      if (event.type === 'tool_call' && event.toolCall) {
+        calls.push({
+          id: event.toolCall.id,
+          arguments: event.toolCall.arguments,
+        });
+      }
+    }
+    expect(calls).toEqual([
+      { id: 'probe__1', arguments: '{"n":1}' },
+      { id: 'probe__2', arguments: '{"n":2}' },
+    ]);
+  });
+});
+
 describe('model-level tool capability gate', () => {
   const tool = {
     type: 'function' as const,

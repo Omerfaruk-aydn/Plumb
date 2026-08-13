@@ -188,6 +188,102 @@ describe('amazon-bedrock routing (production-shaped, no mocking of streaming.ts/
     expect(headers['authorization']).toBeUndefined();
   });
 
+  it('serializes native tools and choice, accumulates fragments once, preserves id, and replays tool history', async () => {
+    process.env['AWS_BEARER_TOKEN_BEDROCK'] = 'token';
+    const [model] = getCatalogModels('amazon-bedrock');
+    const routedModel = {
+      ...model!,
+      toolPolicy: {
+        emission: 'OPTIONAL' as const,
+        forcedToolChoiceSupported: true,
+        namedToolChoiceSupported: true,
+        source: 'PROVIDER_CONTRACT' as const,
+      },
+    };
+    fetchSpy = vi.fn().mockResolvedValue(
+      new Response(
+        eventStreamBody([
+          [
+            { ':message-type': 'event', ':event-type': 'contentBlockStart' },
+            {
+              contentBlockIndex: 0,
+              start: {
+                toolUse: { toolUseId: 'tooluse_native', name: 'search' },
+              },
+            },
+          ],
+          [
+            { ':message-type': 'event', ':event-type': 'contentBlockDelta' },
+            { contentBlockIndex: 0, delta: { toolUse: { input: '{"q":' } } },
+          ],
+          [
+            { ':message-type': 'event', ':event-type': 'contentBlockDelta' },
+            { contentBlockIndex: 0, delta: { toolUse: { input: '"x"}' } } },
+          ],
+          [
+            { ':message-type': 'event', ':event-type': 'contentBlockStop' },
+            { contentBlockIndex: 0 },
+          ],
+          [
+            { ':message-type': 'event', ':event-type': 'messageStop' },
+            { stopReason: 'tool_use' },
+          ],
+        ]),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: routedModel,
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_call', id: 'prior', name: 'search', arguments: '{}' },
+          ],
+        },
+        { role: 'tool', toolCallId: 'prior', content: 'result' },
+        { role: 'user', content: 'again' },
+      ],
+      apiKey: '<authenticated>',
+      toolChoice: { mode: 'named', name: 'search' },
+      tools: [
+        {
+          type: 'function',
+          function: { name: 'search', description: 'Search', parameters: {} },
+        },
+      ],
+    }))
+      events.push(event);
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(new TextDecoder().decode(init.body as Uint8Array));
+    expect(body.toolConfig).toEqual({
+      tools: [
+        {
+          toolSpec: {
+            name: 'search',
+            description: 'Search',
+            inputSchema: { json: {} },
+          },
+        },
+      ],
+      toolChoice: { tool: { name: 'search' } },
+    });
+    expect(body.messages[0].content[0].toolUse.toolUseId).toBe('prior');
+    expect(body.messages[1].content[0].toolResult.toolUseId).toBe('prior');
+    expect(events.filter((event) => event.type === 'tool_call')).toEqual([
+      {
+        type: 'tool_call',
+        toolCall: {
+          id: 'tooluse_native',
+          name: 'search',
+          arguments: '{"q":"x"}',
+        },
+      },
+    ]);
+  });
+
   it('a Bedrock HTTP 403 invalidates the cached AWS credential (rotated-key recovery) rather than silently reusing it', async () => {
     const [model] = getCatalogModels('amazon-bedrock');
     fetchSpy = vi

@@ -82,4 +82,98 @@ describe('Antigravity request construction behavior stability', () => {
       }
     },
   );
+
+  it('preserves native function call/result replay and named tool choice', async () => {
+    const testModel: PlumbModel = {
+      id: 'gemini-3-pro',
+      provider: 'google-antigravity',
+      api: 'google-gemini-cli',
+      contextWindow: 200000,
+      maxTokens: 8192,
+      reasoning: true,
+      toolsSupported: true,
+      input: 'text',
+    };
+    const result = await buildAntigravityRequest({
+      model: testModel,
+      messages: [
+        { role: 'user', content: 'Inspect.' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'I will inspect.' },
+            {
+              type: 'tool_call',
+              id: 'call_1',
+              name: 'plumb_tool_probe',
+              arguments: '{}',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          name: 'plumb_tool_probe',
+          toolCallId: 'call_1',
+          content: 'PLUMB_TOOL_PROBE_OK',
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'plumb_tool_probe',
+            description: 'Harmless diagnostic',
+            parameters: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      toolChoice: { mode: 'named', name: 'plumb_tool_probe' },
+      apiKey: 'unused',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const body = result.descriptor.body as {
+      request: {
+        contents: Array<{
+          role: string;
+          parts: Array<Record<string, unknown>>;
+        }>;
+        toolConfig?: {
+          functionCallingConfig?: {
+            mode?: string;
+            allowedFunctionNames?: string[];
+          };
+        };
+      };
+    };
+    const modelParts = body.request.contents.find(
+      (content) => content.role === 'model',
+    )?.parts;
+    expect(modelParts).toContainEqual({
+      functionCall: { name: 'plumb_tool_probe', args: {} },
+      thoughtSignature: expect.any(String),
+    });
+    const resultParts = body.request.contents.find(
+      (content) =>
+        content.role === 'user' &&
+        content.parts.some((part) => 'functionResponse' in part),
+    )?.parts;
+    expect(resultParts).toContainEqual({
+      functionResponse: {
+        name: 'plumb_tool_probe',
+        response: { output: 'PLUMB_TOOL_PROBE_OK' },
+      },
+    });
+    expect(body.request.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['plumb_tool_probe'],
+      },
+    });
+  });
 });

@@ -40,6 +40,7 @@ import { streamWatsonx } from './watsonx.js';
 import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 import { streamBedrockConverse } from './bedrock.js';
 import { streamAzureResponses } from './azure.js';
+import { streamOpenAIResponses } from './openAIResponses.js';
 import { prepareVertexModel } from './googleVertex.js';
 import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
 import { resolveProviderSafeConfig } from '../config/providerConfigResolver.js';
@@ -86,7 +87,7 @@ function resetToolRouteDiag(): void {
   };
 }
 
-function recordToolRouteRequest(
+export function recordToolRouteRequest(
   toolsCount: number,
   modelId: string,
   options?: PlumbStreamOptions,
@@ -153,24 +154,24 @@ function serializeGeminiFunctionCallingConfig(
   }
 }
 
-function recordToolRouteTextDelta(): void {
+export function recordToolRouteTextDelta(): void {
   if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
   lastToolRouteDiag['responseTextDeltaCount'] =
     (lastToolRouteDiag['responseTextDeltaCount'] as number) + 1;
 }
 
-function recordToolRouteToolCallDelta(): void {
+export function recordToolRouteToolCallDelta(): void {
   if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
   lastToolRouteDiag['responseToolCallDeltaCount'] =
     (lastToolRouteDiag['responseToolCallDeltaCount'] as number) + 1;
 }
 
-function recordToolRouteFinishReason(reason: string): void {
+export function recordToolRouteFinishReason(reason: string): void {
   if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
   lastToolRouteDiag['responseFinishReason'] = reason;
 }
 
-function recordToolRouteNormalizedCall(name: string): void {
+export function recordToolRouteNormalizedCall(name: string): void {
   if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
   lastToolRouteDiag['normalizedToolCallCount'] =
     (lastToolRouteDiag['normalizedToolCallCount'] as number) + 1;
@@ -1262,24 +1263,34 @@ export async function buildAntigravityRequest(
 
   const gcli = await import('../omp-ai/providers/google-gemini-cli.js');
   const isAntigravity = model.provider === 'google-antigravity';
-
-  // Minimal PLUMB -> OMP message/model/tool conversion. PlumbMessage/
-  // PlumbModel/PlumbTool are already flatter than OMP's Message/Model/Tool
-  // (PlumbContentGenerator itself only ever hands this transport plain
-  // text-ish history — see #convertMessages in plumbContentGenerator.ts),
-  // so this covers the real shape in play without inventing history this
-  // transport was never given in the first place.
+  // Minimal PLUMB -> OMP message/model/tool conversion. Preserve structured
+  // assistant tool calls: OMP's native Gemini converter pairs them with the
+  // following toolResult by id and serializes functionCall/functionResponse.
+  // This delegates the final wire shape to OMP instead of duplicating native
+  // functionCall/functionResponse serialization in the PLUMB facade.
   const now = Date.now();
   const ompMessages: import('../omp-ai/types.js').Message[] = [];
   for (const msg of messages) {
     if (msg.role === 'system') continue;
-    const text = typeof msg.content === 'string' ? msg.content : '';
+    const text = contentToText(msg.content);
     if (msg.role === 'user') {
       ompMessages.push({ role: 'user', content: text, timestamp: now });
     } else if (msg.role === 'assistant') {
+      const split = splitAssistantContent(msg.content);
       ompMessages.push({
         role: 'assistant',
-        content: [{ type: 'text', text }],
+        content: [
+          ...(split.text ? [{ type: 'text' as const, text: split.text }] : []),
+          ...split.toolCalls.map((call) => ({
+            type: 'toolCall' as const,
+            id: call.id,
+            name: call.name,
+            arguments: safeParseToolArguments(call.arguments) as Record<
+              string,
+              unknown
+            >,
+          })),
+        ],
         api: model.api,
         provider: model.provider,
         model: model.id,
@@ -1292,6 +1303,7 @@ export async function buildAntigravityRequest(
         toolName: msg.name ?? '',
         content: [{ type: 'text', text }],
         isError: false,
+        timestamp: now,
       } as unknown as import('../omp-ai/types.js').Message);
     }
   }
@@ -1323,13 +1335,37 @@ export async function buildAntigravityRequest(
     maxTokens: model.maxTokens,
   } as unknown as import('../omp-ai/types.js').Model<'google-gemini-cli'>;
 
+  const effectiveToolChoice = resolveEffectiveToolChoice(
+    resolveRouteToolPolicy(model),
+    options.toolChoice,
+    gatedTools?.length ?? 0,
+  ).value;
+  const nativeToolChoice:
+    | 'auto'
+    | 'none'
+    | 'any'
+    | { mode: 'ANY'; allowedFunctionNames: [string, ...string[]] }
+    | undefined =
+    effectiveToolChoice?.mode === 'none'
+      ? 'none'
+      : effectiveToolChoice?.mode === 'required'
+        ? 'any'
+        : effectiveToolChoice?.mode === 'named'
+          ? {
+              mode: 'ANY',
+              allowedFunctionNames: [effectiveToolChoice.name],
+            }
+          : effectiveToolChoice?.mode === 'auto'
+            ? 'auto'
+            : undefined;
+
   let requestBody: unknown;
   try {
     requestBody = gcli.buildRequest(
       ompModel,
       context,
       projectId,
-      { maxTokens, temperature },
+      { maxTokens, temperature, toolChoice: nativeToolChoice },
       isAntigravity,
     );
   } catch (err) {
@@ -1645,6 +1681,7 @@ async function* googleCloudCodeAssistStream(
   const decoder = new TextDecoder();
   let buffer = '';
   let finishReason: string | undefined;
+  let syntheticToolCallIndex = 0;
 
   try {
     while (true) {
@@ -1679,10 +1716,15 @@ async function* googleCloudCodeAssistStream(
             } else if (part.thought) {
               yield { type: 'thinking', thinkingText: part.thought };
             } else if (part.functionCall) {
+              const nativeId = part.functionCall.id;
+              const callId =
+                typeof nativeId === 'string' && nativeId.length > 0
+                  ? nativeId
+                  : `${part.functionCall.name || 'tool'}__${++syntheticToolCallIndex}`;
               yield {
                 type: 'tool_call',
                 toolCall: {
-                  id: part.functionCall.name,
+                  id: callId,
                   name: part.functionCall.name,
                   arguments: JSON.stringify(part.functionCall.args ?? {}),
                 },
@@ -1846,6 +1888,7 @@ async function* googleGenerativeAiStream(
   const decoder = new TextDecoder();
   let buffer = '';
   let finishReason: string | undefined;
+  let syntheticToolCallIndex = 0;
 
   try {
     while (true) {
@@ -1877,10 +1920,15 @@ async function* googleGenerativeAiStream(
             } else if (part.thought) {
               yield { type: 'thinking', thinkingText: part.thought };
             } else if (part.functionCall) {
+              const nativeId = part.functionCall.id;
+              const callId =
+                typeof nativeId === 'string' && nativeId.length > 0
+                  ? nativeId
+                  : `${part.functionCall.name || 'tool'}__${++syntheticToolCallIndex}`;
               yield {
                 type: 'tool_call',
                 toolCall: {
-                  id: part.functionCall.name,
+                  id: callId,
                   name: part.functionCall.name,
                   arguments: JSON.stringify(part.functionCall.args ?? {}),
                 },
@@ -2468,7 +2516,6 @@ export async function* plumbModelStream(
     // Deliberate, tested OpenAI-Chat-Completions-compatible aliases --
     // never an unexamined default.
     case 'openai-completions':
-    case 'openai-responses':
     case 'openrouter':
     case 'openai-codex-responses':
     case 'cursor-agent':
@@ -2477,6 +2524,7 @@ export async function* plumbModelStream(
       yield* openAICompatibleStream(options);
       break;
     case 'claude-agent-sdk':
+    case 'openai-responses':
     case 'watsonx-chat':
     case 'oci-openai-responses':
     case 'bedrock-converse-stream':
@@ -2511,7 +2559,7 @@ export async function* plumbModelStream(
 // OpenAI-compatible (covers most providers)
 registerPlumbTransport('openai-completions', openAICompatibleStream);
 registerPlumbTransport('openrouter', openAICompatibleStream);
-registerPlumbTransport('openai-responses', openAICompatibleStream);
+registerPlumbTransport('openai-responses', streamOpenAIResponses);
 
 // Anthropic
 registerPlumbTransport('anthropic-messages', anthropicMessagesStream);

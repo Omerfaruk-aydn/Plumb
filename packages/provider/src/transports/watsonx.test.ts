@@ -83,9 +83,7 @@ describe('streamWatsonx', () => {
       },
     ]);
     expect(mockTextChatStream).not.toHaveBeenCalled();
-  }, // First test in the file to call importFresh() -> vi.resetModules() +
-  // a cold re-import of the @ibm-cloud/watsonx-ai SDK graph. Fast in
-  // isolation (<50ms); observed to exceed the default 5000ms only under
+  }, // isolation (<50ms); observed to exceed the default 5000ms only under // a cold re-import of the @ibm-cloud/watsonx-ai SDK graph. Fast in // First test in the file to call importFresh() -> vi.resetModules() +
   // the full provider suite's parallel worker-thread contention, not a
   // hang -- isolated runs are fast and correct.
   20_000);
@@ -411,6 +409,82 @@ describe('streamWatsonx', () => {
         },
         { type: 'done', finishReason: 'tool_calls' },
       ]);
+    });
+
+    it('accumulates fragmented deltas into exactly one call, preserves its id, and omits unsupported tool choice', async () => {
+      process.env['WATSONX_PROJECT_ID'] = 'proj-1';
+      mockTextChatStream.mockResolvedValue(
+        makeStream([
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: 'call_native',
+                        function: {
+                          name: 'get_weather',
+                          arguments: '{"location":',
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            data: {
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      { index: 0, function: { arguments: '"Paris"}' } },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          { data: { choices: [{ finish_reason: 'tool_calls' }] } },
+        ]),
+      );
+      const mod = await importFresh();
+      const events = await drain(
+        mod.streamWatsonx({
+          model: watsonxModel,
+          messages: [{ role: 'user', content: 'weather?' }],
+          apiKey: 'k',
+          toolChoice: { mode: 'named', name: 'get_weather' },
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'get_weather',
+                description: '',
+                parameters: {},
+              },
+            },
+          ],
+        }),
+      );
+      expect(events.filter((event) => event.type === 'tool_call')).toEqual([
+        {
+          type: 'tool_call',
+          toolCall: {
+            id: 'call_native',
+            name: 'get_weather',
+            arguments: '{"location":"Paris"}',
+          },
+        },
+      ]);
+      const [chatParams] = mockTextChatStream.mock.calls[0] as [
+        Record<string, unknown>,
+      ];
+      expect(chatParams).not.toHaveProperty('toolChoiceOption');
+      expect(chatParams).not.toHaveProperty('tool_choice');
     });
 
     it('emits one tool_call PlumbStreamEvent per streamed tool call for multiple sequential tool calls', async () => {

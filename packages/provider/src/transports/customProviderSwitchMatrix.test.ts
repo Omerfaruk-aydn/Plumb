@@ -70,6 +70,7 @@ const API_KEYS: Record<string, string> = {
 interface CapturedRequest {
   url: string;
   headers: Record<string, string>;
+  body?: Record<string, unknown>;
 }
 
 function header(
@@ -112,6 +113,7 @@ describe('Phase 7 custom-provider switch matrix (zero cross-definition bleed)', 
       captured.push({
         url: String(url),
         headers: { ...(init?.headers as Record<string, string>) },
+        body: JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>,
       });
       return new Response('data: [DONE]\n\n', {
         status: 200,
@@ -192,4 +194,173 @@ describe('Phase 7 custom-provider switch matrix (zero cross-definition bleed)', 
     expect(req4.headers).toEqual(req1.headers);
     expect(req4.url).toBe(req1.url);
   });
+
+  it.each([
+    [OPENAI_ID, 'openai-private-model', 'openai'],
+    [ANTHROPIC_ID, 'anthropic-private-model', 'anthropic'],
+    [GEMINI_ID, 'gemini-private-model', 'gemini'],
+  ] as const)(
+    '%s completes native structured call normalization and result replay',
+    async (providerId, modelId, dialect) => {
+      captured.length = 0;
+      let requestNumber = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: unknown, init?: RequestInit) => {
+          requestNumber++;
+          captured.push({
+            url: String(url),
+            headers: { ...(init?.headers as Record<string, string>) },
+            body: JSON.parse(String(init?.body ?? '{}')) as Record<
+              string,
+              unknown
+            >,
+          });
+          if (requestNumber === 2) {
+            if (dialect === 'anthropic') {
+              return new Response(
+                'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"continued"}}\n\n' +
+                  'data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n\n',
+                { status: 200 },
+              );
+            }
+            if (dialect === 'gemini') {
+              return new Response(
+                'data: {"candidates":[{"content":{"parts":[{"text":"continued"}]},"finishReason":"STOP"}]}\n\n',
+                { status: 200 },
+              );
+            }
+            return new Response(
+              'data: {"choices":[{"delta":{"content":"continued"},"index":0}]}\n\n' +
+                'data: {"choices":[{"delta":{},"finish_reason":"stop","index":0}]}\n\n' +
+                'data: [DONE]\n\n',
+              { status: 200 },
+            );
+          }
+          if (dialect === 'anthropic') {
+            return new Response(
+              'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"call_custom","name":"plumb_tool_probe","input":{}}}\n\n' +
+                'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{}"}}\n\n' +
+                'data: {"type":"content_block_stop","index":0}\n\n' +
+                'data: {"type":"message_delta","delta":{"stop_reason":"tool_use"}}\n\n',
+              { status: 200 },
+            );
+          }
+          if (dialect === 'gemini') {
+            return new Response(
+              'data: {"candidates":[{"content":{"parts":[{"functionCall":{"id":"call_custom","name":"plumb_tool_probe","args":{}}}]},"finishReason":"STOP"}]}\n\n',
+              { status: 200 },
+            );
+          }
+          return new Response(
+            'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_custom","type":"function","function":{"name":"plumb_tool_probe","arguments":"{}"}}]},"index":0}]}\n\n' +
+              'data: {"choices":[{"delta":{},"finish_reason":"tool_calls","index":0}]}\n\n' +
+              'data: [DONE]\n\n',
+            { status: 200 },
+          );
+        }),
+      );
+
+      const registry = new PlumbModelRegistry();
+      registry.hydrateCustomProviderModels();
+      const baseModel = registry.findModel(providerId, modelId)!;
+      const model = {
+        ...baseModel,
+        toolsSupported: true as const,
+        toolsCapabilitySource: 'USER_CONFIGURED' as const,
+      };
+      const tool = {
+        type: 'function' as const,
+        function: {
+          name: 'plumb_tool_probe',
+          description: 'Harmless diagnostic',
+          parameters: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      };
+      const firstEvents: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model,
+        messages: [{ role: 'user', content: 'Run probe.' }],
+        tools: [tool],
+        toolChoice: { mode: 'named', name: 'plumb_tool_probe' },
+        apiKey: API_KEYS[providerId],
+      })) {
+        firstEvents.push(event);
+      }
+      const calls = firstEvents.filter((event) => event.type === 'tool_call');
+      expect(calls).toEqual([
+        {
+          type: 'tool_call',
+          toolCall: {
+            id: 'call_custom',
+            name: 'plumb_tool_probe',
+            arguments: '{}',
+          },
+        },
+      ]);
+
+      const continuation: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model,
+        messages: [
+          { role: 'user', content: 'Run probe.' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_call',
+                id: 'call_custom',
+                name: 'plumb_tool_probe',
+                arguments: '{}',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            name: 'plumb_tool_probe',
+            toolCallId: 'call_custom',
+            content: 'PLUMB_TOOL_PROBE_OK',
+          },
+        ],
+        tools: [tool],
+        apiKey: API_KEYS[providerId],
+      })) {
+        continuation.push(event);
+      }
+      expect(continuation).toContainEqual({ type: 'text', text: 'continued' });
+      expect(captured).toHaveLength(2);
+      const firstBody = captured[0].body!;
+      const replayBody = captured[1].body!;
+      if (dialect === 'openai') {
+        expect(firstBody['tools']).toBeDefined();
+        expect(firstBody['tool_choice']).toEqual({
+          type: 'function',
+          function: { name: 'plumb_tool_probe' },
+        });
+        expect(JSON.stringify(replayBody)).toContain('tool_call_id');
+      } else if (dialect === 'anthropic') {
+        expect(firstBody['tools']).toBeDefined();
+        expect(firstBody['tool_choice']).toEqual({
+          type: 'tool',
+          name: 'plumb_tool_probe',
+        });
+        expect(JSON.stringify(replayBody)).toContain('tool_result');
+        expect(JSON.stringify(replayBody)).toContain('call_custom');
+      } else {
+        expect(firstBody['tools']).toBeDefined();
+        expect(firstBody['toolConfig']).toEqual({
+          functionCallingConfig: {
+            mode: 'ANY',
+            allowedFunctionNames: ['plumb_tool_probe'],
+          },
+        });
+        expect(JSON.stringify(replayBody)).toContain('functionResponse');
+        expect(JSON.stringify(replayBody)).toContain('call_custom');
+      }
+    },
+  );
 });

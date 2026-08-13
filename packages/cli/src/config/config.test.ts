@@ -231,6 +231,32 @@ describe('parseArguments', () => {
     expect(result.model).toBe('deepseek-ai/deepseek-v4');
   });
 
+  it('parses safe tool-route diagnosis with provider and model', async () => {
+    process.argv = [
+      'node',
+      'script.js',
+      '--diagnose-tool-route',
+      '--provider',
+      'nvidia',
+      '--model',
+      'deepseek-ai/deepseek-v4',
+    ];
+
+    const result = await parseArguments({} as MergedSettings);
+
+    expect(result.diagnoseToolRoute).toBe(true);
+    expect(result.provider).toBe('nvidia');
+    expect(result.model).toBe('deepseek-ai/deepseek-v4');
+  });
+
+  it('parses the configured-provider tool-route batch flag', async () => {
+    process.argv = ['node', 'script.js', '--test-tool-routes'];
+
+    const result = await parseArguments({} as MergedSettings);
+
+    expect(result.testToolRoutes).toBe(true);
+  });
+
   it('should fail if multiple session flags are provided', async () => {
     process.argv = [
       'node',

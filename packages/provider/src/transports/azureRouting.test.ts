@@ -109,6 +109,121 @@ describe('azure routing (production-shaped, no mocking of streaming.ts/model-cat
     expect(body.model).toBe('my-real-deployment');
   });
 
+  it('serializes native tools, effective named choice, fragmented response, and replay with the native call id', async () => {
+    const [model] = getCatalogModels('azure');
+    const routedModel = {
+      ...model!,
+      toolPolicy: {
+        emission: 'OPTIONAL' as const,
+        forcedToolChoiceSupported: true,
+        namedToolChoiceSupported: true,
+        source: 'PROVIDER_CONTRACT' as const,
+      },
+    };
+    fetchSpy = vi.fn().mockResolvedValue(
+      new Response(
+        sseChunk({
+          type: 'response.output_item.added',
+          item: {
+            id: 'item_internal',
+            type: 'function_call',
+            call_id: 'call_native',
+            name: 'get_weather',
+          },
+        }) +
+          sseChunk({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'item_internal',
+            delta: '{"city":',
+          }) +
+          sseChunk({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'item_internal',
+            delta: '"Paris"}',
+          }) +
+          sseChunk({
+            type: 'response.function_call_arguments.done',
+            item_id: 'item_internal',
+            name: 'get_weather',
+            arguments: '{"city":"Paris"}',
+          }) +
+          sseChunk({
+            type: 'response.completed',
+            response: { output: [{ type: 'function_call' }] },
+          }) +
+          'data: [DONE]\n\n',
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: routedModel,
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_call',
+              id: 'call_prior',
+              name: 'get_weather',
+              arguments: '{"city":"Rome"}',
+            },
+          ],
+        },
+        { role: 'tool', toolCallId: 'call_prior', content: 'sunny' },
+        { role: 'user', content: 'and Paris?' },
+      ],
+      apiKey: 'k',
+      toolChoice: { mode: 'named', name: 'get_weather' },
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            description: 'Weather',
+            parameters: { type: 'object' },
+          },
+        },
+      ],
+    }))
+      events.push(event);
+
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string);
+    expect(body.tools).toEqual([
+      {
+        type: 'function',
+        name: 'get_weather',
+        description: 'Weather',
+        parameters: { type: 'object' },
+      },
+    ]);
+    expect(body.tool_choice).toEqual({ type: 'function', name: 'get_weather' });
+    expect(body.input).toContainEqual({
+      type: 'function_call',
+      call_id: 'call_prior',
+      name: 'get_weather',
+      arguments: '{"city":"Rome"}',
+    });
+    expect(body.input).toContainEqual({
+      type: 'function_call_output',
+      call_id: 'call_prior',
+      output: 'sunny',
+    });
+    expect(events.filter((event) => event.type === 'tool_call')).toEqual([
+      {
+        type: 'tool_call',
+        toolCall: {
+          id: 'call_native',
+          name: 'get_weather',
+          arguments: '{"city":"Paris"}',
+        },
+      },
+    ]);
+  });
+
   it('PLUMB-saved config (resourceName) beats the environment variable, matching canonical precedence', async () => {
     setProviderConfigResolver((providerId) =>
       providerId === 'azure'
