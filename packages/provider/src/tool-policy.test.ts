@@ -141,4 +141,29 @@ describe('route-level tool protocol policy', () => {
     );
     expect(choice).toEqual({ mode: 'named', name: 'plumb_tool_probe' });
   });
+
+  it('REGRESSION (OpenCode Go live golden): named VERIFIED + required NOT_SUPPORTED still emits named, never auto', () => {
+    // OpenCode Go's real route: named = SUPPORTED, required = NOT_SUPPORTED.
+    // The probe MUST use named(plumb_tool_probe) — it must not degrade to
+    // auto merely because required is unavailable.
+    const policy: PlumbRouteToolPolicy = {
+      emission: 'OPTIONAL',
+      forcedToolChoiceSupported: false,
+      namedToolChoiceSupported: true,
+      source: 'DIALECT_DEFAULT',
+    };
+    const dialect = deriveDialectToolChoiceCapability(policy);
+    expect(dialect.required).toBe('NOT_SUPPORTED');
+    expect(dialect.named).toBe('SUPPORTED');
+    const route = deriveRouteToolChoiceCapability('opencode-go', dialect);
+    expect(route.routeVerified).toBe(true);
+    expect(route.named).toBe('SUPPORTED');
+    expect(route.required).toBe('NOT_SUPPORTED');
+    const choice = resolveHonestProbeToolChoice(
+      route,
+      policy.forcedToolChoiceSupported,
+      policy.namedToolChoiceSupported,
+    );
+    expect(choice).toEqual({ mode: 'named', name: 'plumb_tool_probe' });
+  });
 });

@@ -23,7 +23,8 @@ import {
   describeToolChoiceValue,
   classifyBatchResult,
   computeBatchBreakdown,
-  resolveLiveModelAuthority,
+  isLocalProvider,
+  resolveProbeAuthorityDecision,
   type ClassifiedBatchResult,
   type PlumbContentPart,
   type PlumbEffectiveToolRouteContract,
@@ -518,6 +519,45 @@ export async function runToolRouteProbeResult(
     firstResponseDiag?.['toolConfigPresent'] ?? false,
   );
   line('vertex.toolsPresent', firstResponseDiag?.['toolsPresent'] ?? false);
+  // Vertex preflight progression: the exact stage reached and the exact
+  // failed boundary (safe stage names / field classifications only).
+  line('vertex.stage', firstResponseDiag?.['vertexStage'] ?? 'not_recorded');
+  line(
+    'vertex.failedStage',
+    firstResponseDiag?.['vertexFailedStage'] ?? 'none',
+  );
+  line(
+    'vertex.validationError',
+    firstResponseDiag?.['vertexValidationError'] ?? 'none',
+  );
+  line('wire.networkStarted', firstResponseDiag?.['networkStarted'] ?? false);
+  // Responses-family structural request facts (names/counts only).
+  line('wire.hasInput', firstResponseDiag?.['hasInput'] ?? false);
+  line('wire.inputItemCount', firstResponseDiag?.['inputItemCount'] ?? 0);
+  line(
+    'wire.parallelToolCallsPresent',
+    firstResponseDiag?.['parallelToolCallsPresent'] ?? false,
+  );
+  line(
+    'wire.maxOutputTokensFieldName',
+    firstResponseDiag?.['maxOutputTokensFieldName'] ?? 'absent',
+  );
+  line(
+    'wire.reasoningFieldPresent',
+    firstResponseDiag?.['reasoningFieldPresent'] ?? false,
+  );
+  line(
+    'wire.upstreamErrorType',
+    firstResponseDiag?.['upstreamErrorType'] ?? 'none',
+  );
+  line(
+    'wire.upstreamErrorParam',
+    firstResponseDiag?.['upstreamErrorParam'] ?? 'none',
+  );
+  line(
+    'wire.upstreamErrorMessageSafe',
+    firstResponseDiag?.['upstreamErrorMessageSafe'] ?? 'none',
+  );
   // plumbModelStream emits one normalized event per native structured call;
   // delta fragments are intentionally not counted here.
   line('response.structuredToolCalls', calls.length);
@@ -579,24 +619,27 @@ function safeParseArgs(raw: string): Record<string, unknown> {
 }
 
 export interface ConfiguredToolRouteProbeOptions {
-  /** User-supplied `--model`; when present the LIVE_MODEL_UNRESOLVED rule is
-   * bypassed (explicit selection remains allowed). */
+  /** User-supplied `--model`; when present the probe runs explicitly for
+   * every configured provider (USER_EXPLICIT authority, no discovery). */
   readonly explicitModel?: string;
 }
 
 /**
  * Run the forced live probe sequentially for every configured provider with
- * honest classification. Two universal rules are wired here (the cde
- * toolRouteContract helpers are the single authority for both):
+ * honest, discovery-state-driven authority:
  *
- *  1. LIVE_MODEL_UNRESOLVED — a provider with zero live-discovered models and
- *     bundled-only fallbacks is NEVER probed unless the user explicitly passed
- *     `--model` (zero network, classified, reported).
- *  2. Mutually-exclusive classification — every outcome is classified into
- *     exactly one of PASS / REQUEST_FAILED / AUTH_BLOCKED / MODEL_UNAVAILABLE /
- *     SERVER_UNAVAILABLE / ROUTE_UNRESOLVED / PROTOCOL_UNSUPPORTED /
- *     LIVE_MODEL_UNRESOLVED / UNKNOWN, and BATCH_SUM must equal the configured
- *     count.
+ *   1. configured provider → determine discovery capability
+ *   2. attempt authoritative discovery when the provider supports it
+ *   3. record the discovery outcome as a canonical state
+ *   4. resolve probe authority from THAT state (never from a bare zero count)
+ *   5. only then decide whether the live probe may run
+ *
+ * NOT_ATTEMPTED is never classified LIVE_MODEL_UNRESOLVED. AUTH_BLOCKED,
+ * SERVER_UNAVAILABLE and NETWORK_FAILED are environment blockers. Only
+ * SUCCEEDED_EMPTY justifies LIVE_MODEL_UNRESOLVED. Providers with an
+ * official static (bundled) catalog remain probe candidates under
+ * STATIC_AUTHORITATIVE authority — bundled metadata is valid selection
+ * authority; it is simply never claimed to be live-discovered.
  */
 export async function runConfiguredToolRouteProbes(
   probe: (
@@ -627,53 +670,61 @@ export async function runConfiguredToolRouteProbes(
   const results: ClassifiedBatchResult[] = [];
   for (const providerId of providerIds) {
     line('batch.provider', providerId);
+    const local = isLocalProvider(providerId);
+
+    if (explicitModel !== undefined) {
+      line('batch.provider.discoveryState', 'NOT_ATTEMPTED');
+      line('batch.provider.modelAuthority', 'USER_EXPLICIT');
+      results.push(await runClassifiedProbe(probe, providerId, explicitModel));
+      continue;
+    }
+
+    // Determine discovery capability, then attempt an authoritative
+    // discovery/refresh BEFORE reading any authority state.
+    if (modelRegistry.hasDiscoveryCapability(providerId)) {
+      let apiKey: string | undefined;
+      if (!local) {
+        try {
+          apiKey = (await providerRegistry.getApiKey(providerId)) ?? undefined;
+        } catch {
+          // The discovery adapter will classify the credential failure
+          // itself (AUTH_BLOCKED); never fail the batch here.
+        }
+      }
+      try {
+        await modelRegistry.attemptAuthoritativeDiscovery(providerId, apiKey);
+      } catch {
+        // Attempt threw outside the adapter — the NOT_ATTEMPTED state then
+        // drives the static/route fallback below.
+      }
+    }
+
     const stats = modelRegistry.getModelAuthorityStats(providerId);
-    const authority = resolveLiveModelAuthority({
-      liveDiscoveryCount: stats.liveDiscoveryCount,
+    const decision = resolveProbeAuthorityDecision({
+      discoveryState: stats.discoveryState,
+      explicitModelRequested: false,
+      isLocalProvider: local,
       bundledFallbackCount: stats.bundledFallbackCount,
-      explicitModelRequested: explicitModel !== undefined,
-      fallbackUsed:
-        stats.liveDiscoveryCount === 0 && stats.bundledFallbackCount > 0,
+      liveDiscoveryCount: stats.liveDiscoveryCount,
     });
-    line('batch.provider.liveModelAuthority', authority);
+    line('batch.provider.discoveryState', stats.discoveryState);
+    line('batch.provider.modelAuthority', decision.authority);
     line('batch.provider.liveDiscoveredModels', stats.liveDiscoveryCount);
     line('batch.provider.bundledFallbackModels', stats.bundledFallbackCount);
-    if (authority === 'LIVE_MODEL_UNRESOLVED') {
-      // Universal honesty rule: never trust bundled fallbacks as live
-      // authority. No request is made for this provider.
+
+    if (!decision.probeAllowed) {
       const classified = classifyBatchResult({
         provider: providerId,
-        code: 'LIVE_MODEL_UNRESOLVED',
+        code: decision.classificationCode,
         structuredToolCalls: false,
       });
       results.push(classified);
-      line(
-        'batch.provider.result',
-        'LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST',
-      );
+      line('batch.provider.result', decision.classificationCode);
       line('batch.provider.class', classified.className);
       continue;
     }
-    try {
-      const outcome = await probe(providerId, explicitModel);
-      const classified = classifyBatchResult({
-        provider: providerId,
-        code: outcome.code,
-        structuredToolCalls: outcome.structuredToolCalls,
-      });
-      results.push(classified);
-      line('batch.provider.result', outcome.code);
-      line('batch.provider.class', classified.className);
-    } catch {
-      const classified = classifyBatchResult({
-        provider: providerId,
-        code: 'PROBE_FAILED',
-        structuredToolCalls: false,
-      });
-      results.push(classified);
-      line('batch.provider.result', 'PROBE_FAILED');
-      line('batch.provider.class', classified.className);
-    }
+
+    results.push(await runClassifiedProbe(probe, providerId, undefined));
   }
 
   const breakdown = computeBatchBreakdown(results, providerIds.length);
@@ -688,14 +739,52 @@ export async function runConfiguredToolRouteProbes(
   line('batch.unknown.count', breakdown.unknown);
   line('BATCH_SUM', breakdown.sum);
   line('BATCH_SUM_MATCHES_CONFIGURED', breakdown.sumMatchesConfigured);
+
   const allPassed = results.every((result) => result.className === 'PASS');
+  const conclusiveFailures =
+    breakdown.requestFailure + breakdown.protocolUnsupported;
   line(
     'result',
     providerIds.length === 0
       ? 'NO_CONFIGURED_PROVIDERS'
       : allPassed
-        ? 'ALL_CONFIGURED_ROUTES_PASSED'
-        : 'CONFIGURED_ROUTE_FAILURES',
+        ? 'CONFIGURED_ROUTE_PROBES_PASS'
+        : conclusiveFailures > 0
+          ? 'CONFIGURED_ROUTE_REQUEST_FAILURES'
+          : breakdown.pass > 0
+            ? 'CONFIGURED_ROUTE_PROBES_INCONCLUSIVE'
+            : 'CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED',
   );
   return providerIds.length > 0 && allPassed ? 0 : 1;
+}
+
+/** Run one probe and classify its outcome (never throws). */
+async function runClassifiedProbe(
+  probe: (
+    providerId: string,
+    requestedModel?: string,
+  ) => Promise<ToolRouteProbeOutcome>,
+  providerId: string,
+  requestedModel: string | undefined,
+): Promise<ClassifiedBatchResult> {
+  try {
+    const outcome = await probe(providerId, requestedModel);
+    const classified = classifyBatchResult({
+      provider: providerId,
+      code: outcome.code,
+      structuredToolCalls: outcome.structuredToolCalls,
+    });
+    line('batch.provider.result', outcome.code);
+    line('batch.provider.class', classified.className);
+    return classified;
+  } catch {
+    const classified = classifyBatchResult({
+      provider: providerId,
+      code: 'PROBE_FAILED',
+      structuredToolCalls: false,
+    });
+    line('batch.provider.result', 'PROBE_FAILED');
+    line('batch.provider.class', classified.className);
+    return classified;
+  }
 }

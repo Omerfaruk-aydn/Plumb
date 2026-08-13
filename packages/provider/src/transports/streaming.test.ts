@@ -15,9 +15,12 @@ import {
   getLastToolRouteDiag,
   plumbModelStream,
   recordToolRouteHttpFailure,
+  recordToolRouteNetworkStarted,
   recordToolRouteRequest,
+  recordVertexPreflight,
   resolveAdvertisedTools,
 } from './streaming.js';
+import { extractSafeResponsesErrorDetails } from './errorClassification.js';
 import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 import {
@@ -380,7 +383,7 @@ describe('custom provider credential placement', () => {
   });
 });
 
-describe('plumbModelStream — missing-credential guard', () => {
+describe('plumbModelStream â€” missing-credential guard', () => {
   // This is the transport PlumbContentGenerator actually calls for real
   // chat streaming (see packages/core/src/core/plumbContentGenerator.ts).
   // A missing/empty apiKey must fail with a classified error event instead
@@ -566,13 +569,13 @@ describe('plumbModelStream — missing-credential guard', () => {
   });
 });
 
-describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', () => {
+describe('plumbModelStream â€” GitHub Copilot anthropic-messages auth header', () => {
   // Real-world regression: claude-sonnet-5 under github-copilot resolves to
   // api: 'anthropic-messages' in the bundled catalog, routing through
   // anthropicMessagesStream (not openAICompatibleStream). That function
   // defaulted to `x-api-key`, which GitHub's Copilot proxy rejects with
   // "missing required Authorization header" even when a real credential is
-  // present — a different, real-transport-only bug from the empty-credential
+  // present â€” a different, real-transport-only bug from the empty-credential
   // guard above.
   const copilotClaudeModel: PlumbModel = {
     id: 'claude-sonnet-5',
@@ -762,7 +765,7 @@ describe('plumbModelStream — GitHub Copilot anthropic-messages auth header', (
   });
 });
 
-describe('plumbModelStream — Anthropic Messages HTTP/SSE error classification (ANTHROPIC_MESSAGES, incl. github-copilot)', () => {
+describe('plumbModelStream â€” Anthropic Messages HTTP/SSE error classification (ANTHROPIC_MESSAGES, incl. github-copilot)', () => {
   const nativeAnthropicModel: PlumbModel = {
     id: 'claude-sonnet-5',
     provider: 'anthropic',
@@ -947,7 +950,7 @@ describe('plumbModelStream — Anthropic Messages HTTP/SSE error classification 
   });
 });
 
-describe('plumbModelStream — Gemini Developer API HTTP error classification (GEMINI_GENERATE_CONTENT, also google-vertex)', () => {
+describe('plumbModelStream â€” Gemini Developer API HTTP error classification (GEMINI_GENERATE_CONTENT, also google-vertex)', () => {
   const geminiModel: PlumbModel = {
     id: 'gemini-3.1-pro-preview',
     provider: 'google',
@@ -1087,12 +1090,12 @@ describe('plumbModelStream — Gemini Developer API HTTP error classification (G
   });
 });
 
-describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport', () => {
+describe('plumbModelStream â€” Google Antigravity (Cloud Code Assist) transport', () => {
   // Real production defect: an Antigravity request leaked the OAuth access
   // token into `?key=<token>` and hit a public-Gemini-API-shaped path
   // (`/models/<id>:streamGenerateContent`) that doesn't exist on the real
   // Cloud Code Assist host, producing a Google HTML 404. The real endpoint
-  // is `/v1internal:streamGenerateContent` with `Authorization: Bearer` —
+  // is `/v1internal:streamGenerateContent` with `Authorization: Bearer` â€”
   // see the pinned reference in omp-ai/providers/google-gemini-cli.ts.
   const antigravityModel = (modelId: string): PlumbModel => ({
     id: modelId,
@@ -1161,14 +1164,14 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
         }
 
         // ROUTING_PROVIDER: google-antigravity, regardless of the model's
-        // own family (gemini/claude/gpt-oss) — dispatch is by model.api, not
+        // own family (gemini/claude/gpt-oss) â€” dispatch is by model.api, not
         // by inferring a provider from the model id prefix.
         expect(capturedBody?.['model']).toBe(modelId);
         expect(capturedBody?.['project']).toBe('my-real-gcp-project');
 
-        // Real production defect (round 2): these envelope fields — generated
+        // Real production defect (round 2): these envelope fields â€” generated
         // by the pinned buildAntigravityRequestEnvelope, reached only by
-        // calling the real exported buildRequest — were entirely absent from
+        // calling the real exported buildRequest â€” were entirely absent from
         // the hand-built body in the first fix and are suspected load-bearing
         // for Google's request routing (still 404s without them).
         expect(typeof capturedBody?.['requestId']).toBe('string');
@@ -1202,7 +1205,7 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
 
   it('sends the catalog requestModelId (wire id), never the display id, when they differ', async () => {
     // Real catalog shape: gpt-oss-120b (display id) has
-    // requestModelId 'gpt-oss-120b-medium' (wire id) — confirmed against
+    // requestModelId 'gpt-oss-120b-medium' (wire id) â€” confirmed against
     // the actual bundled antigravity catalog. Sending the display id
     // instead of the wire id is a plausible cause of a route-not-found 404.
     mockResolveUsablePlumbCredential.mockResolvedValue({
@@ -1328,7 +1331,7 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     // PlumbProviderRegistry/credential-store state is keyed by the PLUMB
     // presentation id ("antigravity") that login/UI/settings actually use.
     // Looking the credential up under model.provider directly always misses
-    // — even with a real, valid, stored OAuth credential — and silently
+    // â€” even with a real, valid, stored OAuth credential â€” and silently
     // falls through to MISSING_CREDENTIAL without ever sending a request.
     mockResolveUsablePlumbCredential.mockImplementation(async (id: string) =>
       id === 'antigravity'
@@ -1489,12 +1492,12 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
     });
   });
 
-  describe('GOOGLE_CLOUD_CODE_ASSIST error classification (deliberately unchanged — preservation test)', () => {
+  describe('GOOGLE_CLOUD_CODE_ASSIST error classification (deliberately unchanged â€” preservation test)', () => {
     // This dialect (googleCloudCodeAssistStream) is the highest-blast-radius
     // REAL_VERIFIED path in this file and already implements its own precise
     // classification (ENDPOINT_NOT_FOUND for 404, HTTP_${status}_${safeStatus}
     // when Google's structured status is present). The taxonomy-normalization
-    // work in this file deliberately does NOT touch it — these tests pin the
+    // work in this file deliberately does NOT touch it â€” these tests pin the
     // existing behavior so a future change here is a conscious decision, not
     // an accidental regression.
     it('a 404 (route not found) yields ENDPOINT_NOT_FOUND, unchanged', async () => {
@@ -1556,7 +1559,7 @@ describe('plumbModelStream — Google Antigravity (Cloud Code Assist) transport'
   });
 });
 
-describe('plumbModelStream — OpenAI-compatible HTTP error classification (openai-completions, openai-responses, openrouter, github-copilot)', () => {
+describe('plumbModelStream â€” OpenAI-compatible HTTP error classification (openai-completions, openai-responses, openrouter, github-copilot)', () => {
   const openaiModel: PlumbModel = {
     id: 'gpt-5.5',
     provider: 'openai',
@@ -2140,7 +2143,7 @@ describe('multi-turn tool-call/tool-result wire shape (regression: previously fl
     const toolMsg = messages.find((m) => m['role'] === 'tool');
 
     // The bug: previously `content: '[Tool: list_files]'` with no tool_calls
-    // array, and a `tool` message with `tool_call_id: undefined` — a real
+    // array, and a `tool` message with `tool_call_id: undefined` â€” a real
     // OpenAI-compatible endpoint rejects that outright (orphaned tool
     // message, no matching preceding tool_calls[].id).
     expect(assistantMsg?.['content']).not.toContain('[Tool:');
@@ -2196,7 +2199,7 @@ describe('multi-turn tool-call/tool-result wire shape (regression: previously fl
     });
 
     // The tool result must be a `tool_result` block inside a *user* message
-    // immediately following — Anthropic rejects a `tool`-role message.
+    // immediately following â€” Anthropic rejects a `tool`-role message.
     const toolResultMsg = messages.find(
       (m) =>
         m['role'] === 'user' &&
@@ -2381,7 +2384,7 @@ describe('tool-route wire-proof diagnostics (safe structural facts)', () => {
   });
 });
 
-describe('plumbModelStream — openai-codex-responses native /responses dispatch', () => {
+describe('plumbModelStream â€” openai-codex-responses native /responses dispatch', () => {
   const codexModel: PlumbModel = {
     id: 'gpt-5.5',
     provider: 'openai-codex',
@@ -2445,7 +2448,7 @@ describe('plumbModelStream — openai-codex-responses native /responses dispatch
   });
 });
 
-describe('plumbModelStream — Gemini truthful request-model recording (never "undefined")', () => {
+describe('plumbModelStream â€” Gemini truthful request-model recording (never "undefined")', () => {
   const geminiModel: PlumbModel = {
     id: 'gemini-2.5-pro',
     provider: 'google',
@@ -2490,5 +2493,101 @@ describe('plumbModelStream — Gemini truthful request-model recording (never "u
     expect(diag?.['functionDeclarationNames']).toEqual(['plumb_tool_probe']);
     expect(diag?.['functionCallingMode']).toBe('AUTO');
     expect(diag?.['toolsPresent']).toBe(true);
+  });
+});
+
+describe('tool-route preflight + upstream error diagnostics', () => {
+  it('records a Vertex preflight boundary break without any credential value', () => {
+    enableToolRouteDiag();
+    recordVertexPreflight({
+      stage: 'ROUTE_RESOLVED',
+      failedStage: 'PROJECT_RESOLVED',
+      validationError: 'missing.project',
+    });
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['vertexStage']).toBe('ROUTE_RESOLVED');
+    expect(diag?.['vertexFailedStage']).toBe('PROJECT_RESOLVED');
+    expect(diag?.['vertexValidationError']).toBe('missing.project');
+    const snapshot = JSON.stringify(diag);
+    expect(snapshot).not.toContain('project=');
+    expect(snapshot).not.toContain('Bearer');
+  });
+
+  it('records the network boundary crossing as a safe boolean', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(1, 'gemini-2.5-pro', undefined, undefined, {
+      requestFamily: 'google-gemini',
+      endpointPath: '/models/gemini-2.5-pro:streamGenerateContent',
+      toolSerializationShape: 'GEMINI_FUNCTION_DECLARATIONS',
+      toolsPresent: true,
+    });
+    recordToolRouteNetworkStarted();
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['networkStarted']).toBe(true);
+    expect(diag?.['vertexStage']).toBe('NETWORK_STARTED');
+  });
+
+  it('records sanitized upstream error type/param/message without raw bodies', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(1, 'gpt-5.5', undefined);
+    recordToolRouteHttpFailure(400, 'INVALID_REQUEST', [], {
+      errorType: 'invalid_request_error',
+      errorParam: 'tool_choice',
+      errorMessageSafe: 'tool_choice is not allowed',
+    });
+    const diag = getLastToolRouteDiag();
+    expect(diag?.['httpStatus']).toBe(400);
+    expect(diag?.['upstreamErrorType']).toBe('invalid_request_error');
+    expect(diag?.['upstreamErrorParam']).toBe('tool_choice');
+    expect(diag?.['upstreamErrorMessageSafe']).toBe(
+      'tool_choice is not allowed',
+    );
+  });
+
+  it('never stores prompt or credential text in the diagnostic snapshot', () => {
+    enableToolRouteDiag();
+    recordToolRouteRequest(
+      1,
+      'gpt-5.5',
+      {
+        model: {
+          id: 'gpt-5.5',
+          provider: 'github-copilot',
+          api: 'openai-responses',
+          contextWindow: 128000,
+          maxTokens: 4096,
+          input: 'text',
+        },
+        messages: [{ role: 'user', content: 'Run the diagnostic tool.' }],
+        apiKey: 'gho_secret_canary',
+      },
+      { mode: 'auto' },
+      {
+        requestFamily: 'openai-responses',
+        endpointPath: '/responses',
+        toolSerializationShape: 'RESPONSES_FLAT',
+        toolsPresent: true,
+        hasInput: true,
+        inputItemCount: 1,
+      },
+    );
+    // The REAL pipeline: raw upstream body → safe extractor → recorder.
+    const rawBody = JSON.stringify({
+      error: {
+        type: 'invalid_request_error',
+        param: 'tool_choice',
+        message:
+          'Unauthorized Bearer gho_secret_canary rejected for prompt "Run the diagnostic tool."',
+      },
+    });
+    const safe = extractSafeResponsesErrorDetails(rawBody);
+    recordToolRouteHttpFailure(400, 'INVALID_REQUEST', [], safe);
+    const diag = getLastToolRouteDiag();
+    const snapshot = JSON.stringify(diag);
+    expect(snapshot).not.toContain('gho_secret_canary');
+    expect(snapshot).not.toContain('Run the diagnostic tool');
+    expect(diag?.['upstreamErrorType']).toBe('invalid_request_error');
+    expect(diag?.['upstreamErrorParam']).toBe('tool_choice');
+    expect(diag?.['upstreamErrorMessageSafe']).toContain('[REDACTED_BEARER]');
   });
 });

@@ -100,6 +100,18 @@ function resetToolRouteDiag(): void {
     httpStatus: 0,
     upstreamErrorCode: 'none',
     upstreamErrorFieldViolations: [] as string[],
+    upstreamErrorType: 'none',
+    upstreamErrorParam: 'none',
+    upstreamErrorMessageSafe: 'none',
+    hasInput: false,
+    inputItemCount: 0,
+    parallelToolCallsPresent: false,
+    maxOutputTokensFieldName: 'absent',
+    reasoningFieldPresent: false,
+    vertexStage: 'not_recorded',
+    vertexFailedStage: 'not_recorded',
+    vertexValidationError: 'none',
+    networkStarted: false,
   };
 }
 
@@ -126,6 +138,12 @@ export interface ToolRouteRequestWireDetails {
   readonly allowedFunctionNames?: readonly string[];
   readonly toolConfigPresent?: boolean;
   readonly toolsPresent?: boolean;
+  /** Responses-family structural facts (names/counts only, no content). */
+  readonly hasInput?: boolean;
+  readonly inputItemCount?: number;
+  readonly parallelToolCallsPresent?: boolean;
+  readonly maxOutputTokensFieldName?: string;
+  readonly reasoningFieldPresent?: boolean;
 }
 
 export function recordToolRouteRequest(
@@ -177,23 +195,74 @@ export function recordToolRouteRequest(
     lastToolRouteDiag!['toolConfigPresent'] =
       details.toolConfigPresent ?? false;
     lastToolRouteDiag!['toolsPresent'] = details.toolsPresent ?? false;
+    lastToolRouteDiag!['hasInput'] = details.hasInput ?? false;
+    lastToolRouteDiag!['inputItemCount'] = details.inputItemCount ?? 0;
+    lastToolRouteDiag!['parallelToolCallsPresent'] =
+      details.parallelToolCallsPresent ?? false;
+    lastToolRouteDiag!['maxOutputTokensFieldName'] =
+      details.maxOutputTokensFieldName ?? 'absent';
+    lastToolRouteDiag!['reasoningFieldPresent'] =
+      details.reasoningFieldPresent ?? false;
+    if (details.requestFamily === 'google-gemini') {
+      lastToolRouteDiag!['vertexStage'] = 'REQUEST_CONSTRUCTED';
+    }
   }
 }
 
 /**
+ * Record a Vertex preflight outcome (stage progression + the exact failed
+ * boundary + safe validation classification) into the diagnostic snapshot.
+ * Values are stage names and field-name classifications only — never a
+ * project id, token, or endpoint value.
+ */
+export function recordVertexPreflight(prep: {
+  stage?: string;
+  failedStage?: string;
+  validationError?: string;
+}): void {
+  if (!toolRouteDiagEnabled) return;
+  if (!lastToolRouteDiag) resetToolRouteDiag();
+  lastToolRouteDiag!['vertexStage'] = prep.stage ?? 'not_recorded';
+  lastToolRouteDiag!['vertexFailedStage'] = prep.failedStage ?? 'none';
+  lastToolRouteDiag!['vertexValidationError'] = prep.validationError ?? 'none';
+}
+
+/** Mark that the transport crossed the network boundary (safe boolean). */
+export function recordToolRouteNetworkStarted(): void {
+  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
+  lastToolRouteDiag['networkStarted'] = true;
+  lastToolRouteDiag['vertexStage'] = 'NETWORK_STARTED';
+}
+
+/** Safe upstream error details (sanitized; never the raw body). */
+export interface SafeUpstreamErrorDetails {
+  readonly errorType?: string;
+  readonly errorParam?: string;
+  readonly errorMessageSafe?: string;
+}
+
+/**
  * Record the structural result of an upstream HTTP failure (status +
- * canonical classification + sanitized field violations) into the active
- * diagnostic snapshot. Never stores the raw error body.
+ * canonical classification + sanitized field violations + sanitized error
+ * type/param/message) into the active diagnostic snapshot. Never stores the
+ * raw error body.
  */
 export function recordToolRouteHttpFailure(
   httpStatus: number,
   upstreamErrorCode: string,
   fieldViolations: readonly string[] = [],
+  upstream?: SafeUpstreamErrorDetails,
 ): void {
   if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
   lastToolRouteDiag['httpStatus'] = httpStatus;
   lastToolRouteDiag['upstreamErrorCode'] = upstreamErrorCode;
   lastToolRouteDiag['upstreamErrorFieldViolations'] = [...fieldViolations];
+  if (upstream) {
+    lastToolRouteDiag['upstreamErrorType'] = upstream.errorType ?? 'none';
+    lastToolRouteDiag['upstreamErrorParam'] = upstream.errorParam ?? 'none';
+    lastToolRouteDiag['upstreamErrorMessageSafe'] =
+      upstream.errorMessageSafe ?? 'none';
+  }
 }
 
 function serializeOpenAIToolChoice(choice: PlumbToolChoice): unknown {
@@ -2099,6 +2168,9 @@ async function* googleGenerativeAiStream(
         apiKey,
       );
     }
+    // Cross the instrumented network boundary only here, right before the
+    // fetch that carries the serialized request.
+    recordToolRouteNetworkStarted();
     response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -2710,6 +2782,11 @@ export async function* plumbModelStream(
   // receives an already-real, already-resolvable model descriptor.
   if (model.provider === 'google-vertex') {
     const prep = await prepareVertexModel(model, options.signal);
+    // Record the preflight progression (or the exact failed boundary) into
+    // the diagnostic snapshot BEFORE any error is yielded, so a pre-network
+    // break (e.g. missing.project) is visible and never misread as a
+    // serializer/wire rejection.
+    recordVertexPreflight(prep);
     if (prep.error) {
       yield prep.error;
       return;

@@ -100,6 +100,9 @@ function classifyCode(
       return 'PROTOCOL_UNSUPPORTED';
     case 'LIVE_MODEL_UNRESOLVED':
       return 'LIVE_MODEL_UNRESOLVED';
+    case 'SERVER_UNAVAILABLE':
+      // A discovery/preflight stage already proved the server unreachable.
+      return 'SERVER_UNAVAILABLE';
     case 'INVALID_REQUEST':
     case 'PAYLOAD_VALIDATION_FAILED':
       // Provider rejected a well-formed request — a real request failure.
@@ -262,4 +265,123 @@ export function resolveLiveModelAuthority(
 
 export function liveModelUnresolvedClassification(): BatchResultClass {
   return 'LIVE_MODEL_UNRESOLVED';
+}
+
+// ─── Model-discovery state (authority must distinguish attempts) ─────────
+
+/**
+ * Canonical per-provider model-discovery states. A zero live-discovery count
+ * is NOT a state — NOT_ATTEMPTED, SUCCEEDED_EMPTY, AUTH_BLOCKED,
+ * SERVER_UNAVAILABLE, NETWORK_FAILED, PROTOCOL_FAILED, and UNSUPPORTED are
+ * different outcomes that must never be conflated.
+ */
+export type ModelDiscoveryState =
+  | 'NOT_ATTEMPTED'
+  | 'SUCCEEDED_NONEMPTY'
+  | 'SUCCEEDED_EMPTY'
+  | 'AUTH_BLOCKED'
+  | 'NETWORK_FAILED'
+  | 'SERVER_UNAVAILABLE'
+  | 'PROTOCOL_FAILED'
+  | 'UNSUPPORTED';
+
+/** Authority of the model the probe may use for a provider route. */
+export type ModelAuthorityKind =
+  | 'STATIC_AUTHORITATIVE'
+  | 'LIVE_DISCOVERED'
+  | 'LIVE_FALLBACK'
+  | 'USER_EXPLICIT'
+  | 'SERVER_DISCOVERED'
+  | 'UNKNOWN';
+
+export interface ProbeAuthorityDecision {
+  /** Authority label for the probe's model selection. */
+  readonly authority: ModelAuthorityKind;
+  /** Whether the live structured-tool probe may run for this provider. */
+  readonly probeAllowed: boolean;
+  /** Canonical classification code used when the probe may NOT run. */
+  readonly classificationCode: string;
+}
+
+export interface ProbeAuthorityInput {
+  readonly discoveryState: ModelDiscoveryState;
+  readonly explicitModelRequested: boolean;
+  readonly isLocalProvider: boolean;
+  readonly bundledFallbackCount: number;
+  readonly liveDiscoveryCount: number;
+}
+
+/**
+ * Evidence-driven probe-authority decision:
+ *   - an explicit `--model` always permits the probe (USER_EXPLICIT);
+ *   - SUCCEEDED_NONEMPTY permits the probe (LIVE_DISCOVERED / local
+ *     SERVER_DISCOVERED) without ever claiming a bundled model was
+ *     live-discovered;
+ *   - SUCCEEDED_EMPTY is the ONLY state that justifies LIVE_MODEL_UNRESOLVED;
+ *   - AUTH_BLOCKED / SERVER_UNAVAILABLE / NETWORK_FAILED are environment
+ *     blockers, never LIVE_MODEL_UNRESOLVED;
+ *   - UNSUPPORTED / NOT_ATTEMPTED / PROTOCOL_FAILED keep the official static
+ *     (bundled) catalog as valid selection authority (STATIC_AUTHORITATIVE)
+ *     when one exists — bundled metadata is legitimate authority for normal
+ *     operation; it is just never claimed to be LIVE.
+ */
+export function resolveProbeAuthorityDecision(
+  input: ProbeAuthorityInput,
+): ProbeAuthorityDecision {
+  if (input.explicitModelRequested) {
+    return {
+      authority: 'USER_EXPLICIT',
+      probeAllowed: true,
+      classificationCode: 'OK',
+    };
+  }
+  switch (input.discoveryState) {
+    case 'SUCCEEDED_NONEMPTY':
+      return {
+        authority: input.isLocalProvider
+          ? 'SERVER_DISCOVERED'
+          : 'LIVE_DISCOVERED',
+        probeAllowed: true,
+        classificationCode: 'OK',
+      };
+    case 'SUCCEEDED_EMPTY':
+      return {
+        authority: 'LIVE_FALLBACK',
+        probeAllowed: false,
+        classificationCode: 'LIVE_MODEL_UNRESOLVED',
+      };
+    case 'AUTH_BLOCKED':
+      return {
+        authority: 'UNKNOWN',
+        probeAllowed: false,
+        classificationCode: 'AUTH_REQUIRED',
+      };
+    case 'SERVER_UNAVAILABLE':
+    case 'NETWORK_FAILED':
+      return {
+        authority: 'UNKNOWN',
+        probeAllowed: false,
+        classificationCode: 'SERVER_UNAVAILABLE',
+      };
+    case 'UNSUPPORTED':
+    case 'NOT_ATTEMPTED':
+    case 'PROTOCOL_FAILED':
+      return input.bundledFallbackCount > 0
+        ? {
+            authority: 'STATIC_AUTHORITATIVE',
+            probeAllowed: true,
+            classificationCode: 'OK',
+          }
+        : {
+            authority: 'UNKNOWN',
+            probeAllowed: false,
+            classificationCode: 'ROUTE_NOT_FOUND',
+          };
+    default:
+      return {
+        authority: 'UNKNOWN',
+        probeAllowed: false,
+        classificationCode: 'PROBE_FAILED',
+      };
+  }
 }

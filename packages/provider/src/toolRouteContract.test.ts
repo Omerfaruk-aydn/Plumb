@@ -14,6 +14,7 @@ import {
   computeBatchBreakdown,
   isLocalProvider,
   resolveLiveModelAuthority,
+  resolveProbeAuthorityDecision,
   liveModelUnresolvedClassification,
   type ClassifiedBatchResult,
 } from './toolRouteContract.js';
@@ -164,5 +165,115 @@ describe('live model authority (universal, every provider)', () => {
       ).toBe('LIVE_MODEL_UNRESOLVED');
       void provider;
     }
+  });
+});
+
+describe('resolveProbeAuthorityDecision (discovery-state-driven authority)', () => {
+  const base = {
+    explicitModelRequested: false,
+    isLocalProvider: false,
+    bundledFallbackCount: 10,
+    liveDiscoveryCount: 0,
+  };
+
+  it('NOT_ATTEMPTED must not masquerade as successful-empty discovery', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'NOT_ATTEMPTED',
+    });
+    expect(decision.authority).toBe('STATIC_AUTHORITATIVE');
+    expect(decision.probeAllowed).toBe(true);
+    // Critically: NOT LIVE_MODEL_UNRESOLVED.
+    expect(decision.classificationCode).not.toBe('LIVE_MODEL_UNRESOLVED');
+  });
+
+  it('local ECONNREFUSED-style SERVER_UNAVAILABLE is an environment blocker, not LIVE_MODEL_UNRESOLVED', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'SERVER_UNAVAILABLE',
+      isLocalProvider: true,
+    });
+    expect(decision.probeAllowed).toBe(false);
+    expect(decision.classificationCode).toBe('SERVER_UNAVAILABLE');
+    expect(
+      classifyBatchResult({
+        provider: 'ollama',
+        code: decision.classificationCode,
+      }).className,
+    ).toBe('SERVER_UNAVAILABLE');
+  });
+
+  it('auth discovery failure is AUTH_BLOCKED, never LIVE_MODEL_UNRESOLVED', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'AUTH_BLOCKED',
+    });
+    expect(decision.probeAllowed).toBe(false);
+    expect(decision.classificationCode).toBe('AUTH_REQUIRED');
+    expect(
+      classifyBatchResult({
+        provider: 'cloud',
+        code: decision.classificationCode,
+      }).className,
+    ).toBe('AUTH_BLOCKED');
+  });
+
+  it('successful empty authoritative discovery is the ONLY LIVE_MODEL_UNRESOLVED justification', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'SUCCEEDED_EMPTY',
+    });
+    expect(decision.authority).toBe('LIVE_FALLBACK');
+    expect(decision.probeAllowed).toBe(false);
+    expect(decision.classificationCode).toBe('LIVE_MODEL_UNRESOLVED');
+  });
+
+  it('a static-authoritative provider may probe with its bundled catalog without claiming live discovery', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'UNSUPPORTED',
+      bundledFallbackCount: 161,
+    });
+    expect(decision.authority).toBe('STATIC_AUTHORITATIVE');
+    expect(decision.probeAllowed).toBe(true);
+    expect(decision.classificationCode).toBe('OK');
+  });
+
+  it('a static provider with NO bundled models is ROUTE_UNRESOLVED', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'UNSUPPORTED',
+      bundledFallbackCount: 0,
+    });
+    expect(decision.probeAllowed).toBe(false);
+    expect(decision.classificationCode).toBe('ROUTE_NOT_FOUND');
+  });
+
+  it('live discovery SUCCEEDED_NONEMPTY permits the probe as LIVE_DISCOVERED (SERVER_DISCOVERED for local)', () => {
+    const remote = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+      liveDiscoveryCount: 3,
+    });
+    expect(remote.authority).toBe('LIVE_DISCOVERED');
+    expect(remote.probeAllowed).toBe(true);
+
+    const local = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+      isLocalProvider: true,
+      liveDiscoveryCount: 3,
+    });
+    expect(local.authority).toBe('SERVER_DISCOVERED');
+  });
+
+  it('an explicit --model always permits the probe (USER_EXPLICIT)', () => {
+    const decision = resolveProbeAuthorityDecision({
+      ...base,
+      discoveryState: 'NOT_ATTEMPTED',
+      explicitModelRequested: true,
+    });
+    expect(decision.authority).toBe('USER_EXPLICIT');
+    expect(decision.probeAllowed).toBe(true);
   });
 });

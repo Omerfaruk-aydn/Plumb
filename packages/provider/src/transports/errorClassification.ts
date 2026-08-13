@@ -100,6 +100,77 @@ export function sanitizeErrorBodyMessage(
   return trimmed.slice(0, MAX_MESSAGE_LEN) || fallback;
 }
 
+/** Redact credential/token patterns from an upstream error message. */
+function redactSensitiveText(text: string): string {
+  return (
+    text
+      .replace(/ya29\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, '[REDACTED_BEARER]')
+      .replace(/sk-[A-Za-z0-9_-]{8,}/g, '[REDACTED_KEY]')
+      .replace(/gho_[A-Za-z0-9_-]+/g, '[REDACTED_KEY]')
+      .replace(/projects\/[A-Za-z0-9._-]+/g, 'projects/[REDACTED]')
+      .replace(/api[_-]?key[=:]\s*[A-Za-z0-9._-]+/gi, 'api_key=[REDACTED]')
+      // Strip echoed prompt/input content (e.g. `prompt "..."`, `input: {...}`).
+      .replace(
+        /\b(prompt|input)\s*[:=]?\s*"[^"]*"/gi,
+        '$1 "[REDACTED_CONTENT]"',
+      )
+      .replace(
+        /\b(prompt|input)\s*[:=]?\s*\{[^}]*\}/gi,
+        '$1 [REDACTED_CONTENT]',
+      )
+  );
+}
+
+export interface SafeResponsesErrorDetails {
+  errorType?: string;
+  errorParam?: string;
+  errorMessageSafe?: string;
+}
+
+const MAX_SAFE_ERROR_DETAIL = 300;
+
+/**
+ * Extract ONLY the safe structural details of an OpenAI-Responses-family
+ * upstream error (`error.type`, `error.param`, sanitized `error.message`).
+ * The message is redacted (tokens/keys/bearers stripped), bounded to 300
+ * chars, and never includes the raw body or echoed request content.
+ */
+export function extractSafeResponsesErrorDetails(
+  bodyText: string,
+): SafeResponsesErrorDetails {
+  const result: SafeResponsesErrorDetails = {};
+  if (!bodyText || bodyText.trim().length === 0) return result;
+  try {
+    const parsed = JSON.parse(bodyText.trim()) as unknown;
+    if (!parsed || typeof parsed !== 'object') return result;
+    const error = (parsed as Record<string, unknown>)['error'];
+    if (!error || typeof error !== 'object') return result;
+    const rec = error as Record<string, unknown>;
+    if (typeof rec['type'] === 'string') {
+      result.errorType = redactSensitiveText(rec['type']).slice(
+        0,
+        MAX_SAFE_ERROR_DETAIL,
+      );
+    }
+    if (typeof rec['param'] === 'string' && rec['param'].length < 250) {
+      result.errorParam = redactSensitiveText(rec['param']).slice(
+        0,
+        MAX_SAFE_ERROR_DETAIL,
+      );
+    }
+    if (typeof rec['message'] === 'string' && rec['message'].trim()) {
+      result.errorMessageSafe = redactSensitiveText(rec['message']).slice(
+        0,
+        MAX_SAFE_ERROR_DETAIL,
+      );
+    }
+  } catch {
+    // Not JSON — no safe structured details to expose.
+  }
+  return result;
+}
+
 /**
  * Classify a generic (OpenAI-/Anthropic-/Ollama-compatible) HTTP error
  * response using only the HTTP status code and OMP's vetted rate-limit-

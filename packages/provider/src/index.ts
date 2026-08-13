@@ -101,6 +101,7 @@ export {
   isLocalProvider,
   resolveLiveModelAuthority,
   liveModelUnresolvedClassification,
+  resolveProbeAuthorityDecision,
   type BatchResultClass,
   type BatchProbeResult,
   type ClassifiedBatchResult,
@@ -108,6 +109,9 @@ export {
   type BatchBreakdownCounters,
   type LiveModelAuthority,
   type LiveModelAuthorityInput,
+  type ModelAuthorityKind,
+  type ProbeAuthorityDecision,
+  type ProbeAuthorityInput,
 } from './toolRouteContract.js';
 
 // Provider catalog
@@ -176,6 +180,7 @@ export {
   resetPlumbModelRegistry,
   type PlumbModelAuthorityStats,
 } from './registry/model-registry.js';
+export type { ModelDiscoveryState } from './toolRouteContract.js';
 
 // Auto-mode model-routing policy
 export {
@@ -412,7 +417,10 @@ export {
   extractSafeGoogleErrorDetails,
   formatSafeGoogleErrorSummary,
   recordToolRouteHttpFailure,
+  recordToolRouteNetworkStarted,
+  recordVertexPreflight,
   type ToolRouteRequestWireDetails,
+  type SafeUpstreamErrorDetails,
   type SafeGoogleErrorDetails,
   type SafeFieldViolation,
   type AntigravityRequestDescriptor,

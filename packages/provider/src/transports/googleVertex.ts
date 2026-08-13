@@ -80,7 +80,30 @@ function substitutePlaceholders(
 export interface VertexRequestPrep {
   model: PlumbModel;
   error?: PlumbStreamEvent;
+  /** Last COMPLETED preflight stage (monotonic, safe, no values). */
+  stage?: VertexPreflightStage;
+  /** The stage that FAILED (FIRST_BROKEN_BOUNDARY when set). */
+  failedStage?: VertexPreflightStage;
+  /** Safe missing-field classification — never a credential value. */
+  validationError?: VertexValidationError;
 }
+
+/** Monotonic safe preflight stages for a Vertex-routed request. */
+export type VertexPreflightStage =
+  | 'ROUTE_RESOLVED'
+  | 'PROJECT_RESOLVED'
+  | 'CREDENTIAL_RESOLVED'
+  | 'LOCATION_RESOLVED'
+  | 'MODEL_RESOLVED'
+  | 'REQUEST_CONSTRUCTED';
+
+/** Safe missing-field classification for a Vertex preflight failure. */
+export type VertexValidationError =
+  | 'missing.project'
+  | 'missing.credential'
+  | 'invalid.model'
+  | 'invalid.endpoint'
+  | 'request.validation.error';
 
 /**
  * Prepares a Vertex-routed model for dispatch: resolves the real project ID
@@ -88,7 +111,9 @@ export interface VertexRequestPrep {
  * URL, and returns a new model descriptor carrying the real
  * `Authorization: Bearer` header. Never mutates the input model. Returns a
  * safe `error` PlumbStreamEvent (never throws) when project/token
- * resolution fails.
+ * resolution fails, and reports the exact failed preflight stage so the
+ * probe can distinguish a pre-network boundary break from a serializer
+ * rejection.
  */
 export async function prepareVertexModel(
   model: PlumbModel,
@@ -96,10 +121,14 @@ export async function prepareVertexModel(
 ): Promise<VertexRequestPrep> {
   if (model.provider !== VERTEX_PROVIDER_ID) return { model };
 
+  let stage: VertexPreflightStage = 'ROUTE_RESOLVED';
   const project = resolveVertexProject();
   if (!project) {
     return {
       model,
+      stage,
+      failedStage: 'PROJECT_RESOLVED',
+      validationError: 'missing.project',
       error: {
         type: 'error',
         error: {
@@ -110,6 +139,7 @@ export async function prepareVertexModel(
       },
     };
   }
+  stage = 'PROJECT_RESOLVED';
   const location = resolveVertexLocation();
 
   let accessToken: string;
@@ -118,6 +148,9 @@ export async function prepareVertexModel(
   } catch (err) {
     return {
       model,
+      stage,
+      failedStage: 'CREDENTIAL_RESOLVED',
+      validationError: 'missing.credential',
       error: {
         type: 'error',
         error: {
@@ -126,6 +159,25 @@ export async function prepareVertexModel(
             err instanceof Error
               ? err.message
               : 'Unable to resolve a Google Vertex AI access token.',
+        },
+      },
+    };
+  }
+  stage = 'CREDENTIAL_RESOLVED';
+  stage = 'LOCATION_RESOLVED';
+
+  const wireModelId = model.requestModelId ?? model.id;
+  if (!wireModelId) {
+    return {
+      model,
+      stage,
+      failedStage: 'MODEL_RESOLVED',
+      validationError: 'invalid.model',
+      error: {
+        type: 'error',
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Vertex route resolved without a model id.',
         },
       },
     };
@@ -146,6 +198,22 @@ export async function prepareVertexModel(
   } else {
     baseUrl = model.baseUrl ?? '';
   }
+  if (!baseUrl) {
+    return {
+      model,
+      stage,
+      failedStage: 'MODEL_RESOLVED',
+      validationError: 'invalid.endpoint',
+      error: {
+        type: 'error',
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'Vertex route resolved without an endpoint URL.',
+        },
+      },
+    };
+  }
+  stage = 'MODEL_RESOLVED';
 
   return {
     model: {
@@ -156,5 +224,6 @@ export async function prepareVertexModel(
         Authorization: `Bearer ${accessToken}`,
       },
     },
+    stage: 'REQUEST_CONSTRUCTED',
   };
 }

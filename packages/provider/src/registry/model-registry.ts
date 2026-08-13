@@ -22,8 +22,10 @@ import {
 } from './model-cache.js';
 import {
   discoverProviderModelsDetailed,
+  getDiscovery,
   getDiscoveryProviderIds,
 } from './model-discovery.js';
+import type { ModelDiscoveryState } from '../toolRouteContract.js';
 import {
   isLocalProviderId,
   resolveLocalProviderBaseUrl,
@@ -48,11 +50,14 @@ export interface PlumbModelAuthorityStats {
   readonly liveDiscoveryCount: number;
   readonly bundledFallbackCount: number;
   readonly customCount: number;
+  /** Last recorded discovery attempt outcome (NOT_ATTEMPTED until one runs). */
+  readonly discoveryState: ModelDiscoveryState;
 }
 
 export class PlumbModelRegistry {
   #customModels = new Map<string, PlumbModel>();
   #discoveredModels = new Map<string, PlumbModel>();
+  #discoveryStates = new Map<string, ModelDiscoveryState>();
   #defaultModel: string | null = null;
   #smolModel: string | null = null;
   #planningModel: string | null = null;
@@ -98,9 +103,11 @@ export class PlumbModelRegistry {
 
   /**
    * Per-provider authority counts: how many models were live-discovered for
-   * this provider vs. how many exist only as bundled catalog fallbacks.
-   * `liveDiscoveryCount === 0 && bundledFallbackCount > 0` means the route
-   * has NO live model authority and must not be probed as if it did.
+   * this provider vs. how many exist only as bundled catalog fallbacks, plus
+   * the recorded discovery attempt state. `liveDiscoveryCount === 0` alone is
+   * NOT an authority verdict — read `discoveryState` to distinguish
+   * NOT_ATTEMPTED / SUCCEEDED_EMPTY / AUTH_BLOCKED / SERVER_UNAVAILABLE /
+   * NETWORK_FAILED / PROTOCOL_FAILED / UNSUPPORTED.
    */
   getModelAuthorityStats(
     providerId: PlumbProviderId,
@@ -117,7 +124,81 @@ export class PlumbModelRegistry {
       liveDiscoveryCount,
       bundledFallbackCount: getCatalogModels(providerId).length,
       customCount,
+      discoveryState: this.#discoveryStates.get(providerId) ?? 'NOT_ATTEMPTED',
     };
+  }
+
+  /** Whether this provider has any model-discovery capability at all. */
+  hasDiscoveryCapability(providerId: PlumbProviderId): boolean {
+    return (
+      getDiscovery(providerId) !== undefined ||
+      isLocalProviderId(providerId) ||
+      isCustomProviderId(providerId)
+    );
+  }
+
+  /**
+   * Authoritative discovery attempt for the honest batch probe. Unlike
+   * `refreshProvider`, this never invalidates existing cached models first —
+   * a failed attempt must not destroy previously discovered authority. The
+   * outcome is recorded as this provider's `discoveryState` and any
+   * non-empty result is merged into the registry.
+   */
+  async attemptAuthoritativeDiscovery(
+    providerId: PlumbProviderId,
+    apiKey?: string,
+    oauthToken?: string,
+  ): Promise<{ models: PlumbModel[]; state: ModelDiscoveryState }> {
+    const outcome = await discoverProviderModelsDetailed(providerId, {
+      providerId,
+      apiKey,
+      oauthToken,
+    });
+    const state: ModelDiscoveryState =
+      outcome.status === 'success'
+        ? 'SUCCEEDED_NONEMPTY'
+        : outcome.status === 'empty'
+          ? 'SUCCEEDED_EMPTY'
+          : outcome.status === 'unavailable'
+            ? 'SERVER_UNAVAILABLE'
+            : outcome.status === 'not_supported'
+              ? 'UNSUPPORTED'
+              : outcome.errorCode === 'DISCOVERY_AUTH_FAILED'
+                ? 'AUTH_BLOCKED'
+                : outcome.errorCode === 'DISCOVERY_PROTOCOL_ERROR'
+                  ? 'PROTOCOL_FAILED'
+                  : 'NETWORK_FAILED';
+    this.#discoveryStates.set(providerId, state);
+
+    const models: PlumbModel[] = [];
+    for (const m of outcome.models) {
+      const plumbModel: PlumbModel = {
+        id: m.id,
+        name: m.name ?? m.id,
+        provider: providerId,
+        api: m.api ?? 'openai-completions',
+        ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
+        contextWindow: m.contextWindow ?? 131072,
+        maxTokens: m.maxTokens ?? 32768,
+        ...(m.reasoning !== undefined ? { reasoning: m.reasoning } : undefined),
+        ...(m.toolsSupported !== undefined
+          ? { toolsSupported: m.toolsSupported }
+          : undefined),
+        ...(m.toolsCapabilitySource !== undefined
+          ? { toolsCapabilitySource: m.toolsCapabilitySource }
+          : undefined),
+        input: m.input ?? 'text',
+        ...(m.source ? { source: m.source } : undefined),
+        ...(m.pricing ? { pricing: m.pricing } : undefined),
+      };
+      this.#discoveredModels.set(`${providerId}:${m.id}`, plumbModel);
+      models.push(plumbModel);
+    }
+    if (models.length > 0) {
+      writeModelCache(providerId, models, true);
+      this.#notifyListeners();
+    }
+    return { models, state };
   }
 
   /** Get all models including unauthenticated providers. */
@@ -288,6 +369,25 @@ export class PlumbModelRegistry {
         apiKey,
         oauthToken,
       });
+      // Record the canonical discovery state so later authority reads
+      // distinguish AUTH_BLOCKED / SERVER_UNAVAILABLE / SUCCEEDED_EMPTY /
+      // SUCCEEDED_NONEMPTY instead of seeing a bare zero count.
+      this.#discoveryStates.set(
+        providerId,
+        outcome.status === 'success'
+          ? 'SUCCEEDED_NONEMPTY'
+          : outcome.status === 'empty'
+            ? 'SUCCEEDED_EMPTY'
+            : outcome.status === 'unavailable'
+              ? 'SERVER_UNAVAILABLE'
+              : outcome.status === 'not_supported'
+                ? 'UNSUPPORTED'
+                : outcome.errorCode === 'DISCOVERY_AUTH_FAILED'
+                  ? 'AUTH_BLOCKED'
+                  : outcome.errorCode === 'DISCOVERY_PROTOCOL_ERROR'
+                    ? 'PROTOCOL_FAILED'
+                    : 'NETWORK_FAILED',
+      );
       if (isLocalProviderId(providerId)) {
         providerRegistry.setProviderHealth(
           providerId,

@@ -12,6 +12,8 @@ const {
   getApiKey,
   getActiveProviderStates,
   authorityStats,
+  hasDiscoveryCapability,
+  attemptAuthoritativeDiscovery,
   model,
 } = vi.hoisted(() => ({
   output: [] as string[],
@@ -25,6 +27,12 @@ const {
     liveDiscoveryCount: 2,
     bundledFallbackCount: 1,
     customCount: 0,
+    discoveryState: 'SUCCEEDED_NONEMPTY',
+  })),
+  hasDiscoveryCapability: vi.fn(() => true),
+  attemptAuthoritativeDiscovery: vi.fn(async () => ({
+    models: [],
+    state: 'SUCCEEDED_NONEMPTY',
   })),
   model: {
     id: 'safe-model',
@@ -131,6 +139,8 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
         throw new Error('diagnosis must not discover models');
       }),
       getModelAuthorityStats: authorityStats,
+      hasDiscoveryCapability,
+      attemptAuthoritativeDiscovery,
     })),
     plumbModelStream: vi.fn(),
     enableToolRouteDiag: vi.fn(),
@@ -178,7 +188,15 @@ describe('tool route diagnostics', () => {
       liveDiscoveryCount: 2,
       bundledFallbackCount: 1,
       customCount: 0,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
     }));
+    hasDiscoveryCapability.mockClear();
+    hasDiscoveryCapability.mockReturnValue(true);
+    attemptAuthoritativeDiscovery.mockClear();
+    attemptAuthoritativeDiscovery.mockResolvedValue({
+      models: [],
+      state: 'SUCCEEDED_NONEMPTY',
+    });
   });
 
   it('prints the safe auto-route contract and exact matrix counters', async () => {
@@ -257,13 +275,16 @@ describe('tool route diagnostics', () => {
     expect(text).toContain('batch.liveModelUnresolved.count: 0');
     expect(text).toContain('BATCH_SUM: 2');
     expect(text).toContain('BATCH_SUM_MATCHES_CONFIGURED: true');
-    expect(text).toContain('result: CONFIGURED_ROUTE_FAILURES');
+    // Zero request failures + some passes + one environment blocker:
+    // inconclusive, never CONFIGURED_ROUTE_FAILURES.
+    expect(text).toContain('result: CONFIGURED_ROUTE_PROBES_INCONCLUSIVE');
+    expect(text).not.toContain('CONFIGURED_ROUTE_FAILURES');
     // The old passed/failed lumping must be gone.
     expect(text).not.toContain('batch.passed.count');
     expect(text).not.toContain('batch.failed.count');
   });
 
-  it('classifies AUTH_REQUIRED as authBlocked, never requestFailed', async () => {
+  it('classifies AUTH_REQUIRED as authBlocked, never requestFailed, and reports environment blocked', async () => {
     getActiveProviderStates.mockReturnValue([
       { provider: { id: 'authy' }, authState: 'authenticated' },
     ]);
@@ -283,6 +304,7 @@ describe('tool route diagnostics', () => {
     expect(text).toContain('batch.requestFailed.count: 0');
     expect(text).toContain('batch.provider.class: AUTH_BLOCKED');
     expect(text).toContain('BATCH_SUM: 1');
+    expect(text).toContain('result: CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED');
   });
 
   it('classifies MODEL_NOT_AVAILABLE as modelUnavailable', async () => {
@@ -304,6 +326,7 @@ describe('tool route diagnostics', () => {
     expect(text).toContain('batch.modelUnavailable.count: 1');
     expect(text).toContain('batch.requestFailed.count: 0');
     expect(text).toContain('batch.provider.class: MODEL_UNAVAILABLE');
+    expect(text).toContain('result: CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED');
   });
 
   it('classifies NETWORK_ERROR on a local server as serverUnavailable, not a tool failure', async () => {
@@ -325,20 +348,52 @@ describe('tool route diagnostics', () => {
     expect(text).toContain('batch.serverUnavailable.count: 1');
     expect(text).toContain('batch.requestFailed.count: 0');
     expect(text).toContain('batch.provider.class: SERVER_UNAVAILABLE');
+    expect(text).toContain('result: CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED');
   });
 });
 
-describe('batch live-model authority (LIVE_MODEL_UNRESOLVED honesty)', () => {
-  it('never performs a live request for a bundled-fallback-only provider', async () => {
+describe('batch discovery-state-driven authority', () => {
+  beforeEach(() => {
+    output.length = 0;
+    initialize.mockClear();
+    getApiKey.mockClear();
+    getActiveProviderStates.mockClear();
+    authorityStats.mockClear();
+    authorityStats.mockImplementation(() => ({
+      liveDiscoveryCount: 2,
+      bundledFallbackCount: 1,
+      customCount: 0,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+    }));
+    hasDiscoveryCapability.mockClear();
+    hasDiscoveryCapability.mockReturnValue(true);
+    attemptAuthoritativeDiscovery.mockClear();
+    attemptAuthoritativeDiscovery.mockResolvedValue({
+      models: [],
+      state: 'SUCCEEDED_NONEMPTY',
+    });
+  });
+
+  it('SUCCEEDED_EMPTY discovery is the ONLY LIVE_MODEL_UNRESOLVED justification and skips the probe', async () => {
     output.length = 0;
     getActiveProviderStates.mockReturnValue([
-      { provider: { id: 'bundled-only' }, authState: 'authenticated' },
+      { provider: { id: 'empty-live' }, authState: 'authenticated' },
       { provider: { id: 'live' }, authState: 'authenticated' },
     ]);
     authorityStats.mockImplementation((providerId: string) =>
-      providerId === 'bundled-only'
-        ? { liveDiscoveryCount: 0, bundledFallbackCount: 161, customCount: 0 }
-        : { liveDiscoveryCount: 3, bundledFallbackCount: 2, customCount: 0 },
+      providerId === 'empty-live'
+        ? {
+            liveDiscoveryCount: 0,
+            bundledFallbackCount: 161,
+            customCount: 0,
+            discoveryState: 'SUCCEEDED_EMPTY',
+          }
+        : {
+            liveDiscoveryCount: 3,
+            bundledFallbackCount: 2,
+            customCount: 0,
+            discoveryState: 'SUCCEEDED_NONEMPTY',
+          },
     );
     const probe = vi.fn(
       async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
@@ -351,22 +406,142 @@ describe('batch live-model authority (LIVE_MODEL_UNRESOLVED honesty)', () => {
 
     await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
 
-    // Zero network: the bundled-only provider is never probed.
+    // Discovery is attempted for the provider, but the probe request is not.
+    expect(attemptAuthoritativeDiscovery).toHaveBeenCalledWith(
+      'empty-live',
+      expect.anything(),
+    );
     expect(probe).toHaveBeenCalledTimes(1);
     expect(probe).toHaveBeenCalledWith('live', undefined);
     const text = rendered();
-    expect(text).toContain(
-      'batch.provider.liveModelAuthority: LIVE_MODEL_UNRESOLVED',
-    );
-    expect(text).toContain(
-      'batch.provider.result: LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST',
-    );
+    expect(text).toContain('batch.provider.discoveryState: SUCCEEDED_EMPTY');
+    expect(text).toContain('batch.provider.modelAuthority: LIVE_FALLBACK');
+    expect(text).toContain('batch.provider.result: LIVE_MODEL_UNRESOLVED');
     expect(text).toContain('batch.liveModelUnresolved.count: 1');
     expect(text).toContain('BATCH_SUM: 2');
     expect(text).toContain('BATCH_SUM_MATCHES_CONFIGURED: true');
   });
 
-  it('allows an explicit --model on a bundled-fallback-only provider', async () => {
+  it('NOT_ATTEMPTED with a bundled catalog keeps STATIC_AUTHORITATIVE authority (probe runs, never LIVE_MODEL_UNRESOLVED)', async () => {
+    output.length = 0;
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'static-provider' }, authState: 'authenticated' },
+    ]);
+    hasDiscoveryCapability.mockReturnValue(false);
+    authorityStats.mockReturnValue({
+      liveDiscoveryCount: 0,
+      bundledFallbackCount: 5,
+      customCount: 0,
+      discoveryState: 'NOT_ATTEMPTED',
+    });
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 0,
+        code: 'OK',
+        structuredToolCalls: true,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(0);
+
+    expect(attemptAuthoritativeDiscovery).not.toHaveBeenCalled();
+    expect(probe).toHaveBeenCalledWith('static-provider', undefined);
+    const text = rendered();
+    expect(text).toContain(
+      'batch.provider.modelAuthority: STATIC_AUTHORITATIVE',
+    );
+    expect(text).toContain('batch.liveModelUnresolved.count: 0');
+    expect(text).toContain('result: CONFIGURED_ROUTE_PROBES_PASS');
+  });
+
+  it('local discovery SERVER_UNAVAILABLE blocks the probe as an environment blocker', async () => {
+    output.length = 0;
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'ollama' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockReturnValue({
+      liveDiscoveryCount: 0,
+      bundledFallbackCount: 0,
+      customCount: 0,
+      discoveryState: 'SERVER_UNAVAILABLE',
+    });
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 0,
+        code: 'OK',
+        structuredToolCalls: true,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    expect(probe).not.toHaveBeenCalled();
+    const text = rendered();
+    expect(text).toContain('batch.serverUnavailable.count: 1');
+    expect(text).toContain('batch.liveModelUnresolved.count: 0');
+    expect(text).toContain('result: CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED');
+  });
+});
+
+describe('batch final-result policy (Problem 8)', () => {
+  beforeEach(() => {
+    output.length = 0;
+    initialize.mockClear();
+    getApiKey.mockClear();
+    getActiveProviderStates.mockClear();
+    authorityStats.mockClear();
+    authorityStats.mockImplementation(() => ({
+      liveDiscoveryCount: 2,
+      bundledFallbackCount: 1,
+      customCount: 0,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+    }));
+    hasDiscoveryCapability.mockClear();
+    hasDiscoveryCapability.mockReturnValue(true);
+    attemptAuthoritativeDiscovery.mockClear();
+    attemptAuthoritativeDiscovery.mockResolvedValue({
+      models: [],
+      state: 'SUCCEEDED_NONEMPTY',
+    });
+  });
+
+  it('all-inconclusive batches are NEVER reported as CONFIGURED_ROUTE_FAILURES', async () => {
+    output.length = 0;
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'auth-blocked' }, authState: 'authenticated' },
+      { provider: { id: 'empty-live' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockImplementation((providerId: string) =>
+      providerId === 'auth-blocked'
+        ? {
+            liveDiscoveryCount: 0,
+            bundledFallbackCount: 3,
+            customCount: 0,
+            discoveryState: 'AUTH_BLOCKED',
+          }
+        : {
+            liveDiscoveryCount: 0,
+            bundledFallbackCount: 161,
+            customCount: 0,
+            discoveryState: 'SUCCEEDED_EMPTY',
+          },
+    );
+    const probe = vi.fn();
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(1);
+
+    const text = rendered();
+    expect(probe).not.toHaveBeenCalled();
+    expect(text).toContain('batch.requestFailed.count: 0');
+    expect(text).toContain('batch.authBlocked.count: 1');
+    expect(text).toContain('batch.liveModelUnresolved.count: 1');
+    expect(text).toContain('result: CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED');
+    expect(text).not.toContain('CONFIGURED_ROUTE_FAILURES');
+  });
+
+  it('allows an explicit --model on a bundled-fallback-only provider (USER_EXPLICIT, no discovery)', async () => {
     output.length = 0;
     getActiveProviderStates.mockReturnValue([
       { provider: { id: 'bundled-only' }, authState: 'authenticated' },
@@ -375,6 +550,7 @@ describe('batch live-model authority (LIVE_MODEL_UNRESOLVED honesty)', () => {
       liveDiscoveryCount: 0,
       bundledFallbackCount: 161,
       customCount: 0,
+      discoveryState: 'NOT_ATTEMPTED',
     });
     const probe = vi.fn(
       async (
@@ -392,11 +568,12 @@ describe('batch live-model authority (LIVE_MODEL_UNRESOLVED honesty)', () => {
       runConfiguredToolRouteProbes(probe, { explicitModel: 'gpt-5.5' }),
     ).resolves.toBe(1);
 
+    expect(attemptAuthoritativeDiscovery).not.toHaveBeenCalled();
     expect(probe).toHaveBeenCalledWith('bundled-only', 'gpt-5.5');
     const text = rendered();
+    expect(text).toContain('batch.provider.modelAuthority: USER_EXPLICIT');
     expect(text).toContain('batch.modelUnavailable.count: 1');
     expect(text).toContain('batch.liveModelUnresolved.count: 0');
-    expect(text).not.toContain('LIVE_MODEL_UNRESOLVED_SKIPPED_LIVE_REQUEST');
   });
 });
 

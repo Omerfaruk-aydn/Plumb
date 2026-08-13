@@ -232,4 +232,22 @@ describe('PlumbModelRegistry', () => {
     expect(bundledOnly.liveDiscoveryCount).toBe(0);
     expect(bundledOnly.bundledFallbackCount).toBeGreaterThan(0);
   });
+
+  it('14. reports NOT_ATTEMPTED discovery state until an attempt actually runs', () => {
+    expect(registry.hasDiscoveryCapability('openai')).toBe(true);
+    expect(registry.getModelAuthorityStats('openai').discoveryState).toBe(
+      'NOT_ATTEMPTED',
+    );
+  });
+
+  it('15. attemptAuthoritativeDiscovery records UNSUPPORTED for a provider without a discovery adapter', async () => {
+    const attempt = await registry.attemptAuthoritativeDiscovery(
+      'no-such-provider-xyz',
+    );
+    expect(attempt.state).toBe('UNSUPPORTED');
+    expect(attempt.models).toEqual([]);
+    expect(
+      registry.getModelAuthorityStats('no-such-provider-xyz').discoveryState,
+    ).toBe('UNSUPPORTED');
+  });
 });

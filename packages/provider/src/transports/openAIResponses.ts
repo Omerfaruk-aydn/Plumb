@@ -30,7 +30,10 @@ import {
   getCustomProviderDefinition,
   resolveCustomCredentialHeader,
 } from '../config/customProviderDefinitions.js';
-import { classifyGenericHttpError } from './errorClassification.js';
+import {
+  classifyGenericHttpError,
+  extractSafeResponsesErrorDetails,
+} from './errorClassification.js';
 
 type ResponsesInputItem = Record<string, unknown>;
 
@@ -179,6 +182,16 @@ export async function* streamOpenAIResponses(
       endpointPath: '/responses',
       toolSerializationShape: 'RESPONSES_FLAT',
       toolsPresent: true,
+      hasInput: body['input'] !== undefined,
+      inputItemCount: Array.isArray(body['input'])
+        ? (body['input'] as unknown[]).length
+        : 0,
+      parallelToolCallsPresent: body['parallel_tool_calls'] !== undefined,
+      maxOutputTokensFieldName:
+        body['max_output_tokens'] !== undefined
+          ? 'max_output_tokens'
+          : 'absent',
+      reasoningFieldPresent: body['reasoning'] !== undefined,
     });
   } else {
     recordToolRouteRequest(0, wireModel, options, undefined, {
@@ -186,6 +199,16 @@ export async function* streamOpenAIResponses(
       endpointPath: '/responses',
       toolSerializationShape: 'none',
       toolsPresent: false,
+      hasInput: body['input'] !== undefined,
+      inputItemCount: Array.isArray(body['input'])
+        ? (body['input'] as unknown[]).length
+        : 0,
+      parallelToolCallsPresent: body['parallel_tool_calls'] !== undefined,
+      maxOutputTokensFieldName:
+        body['max_output_tokens'] !== undefined
+          ? 'max_output_tokens'
+          : 'absent',
+      reasoningFieldPresent: body['reasoning'] !== undefined,
     });
   }
   if (options.maxTokens) body['max_output_tokens'] = options.maxTokens;
@@ -219,7 +242,9 @@ export async function* streamOpenAIResponses(
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unknown error');
     const classified = classifyGenericHttpError(response.status, text);
-    recordToolRouteHttpFailure(response.status, classified.code);
+    recordToolRouteHttpFailure(response.status, classified.code, [], {
+      ...extractSafeResponsesErrorDetails(text),
+    });
     yield {
       type: 'error',
       error: classified,

@@ -189,11 +189,19 @@ export function deriveRouteToolChoiceCapability(
 }
 
 /**
- * Effective *probe* policy for a route that lacks verified forced/named
- * proof. Used so a forced diagnostic does not fabricate named/required
- * support on an unverified route: it falls back to `auto` when auto is
- * route-safe, otherwise omits the selector entirely and reports that the
- * route cannot be deterministically forced.
+ * Effective *probe* policy. Selector priority is evidence-driven and uses
+ * the ROUTE-level verified capability, never the raw dialect flags alone:
+ *
+ *   1. route named VERIFIED+SUPPORTED  → named(plumb_tool_probe)   (strongest
+ *      deterministic forcing a verified route proves it accepts)
+ *   2. route required VERIFIED+SUPPORTED → required
+ *   3. route auto SUPPORTED            → auto
+ *   4. otherwise                       → omit; the probe must report
+ *      probe.forced=false honestly.
+ *
+ * A verified route with named SUPPORTED but required NOT_SUPPORTED (e.g.
+ * OpenCode Go) MUST use named — never degrade to auto merely because
+ * required is unavailable. Do not fabricate support for unverified routes.
  */
 export function resolveHonestProbeToolChoice(
   route: RouteToolChoiceCapability,
@@ -201,10 +209,12 @@ export function resolveHonestProbeToolChoice(
   namedToolChoiceSupported: boolean,
 ): PlumbToolChoice | undefined {
   if (route.routeVerified) {
-    if (forcedToolChoiceSupported && namedToolChoiceSupported) {
+    if (route.named === 'SUPPORTED' && namedToolChoiceSupported) {
       return { mode: 'named', name: 'plumb_tool_probe' };
     }
-    if (forcedToolChoiceSupported) return { mode: 'required' };
+    if (route.required === 'SUPPORTED' && forcedToolChoiceSupported) {
+      return { mode: 'required' };
+    }
   }
   // No verified forced proof: use auto only if it is route-supported, else
   // omit the selector entirely and report the route cannot be forced.
