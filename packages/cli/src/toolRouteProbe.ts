@@ -17,6 +17,9 @@ import {
   enableToolRouteDiag,
   resolveEffectiveToolChoice,
   resolveRouteToolPolicy,
+  deriveDialectToolChoiceCapability,
+  deriveRouteToolChoiceCapability,
+  resolveHonestProbeToolChoice,
   type PlumbContentPart,
   type PlumbEffectiveToolRouteContract,
   type PlumbModel,
@@ -210,12 +213,26 @@ export async function runToolRouteProbe(
   const { model, apiKey } = resolved;
   const routeContract = buildEffectiveToolRouteContract({ providerId, model });
   const policy = resolveRouteToolPolicy(model);
+  // DIALECT vs ROUTE separation: the dialect serializer may REPORT
+  // SUPPORTED for forced/named selectors, but that does not prove the
+  // provider route accepts them. Without VERIFIED route proof we must NOT
+  // fabricate named/required support — an honest probe falls back to `auto`
+  // (or omits the selector) and reports the route cannot be deterministically
+  // forced.
+  const dialect = deriveDialectToolChoiceCapability(policy);
+  const route = deriveRouteToolChoiceCapability(model.provider, dialect);
   const requestedChoice: PlumbToolChoice | undefined =
-    policy.forcedToolChoiceSupported && policy.namedToolChoiceSupported
-      ? { mode: 'named', name: PLUMB_TOOL_PROBE_NAME }
-      : policy.forcedToolChoiceSupported
-        ? { mode: 'required' }
-        : undefined;
+    resolveHonestProbeToolChoice(
+      route,
+      policy.forcedToolChoiceSupported,
+      policy.namedToolChoiceSupported,
+    );
+  line('toolChoice.dialect.required', dialect.required);
+  line('toolChoice.dialect.named', dialect.named);
+  line('toolChoice.route.required', route.required);
+  line('toolChoice.route.named', route.named);
+  line('toolChoice.route.proof', route.providerProof);
+  line('toolChoice.route.verifiable', route.routeVerified);
   const effective = resolveEffectiveToolChoice(policy, requestedChoice, 1);
   const config = new Config({
     sessionId: 'plumb-tool-route-probe',
@@ -248,6 +265,11 @@ export async function runToolRouteProbe(
     getPreferredEditor: () => undefined,
     schedulerId: 'plumb-tool-route-probe',
   });
+  // Single lifecycle-aborted controller. The tool executor must never create a
+  // dangling, never-closed AbortController per schedule — that leaves an async
+  // handle open across process shutdown (the Windows libuv `UV_HANDLE_CLOSING`
+  // assert source) when the request errors, prints, and exits.
+  const probeAbort = new AbortController();
   const tool = {
     type: 'function' as const,
     function: {
@@ -259,18 +281,25 @@ export async function runToolRouteProbe(
   const calls: Array<{ id: string; name: string; arguments: string }> = [];
   let safeError = 'none';
   enableToolRouteDiag();
-  for await (const event of plumbModelStream({
-    model,
-    messages: [{ role: 'user', content: 'Run the diagnostic tool.' }],
-    tools: [tool],
-    toolChoice: effective.value,
-    apiKey,
-    maxTokens: 64,
-  })) {
-    if (event.type === 'tool_call' && event.toolCall)
-      calls.push(event.toolCall);
-    if (event.type === 'error')
-      safeError = event.error?.code ?? 'PROVIDER_ERROR';
+  try {
+    for await (const event of plumbModelStream({
+      model,
+      messages: [{ role: 'user', content: 'Run the diagnostic tool.' }],
+      tools: [tool],
+      toolChoice: effective.value,
+      apiKey,
+      maxTokens: 64,
+    })) {
+      if (event.type === 'tool_call' && event.toolCall)
+        calls.push(event.toolCall);
+      if (event.type === 'error')
+        safeError = event.error?.code ?? 'PROVIDER_ERROR';
+    }
+  } catch (err) {
+    safeError =
+      err instanceof Error && err.name === 'AbortError'
+        ? 'CANCELLED'
+        : 'PROBE_ERROR';
   }
   // Capture the first request before the continuation request resets the
   // transport diagnostic snapshot. This contains structural counters only.
@@ -282,9 +311,18 @@ export async function runToolRouteProbe(
     isClientInitiated: false,
     prompt_id: 'plumb-tool-route-probe',
   }));
-  const completed = requests.length
-    ? await scheduler.schedule(requests, new AbortController().signal)
-    : [];
+  let completed: Awaited<ReturnType<Scheduler['schedule']>> = [];
+  try {
+    completed = requests.length
+      ? await scheduler.schedule(requests, probeAbort.signal)
+      : [];
+  } catch (err) {
+    if (safeError === 'none')
+      safeError =
+        err instanceof Error && err.name === 'AbortError'
+          ? 'CANCELLED'
+          : 'SCHEDULER_ERROR';
+  }
   let resultReinjected = false;
   let continuationCompleted = false;
   if (completed.length) {
@@ -305,22 +343,37 @@ export async function runToolRouteProbe(
     // boundary proves PLUMB reinjection; continuation remains a separate
     // observation and requires non-empty assistant text.
     resultReinjected = true;
-    for await (const event of plumbModelStream({
-      model,
-      messages: [
-        { role: 'user', content: 'Run the diagnostic tool.' },
-        { role: 'assistant', content: assistantParts },
-        ...toolMessages,
-      ],
-      tools: [tool],
-      apiKey,
-      maxTokens: 64,
-    })) {
-      if (isCompletedToolContinuationEvent(event)) continuationCompleted = true;
-      if (event.type === 'error')
-        safeError = event.error?.code ?? 'PROVIDER_ERROR';
+    try {
+      for await (const event of plumbModelStream({
+        model,
+        messages: [
+          { role: 'user', content: 'Run the diagnostic tool.' },
+          { role: 'assistant', content: assistantParts },
+          ...toolMessages,
+        ],
+        tools: [tool],
+        apiKey,
+        maxTokens: 64,
+      })) {
+        if (isCompletedToolContinuationEvent(event))
+          continuationCompleted = true;
+        if (event.type === 'error')
+          safeError = event.error?.code ?? 'PROVIDER_ERROR';
+      }
+    } catch (err) {
+      // A failed continuation must not retract the reinjection observation:
+      // the second request was still constructed and issued with the tool
+      // result. Only the error classification may be updated here.
+      if (safeError === 'none')
+        safeError =
+          err instanceof Error && err.name === 'AbortError'
+            ? 'CANCELLED'
+            : 'REINJECT_ERROR';
     }
   }
+  // Dispose exactly once, always, and abort the shared controller so no async
+  // handle survives into process shutdown.
+  probeAbort.abort();
   scheduler.dispose();
 
   line('diagnostic.mode', 'FORCED_STRUCTURED_TOOL_PROBE');

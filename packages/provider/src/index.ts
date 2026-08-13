@@ -67,6 +67,14 @@ export {
   resolveRouteToolPolicy,
   resolveEffectiveToolChoice,
   describeToolChoiceValue,
+  resolveProviderRouteToolChoiceProof,
+  deriveDialectToolChoiceCapability,
+  deriveRouteToolChoiceCapability,
+  resolveHonestProbeToolChoice,
+  type ToolChoiceCapability,
+  type ProviderRouteToolChoiceProof,
+  type DialectToolChoiceCapability,
+  type RouteToolChoiceCapability,
 } from './tool-policy.js';
 
 // Canonical effective provider + model + route tool contract and generated
@@ -81,6 +89,26 @@ export {
   getPlumbProviderProtocolMatrix,
   type PlumbEffectiveToolRouteCache,
 } from './route-contract.js';
+
+// Honest, mutually-exclusive batch tool-route probe classification and the
+// universal LIVE_MODEL_UNRESOLVED rule (never trust bundled fallback as live
+// authority when user did not explicitly request a model).
+export {
+  BATCH_RESULT_CLASSES,
+  ZERO_BATCH_COUNTERS,
+  classifyBatchResult,
+  computeBatchBreakdown,
+  isLocalProvider,
+  resolveLiveModelAuthority,
+  liveModelUnresolvedClassification,
+  type BatchResultClass,
+  type BatchProbeResult,
+  type ClassifiedBatchResult,
+  type BatchBreakdown,
+  type BatchBreakdownCounters,
+  type LiveModelAuthority,
+  type LiveModelAuthorityInput,
+} from './toolRouteContract.js';
 
 // Provider catalog
 export {

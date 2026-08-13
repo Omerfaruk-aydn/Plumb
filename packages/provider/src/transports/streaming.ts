@@ -18,9 +18,11 @@
 
 import {
   type PlumbModel,
+  type PlumbRouteToolPolicy,
   type PlumbStreamEvent,
   type PlumbStreamOptions,
   type PlumbKnownApi,
+  type PlumbTool,
   type PlumbToolChoice,
 } from '../types.js';
 import {
@@ -152,6 +154,94 @@ function serializeGeminiFunctionCallingConfig(
     case 'named':
       return { mode: 'ANY', allowedFunctionNames: [choice.name] };
   }
+}
+
+/**
+ * Whether a route family speaks the OpenAI *Responses* wire contract (as
+ * opposed to Chat Completions). Responses routes disagree with Chat on both
+ * the tool entry shape and the `tool_choice` shape:
+ *   - Chat tools:     [{type:'function', function:{name,description,parameters}}]
+ *   - Responses tools:[{type:'function', name, description, parameters}]
+ *   - Chat tool_choice named: {type:'function', function:{name}}
+ *   - Responses tool_choice named: {type:'function', name}
+ * Only the Responses family may serialize the Responses shapes.
+ */
+export function isResponsesApiFamily(api: PlumbKnownApi | string): boolean {
+  return (
+    api === 'openai-responses' ||
+    api === 'openai-codex-responses' ||
+    api === 'azure-openai-responses' ||
+    api === 'oci-openai-responses'
+  );
+}
+
+/** Responses route tool declarations (flat function list, not wrapped). */
+export function serializeResponsesTools(tools: PlumbTool[]): unknown[] {
+  return tools.map((t) => ({
+    type: 'function',
+    name: t.function.name,
+    description: t.function.description,
+    parameters: t.function.parameters,
+  }));
+}
+
+/**
+ * Serialize a normalized tool choice for the OpenAI *Responses* wire contract.
+ * The named form must be `{type:'function', name}` — NEVER the
+ * Chat-Completions-shaped `{type:'function', function:{name}}` that Responses
+ * endpoints reject as INVALID_REQUEST.
+ */
+export function serializeResponsesToolChoice(choice: PlumbToolChoice): unknown {
+  switch (choice.mode) {
+    case 'auto':
+      return { type: 'auto' };
+    case 'required':
+      return { type: 'required' };
+    case 'none':
+      return { type: 'none' };
+    case 'named':
+      return { type: 'function', name: choice.name };
+  }
+}
+
+export interface ForcedSelectorWithToolsVerdict {
+  readonly ok: boolean;
+  readonly code: 'OK' | 'FORCED_SELECTOR_WITH_ZERO_TOOLS';
+  readonly message?: string;
+}
+
+/**
+ * Global wire invariant: a forced tool-selection control (required or named,
+ * or an auto selector that REQUIRED_WHEN_TOOLS_PRESENT demands) may never be
+ * emitted when zero tools are actually serialized on the wire. Failing
+ * locally here (before any network I/O) is the single place both the Vertex
+ * `request.tools.count=0` and Copilot selector contradictions are caught
+ * deterministically.
+ */
+export function resolveForcedSelectorWithToolsGuard(
+  policy: PlumbRouteToolPolicy,
+  requested: PlumbToolChoice | undefined,
+  effective: { readonly value?: PlumbToolChoice; readonly sent: boolean },
+  serializedToolCount: number,
+): ForcedSelectorWithToolsVerdict {
+  const requestedForced =
+    requested?.mode === 'required' || requested?.mode === 'named';
+  const effectiveForces =
+    effective.sent &&
+    !!effective.value &&
+    (effective.value.mode === 'required' ||
+      effective.value.mode === 'named' ||
+      (effective.value.mode === 'auto' &&
+        policy.emission === 'REQUIRED_WHEN_TOOLS_PRESENT'));
+  if ((requestedForced || effectiveForces) && serializedToolCount === 0) {
+    return {
+      ok: false,
+      code: 'FORCED_SELECTOR_WITH_ZERO_TOOLS',
+      message:
+        'A forced tool-selection control was requested/emitted but zero tools are serialized on the wire. Refusing to send a selector-with-no-tools request; failing locally before network.',
+    };
+  }
+  return { ok: true, code: 'OK' };
 }
 
 export function recordToolRouteTextDelta(): void {
@@ -396,17 +486,25 @@ async function* openAICompatibleStream(
   };
 
   if (tools && tools.length > 0 && model.toolsSupported === true) {
-    body.tools = tools.map((t) => ({
-      type: 'function',
-      function: t.function,
-    }));
+    const isResponses = isResponsesApiFamily(model.api);
+    body.tools = isResponses
+      ? serializeResponsesTools(tools)
+      : tools.map((t) => ({
+          type: 'function',
+          function: t.function,
+        }));
     const effectiveChoice = resolveEffectiveToolChoice(
       resolveRouteToolPolicy(model),
       options.toolChoice,
       tools.length,
     );
     if (effectiveChoice.value) {
-      body.tool_choice = serializeOpenAIToolChoice(effectiveChoice.value);
+      // Responses routes (Copilot / Azure / OCI / Codex) must NOT receive the
+      // Chat-Completions-shaped `{type:'function', function:{name}}` named
+      // selector — that is an INVALID_REQUEST on a `/responses` endpoint.
+      body.tool_choice = isResponses
+        ? serializeResponsesToolChoice(effectiveChoice.value)
+        : serializeOpenAIToolChoice(effectiveChoice.value);
     }
     recordToolRouteRequest(
       tools.length,
@@ -1833,6 +1931,14 @@ async function* googleGenerativeAiStream(
         ),
       };
     }
+    recordToolRouteRequest(
+      tools.length,
+      String(body.model),
+      options,
+      effectiveChoice.value,
+    );
+  } else {
+    recordToolRouteRequest(0, String(body.model), options);
   }
 
   let response: Response;
@@ -2479,6 +2585,37 @@ export async function* plumbModelStream(
     return;
   }
 
+  // Global invariant — FORCED_SELECTOR_WITH_ZERO_TOOLS is forbidden. If a
+  // forced tool-selection control (required/named, or the auto selector a
+  // REQUIRED_WHEN_TOOLS_PRESENT route demands) is requested/emitted while
+  // zero tools are actually serialized on the wire, fail locally here BEFORE
+  // any provider-specific serialization or network I/O. This deterministically
+  // rejects the Vertex `request.tools.count=0` and Copilot selector-with-no-
+  // matching-tools contradictions with a safe, non-network diagnostic.
+  const serializedToolCount = options.tools?.length ?? 0;
+  const wirePolicy = resolveRouteToolPolicy(options.model);
+  const wireEffective = resolveEffectiveToolChoice(
+    wirePolicy,
+    options.toolChoice,
+    serializedToolCount,
+  );
+  const guard = resolveForcedSelectorWithToolsGuard(
+    wirePolicy,
+    options.toolChoice,
+    wireEffective,
+    serializedToolCount,
+  );
+  if (!guard.ok) {
+    yield {
+      type: 'error',
+      error: {
+        code: guard.code,
+        message: guard.message ?? 'Forced selector emitted with zero tools.',
+      },
+    };
+    return;
+  }
+
   // Try registered transport first
   const factory = transportFactories.get(api);
   if (factory) {
@@ -2597,3 +2734,22 @@ export function createNormalizationStream(): EventStream<
     () => undefined as void,
   );
 }
+
+/**
+ * The canonical no-args probe tool PLUMB advertises for structured-tool route
+ * diagnostics. Serialized identically by every dialect transport as the
+ * native equivalent of `plumb_tool_probe`.
+ */
+export const CANONICAL_PROBE_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: 'plumb_tool_probe',
+    description:
+      'Runs a deterministic diagnostic with no filesystem, process, or network side effects.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+};
