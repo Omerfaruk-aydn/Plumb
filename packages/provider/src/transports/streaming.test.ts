@@ -2590,4 +2590,129 @@ describe('tool-route preflight + upstream error diagnostics', () => {
     expect(diag?.['upstreamErrorParam']).toBe('tool_choice');
     expect(diag?.['upstreamErrorMessageSafe']).toContain('[REDACTED_BEARER]');
   });
+
+  it('proves zero diagnostic bleed across sequence A (Copilot HTTP 400) -> B (OpenCode Go local) -> C (Anthropic auth error)', () => {
+    enableToolRouteDiag();
+    const probeA = 'probe-copilot-1';
+    const probeB = 'probe-opencode-go-2';
+    const probeC = 'probe-anthropic-3';
+
+    // Provider A: Copilot emits 400 /responses
+    recordToolRouteRequest(
+      1,
+      'gpt-5.5',
+      {
+        model: {
+          id: 'gpt-5.5',
+          provider: 'github-copilot',
+          api: 'openai-responses',
+          contextWindow: 128000,
+          maxTokens: 4096,
+          input: 'text',
+        },
+        messages: [{ role: 'user', content: 'probe' }],
+        apiKey: 'test-key',
+        probeId: probeA,
+      },
+      { mode: 'auto' },
+      {
+        requestFamily: 'openai-responses',
+        endpointPath: '/responses',
+        toolSerializationShape: 'RESPONSES_FLAT',
+        toolsPresent: true,
+      },
+    );
+    recordToolRouteHttpFailure(
+      400,
+      'INVALID_REQUEST',
+      [],
+      {
+        errorType: 'invalid_request_error',
+        errorMessageSafe: 'model not supported',
+      },
+      probeA,
+    );
+
+    // Provider B: OpenCode Go fails locally before network or with structured tools
+    recordToolRouteRequest(
+      1,
+      'kimi-k2.7-code',
+      {
+        model: {
+          id: 'kimi-k2.7-code',
+          provider: 'opencode-go',
+          api: 'openai-completions',
+          contextWindow: 128000,
+          maxTokens: 4096,
+          input: 'text',
+        },
+        messages: [{ role: 'user', content: 'probe' }],
+        apiKey: 'test-key',
+        probeId: probeB,
+      },
+      undefined,
+      {
+        requestFamily: 'openai-chat-completions',
+        endpointPath: '/chat/completions',
+        toolSerializationShape: 'CHAT_WRAPPED',
+        toolsPresent: true,
+      },
+    );
+
+    // Provider C: Anthropic encounters 401
+    recordToolRouteRequest(
+      1,
+      'claude-3-5-sonnet',
+      {
+        model: {
+          id: 'claude-3-5-sonnet',
+          provider: 'anthropic',
+          api: 'anthropic-messages',
+          contextWindow: 128000,
+          maxTokens: 4096,
+          input: 'text',
+        },
+        messages: [{ role: 'user', content: 'probe' }],
+        apiKey: 'test-key',
+        probeId: probeC,
+      },
+      undefined,
+      {
+        requestFamily: 'anthropic-messages',
+        endpointPath: '/v1/messages',
+        toolSerializationShape: 'ANTHROPIC_TOOLS',
+        toolsPresent: true,
+      },
+    );
+    recordToolRouteHttpFailure(
+      401,
+      'AUTH_INVALID_API_KEY',
+      [],
+      {
+        errorType: 'authentication_error',
+        errorMessageSafe: 'invalid x-api-key',
+      },
+      probeC,
+    );
+
+    // Inspect Provider B diagnostic: must have ZERO bleed from A or C
+    const diagB = getLastToolRouteDiag(probeB);
+    expect(diagB?.['httpStatus']).toBe(0);
+    expect(diagB?.['endpointPath']).toBe('/chat/completions');
+    expect(diagB?.['requestFamily']).toBe('openai-chat-completions');
+    expect(diagB?.['upstreamErrorCode']).toBe('none');
+    expect(diagB?.['upstreamErrorMessageSafe']).toBe('none');
+
+    // Inspect Provider A diagnostic
+    const diagA = getLastToolRouteDiag(probeA);
+    expect(diagA?.['httpStatus']).toBe(400);
+    expect(diagA?.['endpointPath']).toBe('/responses');
+    expect(diagA?.['upstreamErrorCode']).toBe('INVALID_REQUEST');
+
+    // Inspect Provider C diagnostic
+    const diagC = getLastToolRouteDiag(probeC);
+    expect(diagC?.['httpStatus']).toBe(401);
+    expect(diagC?.['endpointPath']).toBe('/v1/messages');
+    expect(diagC?.['upstreamErrorCode']).toBe('AUTH_INVALID_API_KEY');
+  });
 });

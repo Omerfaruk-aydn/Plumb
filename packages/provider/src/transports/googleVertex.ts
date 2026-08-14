@@ -41,18 +41,56 @@
  */
 
 import type { PlumbModel, PlumbStreamEvent } from '../types.js';
-import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
+import {
+  resolveProviderConfigValue,
+  resolveProviderSafeConfig,
+} from '../config/providerConfigResolver.js';
 import { getVertexAccessToken } from '../omp-ai/providers/google-auth.js';
 import { resolveVertexEndpointHost } from '../omp-catalog/hosts.js';
 
 const VERTEX_PROVIDER_ID = 'google-vertex';
 const API_VERSION = 'v1';
 
+export interface VertexProjectAuthorityInfo {
+  readonly project?: string;
+  readonly source: 'CONFIGURED_PROVIDER_STATE' | 'ENVIRONMENT' | 'NONE';
+  readonly present: boolean;
+}
+
+export function resolveVertexProjectAuthority(): VertexProjectAuthorityInfo {
+  const safeConfig = resolveProviderSafeConfig(VERTEX_PROVIDER_ID);
+  const fromConfig = safeConfig['project']?.trim();
+  if (fromConfig) {
+    return {
+      project: fromConfig,
+      source: 'CONFIGURED_PROVIDER_STATE',
+      present: true,
+    };
+  }
+  const fromEnv =
+    process.env['GOOGLE_CLOUD_PROJECT']?.trim() ??
+    process.env['GCLOUD_PROJECT']?.trim();
+  if (fromEnv) {
+    return {
+      project: fromEnv,
+      source: 'ENVIRONMENT',
+      present: true,
+    };
+  }
+  return {
+    project: undefined,
+    source: 'NONE',
+    present: false,
+  };
+}
+
 export function resolveVertexProject(): string | undefined {
-  return resolveProviderConfigValue(
-    VERTEX_PROVIDER_ID,
-    'project',
-    'GOOGLE_CLOUD_PROJECT',
+  return (
+    resolveProviderConfigValue(
+      VERTEX_PROVIDER_ID,
+      'project',
+      'GOOGLE_CLOUD_PROJECT',
+    ) ?? process.env['GCLOUD_PROJECT']?.trim()
   );
 }
 
@@ -132,7 +170,7 @@ export async function prepareVertexModel(
       error: {
         type: 'error',
         error: {
-          code: 'INVALID_REQUEST',
+          code: 'CONFIGURATION_REQUIRED',
           message:
             'Vertex AI requires a project ID. Set GOOGLE_CLOUD_PROJECT or configure it via PLUMB provider setup.',
         },

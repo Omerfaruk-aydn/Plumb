@@ -22,15 +22,24 @@ import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { createTestMergedSettings } from './config/settings.js';
 
 describe('evaluateFreshness', () => {
-  it('reports current when embedded HEAD matches the repository HEAD', () => {
+  it('reports current-clean when embedded HEAD matches repository HEAD and source is clean', () => {
     const head = 'a'.repeat(40);
-    const verdict = evaluateFreshness(head, head);
-    expect(verdict.kind).toBe('current');
-    expect(verdict.message).toContain('current');
+    const verdict = evaluateFreshness(head, head, false);
+    expect(verdict.kind).toBe('current-clean');
+    expect(verdict.message).toContain('current-clean');
+  });
+
+  it('reports current-dirty when embedded HEAD matches repository HEAD but source is dirty', () => {
+    const head = 'a'.repeat(40);
+    const verdict = evaluateFreshness(head, head, true);
+    expect(verdict.kind).toBe('current-dirty');
+    expect(verdict.message).toContain('current-dirty');
+    // HEAD equal + source dirty -> cannot claim clean equivalence
+    expect(verdict.kind).not.toBe('current-clean');
   });
 
   it('reports stale when embedded HEAD differs from the repository HEAD', () => {
-    const verdict = evaluateFreshness('a'.repeat(40), 'b'.repeat(40));
+    const verdict = evaluateFreshness('a'.repeat(40), 'b'.repeat(40), false);
     expect(verdict.kind).toBe('stale');
     expect(verdict.message).toContain('STALE');
     expect(verdict.message).toContain('a'.repeat(40));
@@ -38,7 +47,7 @@ describe('evaluateFreshness', () => {
   });
 
   it('reports indeterminate when no repository HEAD is detectable', () => {
-    const verdict = evaluateFreshness('a'.repeat(40), null);
+    const verdict = evaluateFreshness('a'.repeat(40), null, false);
     expect(verdict.kind).toBe('indeterminate');
   });
 });

@@ -588,6 +588,9 @@ export interface PlumbStreamOptions {
       };
   reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
   traceSource?: 'NORMAL_CHAT' | 'LIVE_PROBE';
+  /** Safe opaque probe/request correlation id for diagnostic isolation. */
+  probeId?: string;
+  diagnosticProbeId?: string;
   /**
    * The single execution authority for tool calls a transport's model
    * requests. Only wired for transports whose SDK/protocol requires the

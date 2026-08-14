@@ -49,6 +49,7 @@ export interface DiscoveryContext {
 export interface DiscoveredModel {
   id: string;
   name?: string;
+  requestModelId?: string;
   contextWindow?: number;
   maxTokens?: number;
   reasoning?: boolean;
@@ -442,6 +443,7 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
         // must use this instead of assuming OpenAI-compat.
         api: m.api as PlumbKnownApi,
         baseUrl: m.baseUrl,
+        requestModelId: m.requestModelId,
         source: resolveLocalProviderBaseUrl(this.providerId)
           ? 'SERVER_DYNAMIC'
           : 'PROVIDER_DYNAMIC',

@@ -242,9 +242,15 @@ export async function* streamOpenAIResponses(
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unknown error');
     const classified = classifyGenericHttpError(response.status, text);
-    recordToolRouteHttpFailure(response.status, classified.code, [], {
-      ...extractSafeResponsesErrorDetails(text),
-    });
+    recordToolRouteHttpFailure(
+      response.status,
+      classified.code,
+      [],
+      {
+        ...extractSafeResponsesErrorDetails(text),
+      },
+      options,
+    );
     yield {
       type: 'error',
       error: classified,
@@ -269,7 +275,7 @@ export async function* streamOpenAIResponses(
   const emitCall = function* (call: PendingCall): Generator<PlumbStreamEvent> {
     if (call.emitted) return;
     call.emitted = true;
-    recordToolRouteNormalizedCall(call.name);
+    recordToolRouteNormalizedCall(call.name, options);
     yield {
       type: 'tool_call',
       toolCall: {
@@ -310,7 +316,7 @@ export async function* streamOpenAIResponses(
         if (type === 'response.output_text.delta') {
           const delta = event['delta'];
           if (typeof delta === 'string' && delta) {
-            recordToolRouteTextDelta();
+            recordToolRouteTextDelta(options);
             yield { type: 'text', text: delta };
           }
         } else if (type === 'response.output_item.added') {
@@ -335,7 +341,7 @@ export async function* streamOpenAIResponses(
           const delta = event['delta'];
           if (pending && typeof delta === 'string') {
             pending.arguments += delta;
-            recordToolRouteToolCallDelta();
+            recordToolRouteToolCallDelta(options);
           }
         } else if (type === 'response.function_call_arguments.done') {
           const pending = lookup(event);
@@ -383,7 +389,7 @@ export async function* streamOpenAIResponses(
             )
               ? 'tool_calls'
               : 'stop';
-          recordToolRouteFinishReason(finishReason);
+          recordToolRouteFinishReason(finishReason, options);
           const usage = completed?.['usage'] as
             | Record<string, number>
             | undefined;

@@ -8,6 +8,7 @@
 
 import {
   buildEffectiveToolRouteContract,
+  initToolRouteDiag,
   getLastToolRouteDiag,
   getPlumbModelRegistry,
   getPlumbProviderProtocolMatrix,
@@ -31,6 +32,7 @@ import {
   type PlumbModel,
   type PlumbStreamEvent,
   type PlumbToolChoice,
+  type ResolvedModelSelection,
 } from '@google/gemini-cli-provider';
 import {
   Config,
@@ -100,6 +102,7 @@ export interface ToolRouteProbeOutcome {
 interface ResolvedToolRoute {
   model: PlumbModel;
   apiKey: string;
+  selection: ResolvedModelSelection;
 }
 
 async function resolveToolRoute(
@@ -117,19 +120,30 @@ async function resolveToolRoute(
       (credential?.type === 'oauth' ? credential.access : ''))
     : '';
   const modelRegistry = getPlumbModelRegistry();
-  let model = requestedModel
-    ? modelRegistry.findModel(providerId, requestedModel)
-    : modelRegistry.resolveDefaultModel(providerId);
-  if (!model && refreshModels) {
-    const refreshed = await modelRegistry.refreshProvider(
-      providerId,
-      apiKey || undefined,
-    );
-    model = requestedModel
-      ? modelRegistry.findModel(providerId, requestedModel)
-      : refreshed[0];
+
+  if (refreshModels && modelRegistry.hasDiscoveryCapability(providerId)) {
+    const stats = modelRegistry.getModelAuthorityStats(providerId);
+    if (stats.discoveryState === 'NOT_ATTEMPTED') {
+      try {
+        await modelRegistry.attemptAuthoritativeDiscovery(
+          providerId,
+          apiKey || undefined,
+        );
+      } catch {
+        // Discovery failure leaves stats in an honest non-empty or empty state.
+      }
+    }
   }
-  return model ? { model, apiKey } : undefined;
+
+  const selection = modelRegistry.resolveModelSelection({
+    providerId,
+    requestedModel,
+    configuredModel: modelRegistry.getDefaultModel() ?? undefined,
+    probeTools: true,
+  });
+
+  if (!selection.model) return undefined;
+  return { model: selection.model, apiKey, selection };
 }
 
 function capabilityLines(
@@ -176,6 +190,32 @@ export async function diagnoseToolRoute(
     model: resolved.model,
   });
   printToolRouteContract(contract);
+  line('model.selection.source', resolved.selection.source);
+  line(
+    'model.selection.displayId',
+    resolved.selection.displayId ?? resolved.model.id,
+  );
+  line(
+    'model.selection.wireId',
+    resolved.selection.wireId ?? contract.scope.wireModelId,
+  );
+  line(
+    'model.selection.providerAuthorityMatch',
+    resolved.selection.providerAuthorityMatch,
+  );
+  line(
+    'model.selection.liveAuthorityMatch',
+    resolved.selection.liveAuthorityMatch,
+  );
+  line(
+    'model.selection.routeAuthorityMatch',
+    resolved.selection.routeAuthorityMatch,
+  );
+  line(
+    'model.selection.routeMismatchReason',
+    resolved.selection.routeMismatchReason ?? 'NONE',
+  );
+  line('model.selection.fallbackReason', resolved.selection.fallbackReason);
 
   const matrix = getPlumbProviderProtocolMatrix();
   const matrixRow = matrix.providers.find(
@@ -342,7 +382,9 @@ export async function runToolRouteProbeResult(
   };
   const calls: Array<{ id: string; name: string; arguments: string }> = [];
   let safeError = 'none';
+  const probeId = `probe-${providerId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   enableToolRouteDiag();
+  initToolRouteDiag(probeId);
   try {
     for await (const event of plumbModelStream({
       model,
@@ -351,6 +393,7 @@ export async function runToolRouteProbeResult(
       toolChoice: effective.value,
       apiKey,
       maxTokens: 64,
+      probeId,
     })) {
       if (event.type === 'tool_call' && event.toolCall)
         calls.push(event.toolCall);
@@ -365,7 +408,7 @@ export async function runToolRouteProbeResult(
   }
   // Capture the first request before the continuation request resets the
   // transport diagnostic snapshot. This contains structural counters only.
-  const firstResponseDiag = getLastToolRouteDiag();
+  const firstResponseDiag = getLastToolRouteDiag(probeId);
   const requests: ToolCallRequestInfo[] = calls.map((call) => ({
     callId: call.id,
     name: call.name,
@@ -416,6 +459,7 @@ export async function runToolRouteProbeResult(
         tools: [tool],
         apiKey,
         maxTokens: 64,
+        probeId,
       })) {
         if (isCompletedToolContinuationEvent(event))
           continuationCompleted = true;
@@ -442,6 +486,29 @@ export async function runToolRouteProbeResult(
   line('provider', providerId);
   line('model', model.id);
   line('wireModel', routeContract.scope.wireModelId);
+  line('model.selection.source', resolved.selection.source);
+  line('model.selection.displayId', resolved.selection.displayId ?? model.id);
+  line(
+    'model.selection.wireId',
+    resolved.selection.wireId ?? routeContract.scope.wireModelId,
+  );
+  line(
+    'model.selection.providerAuthorityMatch',
+    resolved.selection.providerAuthorityMatch,
+  );
+  line(
+    'model.selection.liveAuthorityMatch',
+    resolved.selection.liveAuthorityMatch,
+  );
+  line(
+    'model.selection.routeAuthorityMatch',
+    resolved.selection.routeAuthorityMatch,
+  );
+  line(
+    'model.selection.routeMismatchReason',
+    resolved.selection.routeMismatchReason ?? 'NONE',
+  );
+  line('model.selection.fallbackReason', resolved.selection.fallbackReason);
   line('dialect', model.api);
   line('endpoint.family', routeContract.scope.endpoint.family);
   line('structuredToolProtocol.policy', routeContract.structuredProtocol.kind);
@@ -530,6 +597,13 @@ export async function runToolRouteProbeResult(
     'vertex.validationError',
     firstResponseDiag?.['vertexValidationError'] ?? 'none',
   );
+  line(
+    'vertex.requestConstructed',
+    firstResponseDiag?.['vertexStage'] === 'REQUEST_CONSTRUCTED' ||
+      firstResponseDiag?.['vertexStage'] === 'NETWORK_STARTED' ||
+      Boolean(firstResponseDiag?.['networkStarted']),
+  );
+  line('vertex.networkStarted', Boolean(firstResponseDiag?.['networkStarted']));
   line('wire.networkStarted', firstResponseDiag?.['networkStarted'] ?? false);
   // Responses-family structural request facts (names/counts only).
   line('wire.hasInput', firstResponseDiag?.['hasInput'] ?? false);

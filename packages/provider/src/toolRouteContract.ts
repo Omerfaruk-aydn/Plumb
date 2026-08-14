@@ -85,6 +85,8 @@ function classifyCode(
     case 'MISSING_CREDENTIAL':
     case 'UNAUTHENTICATED':
     case 'AUTH_BLOCKED':
+    case 'CONFIGURATION_REQUIRED':
+    case 'PROJECT_REQUIRED':
       return 'AUTH_BLOCKED';
     case 'MODEL_NOT_AVAILABLE':
     case 'ENDPOINT_NOT_FOUND':

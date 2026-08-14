@@ -52,7 +52,7 @@ describe('Vertex preflight stage instrumentation', () => {
     const prep: VertexRequestPrep = await prepareVertexModel(vertexModel());
     expect(prep.error).toMatchObject({
       type: 'error',
-      error: { code: 'INVALID_REQUEST' },
+      error: { code: 'CONFIGURATION_REQUIRED' },
     });
     expect(prep.stage).toBe('ROUTE_RESOLVED');
     expect(prep.failedStage).toBe('PROJECT_RESOLVED');
@@ -117,7 +117,7 @@ describe('Vertex preflight stage instrumentation', () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       type: 'error',
-      error: { code: 'INVALID_REQUEST' },
+      error: { code: 'CONFIGURATION_REQUIRED' },
     });
     const diag = getLastToolRouteDiag();
     expect(diag?.['vertexStage']).toBe('ROUTE_RESOLVED');
@@ -125,5 +125,15 @@ describe('Vertex preflight stage instrumentation', () => {
     expect(diag?.['vertexValidationError']).toBe('missing.project');
     expect(diag?.['networkStarted']).toBe(false);
     expect(diag?.['functionDeclarationCount']).toBe(0);
+  });
+
+  it('resolveVertexProjectAuthority distinguishes configured provider state, environment, and missing', async () => {
+    const { resolveVertexProjectAuthority } = await import('./googleVertex.js');
+    const auth = resolveVertexProjectAuthority();
+    expect(auth).toBeDefined();
+    expect(['CONFIGURED_PROVIDER_STATE', 'ENVIRONMENT', 'NONE']).toContain(
+      auth.source,
+    );
+    expect(typeof auth.present).toBe('boolean');
   });
 });

@@ -135,6 +135,19 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
     getPlumbModelRegistry: vi.fn(() => ({
       findModel: vi.fn(() => model),
       resolveDefaultModel: vi.fn(() => model),
+      resolveModelSelection: vi.fn(
+        (input: { requestedModel?: string; configuredModel?: string }) => ({
+          model,
+          source: input.requestedModel
+            ? 'USER_EXPLICIT'
+            : 'LIVE_AUTHORITY_FIRST',
+          displayId: model.id,
+          wireId: 'wire-model',
+          liveAuthorityMatch: true,
+          fallbackReason: 'none',
+        }),
+      ),
+      getDefaultModel: vi.fn(() => null),
       refreshProvider: vi.fn(() => {
         throw new Error('diagnosis must not discover models');
       }),
@@ -206,6 +219,10 @@ describe('tool route diagnostics', () => {
 
     const text = rendered();
     expect(text).toContain('diagnostic.mode: AUTO_ROUTE_CONTRACT');
+    expect(text).toContain('model.selection.source: USER_EXPLICIT');
+    expect(text).toContain('model.selection.displayId: safe-model');
+    expect(text).toContain('model.selection.wireId: wire-model');
+    expect(text).toContain('model.selection.liveAuthorityMatch: true');
     expect(text).toContain('toolChoice.auto.status: UNKNOWN');
     expect(text).toContain(
       'AUTO_TOOL_SELECTION_WORKS: UNKNOWN_NOT_LIVE_TESTED',
@@ -574,6 +591,39 @@ describe('batch final-result policy (Problem 8)', () => {
     expect(text).toContain('batch.provider.modelAuthority: USER_EXPLICIT');
     expect(text).toContain('batch.modelUnavailable.count: 1');
     expect(text).toContain('batch.liveModelUnresolved.count: 0');
+  });
+
+  it('batch probe with LIVE_DISCOVERED authority calls probe without explicit model, allowing dynamic live candidate resolution', async () => {
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'github-copilot' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockReturnValue({
+      liveDiscoveryCount: 77,
+      bundledFallbackCount: 38,
+      customCount: 0,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+    });
+
+    const probe = vi.fn(
+      async (
+        providerId: string,
+        _requestedModel?: string,
+      ): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 0,
+        code: 'OK',
+        structuredToolCalls: true,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(0);
+
+    expect(probe).toHaveBeenCalledWith('github-copilot', undefined);
+    const text = rendered();
+    expect(text).toContain('batch.provider.discoveryState: SUCCEEDED_NONEMPTY');
+    expect(text).toContain('batch.provider.modelAuthority: LIVE_DISCOVERED');
+    expect(text).toContain('batch.provider.liveDiscoveredModels: 77');
+    expect(text).toContain('batch.pass.count: 1');
   });
 });
 

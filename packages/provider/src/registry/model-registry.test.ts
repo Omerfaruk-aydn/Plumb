@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PlumbModelRegistry } from './model-registry.js';
+import { PlumbModelRegistry, composeModel } from './model-registry.js';
 import type { PlumbModel } from '../types.js';
 import {
   getPlumbProviderRegistry,
@@ -249,5 +249,134 @@ describe('PlumbModelRegistry', () => {
     expect(
       registry.getModelAuthorityStats('no-such-provider-xyz').discoveryState,
     ).toBe('UNSUPPORTED');
+  });
+
+  it('16. Copilot/live authority regression: selects deterministic live candidate, never stale bundled/configured fallback', () => {
+    // Bundled fallback for github-copilot has gpt-5.5 (X).
+    // Live discovery returns [A, B, C].
+    registry.addDiscoveredModels([
+      makeModel('claude-sonnet-4-6', 'github-copilot'),
+      makeModel('claude-opus-4-8', 'github-copilot'),
+      makeModel('gpt-4o', 'github-copilot'),
+    ]);
+
+    // Stale configured model is X ('gpt-5.5'), which is not in live discovery.
+    const selection = registry.resolveModelSelection({
+      providerId: 'github-copilot',
+      configuredModel: 'gpt-5.5',
+    });
+
+    expect(selection.model?.id).toBe('claude-sonnet-4-6');
+    expect(selection.source).toBe('LIVE_AUTHORITY_FIRST');
+    expect(selection.liveAuthorityMatch).toBe(true);
+    expect(selection.model?.id).not.toBe('gpt-5.5');
+  });
+
+  it('17. Live authority preserves configured model if confirmed present in live discovery', () => {
+    registry.addDiscoveredModels([
+      makeModel('claude-sonnet-4-6', 'github-copilot'),
+      makeModel('claude-opus-4-8', 'github-copilot'),
+      makeModel('gpt-4o', 'github-copilot'),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'github-copilot',
+      configuredModel: 'claude-opus-4-8',
+    });
+
+    expect(selection.model?.id).toBe('claude-opus-4-8');
+    expect(selection.source).toBe('CONFIGURED_PREFERENCE');
+    expect(selection.liveAuthorityMatch).toBe(true);
+  });
+
+  it('18. Live authority preserves wireModelId mapping when display and wire IDs differ', () => {
+    registry.addDiscoveredModels([
+      makeModel('claude-opus-4-8-1m', 'github-copilot', {
+        requestModelId: 'claude-opus-4-8',
+      }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'github-copilot',
+    });
+
+    expect(selection.model?.id).toBe('claude-opus-4-8-1m');
+    expect(selection.displayId).toBe('claude-opus-4-8-1m');
+    expect(selection.wireId).toBe('claude-opus-4-8');
+    expect(selection.liveAuthorityMatch).toBe(true);
+  });
+
+  it('19. composeModel preserves bundled toolsSupported and compat flags when discovery omits them', () => {
+    const bundled = makeModel('test-model', 'test-prov', {
+      toolsSupported: true,
+      toolsCapabilitySource: 'BUNDLED_CATALOG',
+      openaiCompat: { strictTools: true },
+      thinking: { mode: 'effort' },
+    });
+    const sparseDiscovered = makeModel('test-model', 'test-prov', {
+      contextWindow: 131072,
+      maxTokens: 32768,
+      toolsSupported: undefined,
+      toolsCapabilitySource: undefined,
+    });
+    const composed = composeModel(sparseDiscovered, bundled);
+    expect(composed.toolsSupported).toBe(true);
+    expect(composed.toolsCapabilitySource).toBe('BUNDLED_CATALOG');
+    expect(composed.openaiCompat?.strictTools).toBe(true);
+    expect(composed.thinking?.mode).toBe('effort');
+  });
+
+  it('20. OpenCode Go and OpenCode Zen retain toolsSupported: true through model resolution', () => {
+    const opencodeGo = registry.findModel('opencode-go', 'kimi-k2.7-code');
+    expect(opencodeGo).toBeDefined();
+    expect(opencodeGo?.toolsSupported).toBe(true);
+    expect(opencodeGo?.toolsCapabilitySource).toBe('BUNDLED_CATALOG');
+
+    const opencodeZen = registry.findModel('opencode-zen', 'claude-opus-4-8');
+    expect(opencodeZen).toBeDefined();
+    expect(opencodeZen?.toolsSupported).toBe(true);
+    expect(opencodeZen?.toolsCapabilitySource).toBe('BUNDLED_CATALOG');
+  });
+
+  it('21. Route-scoped model selection filters candidates against targetDialect and targetEndpointFamily', () => {
+    // Model A is openai-responses, Model B is openai-completions
+    registry.addDiscoveredModels([
+      makeModel('model-completions', 'test-route-prov', {
+        api: 'openai-completions',
+      }),
+      makeModel('model-responses', 'test-route-prov', {
+        api: 'openai-responses',
+      }),
+    ]);
+
+    // Request target dialect openai-responses
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+      targetDialect: 'openai-responses',
+    });
+
+    expect(selection.model?.id).toBe('model-responses');
+    expect(selection.routeAuthorityMatch).toBe(true);
+    expect(selection.routeMismatchReason).toBe('NONE');
+  });
+
+  it('22. User explicit model with route mismatch reports USER_EXPLICIT with routeAuthorityMatch: false', () => {
+    registry.addDiscoveredModels([
+      makeModel('model-completions', 'test-route-prov', {
+        api: 'openai-completions',
+      }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+      requestedModel: 'model-completions',
+      targetDialect: 'openai-responses',
+    });
+
+    expect(selection.model?.id).toBe('model-completions');
+    expect(selection.source).toBe('USER_EXPLICIT');
+    expect(selection.providerAuthorityMatch).toBe(true);
+    expect(selection.routeAuthorityMatch).toBe(false);
+    expect(selection.routeMismatchReason).toBe('DIALECT_MISMATCH');
   });
 });

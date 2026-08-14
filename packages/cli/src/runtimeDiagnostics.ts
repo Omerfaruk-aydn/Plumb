@@ -153,18 +153,21 @@ export interface RuntimeIdentityReport {
 }
 
 export type FreshnessVerdict =
-  | { kind: 'current'; message: string }
+  | { kind: 'current-clean'; message: string }
+  | { kind: 'current-dirty'; message: string }
   | { kind: 'stale'; message: string }
   | { kind: 'indeterminate'; message: string };
 
 /**
- * Compare the embedded build HEAD with the live repository HEAD.
+ * Compare the embedded build HEAD with the live repository HEAD and worktree dirtiness.
  * A detectable mismatch marks the running dist stale — the linked global
  * command must fail `--runtime-identity` in that case.
  */
 export function evaluateFreshness(
   embeddedHead: string,
   repoHead: string | null,
+  worktreeDirty: boolean = (BUILD_IDENTITY as { worktreeDirty?: boolean })
+    .worktreeDirty ?? false,
 ): FreshnessVerdict {
   if (repoHead === null) {
     return {
@@ -173,9 +176,16 @@ export function evaluateFreshness(
     };
   }
   if (embeddedHead === repoHead) {
+    if (worktreeDirty) {
+      return {
+        kind: 'current-dirty',
+        message:
+          'current-dirty (embedded HEAD matches repository HEAD with uncommitted source changes)',
+      };
+    }
     return {
-      kind: 'current',
-      message: 'current (embedded HEAD matches repository HEAD)',
+      kind: 'current-clean',
+      message: 'current-clean (embedded HEAD matches repository HEAD)',
     };
   }
   return {
@@ -259,6 +269,8 @@ export function buildRuntimeIdentityReport(): RuntimeIdentityReport {
     `command.jsEntryPath: ${resolution.jsEntryPath}`,
     `command.packageRoot: ${resolution.packageRoot}`,
     `build.embeddedHead: ${embeddedHead}`,
+    `build.worktreeDirty: ${(BUILD_IDENTITY as { worktreeDirty?: boolean }).worktreeDirty ?? false}`,
+    `build.sourceState: ${(BUILD_IDENTITY as { sourceState?: string }).sourceState ?? 'UNKNOWN'}`,
     `build.timestamp: ${BUILD_IDENTITY.buildTimestamp}`,
     `build.sourceRoot: ${BUILD_IDENTITY.sourceRoot}`,
     `repo.currentHead: ${repoHead ?? 'undetectable'}`,

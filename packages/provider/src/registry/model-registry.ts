@@ -6,7 +6,12 @@
  * Integrates: bundled catalog, runtime discovery, cache, custom models.
  */
 
-import type { PlumbModel, PlumbProviderId, PlumbKnownApi } from '../types.js';
+import type {
+  PlumbModel,
+  PlumbProviderId,
+  PlumbKnownApi,
+  PlumbRouteEndpointFamily,
+} from '../types.js';
 import { getPlumbProvider, LOCAL_PROVIDERS } from '../catalog/providers.js';
 import { getPlumbProviderRegistry } from './provider-registry.js';
 import {
@@ -43,6 +48,160 @@ import {
 
 // ─── Model registry ───────────────────────────────────────────────────
 
+/**
+ * Compose dynamic discovered/custom model identity with rich bundled catalog metadata.
+ * Live discovery provides identity, wire mapping, and any explicitly reported fields;
+ * bundled catalog preserves toolsSupported, thinking, compat flags, and context limits
+ * when discovered omission leaves them undefined.
+ */
+export function composeModel(
+  discovered: PlumbModel,
+  bundled?: PlumbModel,
+): PlumbModel {
+  if (!bundled) {
+    return discovered;
+  }
+  return {
+    ...bundled,
+    ...discovered,
+    name: discovered.name || bundled.name,
+    api: discovered.api ?? bundled.api,
+    requestModelId: discovered.requestModelId ?? bundled.requestModelId,
+    baseUrl: discovered.baseUrl ?? bundled.baseUrl,
+    contextWindow: discovered.contextWindow ?? bundled.contextWindow,
+    maxTokens: discovered.maxTokens ?? bundled.maxTokens,
+    reasoning:
+      discovered.reasoning !== undefined
+        ? discovered.reasoning
+        : bundled.reasoning,
+    toolsSupported:
+      discovered.toolsSupported !== undefined
+        ? discovered.toolsSupported
+        : bundled.toolsSupported,
+    toolsCapabilitySource:
+      discovered.toolsSupported !== undefined
+        ? (discovered.toolsCapabilitySource ?? 'SERVER_DYNAMIC')
+        : (bundled.toolsCapabilitySource ??
+          (bundled.toolsSupported !== undefined
+            ? 'BUNDLED_CATALOG'
+            : undefined)),
+    input: discovered.input ?? bundled.input,
+    source: discovered.source ?? bundled.source,
+    pricing: discovered.pricing ?? bundled.pricing,
+    thinking:
+      (discovered as { thinking?: PlumbModel['thinking'] }).thinking ??
+      bundled.thinking,
+    openaiCompat:
+      (discovered as { openaiCompat?: PlumbModel['openaiCompat'] })
+        .openaiCompat ?? bundled.openaiCompat,
+    anthropicCompat:
+      (discovered as { anthropicCompat?: PlumbModel['anthropicCompat'] })
+        .anthropicCompat ?? bundled.anthropicCompat,
+    bedrockCompat:
+      (discovered as { bedrockCompat?: PlumbModel['bedrockCompat'] })
+        .bedrockCompat ?? bundled.bedrockCompat,
+  };
+}
+
+export interface ResolveProbeModelInput {
+  providerId: PlumbProviderId;
+  requestedModel?: string;
+  configuredModel?: string;
+  targetDialect?: PlumbKnownApi;
+  targetEndpointFamily?: PlumbRouteEndpointFamily;
+  targetWireModel?: string;
+  probeTools?: boolean;
+}
+
+export type RouteMismatchCategory =
+  | 'NONE'
+  | 'DIALECT_MISMATCH'
+  | 'ENDPOINT_FAMILY_MISMATCH'
+  | 'WIRE_MODEL_MISMATCH'
+  | 'MODEL_ROUTE_UNSUPPORTED'
+  | 'UNKNOWN_ROUTE_COMPAT';
+
+export interface ResolvedModelSelection {
+  model?: PlumbModel;
+  source:
+    | 'USER_EXPLICIT'
+    | 'CONFIGURED_PREFERENCE'
+    | 'PROVIDER_PREFERRED'
+    | 'LIVE_AUTHORITY_FIRST'
+    | 'STATIC_CATALOG_DEFAULT'
+    | 'UNRESOLVED';
+  displayId?: string;
+  wireId?: string;
+  providerAuthorityMatch: boolean;
+  liveAuthorityMatch: boolean;
+  routeAuthorityMatch: boolean;
+  routeMismatchReason?: RouteMismatchCategory;
+  fallbackReason: string;
+}
+
+function getEndpointFamilyForDialect(
+  api: PlumbKnownApi,
+): PlumbRouteEndpointFamily {
+  switch (api) {
+    case 'openai-completions':
+    case 'openrouter':
+    case 'ollama-chat':
+      return 'OPENAI_CHAT_COMPLETIONS';
+    case 'openai-responses':
+    case 'azure-openai-responses':
+    case 'oci-openai-responses':
+    case 'openai-codex-responses':
+      return 'OPENAI_RESPONSES';
+    case 'anthropic-messages':
+      return 'ANTHROPIC_MESSAGES';
+    case 'bedrock-converse-stream':
+      return 'AWS_BEDROCK_CONVERSE';
+    case 'google-generative-ai':
+    case 'google-gemini-cli':
+      return 'GOOGLE_GENERATIVE_LANGUAGE';
+    case 'google-vertex':
+      return 'GOOGLE_VERTEX_PREDICTION';
+    case 'claude-agent-sdk':
+      return 'CLAUDE_AGENT_SDK';
+    case 'watsonx-chat':
+      return 'IBM_WATSONX_CHAT';
+    case 'cursor-agent':
+    case 'devin-agent':
+    case 'gitlab-duo-agent':
+      return 'PROVIDER_AGENT';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+function evaluateRouteCompatibility(
+  model: PlumbModel | undefined,
+  input: ResolveProbeModelInput,
+): { match: boolean; reason: RouteMismatchCategory } {
+  if (!model) {
+    return { match: false, reason: 'UNKNOWN_ROUTE_COMPAT' };
+  }
+  if (input.targetDialect && model.api !== input.targetDialect) {
+    return { match: false, reason: 'DIALECT_MISMATCH' };
+  }
+  if (input.targetEndpointFamily) {
+    const family = getEndpointFamilyForDialect(model.api);
+    if (family !== input.targetEndpointFamily) {
+      return { match: false, reason: 'ENDPOINT_FAMILY_MISMATCH' };
+    }
+  }
+  if (input.targetWireModel) {
+    const wireId = model.requestModelId ?? model.id;
+    if (wireId !== input.targetWireModel) {
+      return { match: false, reason: 'WIRE_MODEL_MISMATCH' };
+    }
+  }
+  if (input.probeTools && model.toolsSupported === false) {
+    return { match: false, reason: 'MODEL_ROUTE_UNSUPPORTED' };
+  }
+  return { match: true, reason: 'NONE' };
+}
+
 /** Live-vs-bundled authority counts for one provider. Used by the honest
  * batch tool-route probe so a provider whose only models are bundled
  * fallbacks is never silently treated as live authority. */
@@ -65,20 +224,54 @@ export class PlumbModelRegistry {
 
   // ── Model resolution ──────────────────────────────────────────────
 
-  /** Get all models available for a provider. */
+  /** Get all models dynamically discovered for a provider. */
+  getDiscoveredModels(providerId: PlumbProviderId): PlumbModel[] {
+    const bundled = getCatalogModels(providerId);
+    const bundledMap = new Map<string, PlumbModel>();
+    for (const b of bundled) {
+      bundledMap.set(b.id, b);
+      if (b.requestModelId) bundledMap.set(b.requestModelId, b);
+    }
+    return [...this.#discoveredModels.values()]
+      .filter((m) => m.provider === providerId)
+      .map((m) => {
+        const bundledMatch =
+          bundledMap.get(m.id) ??
+          (m.requestModelId ? bundledMap.get(m.requestModelId) : undefined);
+        return composeModel(m, bundledMatch);
+      });
+  }
+
+  /** Get all models available for a provider. Discovered models take precedence. */
   getModelsForProvider(providerId: PlumbProviderId): PlumbModel[] {
     const bundled = getCatalogModels(providerId);
     const custom = [...this.#customModels.values()].filter(
       (m) => m.provider === providerId,
     );
-    const discovered = [...this.#discoveredModels.values()].filter(
-      (m) => m.provider === providerId,
-    );
+    const discovered = this.getDiscoveredModels(providerId);
+
+    const bundledMap = new Map<string, PlumbModel>();
+    for (const b of bundled) {
+      bundledMap.set(b.id, b);
+      if (b.requestModelId) bundledMap.set(b.requestModelId, b);
+    }
 
     const seen = new Set<string>();
     const result: PlumbModel[] = [];
 
-    for (const model of [...bundled, ...discovered, ...custom]) {
+    for (const model of [...discovered, ...custom]) {
+      if (!seen.has(model.id)) {
+        seen.add(model.id);
+        const bundledMatch =
+          bundledMap.get(model.id) ??
+          (model.requestModelId
+            ? bundledMap.get(model.requestModelId)
+            : undefined);
+        result.push(composeModel(model, bundledMatch));
+      }
+    }
+
+    for (const model of bundled) {
       if (!seen.has(model.id)) {
         seen.add(model.id);
         result.push(model);
@@ -170,13 +363,23 @@ export class PlumbModelRegistry {
                   : 'NETWORK_FAILED';
     this.#discoveryStates.set(providerId, state);
 
+    const bundled = getCatalogModels(providerId);
+    const bundledMap = new Map<string, PlumbModel>();
+    for (const b of bundled) {
+      bundledMap.set(b.id, b);
+      if (b.requestModelId) bundledMap.set(b.requestModelId, b);
+    }
+
     const models: PlumbModel[] = [];
     for (const m of outcome.models) {
-      const plumbModel: PlumbModel = {
+      const rawModel: PlumbModel = {
         id: m.id,
         name: m.name ?? m.id,
         provider: providerId,
         api: m.api ?? 'openai-completions',
+        ...(m.requestModelId
+          ? { requestModelId: m.requestModelId }
+          : undefined),
         ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
         contextWindow: m.contextWindow ?? 131072,
         maxTokens: m.maxTokens ?? 32768,
@@ -191,6 +394,10 @@ export class PlumbModelRegistry {
         ...(m.source ? { source: m.source } : undefined),
         ...(m.pricing ? { pricing: m.pricing } : undefined),
       };
+      const bundledMatch =
+        bundledMap.get(m.id) ??
+        (m.requestModelId ? bundledMap.get(m.requestModelId) : undefined);
+      const plumbModel = composeModel(rawModel, bundledMatch);
       this.#discoveredModels.set(`${providerId}:${m.id}`, plumbModel);
       models.push(plumbModel);
     }
@@ -237,14 +444,258 @@ export class PlumbModelRegistry {
 
   /** Resolve the best model for a given provider. */
   resolveDefaultModel(providerId: PlumbProviderId): PlumbModel | undefined {
+    return this.resolveModelSelection({ providerId }).model;
+  }
+
+  /**
+   * Canonical model selection following the strict authority hierarchy:
+   *
+   *   1. USER_EXPLICIT (user passed an explicit model identifier)
+   *   2. CONFIGURED_PREFERENCE (active configured model IF present in active authority set)
+   *   3. PROVIDER_PREFERRED (provider defaultModel IF present in active authority set)
+   *   4. LIVE_AUTHORITY_FIRST (first deterministic live-authority candidate when live)
+   *      or STATIC_CATALOG_DEFAULT (first bundled fallback when statically authoritative)
+   *   5. UNRESOLVED (honest unresolved when live discovery was empty or no candidates exist)
+   */
+  resolveModelSelection(input: ResolveProbeModelInput): ResolvedModelSelection {
+    const { providerId, requestedModel, configuredModel } = input;
+    const stats = this.getModelAuthorityStats(providerId);
+    const discovered = this.getDiscoveredModels(providerId);
+    const bundled = getCatalogModels(providerId);
     const provider = getPlumbProvider(providerId);
-    const defaultId = provider?.defaultModel;
-    if (defaultId) {
-      const model = this.findModel(providerId, defaultId);
-      if (model) return model;
+
+    if (requestedModel) {
+      const model = this.findModel(providerId, requestedModel);
+      if (model) {
+        const wireId = model.requestModelId ?? model.id;
+        const liveMatch = discovered.some(
+          (d) =>
+            d.id === model.id ||
+            (model.requestModelId !== undefined &&
+              (d.id === model.requestModelId ||
+                d.requestModelId === model.requestModelId)),
+        );
+        const routeComp = evaluateRouteCompatibility(model, input);
+        return {
+          model,
+          source: 'USER_EXPLICIT',
+          displayId: model.id,
+          wireId,
+          providerAuthorityMatch: true,
+          liveAuthorityMatch: liveMatch,
+          routeAuthorityMatch: routeComp.match,
+          routeMismatchReason: routeComp.reason,
+          fallbackReason: 'none',
+        };
+      }
+      return {
+        model: undefined,
+        source: 'USER_EXPLICIT',
+        displayId: requestedModel,
+        wireId: requestedModel,
+        providerAuthorityMatch: false,
+        liveAuthorityMatch: false,
+        routeAuthorityMatch: false,
+        routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
+        fallbackReason: 'requested_model_not_found',
+      };
     }
-    const models = this.getModelsForProvider(providerId);
-    return models[0];
+
+    if (
+      stats.discoveryState === 'SUCCEEDED_NONEMPTY' ||
+      discovered.length > 0
+    ) {
+      // LIVE_DISCOVERED authority
+      if (discovered.length === 0) {
+        return {
+          model: undefined,
+          source: 'UNRESOLVED',
+          providerAuthorityMatch: false,
+          liveAuthorityMatch: false,
+          routeAuthorityMatch: false,
+          routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
+          fallbackReason: 'no_live_authority_models',
+        };
+      }
+
+      // Restrict candidate set first to route-compatible models
+      const routeCompatibleDiscovered = discovered.filter(
+        (m) => evaluateRouteCompatibility(m, input).match,
+      );
+
+      if (routeCompatibleDiscovered.length === 0) {
+        const firstM = discovered[0];
+        const comp = evaluateRouteCompatibility(firstM, input);
+        return {
+          model: undefined,
+          source: 'UNRESOLVED',
+          providerAuthorityMatch: true,
+          liveAuthorityMatch: true,
+          routeAuthorityMatch: false,
+          routeMismatchReason: comp.reason,
+          fallbackReason: 'no_route_compatible_live_models',
+        };
+      }
+
+      // 1. Check configured model
+      if (configuredModel) {
+        const match = routeCompatibleDiscovered.find(
+          (m) =>
+            m.id === configuredModel || m.requestModelId === configuredModel,
+        );
+        if (match) {
+          return {
+            model: match,
+            source: 'CONFIGURED_PREFERENCE',
+            displayId: match.id,
+            wireId: match.requestModelId ?? match.id,
+            providerAuthorityMatch: true,
+            liveAuthorityMatch: true,
+            routeAuthorityMatch: true,
+            routeMismatchReason: 'NONE',
+            fallbackReason: 'none',
+          };
+        }
+      }
+
+      // 2. Check provider preferred model
+      if (provider?.defaultModel) {
+        const match = routeCompatibleDiscovered.find(
+          (m) =>
+            m.id === provider.defaultModel ||
+            m.requestModelId === provider.defaultModel,
+        );
+        if (match) {
+          return {
+            model: match,
+            source: 'PROVIDER_PREFERRED',
+            displayId: match.id,
+            wireId: match.requestModelId ?? match.id,
+            providerAuthorityMatch: true,
+            liveAuthorityMatch: true,
+            routeAuthorityMatch: true,
+            routeMismatchReason: 'NONE',
+            fallbackReason: 'none',
+          };
+        }
+      }
+
+      // 3. First deterministic live route-compatible candidate
+      const first = routeCompatibleDiscovered[0];
+      return {
+        model: first,
+        source: 'LIVE_AUTHORITY_FIRST',
+        displayId: first.id,
+        wireId: first.requestModelId ?? first.id,
+        providerAuthorityMatch: true,
+        liveAuthorityMatch: true,
+        routeAuthorityMatch: true,
+        routeMismatchReason: 'NONE',
+        fallbackReason: provider?.defaultModel
+          ? 'preferred_not_route_compatible_or_in_live_discovery'
+          : configuredModel
+            ? 'configured_not_route_compatible_or_in_live_discovery'
+            : 'none',
+      };
+    }
+
+    if (stats.discoveryState === 'SUCCEEDED_EMPTY') {
+      // Honest LIVE_MODEL_UNRESOLVED — must NEVER pick bundled fallback
+      return {
+        model: undefined,
+        source: 'UNRESOLVED',
+        providerAuthorityMatch: false,
+        liveAuthorityMatch: false,
+        routeAuthorityMatch: false,
+        routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
+        fallbackReason: 'discovery_empty_live_model_unresolved',
+      };
+    }
+
+    // Static authoritative or un-attempted fallback
+    if (bundled.length > 0) {
+      const routeCompatibleBundled = bundled.filter(
+        (m) => evaluateRouteCompatibility(m, input).match,
+      );
+
+      if (routeCompatibleBundled.length === 0) {
+        const firstB = bundled[0];
+        const comp = evaluateRouteCompatibility(firstB, input);
+        return {
+          model: undefined,
+          source: 'UNRESOLVED',
+          providerAuthorityMatch: true,
+          liveAuthorityMatch: false,
+          routeAuthorityMatch: false,
+          routeMismatchReason: comp.reason,
+          fallbackReason: 'no_route_compatible_bundled_models',
+        };
+      }
+
+      if (configuredModel) {
+        const match = routeCompatibleBundled.find(
+          (m) =>
+            m.id === configuredModel || m.requestModelId === configuredModel,
+        );
+        if (match) {
+          return {
+            model: match,
+            source: 'CONFIGURED_PREFERENCE',
+            displayId: match.id,
+            wireId: match.requestModelId ?? match.id,
+            providerAuthorityMatch: true,
+            liveAuthorityMatch: false,
+            routeAuthorityMatch: true,
+            routeMismatchReason: 'NONE',
+            fallbackReason: 'none',
+          };
+        }
+      }
+
+      if (provider?.defaultModel) {
+        const match = routeCompatibleBundled.find(
+          (m) =>
+            m.id === provider.defaultModel ||
+            m.requestModelId === provider.defaultModel,
+        );
+        if (match) {
+          return {
+            model: match,
+            source: 'PROVIDER_PREFERRED',
+            displayId: match.id,
+            wireId: match.requestModelId ?? match.id,
+            providerAuthorityMatch: true,
+            liveAuthorityMatch: false,
+            routeAuthorityMatch: true,
+            routeMismatchReason: 'NONE',
+            fallbackReason: 'none',
+          };
+        }
+      }
+
+      const first = routeCompatibleBundled[0];
+      return {
+        model: first,
+        source: 'STATIC_CATALOG_DEFAULT',
+        displayId: first.id,
+        wireId: first.requestModelId ?? first.id,
+        providerAuthorityMatch: true,
+        liveAuthorityMatch: false,
+        routeAuthorityMatch: true,
+        routeMismatchReason: 'NONE',
+        fallbackReason: 'none',
+      };
+    }
+
+    return {
+      model: undefined,
+      source: 'UNRESOLVED',
+      providerAuthorityMatch: false,
+      liveAuthorityMatch: false,
+      routeAuthorityMatch: false,
+      routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
+      fallbackReason: 'no_models_available',
+    };
   }
 
   // ── Custom models ─────────────────────────────────────────────────
@@ -412,6 +863,9 @@ export class PlumbModelRegistry {
           // Messages, Vertex, etc.); only the hand-written adapters, which
           // are genuinely all OpenAI-compatible, rely on the fallback.
           api: m.api ?? 'openai-completions',
+          ...(m.requestModelId
+            ? { requestModelId: m.requestModelId }
+            : undefined),
           ...(m.baseUrl ? { baseUrl: m.baseUrl } : undefined),
           contextWindow: m.contextWindow ?? 131072,
           maxTokens: m.maxTokens ?? 32768,

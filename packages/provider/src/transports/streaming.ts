@@ -60,19 +60,19 @@ import {
 // upstream provider actually returned structured tool_call deltas.
 
 let toolRouteDiagEnabled = false;
-let lastToolRouteDiag: Record<string, unknown> | undefined;
+const diagScopes = new Map<string, Record<string, unknown>>();
+let activeDiagProbeId: string | undefined;
+let defaultLastToolRouteDiag: Record<string, unknown> | undefined;
 
 export function enableToolRouteDiag(): void {
   toolRouteDiagEnabled = true;
 }
 
-export function getLastToolRouteDiag(): Record<string, unknown> | undefined {
-  return lastToolRouteDiag;
-}
-
-function resetToolRouteDiag(): void {
-  if (!toolRouteDiagEnabled) return;
-  lastToolRouteDiag = {
+export function createFreshDiagSnapshot(
+  probeId?: string,
+): Record<string, unknown> {
+  return {
+    ...(probeId ? { probeId } : {}),
     requestToolsCount: 0,
     requestModelId: '',
     requestToolChoice: 'absent',
@@ -115,6 +115,60 @@ function resetToolRouteDiag(): void {
   };
 }
 
+export function initToolRouteDiag(probeId?: string): Record<string, unknown> {
+  const snapshot = createFreshDiagSnapshot(probeId);
+  if (probeId) {
+    diagScopes.set(probeId, snapshot);
+    activeDiagProbeId = probeId;
+  }
+  defaultLastToolRouteDiag = snapshot;
+  return snapshot;
+}
+
+export function resetToolRouteDiag(probeId?: string): void {
+  if (!toolRouteDiagEnabled) return;
+  initToolRouteDiag(probeId);
+}
+
+export function getToolRouteDiag(
+  probeId?: string,
+): Record<string, unknown> | undefined {
+  if (probeId && diagScopes.has(probeId)) {
+    return diagScopes.get(probeId);
+  }
+  if (activeDiagProbeId && diagScopes.has(activeDiagProbeId)) {
+    return diagScopes.get(activeDiagProbeId);
+  }
+  return defaultLastToolRouteDiag;
+}
+
+export function getLastToolRouteDiag(
+  probeId?: string,
+): Record<string, unknown> | undefined {
+  return getToolRouteDiag(probeId);
+}
+
+function resolveDiagTarget(
+  context?: string | PlumbStreamOptions,
+): Record<string, unknown> | undefined {
+  if (!toolRouteDiagEnabled) return undefined;
+  const probeId =
+    typeof context === 'string'
+      ? context
+      : (context?.probeId ?? context?.diagnosticProbeId ?? activeDiagProbeId);
+  if (probeId) {
+    if (!diagScopes.has(probeId)) {
+      diagScopes.set(probeId, createFreshDiagSnapshot(probeId));
+    }
+    activeDiagProbeId = probeId;
+    return diagScopes.get(probeId);
+  }
+  if (!defaultLastToolRouteDiag) {
+    defaultLastToolRouteDiag = createFreshDiagSnapshot();
+  }
+  return defaultLastToolRouteDiag;
+}
+
 /** Structural wire facts a transport may record alongside a request. Every
  * field is a shape/path/count — never prompt text, credentials, or tool
  * arguments. */
@@ -154,20 +208,19 @@ export function recordToolRouteRequest(
   details?: ToolRouteRequestWireDetails,
 ): void {
   if (!toolRouteDiagEnabled) return;
-  resetToolRouteDiag();
-  lastToolRouteDiag!['requestToolsCount'] = toolsCount;
-  lastToolRouteDiag!['requestModelId'] = modelId;
+  const target = resolveDiagTarget(options);
+  if (!target) return;
+  target['requestToolsCount'] = toolsCount;
+  target['requestModelId'] = modelId;
   if (options) {
     const policy = resolveRouteToolPolicy(options.model);
-    lastToolRouteDiag!['toolProtocolStatus'] =
+    target['toolProtocolStatus'] =
       toolsCount > 0 ? 'structured_tools_advertised' : 'no_tools_advertised';
-    lastToolRouteDiag!['toolChoicePolicy'] = policy.emission;
-    lastToolRouteDiag!['toolChoiceSent'] = sentChoice !== undefined;
-    lastToolRouteDiag!['toolChoiceValueCategory'] =
-      describeToolChoiceValue(sentChoice);
-    lastToolRouteDiag!['requestToolChoice'] =
-      describeToolChoiceValue(sentChoice);
-    lastToolRouteDiag!['parallelToolsPolicy'] =
+    target['toolChoicePolicy'] = policy.emission;
+    target['toolChoiceSent'] = sentChoice !== undefined;
+    target['toolChoiceValueCategory'] = describeToolChoiceValue(sentChoice);
+    target['requestToolChoice'] = describeToolChoiceValue(sentChoice);
+    target['parallelToolsPolicy'] =
       policy.parallelToolCallsSupported === undefined
         ? 'unknown'
         : policy.parallelToolCallsSupported
@@ -175,36 +228,29 @@ export function recordToolRouteRequest(
           : 'unsupported';
   }
   if (details) {
-    lastToolRouteDiag!['requestFamily'] = details.requestFamily;
-    lastToolRouteDiag!['endpointPath'] = details.endpointPath;
-    lastToolRouteDiag!['toolSerializationShape'] =
-      details.toolSerializationShape;
-    lastToolRouteDiag!['functionDeclarationCount'] =
-      details.functionDeclarationCount ?? 0;
-    lastToolRouteDiag!['functionDeclarationNames'] = [
+    target['requestFamily'] = details.requestFamily;
+    target['endpointPath'] = details.endpointPath;
+    target['toolSerializationShape'] = details.toolSerializationShape;
+    target['functionDeclarationCount'] = details.functionDeclarationCount ?? 0;
+    target['functionDeclarationNames'] = [
       ...(details.functionDeclarationNames ?? []),
     ];
-    lastToolRouteDiag!['functionCallingMode'] =
-      details.functionCallingMode ?? 'absent';
-    lastToolRouteDiag!['allowedFunctionNamesCount'] = (
+    target['functionCallingMode'] = details.functionCallingMode ?? 'absent';
+    target['allowedFunctionNamesCount'] = (
       details.allowedFunctionNames ?? []
     ).length;
-    lastToolRouteDiag!['allowedFunctionNames'] = [
-      ...(details.allowedFunctionNames ?? []),
-    ];
-    lastToolRouteDiag!['toolConfigPresent'] =
-      details.toolConfigPresent ?? false;
-    lastToolRouteDiag!['toolsPresent'] = details.toolsPresent ?? false;
-    lastToolRouteDiag!['hasInput'] = details.hasInput ?? false;
-    lastToolRouteDiag!['inputItemCount'] = details.inputItemCount ?? 0;
-    lastToolRouteDiag!['parallelToolCallsPresent'] =
+    target['allowedFunctionNames'] = [...(details.allowedFunctionNames ?? [])];
+    target['toolConfigPresent'] = details.toolConfigPresent ?? false;
+    target['toolsPresent'] = details.toolsPresent ?? false;
+    target['hasInput'] = details.hasInput ?? false;
+    target['inputItemCount'] = details.inputItemCount ?? 0;
+    target['parallelToolCallsPresent'] =
       details.parallelToolCallsPresent ?? false;
-    lastToolRouteDiag!['maxOutputTokensFieldName'] =
+    target['maxOutputTokensFieldName'] =
       details.maxOutputTokensFieldName ?? 'absent';
-    lastToolRouteDiag!['reasoningFieldPresent'] =
-      details.reasoningFieldPresent ?? false;
+    target['reasoningFieldPresent'] = details.reasoningFieldPresent ?? false;
     if (details.requestFamily === 'google-gemini') {
-      lastToolRouteDiag!['vertexStage'] = 'REQUEST_CONSTRUCTED';
+      target['vertexStage'] = 'REQUEST_CONSTRUCTED';
     }
   }
 }
@@ -215,23 +261,31 @@ export function recordToolRouteRequest(
  * Values are stage names and field-name classifications only — never a
  * project id, token, or endpoint value.
  */
-export function recordVertexPreflight(prep: {
-  stage?: string;
-  failedStage?: string;
-  validationError?: string;
-}): void {
+export function recordVertexPreflight(
+  prep: {
+    stage?: string;
+    failedStage?: string;
+    validationError?: string;
+  },
+  context?: string | PlumbStreamOptions,
+): void {
   if (!toolRouteDiagEnabled) return;
-  if (!lastToolRouteDiag) resetToolRouteDiag();
-  lastToolRouteDiag!['vertexStage'] = prep.stage ?? 'not_recorded';
-  lastToolRouteDiag!['vertexFailedStage'] = prep.failedStage ?? 'none';
-  lastToolRouteDiag!['vertexValidationError'] = prep.validationError ?? 'none';
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['vertexStage'] = prep.stage ?? 'not_recorded';
+  target['vertexFailedStage'] = prep.failedStage ?? 'none';
+  target['vertexValidationError'] = prep.validationError ?? 'none';
 }
 
 /** Mark that the transport crossed the network boundary (safe boolean). */
-export function recordToolRouteNetworkStarted(): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['networkStarted'] = true;
-  lastToolRouteDiag['vertexStage'] = 'NETWORK_STARTED';
+export function recordToolRouteNetworkStarted(
+  context?: string | PlumbStreamOptions,
+): void {
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['networkStarted'] = true;
+  target['vertexStage'] = 'NETWORK_STARTED';
 }
 
 /** Safe upstream error details (sanitized; never the raw body). */
@@ -252,16 +306,18 @@ export function recordToolRouteHttpFailure(
   upstreamErrorCode: string,
   fieldViolations: readonly string[] = [],
   upstream?: SafeUpstreamErrorDetails,
+  context?: string | PlumbStreamOptions,
 ): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['httpStatus'] = httpStatus;
-  lastToolRouteDiag['upstreamErrorCode'] = upstreamErrorCode;
-  lastToolRouteDiag['upstreamErrorFieldViolations'] = [...fieldViolations];
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['httpStatus'] = httpStatus;
+  target['upstreamErrorCode'] = upstreamErrorCode;
+  target['upstreamErrorFieldViolations'] = [...fieldViolations];
   if (upstream) {
-    lastToolRouteDiag['upstreamErrorType'] = upstream.errorType ?? 'none';
-    lastToolRouteDiag['upstreamErrorParam'] = upstream.errorParam ?? 'none';
-    lastToolRouteDiag['upstreamErrorMessageSafe'] =
-      upstream.errorMessageSafe ?? 'none';
+    target['upstreamErrorType'] = upstream.errorType ?? 'none';
+    target['upstreamErrorParam'] = upstream.errorParam ?? 'none';
+    target['upstreamErrorMessageSafe'] = upstream.errorMessageSafe ?? 'none';
   }
 }
 
@@ -391,28 +447,48 @@ export function resolveForcedSelectorWithToolsGuard(
   return { ok: true, code: 'OK' };
 }
 
-export function recordToolRouteTextDelta(): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['responseTextDeltaCount'] =
-    (lastToolRouteDiag['responseTextDeltaCount'] as number) + 1;
+export function recordToolRouteTextDelta(
+  context?: string | PlumbStreamOptions,
+): void {
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['responseTextDeltaCount'] =
+    ((target['responseTextDeltaCount'] as number) || 0) + 1;
 }
 
-export function recordToolRouteToolCallDelta(): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['responseToolCallDeltaCount'] =
-    (lastToolRouteDiag['responseToolCallDeltaCount'] as number) + 1;
+export function recordToolRouteToolCallDelta(
+  context?: string | PlumbStreamOptions,
+): void {
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['responseToolCallDeltaCount'] =
+    ((target['responseToolCallDeltaCount'] as number) || 0) + 1;
 }
 
-export function recordToolRouteFinishReason(reason: string): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['responseFinishReason'] = reason;
+export function recordToolRouteFinishReason(
+  reason: string,
+  context?: string | PlumbStreamOptions,
+): void {
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['responseFinishReason'] = reason;
 }
 
-export function recordToolRouteNormalizedCall(name: string): void {
-  if (!toolRouteDiagEnabled || !lastToolRouteDiag) return;
-  lastToolRouteDiag['normalizedToolCallCount'] =
-    (lastToolRouteDiag['normalizedToolCallCount'] as number) + 1;
-  (lastToolRouteDiag['normalizedToolCallNames'] as string[]).push(name);
+export function recordToolRouteNormalizedCall(
+  name: string,
+  context?: string | PlumbStreamOptions,
+): void {
+  if (!toolRouteDiagEnabled) return;
+  const target = resolveDiagTarget(context);
+  if (!target) return;
+  target['normalizedToolCallCount'] =
+    ((target['normalizedToolCallCount'] as number) || 0) + 1;
+  const list = (target['normalizedToolCallNames'] as string[]) || [];
+  list.push(name);
+  target['normalizedToolCallNames'] = list;
 }
 
 // ─── Safe Antigravity request/response tracing ────────────────────────

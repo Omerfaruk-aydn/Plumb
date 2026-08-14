@@ -175,12 +175,22 @@ export {
 
 // Model registry
 export {
+  composeModel,
   PlumbModelRegistry,
   getPlumbModelRegistry,
   resetPlumbModelRegistry,
   type PlumbModelAuthorityStats,
+  type ResolveProbeModelInput,
+  type ResolvedModelSelection,
+  type RouteMismatchCategory,
 } from './registry/model-registry.js';
 export type { ModelDiscoveryState } from './toolRouteContract.js';
+
+// Google Vertex authority
+export {
+  resolveVertexProjectAuthority,
+  type VertexProjectAuthorityInfo,
+} from './transports/googleVertex.js';
 
 // Auto-mode model-routing policy
 export {
@@ -410,7 +420,11 @@ export type {
 export {
   plumbModelStream,
   enableToolRouteDiag,
+  initToolRouteDiag,
+  resetToolRouteDiag,
+  getToolRouteDiag,
   getLastToolRouteDiag,
+  createFreshDiagSnapshot,
   registerPlumbTransport,
   hasPlumbTransport,
   buildAntigravityRequest,

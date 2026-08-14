@@ -129,7 +129,10 @@ describe('google-vertex routing (production-shaped, no mocking of streaming.ts/m
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(
       events.some(
-        (e) => e.type === 'error' && e.error?.code === 'INVALID_REQUEST',
+        (e) =>
+          e.type === 'error' &&
+          (e.error?.code === 'CONFIGURATION_REQUIRED' ||
+            e.error?.code === 'INVALID_REQUEST'),
       ),
     ).toBe(true);
   });

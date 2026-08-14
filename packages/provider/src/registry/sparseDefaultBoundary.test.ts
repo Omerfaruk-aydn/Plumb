@@ -78,9 +78,6 @@ describe('sparse-default boundary: OMP-only, not global', () => {
     const bundled = inv.models.filter(
       (m) => m.toolsCapabilitySource === 'BUNDLED_CATALOG',
     );
-    // 3935 = 3908 OMP models + 27 from PLUMB provider aliases
-    // (anthropic-api→anthropic, antigravity→google-antigravity)
-    // that resolve to the same OMP backing catalog.
     expect(bundled.length).toBe(3935);
     for (const m of bundled) {
       expect(typeof m.toolsSupported).toBe('boolean');

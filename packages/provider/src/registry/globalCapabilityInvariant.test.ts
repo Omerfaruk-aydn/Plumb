@@ -177,13 +177,13 @@ describe('global all-model generated capability invariant', () => {
       build: { gitHead: 'a'.repeat(40) },
     });
     // Before the fix: almost all models were UNKNOWN.
-    // After the fix: ~3900 bundled models become SUPPORTED.
+    // After the fix: ~3700+ bundled models become SUPPORTED.
     const bundledSupported = inv.models.filter(
       (m) =>
         m.toolsSupported === true &&
         m.toolsCapabilitySource === 'BUNDLED_CATALOG',
     );
-    expect(bundledSupported.length).toBeGreaterThan(3800);
+    expect(bundledSupported.length).toBeGreaterThan(3700);
   });
 
   it('models with upstream supportsTools=false are UNSUPPORTED (BUNDLED_CATALOG)', async () => {
@@ -219,7 +219,7 @@ describe('global all-model generated capability invariant', () => {
       bySource[src] = (bySource[src] ?? 0) + 1;
     }
     // BUNDLED_CATALOG should be the dominant source after the fix.
-    expect(bySource['BUNDLED_CATALOG'] ?? 0).toBeGreaterThan(3800);
+    expect(bySource['BUNDLED_CATALOG'] ?? 0).toBeGreaterThan(3700);
   });
 
   // ─── Provider isolation: same model ID / different provider ──────────

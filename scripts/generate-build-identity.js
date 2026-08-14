@@ -1,7 +1,9 @@
 /**
  * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 Google LLC
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * @license
  */
 
 // Generates packages/cli/src/generated/buildIdentity.ts — the embedded build
@@ -50,6 +52,19 @@ function resolveGitHead() {
   }
 }
 
+function resolveGitWorktreeDirty() {
+  try {
+    const status = execFileSync('git', ['status', '--porcelain'], {
+      encoding: 'utf-8',
+      cwd: root,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+    return status.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 const isRepositoryBuild = existsSync(join(root, '.git'));
 const { head, source } = resolveGitHead();
 
@@ -63,8 +78,15 @@ if (!head && isRepositoryBuild) {
 }
 
 const gitHead = head ?? 'unknown';
-const packageVersion = JSON.parse(readFileSync(cliPackageJsonPath, 'utf-8'))
-  .version;
+const worktreeDirty = isRepositoryBuild ? resolveGitWorktreeDirty() : false;
+const sourceState = isRepositoryBuild
+  ? worktreeDirty
+    ? 'DIRTY_WORKTREE'
+    : 'CLEAN_HEAD'
+  : 'UNKNOWN_NON_REPO';
+const packageVersion = JSON.parse(
+  readFileSync(cliPackageJsonPath, 'utf-8'),
+).version;
 const buildTimestamp = new Date().toISOString();
 
 if (!existsSync(generatedDir)) {
@@ -82,6 +104,10 @@ const fileContent = `/**
 export interface PlumbBuildIdentity {
   /** Full 40-char Git HEAD baked in at build time ('unknown' for tarball builds). */
   readonly gitHead: string;
+  /** Whether the worktree had uncommitted changes at build time. */
+  readonly worktreeDirty: boolean;
+  /** Safe source-state identifier baked in at build time. */
+  readonly sourceState: 'CLEAN_HEAD' | 'DIRTY_WORKTREE' | 'UNKNOWN_NON_REPO';
   /** Version of the plumb-cli package at build time. */
   readonly packageVersion: string;
   /** Absolute source root of the repository at build time. */
@@ -100,6 +126,8 @@ export interface PlumbBuildIdentity {
 
 export const BUILD_IDENTITY: PlumbBuildIdentity = {
   gitHead: '${gitHead}',
+  worktreeDirty: ${worktreeDirty},
+  sourceState: '${sourceState}',
   packageVersion: '${packageVersion}',
   sourceRoot: ${JSON.stringify(root)},
   buildTimestamp: '${buildTimestamp}',
@@ -112,5 +140,5 @@ export const BUILD_IDENTITY: PlumbBuildIdentity = {
 
 writeFileSync(outputFile, fileContent);
 console.log(
-  `[generate-build-identity] Embedded HEAD ${gitHead} (${source}) into ${relative(root, outputFile)}`,
+  `[generate-build-identity] Embedded HEAD ${gitHead} (dirty=${worktreeDirty}, ${source}) into ${relative(root, outputFile)}`,
 );
