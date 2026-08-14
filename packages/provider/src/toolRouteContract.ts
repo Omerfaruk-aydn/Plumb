@@ -111,6 +111,12 @@ function classifyCode(
     case 'PAYLOAD_VALIDATION_FAILED':
       // Provider rejected a well-formed request — a real request failure.
       return 'REQUEST_FAILED';
+    case 'INVALID_THINKING_TOKEN_BUDGET':
+      // PLUMB itself refused to construct a valid max_tokens/thinking
+      // budget pair and failed closed before any network call — this is a
+      // genuine request-construction failure, same bucket as any other
+      // payload-validation failure.
+      return 'REQUEST_FAILED';
     default:
       // AUTH/BLOCKED / MODEL / ROUTE / NETWORK are explicitly NOT
       // "tool-runtime failures". Anything unrecognized is reported honestly

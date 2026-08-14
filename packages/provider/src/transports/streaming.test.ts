@@ -699,6 +699,210 @@ describe('plumbModelStream â€” GitHub Copilot anthropic-messages auth heade
     );
   });
 
+  describe('Anthropic thinking / max_tokens invariant (live bug repair, invariant-based not Copilot-hardcoded)', () => {
+    const originalHarnessFetch = globalThis.fetch;
+    afterEach(() => {
+      globalThis.fetch = originalHarnessFetch;
+    });
+
+    async function captureRequest(
+      model: PlumbModel,
+      apiKey: string,
+      probeId: string,
+      maxTokens: number,
+    ): Promise<{
+      body: Record<string, unknown>;
+      fetchCalled: boolean;
+      events: PlumbStreamEvent[];
+    }> {
+      let capturedBody: Record<string, unknown> | undefined;
+      let fetchCalled = false;
+      globalThis.fetch = (async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        fetchCalled = true;
+        capturedBody = JSON.parse(String(init?.body)) as Record<
+          string,
+          unknown
+        >;
+        return new Response(
+          JSON.stringify({
+            id: 'msg_1',
+            type: 'message',
+            content: [],
+            stop_reason: 'end_turn',
+          }),
+          { status: 200 },
+        );
+      }) as typeof fetch;
+      enableToolRouteDiag();
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey,
+        maxTokens,
+        probeId,
+      })) {
+        events.push(event);
+      }
+      return { body: capturedBody ?? {}, fetchCalled, events };
+    }
+
+    it('A. tool-route probe shape (maxTokens=64 explicit) + thinking model on GitHub Copilot never sends an invalid max_tokens/thinking.budget_tokens pair — the exact live bug', async () => {
+      const model: PlumbModel = {
+        ...copilotClaudeModel,
+        id: 'claude-sonnet-4.6',
+        maxTokens: 64000, // matches the live-observed model.maxTokens
+        thinking: { supportedEfforts: ['high'] }, // no effortBudgets -> FALLBACK_DEFAULT (16000), exact live shape
+      };
+      const { body, events } = await captureRequest(
+        model,
+        'gho_real_copilot_token',
+        'copilot-claude-live-bug-repro',
+        64,
+      );
+      const thinking = body['thinking'] as
+        | { budget_tokens?: number }
+        | undefined;
+      expect(typeof body['max_tokens']).toBe('number');
+      if (thinking) {
+        expect(body['max_tokens'] as number).toBeGreaterThan(
+          thinking.budget_tokens!,
+        );
+      }
+      expect(events.some((e) => e.type === 'error')).toBe(false);
+
+      const diag = getLastToolRouteDiag('copilot-claude-live-bug-repro');
+      expect(diag?.['anthropicThinkingTokenInvariant']).toBe('PASS');
+      expect(diag?.['anthropicRequestedMaxTokens']).toBe(64);
+      expect(diag?.['anthropicThinkingBudgetSource']).toBe('FALLBACK_DEFAULT');
+    });
+
+    it('B. an ordinary Anthropic chat request with a low maxTokens (8192 model ceiling) shrinks the thinking budget instead of sending an invalid pair', async () => {
+      const model: PlumbModel = {
+        ...nativeAnthropicModel, // maxTokens: 8_192
+        thinking: { supportedEfforts: ['high'] },
+      };
+      const { body } = await captureRequest(
+        model,
+        'sk-ant-real-key',
+        'native-low-maxtokens',
+        64,
+      );
+      const thinking = body['thinking'] as
+        | { budget_tokens?: number }
+        | undefined;
+      expect(thinking).toBeDefined();
+      expect(body['max_tokens'] as number).toBeGreaterThan(
+        thinking!.budget_tokens!,
+      );
+      expect(body['max_tokens'] as number).toBeLessThanOrEqual(8192);
+
+      const diag = getLastToolRouteDiag('native-low-maxtokens');
+      expect(diag?.['anthropicThinkingBudgetAdjustmentReason']).toBe(
+        'MAX_TOKENS_RAISED_AND_BUDGET_REDUCED',
+      );
+      expect(diag?.['anthropicThinkingTokenInvariant']).toBe('PASS');
+    });
+
+    it('C. an ordinary request with a high maxTokens (already valid) is sent unchanged', async () => {
+      const model: PlumbModel = {
+        ...nativeAnthropicModel,
+        maxTokens: 64000,
+        thinking: {
+          supportedEfforts: ['high'],
+          effortBudgets: { high: 16000 },
+        },
+      };
+      const { body } = await captureRequest(
+        model,
+        'sk-ant-real-key',
+        'native-high-maxtokens',
+        32000,
+      );
+      expect(body['max_tokens']).toBe(32000);
+      expect(
+        (body['thinking'] as { budget_tokens?: number })?.budget_tokens,
+      ).toBe(16000);
+      const diag = getLastToolRouteDiag('native-high-maxtokens');
+      expect(diag?.['anthropicThinkingBudgetAdjusted']).toBe(false);
+    });
+
+    it('D. thinking disabled leaves maxTokens completely unaffected', async () => {
+      const model: PlumbModel = { ...nativeAnthropicModel }; // no `thinking` config
+      const { body } = await captureRequest(
+        model,
+        'sk-ant-real-key',
+        'native-thinking-disabled',
+        64,
+      );
+      expect(body['max_tokens']).toBe(64);
+      expect(body['thinking']).toBeUndefined();
+      const diag = getLastToolRouteDiag('native-thinking-disabled');
+      expect(diag?.['anthropicThinkingTokenInvariant']).toBe('PASS');
+      expect(diag?.['anthropicThinkingBudgetAdjusted']).toBe(false);
+    });
+
+    it('another Anthropic-compatible route (a generic gateway provider id, not github-copilot) hits the identical invariant repair — proves the fix is invariant-based, not Copilot-hardcoded', async () => {
+      const model: PlumbModel = {
+        ...nativeAnthropicModel,
+        provider: 'vercel-ai-gateway',
+        maxTokens: 8_192,
+        thinking: { supportedEfforts: ['high'] },
+      };
+      const { body } = await captureRequest(
+        model,
+        'vercel-gateway-canary',
+        'vercel-gateway-thinking-invariant',
+        64,
+      );
+      const thinking = body['thinking'] as
+        | { budget_tokens?: number }
+        | undefined;
+      expect(thinking).toBeDefined();
+      expect(body['max_tokens'] as number).toBeGreaterThan(
+        thinking!.budget_tokens!,
+      );
+    });
+
+    it('fails closed BEFORE any network call when no valid pair exists even at the model true max output', async () => {
+      let fetchCalled = false;
+      globalThis.fetch = (async () => {
+        fetchCalled = true;
+        return new Response(null, { status: 200 });
+      }) as typeof fetch;
+      enableToolRouteDiag();
+      const model: PlumbModel = {
+        ...nativeAnthropicModel,
+        maxTokens: 100, // smaller than ANTHROPIC_OUTPUT_FALLBACK_BUFFER
+        thinking: { supportedEfforts: ['high'] },
+      };
+      const events: PlumbStreamEvent[] = [];
+      for await (const event of plumbModelStream({
+        model,
+        messages: [{ role: 'user', content: 'hi' }],
+        apiKey: 'sk-ant-real-key',
+        maxTokens: 50,
+        probeId: 'fail-closed-invariant',
+      })) {
+        events.push(event);
+      }
+      expect(fetchCalled).toBe(false);
+      expect(events).toEqual([
+        {
+          type: 'error',
+          error: expect.objectContaining({
+            code: 'INVALID_THINKING_TOKEN_BUDGET',
+          }),
+        },
+      ]);
+      const diag = getLastToolRouteDiag('fail-closed-invariant');
+      expect(diag?.['anthropicThinkingTokenInvariant']).toBe('FAIL');
+    });
+  });
+
   it('routes Vercel AI Gateway Anthropic requests with its gateway key', async () => {
     let capturedUrl: string | undefined;
     let capturedHeaders: Record<string, string> | undefined;

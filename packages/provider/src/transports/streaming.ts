@@ -129,6 +129,13 @@ export function createFreshDiagSnapshot(
     anthropicServiceTierPresent: false,
     anthropicSystemPresent: false,
     anthropicMaxTokens: 0,
+    anthropicRequestedMaxTokens: 'unspecified',
+    anthropicThinkingBudgetRequested: 'not_applicable',
+    anthropicThinkingBudgetEffective: 'not_applicable',
+    anthropicThinkingBudgetSource: 'NOT_APPLICABLE',
+    anthropicThinkingBudgetAdjusted: false,
+    anthropicThinkingBudgetAdjustmentReason: 'NONE',
+    anthropicThinkingTokenInvariant: 'PASS',
     vertexStage: 'not_recorded',
     vertexFailedStage: 'not_recorded',
     vertexValidationError: 'none',
@@ -227,7 +234,17 @@ export interface ToolRouteRequestWireDetails {
   readonly anthropicTemperaturePresent?: boolean;
   readonly anthropicServiceTierPresent?: boolean;
   readonly anthropicSystemPresent?: boolean;
+  /** Effective (final, on-the-wire) max_tokens. */
   readonly anthropicMaxTokens?: number;
+  /** The caller-supplied `maxTokens` option before any invariant
+   * resolution — `undefined` means no explicit request. */
+  readonly anthropicRequestedMaxTokens?: number;
+  readonly anthropicThinkingBudgetRequested?: number;
+  readonly anthropicThinkingBudgetEffective?: number;
+  readonly anthropicThinkingBudgetSource?: AnthropicThinkingBudgetSource;
+  readonly anthropicThinkingBudgetAdjusted?: boolean;
+  readonly anthropicThinkingBudgetAdjustmentReason?: AnthropicThinkingAdjustmentReason;
+  readonly anthropicThinkingTokenInvariant?: 'PASS' | 'FAIL';
 }
 
 export function recordToolRouteRequest(
@@ -290,6 +307,20 @@ export function recordToolRouteRequest(
       details.anthropicServiceTierPresent ?? false;
     target['anthropicSystemPresent'] = details.anthropicSystemPresent ?? false;
     target['anthropicMaxTokens'] = details.anthropicMaxTokens ?? 0;
+    target['anthropicRequestedMaxTokens'] =
+      details.anthropicRequestedMaxTokens ?? 'unspecified';
+    target['anthropicThinkingBudgetRequested'] =
+      details.anthropicThinkingBudgetRequested ?? 'not_applicable';
+    target['anthropicThinkingBudgetEffective'] =
+      details.anthropicThinkingBudgetEffective ?? 'not_applicable';
+    target['anthropicThinkingBudgetSource'] =
+      details.anthropicThinkingBudgetSource ?? 'NOT_APPLICABLE';
+    target['anthropicThinkingBudgetAdjusted'] =
+      details.anthropicThinkingBudgetAdjusted ?? false;
+    target['anthropicThinkingBudgetAdjustmentReason'] =
+      details.anthropicThinkingBudgetAdjustmentReason ?? 'NONE';
+    target['anthropicThinkingTokenInvariant'] =
+      details.anthropicThinkingTokenInvariant ?? 'PASS';
     if (details.requestFamily === 'google-gemini') {
       target['vertexStage'] = 'REQUEST_CONSTRUCTED';
     }
@@ -1127,6 +1158,194 @@ async function* openAICompatibleStream(
   };
 }
 
+// ─── Anthropic thinking / max_tokens invariant ─────────────────────────
+//
+// Anthropic requires max_tokens to strictly EXCEED thinking.budget_tokens
+// whenever extended thinking is enabled. This is the single canonical
+// resolver for that invariant — every Anthropic-family caller (direct
+// Anthropic, GitHub Copilot, Vertex, any Anthropic-compatible gateway) goes
+// through anthropicMessagesStream, so there is exactly one call site; no
+// transport re-implements this rule.
+//
+// Mirrors OMP's `ensureMaxTokensForThinking` (omp-ai/providers/anthropic.ts)
+// exactly, for OMP parity: raise max_tokens toward the required floor first
+// (never past `modelMaxTokens`, the model's true max output authority —
+// the ceiling is NEVER exceeded), only shrink the thinking budget if
+// raising alone cannot satisfy the invariant, and only fail (before any
+// network call) when no valid budget remains even at the model's true max
+// output. OMP applies this cascade uniformly regardless of whether the
+// budget came from explicit per-model effort metadata or a bare fallback
+// default — this resolver does the same; `thinkingBudgetSource` is a
+// diagnostic/reporting field only, never a policy branch.
+
+/** Mirrors OMP's OUTPUT_FALLBACK_BUFFER (omp-ai/stream.ts) — the minimum
+ * headroom max_tokens must keep above thinking.budget_tokens. */
+export const ANTHROPIC_OUTPUT_FALLBACK_BUFFER = 4000;
+
+/** PLUMB's existing thinking-budget fallback when no per-model effort
+ * budget is resolved from catalog metadata. Unchanged value — this task
+ * repairs the invariant around it, not the number itself. */
+export const ANTHROPIC_DEFAULT_THINKING_BUDGET = 16000;
+
+export type AnthropicThinkingBudgetSource =
+  | 'EXPLICIT_MODEL_EFFORT_BUDGET'
+  | 'FALLBACK_DEFAULT'
+  | 'NOT_APPLICABLE';
+
+export type AnthropicThinkingAdjustmentReason =
+  | 'NONE'
+  | 'MAX_TOKENS_RAISED'
+  | 'THINKING_BUDGET_REDUCED'
+  | 'MAX_TOKENS_RAISED_AND_BUDGET_REDUCED';
+
+export interface AnthropicTokenBudgetInput {
+  /** The caller-supplied `maxTokens` option, if any — `undefined` means no
+   * explicit request (the resolver may freely choose within the model's
+   * true max, since there is no caller intent to preserve). */
+  readonly requestedMaxTokens?: number;
+  /** The model's true max output authority (`PlumbModel.maxTokens`) — the
+   * ceiling `effectiveMaxTokens` may NEVER exceed. */
+  readonly modelMaxTokens: number;
+  readonly thinkingRequested: boolean;
+  /** The resolved per-model effort budget (e.g.
+   * `model.thinking.effortBudgets['high']`), when catalog metadata defines
+   * one. `undefined` means only the bare fallback default is available. */
+  readonly thinkingBudgetRequested?: number;
+}
+
+export interface AnthropicTokenBudgetResult {
+  readonly requestedMaxTokens?: number;
+  readonly effectiveMaxTokens: number;
+  readonly thinkingRequested: boolean;
+  readonly thinkingEnabledEffective: boolean;
+  readonly thinkingBudgetRequested?: number;
+  readonly thinkingBudgetEffective?: number;
+  readonly thinkingBudgetSource: AnthropicThinkingBudgetSource;
+  readonly adjusted: boolean;
+  readonly adjustmentReason: AnthropicThinkingAdjustmentReason;
+  /** `true` when the final request (or thinking-disabled fallback) honestly
+   * satisfies Anthropic's invariant. `false` only in the `failClosed` case. */
+  readonly invariantPass: boolean;
+  /** `true` means the caller MUST NOT send this request — no valid
+   * max_tokens/budget_tokens pair exists even at the model's true max
+   * output. The caller is responsible for yielding an error and returning
+   * before any network call. */
+  readonly failClosed: boolean;
+}
+
+/**
+ * Canonical Anthropic max_tokens / thinking.budget_tokens conflict
+ * resolver. See module-level comment above for the policy and its OMP
+ * parity justification.
+ */
+export function resolveAnthropicTokenBudget(
+  input: AnthropicTokenBudgetInput,
+): AnthropicTokenBudgetResult {
+  const { requestedMaxTokens, modelMaxTokens } = input;
+  // Model max output authority is never exceeded, whether the caller
+  // requested an explicit value or the resolver falls back to it.
+  const currentMaxTokens = Math.min(
+    requestedMaxTokens ?? modelMaxTokens,
+    modelMaxTokens,
+  );
+
+  if (!input.thinkingRequested) {
+    return {
+      requestedMaxTokens,
+      effectiveMaxTokens: currentMaxTokens,
+      thinkingRequested: false,
+      thinkingEnabledEffective: false,
+      thinkingBudgetSource: 'NOT_APPLICABLE',
+      adjusted: false,
+      adjustmentReason: 'NONE',
+      invariantPass: true,
+      failClosed: false,
+    };
+  }
+
+  const thinkingBudgetSource: AnthropicThinkingBudgetSource =
+    input.thinkingBudgetRequested !== undefined
+      ? 'EXPLICIT_MODEL_EFFORT_BUDGET'
+      : 'FALLBACK_DEFAULT';
+  const budgetTokens =
+    input.thinkingBudgetRequested ?? ANTHROPIC_DEFAULT_THINKING_BUDGET;
+
+  if (budgetTokens <= 0) {
+    // Mirrors OMP's own `budgetTokens <= 0` no-op guard: no positive budget
+    // was resolved, so thinking cannot be meaningfully enabled.
+    return {
+      requestedMaxTokens,
+      effectiveMaxTokens: currentMaxTokens,
+      thinkingRequested: true,
+      thinkingEnabledEffective: false,
+      thinkingBudgetRequested: budgetTokens,
+      thinkingBudgetSource,
+      adjusted: false,
+      adjustmentReason: 'NONE',
+      invariantPass: true,
+      failClosed: false,
+    };
+  }
+
+  const raisedMaxTokens = Math.min(
+    Math.max(currentMaxTokens, budgetTokens + ANTHROPIC_OUTPUT_FALLBACK_BUFFER),
+    modelMaxTokens,
+  );
+  const maxTokensRaised = raisedMaxTokens !== currentMaxTokens;
+
+  if (budgetTokens + ANTHROPIC_OUTPUT_FALLBACK_BUFFER <= raisedMaxTokens) {
+    return {
+      requestedMaxTokens,
+      effectiveMaxTokens: raisedMaxTokens,
+      thinkingRequested: true,
+      thinkingEnabledEffective: true,
+      thinkingBudgetRequested: budgetTokens,
+      thinkingBudgetEffective: budgetTokens,
+      thinkingBudgetSource,
+      adjusted: maxTokensRaised,
+      adjustmentReason: maxTokensRaised ? 'MAX_TOKENS_RAISED' : 'NONE',
+      invariantPass: true,
+      failClosed: false,
+    };
+  }
+
+  // Raising alone (bounded by the model's true max output) was not enough
+  // — shrink the thinking budget to fit under the raised ceiling.
+  const clampedBudget = raisedMaxTokens - ANTHROPIC_OUTPUT_FALLBACK_BUFFER;
+  if (clampedBudget <= 0) {
+    // No valid pair exists even at the model's true max output. Fail
+    // closed — the caller must never send this request.
+    return {
+      requestedMaxTokens,
+      effectiveMaxTokens: raisedMaxTokens,
+      thinkingRequested: true,
+      thinkingEnabledEffective: false,
+      thinkingBudgetRequested: budgetTokens,
+      thinkingBudgetSource,
+      adjusted: maxTokensRaised,
+      adjustmentReason: 'MAX_TOKENS_RAISED_AND_BUDGET_REDUCED',
+      invariantPass: false,
+      failClosed: true,
+    };
+  }
+
+  return {
+    requestedMaxTokens,
+    effectiveMaxTokens: raisedMaxTokens,
+    thinkingRequested: true,
+    thinkingEnabledEffective: true,
+    thinkingBudgetRequested: budgetTokens,
+    thinkingBudgetEffective: clampedBudget,
+    thinkingBudgetSource,
+    adjusted: true,
+    adjustmentReason: maxTokensRaised
+      ? 'MAX_TOKENS_RAISED_AND_BUDGET_REDUCED'
+      : 'THINKING_BUDGET_REDUCED',
+    invariantPass: true,
+    failClosed: false,
+  };
+}
+
 // ─── Anthropic Messages streaming ──────────────────────────────────────
 
 async function* anthropicMessagesStream(
@@ -1190,11 +1409,23 @@ async function* anthropicMessagesStream(
     thinkingConfig?.supportedEfforts?.length &&
     thinkingConfig.supportedEfforts.length > 0;
 
+  // Canonical invariant resolution BEFORE the request body is built — see
+  // `resolveAnthropicTokenBudget` above. This is the single call site for
+  // every Anthropic-family provider; the resolved `effectiveMaxTokens` /
+  // `thinkingBudgetEffective` are what actually go on the wire.
+  const tokenBudget = resolveAnthropicTokenBudget({
+    requestedMaxTokens: maxTokens,
+    modelMaxTokens: model.maxTokens ?? 4096,
+    thinkingRequested: Boolean(hasThinking),
+    thinkingBudgetRequested:
+      thinkingConfig?.effortBudgets?.['high'] ?? undefined,
+  });
+
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
     messages: chatMessages,
     stream: true,
-    max_tokens: maxTokens ?? model.maxTokens ?? 4096,
+    max_tokens: tokenBudget.effectiveMaxTokens,
   };
 
   if (systemPrompt) {
@@ -1255,12 +1486,38 @@ async function* anthropicMessagesStream(
         systemPrompt || systemMessages.length > 0,
       ),
       anthropicMaxTokens: (body.max_tokens as number | undefined) ?? 0,
+      anthropicRequestedMaxTokens: maxTokens,
+      anthropicThinkingBudgetRequested: tokenBudget.thinkingBudgetRequested,
+      anthropicThinkingBudgetEffective: tokenBudget.thinkingBudgetEffective,
+      anthropicThinkingBudgetSource: tokenBudget.thinkingBudgetSource,
+      anthropicThinkingBudgetAdjusted: tokenBudget.adjusted,
+      anthropicThinkingBudgetAdjustmentReason: tokenBudget.adjustmentReason,
+      anthropicThinkingTokenInvariant: tokenBudget.invariantPass
+        ? 'PASS'
+        : 'FAIL',
     },
   );
 
-  if (hasThinking) {
-    const budget = thinkingConfig!.effortBudgets?.['high'] ?? 16000;
-    body.thinking = { type: 'enabled', budget_tokens: budget };
+  if (tokenBudget.failClosed) {
+    // No valid max_tokens/thinking.budget_tokens pair exists even at the
+    // model's true max output authority — fail BEFORE any network call
+    // rather than let Anthropic reject an invalid request.
+    yield {
+      type: 'error',
+      error: {
+        code: 'INVALID_THINKING_TOKEN_BUDGET',
+        message:
+          "No valid max_tokens/thinking budget pair could be constructed within the model's max output.",
+      },
+    };
+    return;
+  }
+
+  if (tokenBudget.thinkingEnabledEffective) {
+    body.thinking = {
+      type: 'enabled',
+      budget_tokens: tokenBudget.thinkingBudgetEffective,
+    };
   }
 
   if (temperature !== undefined) body.temperature = temperature;

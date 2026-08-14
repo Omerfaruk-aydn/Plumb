@@ -788,6 +788,44 @@ export async function runToolRouteProbeResult(
       ? (firstResponseDiag?.['endpointPath'] ?? 'not_recorded')
       : 'not_applicable',
   );
+  // Anthropic thinking/max_tokens invariant — describes the ACTUAL final
+  // wire request (never prompt/credential content).
+  line(
+    'anthropic.requestedMaxTokens',
+    firstResponseDiag?.['anthropicRequestedMaxTokens'] ?? 'unspecified',
+  );
+  line(
+    'anthropic.effectiveMaxTokens',
+    firstResponseDiag?.['anthropicMaxTokens'] ?? 0,
+  );
+  line(
+    'anthropic.thinkingRequested',
+    firstResponseDiag?.['anthropicThinkingPresent'] ?? false,
+  );
+  line(
+    'anthropic.thinkingBudgetRequested',
+    firstResponseDiag?.['anthropicThinkingBudgetRequested'] ?? 'not_applicable',
+  );
+  line(
+    'anthropic.thinkingBudgetEffective',
+    firstResponseDiag?.['anthropicThinkingBudgetEffective'] ?? 'not_applicable',
+  );
+  line(
+    'anthropic.thinkingBudgetSource',
+    firstResponseDiag?.['anthropicThinkingBudgetSource'] ?? 'NOT_APPLICABLE',
+  );
+  line(
+    'anthropic.thinkingBudgetAdjusted',
+    firstResponseDiag?.['anthropicThinkingBudgetAdjusted'] ?? false,
+  );
+  line(
+    'anthropic.thinkingBudgetAdjustmentReason',
+    firstResponseDiag?.['anthropicThinkingBudgetAdjustmentReason'] ?? 'NONE',
+  );
+  line(
+    'anthropic.thinkingTokenInvariant',
+    firstResponseDiag?.['anthropicThinkingTokenInvariant'] ?? 'PASS',
+  );
   line(
     'wire.upstreamErrorType',
     firstResponseDiag?.['upstreamErrorType'] ?? 'none',
