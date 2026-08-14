@@ -748,6 +748,31 @@ export async function runToolRouteProbeResult(
     'wire.reasoningFieldPresent',
     firstResponseDiag?.['reasoningFieldPresent'] ?? false,
   );
+  // Canonical reasoning-effort resolution facts (see
+  // `resolveReasoningEffortRequest` in packages/provider/src/transports/
+  // streaming.ts) — requested vs. effective vs. capability/provenance,
+  // never the raw thinking payload.
+  line(
+    'reasoning.requested',
+    firstResponseDiag?.['reasoningRequested'] ?? 'none',
+  );
+  line(
+    'reasoning.effective',
+    firstResponseDiag?.['reasoningEffective'] ?? 'none',
+  );
+  line(
+    'reasoning.capability',
+    firstResponseDiag?.['reasoningCapability'] ?? 'not_applicable',
+  );
+  line(
+    'reasoning.capabilitySource',
+    firstResponseDiag?.['reasoningCapabilitySource'] ?? 'not_applicable',
+  );
+  line(
+    'reasoning.serializationField',
+    firstResponseDiag?.['reasoningSerializationField'] ?? 'none',
+  );
+  line('reasoning.sent', firstResponseDiag?.['reasoningSent'] ?? false);
   // Anthropic Messages structural request facts (booleans/counts only — no
   // thinking/system/tool-argument content). Printed for every dialect the
   // same way vertex.*/wire.* fields are — 'false'/0 on a non-Anthropic

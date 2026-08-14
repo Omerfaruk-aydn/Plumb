@@ -122,6 +122,12 @@ export function createFreshDiagSnapshot(
     parallelToolCallsPresent: false,
     maxOutputTokensFieldName: 'absent',
     reasoningFieldPresent: false,
+    reasoningRequested: 'none',
+    reasoningEffective: 'none',
+    reasoningCapability: 'not_applicable',
+    reasoningCapabilitySource: 'not_applicable',
+    reasoningSerializationField: 'none',
+    reasoningSent: false,
     anthropicThinkingPresent: false,
     anthropicOutputConfigPresent: false,
     anthropicEffortPresent: false,
@@ -226,6 +232,14 @@ export interface ToolRouteRequestWireDetails {
   readonly parallelToolCallsPresent?: boolean;
   readonly maxOutputTokensFieldName?: string;
   readonly reasoningFieldPresent?: boolean;
+  /** OpenAI-compatible reasoning-effort resolution facts (never the raw
+   * `thinking` payload — see `resolveReasoningEffortRequest`). */
+  readonly reasoningRequested?: string;
+  readonly reasoningEffective?: string;
+  readonly reasoningCapability?: ReasoningEffortCapability;
+  readonly reasoningCapabilitySource?: ReasoningEffortCapabilitySource;
+  readonly reasoningSerializationField?: 'reasoning_effort' | 'none';
+  readonly reasoningSent?: boolean;
   /** Anthropic Messages structural facts (booleans/categories/counts only —
    * never thinking/system/tool-argument content). */
   readonly anthropicThinkingPresent?: boolean;
@@ -296,6 +310,15 @@ export function recordToolRouteRequest(
     target['maxOutputTokensFieldName'] =
       details.maxOutputTokensFieldName ?? 'absent';
     target['reasoningFieldPresent'] = details.reasoningFieldPresent ?? false;
+    target['reasoningRequested'] = details.reasoningRequested ?? 'none';
+    target['reasoningEffective'] = details.reasoningEffective ?? 'none';
+    target['reasoningCapability'] =
+      details.reasoningCapability ?? 'not_applicable';
+    target['reasoningCapabilitySource'] =
+      details.reasoningCapabilitySource ?? 'not_applicable';
+    target['reasoningSerializationField'] =
+      details.reasoningSerializationField ?? 'none';
+    target['reasoningSent'] = details.reasoningSent ?? false;
     target['anthropicThinkingPresent'] =
       details.anthropicThinkingPresent ?? false;
     target['anthropicOutputConfigPresent'] =
@@ -774,6 +797,155 @@ export function hasPlumbTransport(api: PlumbKnownApi): boolean {
   return transportFactories.has(api);
 }
 
+// ─── Reasoning effort capability resolver ──────────────────────────────
+//
+// GitHub Copilot's own gateway rejects `reasoning_effort` for some models
+// it fronts (observed live: `kimi-k2.7-code` — "reasoning_effort 'high' was
+// provided, but model kimi-k2.7-code does not support reasoning effort").
+// The prior code sent whatever the caller requested unconditionally
+// (`if (reasoningEffort) body.reasoning_effort = reasoningEffort`), with no
+// capability check at all — the ONLY place in this transport that already
+// checked a capability signal before touching `reasoning_effort` was the
+// separate "pick a default effort when none was requested" branch below,
+// which never ran for an explicit caller request in the first place.
+//
+// This is the single canonical resolver both cases now go through. It is
+// evidence-driven, never a model-name/family regex: capability comes from
+// `model.openaiCompat.reasoningEffort` (an explicit boolean OMP-compat
+// signal, when populated) or, failing that, from `model.thinking.mode ===
+// 'effort'` + a non-empty `supportedEfforts` list (the SAME signal the
+// prior default-effort-selection code already trusted). Neither signal
+// exists for GitHub Copilot's live-discovered `kimi-k2.7-code` today (no
+// bundled catalog reference, no discovery-populated openaiCompat) — that
+// is UNKNOWN, not UNSUPPORTED, and per the fail-closed/honesty philosophy
+// already established for the Anthropic token-budget invariant, UNKNOWN
+// capability means the field is never sent, never fabricated as supported.
+
+export type ReasoningEffortCapability = 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN';
+
+export type ReasoningEffortCapabilitySource =
+  | 'PROVIDER_DYNAMIC'
+  | 'BUNDLED_CATALOG'
+  | 'OMP_COMPAT'
+  | 'ACCOUNT_DYNAMIC'
+  | 'USER_CONFIGURED'
+  | 'UNKNOWN';
+
+export interface ReasoningEffortRequestInput {
+  /** The caller/session-requested effort (e.g. from thinkingConfig), if any. */
+  readonly requestedEffort?: string;
+  /** `model.openaiCompat?.reasoningEffort` — an explicit, authoritative
+   * OMP-compat boolean when a discovery/catalog source populates it. */
+  readonly openaiCompatReasoningEffort?: boolean;
+  /** `model.thinking?.mode` — 'effort' is the only mode this resolver acts on. */
+  readonly thinkingMode?: string;
+  /** `model.thinking?.supportedEfforts` — the model's own documented
+   * effort levels, when authoritative. */
+  readonly supportedEfforts?: readonly string[];
+}
+
+export interface ReasoningEffortRequestResult {
+  readonly requested?: string;
+  readonly capability: ReasoningEffortCapability;
+  readonly capabilitySource: ReasoningEffortCapabilitySource;
+  /** The effort value actually chosen — only meaningful when `sent`. */
+  readonly effective?: string;
+  /** Whether `reasoning_effort` should be added to the wire body at all. */
+  readonly sent: boolean;
+}
+
+/**
+ * Canonical reasoning-effort resolver — the ONE place `reasoning_effort` is
+ * decided before OpenAI-compatible dialect serialization. Never touches
+ * Anthropic `thinking`/`budget_tokens` (a structurally separate concept and
+ * a separate resolver — see `resolveAnthropicTokenBudget` above).
+ */
+export function resolveReasoningEffortRequest(
+  input: ReasoningEffortRequestInput,
+): ReasoningEffortRequestResult {
+  const requested = input.requestedEffort;
+
+  const pickEffective = (supported: readonly string[]): string => {
+    // CASE 3 policy: requested effort not in the model's supported set ->
+    // fall back to the highest available effort. This mirrors the ONLY
+    // existing product policy for this situation (the prior "use the
+    // highest available effort as default" default-selection logic) —
+    // never invented here, just applied uniformly instead of only when no
+    // effort was explicitly requested.
+    if (requested && supported.includes(requested)) return requested;
+    return supported[supported.length - 1];
+  };
+
+  if (input.openaiCompatReasoningEffort === false) {
+    return {
+      requested,
+      capability: 'UNSUPPORTED',
+      capabilitySource: 'OMP_COMPAT',
+      sent: false,
+    };
+  }
+
+  if (input.openaiCompatReasoningEffort === true) {
+    const supported = input.supportedEfforts ?? [];
+    if (!requested && supported.length === 0) {
+      // Supported in principle, but nothing to send and no default to pick.
+      return {
+        requested,
+        capability: 'SUPPORTED',
+        capabilitySource: 'OMP_COMPAT',
+        sent: false,
+      };
+    }
+    const effective =
+      requested && supported.length === 0
+        ? requested
+        : pickEffective(
+            supported.length ? supported : requested ? [requested] : [],
+          );
+    return {
+      requested,
+      capability: 'SUPPORTED',
+      capabilitySource: 'OMP_COMPAT',
+      effective,
+      sent: Boolean(effective),
+    };
+  }
+
+  if (
+    input.thinkingMode === 'effort' &&
+    (input.supportedEfforts?.length ?? 0) > 0
+  ) {
+    const supported = input.supportedEfforts!;
+    if (!requested) {
+      // No explicit request, but the model requires/supports an effort
+      // dial for its 'effort' thinking mode -- preserve the prior
+      // default-effort behavior (highest available).
+      return {
+        requested,
+        capability: 'SUPPORTED',
+        capabilitySource: 'BUNDLED_CATALOG',
+        effective: supported[supported.length - 1],
+        sent: true,
+      };
+    }
+    return {
+      requested,
+      capability: 'SUPPORTED',
+      capabilitySource: 'BUNDLED_CATALOG',
+      effective: pickEffective(supported),
+      sent: true,
+    };
+  }
+
+  // No authoritative signal at all -- honest UNKNOWN, never fabricated.
+  return {
+    requested,
+    capability: 'UNKNOWN',
+    capabilitySource: 'UNKNOWN',
+    sent: false,
+  };
+}
+
 // ─── OpenAI-compatible streaming ───────────────────────────────────────
 
 /**
@@ -830,6 +1002,36 @@ async function* openAICompatibleStream(
         ? serializeResponsesToolChoice(effectiveChoice.value)
         : serializeOpenAIToolChoice(effectiveChoice.value);
     }
+    // ── Reasoning-effort capability resolution (canonical, pre-serialization) ──
+    //
+    // OMP resolves a full compat record (thinkingFormat, whenThinking,
+    // requiresReasoningContentForToolCalls, reasoningEffortMap, extraBody,
+    // ...) at model build time via buildOpenAICompat(). PLUMB doesn't run
+    // OMP's buildModel, so `resolveReasoningEffortRequest` applies the
+    // critical metadata-driven subset here, using ONLY authoritative model
+    // metadata (`model.openaiCompat.reasoningEffort`, `model.thinking`) —
+    // never a model-name/family regex. When neither signal exists (e.g.
+    // GitHub Copilot's live-discovered `kimi-k2.7-code`, which has no
+    // bundled catalog entry and no discovery-populated openaiCompat), the
+    // capability is UNKNOWN and the field is never sent — fail closed.
+    const reasoningResolution = resolveReasoningEffortRequest({
+      requestedEffort: reasoningEffort,
+      openaiCompatReasoningEffort: model.openaiCompat?.reasoningEffort,
+      thinkingMode: model.thinking?.mode,
+      supportedEfforts: model.thinking?.supportedEfforts,
+    });
+    const reasoningDiagDetails = {
+      reasoningFieldPresent: reasoningResolution.sent,
+      reasoningRequested: reasoningResolution.requested ?? 'none',
+      reasoningEffective: reasoningResolution.effective ?? 'none',
+      reasoningCapability: reasoningResolution.capability,
+      reasoningCapabilitySource: reasoningResolution.capabilitySource,
+      reasoningSerializationField: reasoningResolution.sent
+        ? ('reasoning_effort' as const)
+        : ('none' as const),
+      reasoningSent: reasoningResolution.sent,
+    };
+
     recordToolRouteRequest(
       tools.length,
       String(body.model),
@@ -842,9 +1044,23 @@ async function* openAICompatibleStream(
         endpointPath: '/chat/completions',
         toolSerializationShape: isResponses ? 'RESPONSES_FLAT' : 'CHAT_WRAPPED',
         toolsPresent: true,
+        ...reasoningDiagDetails,
       },
     );
+    if (maxTokens) body.max_tokens = maxTokens;
+    if (temperature !== undefined && temperature >= 0)
+      body.temperature = temperature;
+    if (responseFormat) body.response_format = responseFormat;
+    if (reasoningResolution.sent && reasoningResolution.effective) {
+      body.reasoning_effort = reasoningResolution.effective;
+    }
   } else {
+    const reasoningResolution = resolveReasoningEffortRequest({
+      requestedEffort: reasoningEffort,
+      openaiCompatReasoningEffort: model.openaiCompat?.reasoningEffort,
+      thinkingMode: model.thinking?.mode,
+      supportedEfforts: model.thinking?.supportedEfforts,
+    });
     recordToolRouteRequest(0, String(body.model), options, undefined, {
       requestFamily: isResponsesApiFamily(model.api)
         ? 'openai-responses'
@@ -852,44 +1068,22 @@ async function* openAICompatibleStream(
       endpointPath: '/chat/completions',
       toolSerializationShape: 'none',
       toolsPresent: false,
+      reasoningFieldPresent: reasoningResolution.sent,
+      reasoningRequested: reasoningResolution.requested ?? 'none',
+      reasoningEffective: reasoningResolution.effective ?? 'none',
+      reasoningCapability: reasoningResolution.capability,
+      reasoningCapabilitySource: reasoningResolution.capabilitySource,
+      reasoningSerializationField: reasoningResolution.sent
+        ? ('reasoning_effort' as const)
+        : ('none' as const),
+      reasoningSent: reasoningResolution.sent,
     });
-  }
-  if (maxTokens) body.max_tokens = maxTokens;
-  if (temperature !== undefined && temperature >= 0)
-    body.temperature = temperature;
-  if (responseFormat) body.response_format = responseFormat;
-  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
-
-  // ── Thinking/reasoning request body (OMP compat layer) ────────────
-  //
-  // OMP resolves a full compat record (thinkingFormat, whenThinking,
-  // requiresReasoningContentForToolCalls, reasoningEffortMap, extraBody,
-  // ...) at model build time via buildOpenAICompat(). PLUMB doesn't run
-  // OMP's buildModel, so we apply the critical metadata-driven subset
-  // here based on the model's catalog metadata and the exact OMP compat
-  // resolution logic from packages/provider/src/omp-catalog/compat/openai.ts.
-  //
-  // KEY OMP CONTRACT:
-  // - OpenCode providers (opencode-go, opencode-zen): thinkingFormat="openai",
-  //   reasoning_effort sent when supportsReasoningEffort=true, NO extraBody.
-  //   OPENCODE_WHEN_THINKING enables requiresReasoningContentForToolCalls
-  //   only when thinking is engaged.
-  // - Direct DeepSeek API: extraBody={thinking:{type:"enabled"}} in addition
-  //   to reasoning_effort, supportsToolChoice=false.
-  // - Kimi on OpenCode: supportsReasoningEffort=false (no reasoning_effort).
-  // - MiMo: reasoningEffortMap={minimal:"low", xhigh:"high"}.
-  //
-  // DO NOT generalize by model family regex. Use thinking metadata only.
-  if (
-    model.reasoning &&
-    model.thinking?.mode === 'effort' &&
-    !reasoningEffort
-  ) {
-    const efforts = model.thinking.supportedEfforts;
-    if (efforts && efforts.length > 0) {
-      // Use the highest available effort as default.
-      // TODO: consume compat.reasoningEffortMap when available.
-      body.reasoning_effort = efforts[efforts.length - 1];
+    if (maxTokens) body.max_tokens = maxTokens;
+    if (temperature !== undefined && temperature >= 0)
+      body.temperature = temperature;
+    if (responseFormat) body.response_format = responseFormat;
+    if (reasoningResolution.sent && reasoningResolution.effective) {
+      body.reasoning_effort = reasoningResolution.effective;
     }
   }
 

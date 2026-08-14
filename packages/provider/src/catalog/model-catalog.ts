@@ -148,6 +148,21 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
       }
     : undefined;
 
+  // OMP's `compat.supportsReasoningEffort` is the authoritative,
+  // provider-scoped signal for whether `reasoning_effort` may be sent on
+  // the OpenAI-compatible wire body — e.g. GitHub Copilot's
+  // `fetchDynamicModels` mapper (openai-compat.ts) sets
+  // `supportsReasoningEffort: false` for every openai-completions model it
+  // fronts (including kimi-k2.7-code), because Copilot's own gateway
+  // rejects the field regardless of what the base model supports elsewhere.
+  // This was previously never projected onto `PlumbModel.openaiCompat`, so
+  // `resolveReasoningEffortRequest` (streaming.ts) fell through to UNKNOWN
+  // and a separate default-effort code path sent the field anyway.
+  const openaiCompat: PlumbModel['openaiCompat'] =
+    compat && 'supportsReasoningEffort' in compat
+      ? { reasoningEffort: compat.supportsReasoningEffort }
+      : undefined;
+
   return {
     id: model.id,
     provider: model.provider as PlumbProviderId,
@@ -164,6 +179,7 @@ export function ompModelToPlumbModel(model: Model<Api>): PlumbModel {
     toolsSupported,
     toolsCapabilitySource,
     toolPolicy,
+    openaiCompat,
     thinking: model.thinking
       ? {
           mode: model.thinking.mode as PlumbThinkingConfig['mode'],

@@ -2274,7 +2274,7 @@ describe('fragmented streaming tool-call normalization', () => {
     ]);
   });
 
-  it('forwards explicit JSON-schema and reasoning controls without enabling unsupported tools', async () => {
+  it('forwards explicit JSON-schema controls without enabling unsupported tools, and fail-closes an UNKNOWN reasoning-effort capability (no thinking/openaiCompat metadata on this fixture model) rather than sending the caller-requested value unconditionally', async () => {
     let capturedBody: Record<string, unknown> | undefined;
     globalThis.fetch = vi.fn(async (_url, init) => {
       capturedBody = JSON.parse(String(init?.body));
@@ -2330,7 +2330,6 @@ describe('fragmented streaming tool-call normalization', () => {
     expect(capturedBody).toMatchObject({
       max_tokens: 123,
       temperature: 0.2,
-      reasoning_effort: 'high',
       response_format: {
         type: 'json_schema',
         json_schema: {
@@ -2340,6 +2339,10 @@ describe('fragmented streaming tool-call normalization', () => {
       },
     });
     expect(capturedBody).not.toHaveProperty('tools');
+    // UNKNOWN reasoning-effort capability (no thinking/openaiCompat metadata
+    // on this fixture model) must never fabricate support -- see
+    // resolveReasoningEffortRequest CASE 4 in reasoningEffort.test.ts.
+    expect(capturedBody).not.toHaveProperty('reasoning_effort');
   });
 
   it('maps the same canonical image part to OpenAI and Anthropic wire formats', async () => {
