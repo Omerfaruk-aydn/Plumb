@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import {
   EXTENSION_SETTINGS_FILENAME,
   EXTENSIONS_CONFIG_FILENAME,
 } from './variables.js';
-import { Storage } from '@google/gemini-cli-core';
+import { Storage } from '@plumb/core';
 
 vi.mock('node:os');
 vi.mock('node:fs', async (importOriginal) => {
@@ -26,7 +25,7 @@ vi.mock('node:fs', async (importOriginal) => {
     },
   };
 });
-vi.mock('@google/gemini-cli-core');
+vi.mock('@plumb/core');
 
 describe('ExtensionStorage', () => {
   const mockHomeDir = '/mock/home';

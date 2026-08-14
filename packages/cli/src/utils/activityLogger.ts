@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ import {
   debugLogger,
   type ConsoleLogPayload,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import WebSocket from 'ws';
 
 const ACTIVITY_ID_HEADER = 'x-activity-request-id';

@@ -1,13 +1,13 @@
 # Procedural Guide: Auditing the Docset
 
-This guide outlines the process for auditing the Gemini CLI documentation for
+This guide outlines the process for auditing the PLUMB documentation for
 correctness and adherence to style guidelines. This process involves both an
 "Editor" and "Technical Writer" phase.
 
 ## Objective
 
 To ensure all public-facing documentation is accurate, up-to-date, adheres to
-the Gemini CLI documentation style guide, and reflects the current state of the
+the PLUMB documentation style guide, and reflects the current state of the
 codebase.
 
 ## Phase 1: Editor Audit
@@ -65,7 +65,7 @@ style guide violations and technical inaccuracies.
         - **Line Length:** Identify any lines of text that exceed **80
           characters** (text wrap violation).
         - **Casing:** Identify incorrect casing for headings, titles, or named
-          entities (e.g., product names like `Gemini CLI`).
+          entities (e.g., product names like `PLUMB`).
         - **List Formatting:** Identify incorrectly formatted lists (e.g.,
           inconsistent indentation or numbering).
         - **Incorrect Emphasis:** Identify incorrect use of bold text (should

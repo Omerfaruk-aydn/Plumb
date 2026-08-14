@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,7 +26,7 @@ import { PermissionsModifyTrustDialog } from './PermissionsModifyTrustDialog.js'
 import { ModelDialog } from './ModelDialog.js';
 import { PlumbModelDialog } from './PlumbModelDialog.js';
 import { VoiceModelDialog } from './VoiceModelDialog.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@plumb/core';
 import { theme } from '../semantic-colors.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 import { useQuotaState } from '../contexts/QuotaContext.js';
@@ -337,7 +336,7 @@ export const DialogManager = ({
   // replaces the legacy Google-first auth dialog.
   if (uiState.isProviderSetupDialogOpen) {
     const refreshModels = async (providerId?: string, apiKey?: string) => {
-      const providerPackage = await import('@google/gemini-cli-provider');
+      const providerPackage = await import('@plumb/provider');
       const modelRegistry = providerPackage.getPlumbModelRegistry();
       if (providerId) {
         const state = providerPackage
@@ -365,7 +364,7 @@ export const DialogManager = ({
     };
 
     const refreshFullModels = async () => {
-      const providerPackage = await import('@google/gemini-cli-provider');
+      const providerPackage = await import('@plumb/provider');
       return providerPackage.getPlumbModelRegistry().getAllAvailableModels();
     };
 

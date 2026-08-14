@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type React from 'react';
 import { createContext, useContext, useMemo } from 'react';
-import type { Question } from '@google/gemini-cli-core';
+import type { Question } from '@plumb/core';
 
 export interface AskUserState {
   questions: Question[];

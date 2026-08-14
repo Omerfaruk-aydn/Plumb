@@ -1,24 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real production Ink configuration screen for OCI Generative AI --
- * renders OCI_GENAI_CONFIG_SCHEMA's fields via getVisibleOciFields(),
- * validates/saves through validateOciConfig/ociCloudConfigActions. React
- * owns rendering/keyboard orchestration only; every rule about which
- * fields are visible, what's required, and how to split safe-config/secret
- * comes from the provider-package domain layer -- never reimplemented
- * here.
- *
- * All per-render state (mode/values/focusIndex/etc.) is mirrored into a
- * ref every render, and the single useKeypress handler reads exclusively
- * from that ref. This component re-renders on every keystroke (textBuffer
- * updates per character); a fresh handler closure passed to useKeypress
- * every render would force it to unsubscribe+resubscribe every render,
- * which is real subscription churn -- keeping the handler referentially
- * stable avoids it entirely.
  */
+
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box, Text } from 'ink';
@@ -29,7 +13,7 @@ import {
   type OciConfigFormValues,
   type OciConfigValidationErrors,
   type CloudConfigFieldDef,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';

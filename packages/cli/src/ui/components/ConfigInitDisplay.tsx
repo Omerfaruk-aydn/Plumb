@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,8 +10,8 @@ import {
   coreEvents,
   type McpClient,
   MCPServerStatus,
-} from '@google/gemini-cli-core';
-import { GeminiSpinner } from './GeminiSpinner.js';
+} from '@plumb/core';
+import { PlumbSpinner } from './PlumbSpinner.js';
 import { theme } from '../semantic-colors.js';
 
 export const ConfigInitDisplay = ({
@@ -68,7 +67,7 @@ export const ConfigInitDisplay = ({
   return (
     <Box marginTop={1}>
       <Text>
-        <GeminiSpinner /> <Text color={theme.text.primary}>{message}</Text>
+        <PlumbSpinner /> <Text color={theme.text.primary}>{message}</Text>
       </Text>
     </Box>
   );

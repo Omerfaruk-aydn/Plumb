@@ -1,11 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F16 (PLUMB-UI-DEVRIM-PROMPT.md), scoped to a local file -- see
- * sessionShareCard.ts's doc comment for why this isn't a QR-coded link.
  */
+
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {

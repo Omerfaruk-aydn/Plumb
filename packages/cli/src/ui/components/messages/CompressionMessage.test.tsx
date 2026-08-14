@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import {
   CompressionMessage,
   type CompressionDisplayProps,
 } from './CompressionMessage.js';
-import { CompressionStatus } from '@google/gemini-cli-core';
+import { CompressionStatus } from '@plumb/core';
 import { type CompressionProps } from '../../types.js';
 import { describe, it, expect } from 'vitest';
 

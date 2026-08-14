@@ -1,26 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Windows UV_HANDLE_CLOSING regression: `main()`'s diagnostic-command
- * dispatch (--test-tool-route, --diagnose-provider-models, ...) used to
- * call `process.exit(exitCode)` immediately after issuing real HTTP
- * requests. A forced, immediate process.exit() races Node/undici's own
- * asynchronous socket-close teardown -- on Windows this reproduced as
- * `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file
- * src\win\async.c` after a fast-closing/error HTTP response (observed
- * live after GitHub Copilot's gpt-5.5 HTTP 400). The fix sets
- * `process.exitCode` and returns, letting Node's own event loop drain
- * every handle (including in-flight/keep-alive sockets) before the
- * process exits naturally -- no forced termination, no race.
- *
- * This spawns the built harness as a CHILD PROCESS deliberately: a
- * genuine native libuv assertion crash must never take down the test
- * runner itself. Requires a prior `npm run build` (it drives the real
- * compiled provider/CLI lifecycle, matching what a user actually runs);
- * skips gracefully when the dist artifacts aren't present.
  */
+
 import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';

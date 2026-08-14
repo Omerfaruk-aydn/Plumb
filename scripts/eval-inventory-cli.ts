@@ -1,22 +1,8 @@
 #!/usr/bin/env tsx
 
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview CLI entry point for the eval inventory command.
- *
- * Scans all eval source files, runs the static analyzer on each,
- * and prints an inventory report grouped by policy, file, and suite.
- *
- * Usage:
- *   npm run eval:inventory
- *   npm run eval:inventory -- --json
- *   npm run eval:inventory -- --root /path/to/repo
- *   npm run eval:inventory -- --root /path/to/repo --json
  */
 
 import {

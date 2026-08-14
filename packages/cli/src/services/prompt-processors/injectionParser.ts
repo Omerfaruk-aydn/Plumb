@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Represents a single detected injection site in a prompt string.
- */
 export interface Injection {
   /** The content extracted from within the braces (e.g., the command or path), trimmed. */
   content: string;

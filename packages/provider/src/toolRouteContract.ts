@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Honest batch tool-route probe result classification. A provider batch probe
- * must never lump orthogonal outcomes (AUTH_REQUIRED, MODEL_NOT_AVAILABLE,
- * ROUTE_NOT_FOUND, NETWORK_ERROR, ...) into a single misleading "failed"
- * bucket. This module owns the mutually-exclusive classification, the
- * sum-invariant breakdown, and the LIVE_MODEL_UNRESOLVED rule for routes that
- * only have bundled fallback models (never trust a bundled fallback as if it
- * were live authority).
  */
 
 // ─── Mutually exclusive batch result classes ────────────────────────────

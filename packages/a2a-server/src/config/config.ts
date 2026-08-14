@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import {
   AuthType,
   Config,
   ApprovalMode,
-  GEMINI_DIR,
+  PLUMB_DIR,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   startupProfiler,
   PREVIEW_GEMINI_MODEL,
@@ -31,7 +30,7 @@ import {
   type ConfigParameters,
   type ExtensionLoader,
   resolveToRealPath,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 import { logger } from '../utils/logger.js';
 import type { Settings } from './settings.js';
@@ -335,7 +334,7 @@ export async function loadConfig(
     // Git-aware file filtering settings
     fileFiltering: {
       respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-      respectGeminiIgnore: settings.fileFiltering?.respectGeminiIgnore,
+      respectPlumbIgnore: settings.fileFiltering?.respectPlumbIgnore,
       enableRecursiveFileSearch:
         settings.fileFiltering?.enableRecursiveFileSearch,
       customIgnoreFilePaths: [
@@ -513,7 +512,7 @@ export async function loadEnvironment(
   if (isTrusted) {
     envFilePath = await findEnvFile(workspacePath);
   } else {
-    const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
+    const homeGeminiEnvPath = path.join(homedir(), PLUMB_DIR, '.env');
     try {
       await fs.promises.access(homeGeminiEnvPath);
       envFilePath = homeGeminiEnvPath;
@@ -552,8 +551,8 @@ export async function loadEnvironment(
 async function findEnvFile(startDir: string): Promise<string | null> {
   let currentDir = path.resolve(startDir);
   while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
-    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
+    // prefer gemini-specific .env under PLUMB_DIR
+    const geminiEnvPath = path.join(currentDir, PLUMB_DIR, '.env');
     try {
       await fs.promises.access(geminiEnvPath);
       return geminiEnvPath;
@@ -574,7 +573,7 @@ async function findEnvFile(startDir: string): Promise<string | null> {
     currentDir = parentDir;
   }
   // check .env under home as fallback, again preferring gemini-specific .env
-  const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
+  const homeGeminiEnvPath = path.join(homedir(), PLUMB_DIR, '.env');
   try {
     await fs.promises.access(homeGeminiEnvPath);
     return homeGeminiEnvPath;

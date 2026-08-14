@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -31,6 +30,20 @@ export function enableMouseEvents() {
 export function disableMouseEvents() {
   // Disable mouse tracking with SGR format
   writeToStdout('\u001b[?1006l\u001b[?1002l');
+}
+
+/**
+ * DECSCUSR (Set Cursor Style). `code` is the raw DECSCUSR parameter:
+ * 0/1 blinking block, 2 steady block, 3 blinking underline, 4 steady
+ * underline, 5 blinking bar, 6 steady bar. 0 also acts as "reset to the
+ * terminal's own default" -- used on cleanup/unmount.
+ */
+export function setCursorStyle(code: number) {
+  writeToStdout(`\x1b[${code} q`);
+}
+
+export function resetCursorStyle() {
+  setCursorStyle(0);
 }
 
 export function enableKittyKeyboardProtocol() {

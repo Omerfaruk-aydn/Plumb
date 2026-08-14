@@ -1,24 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: `claude-subscription` is a PLUMB-only synthetic (Agent
- * SDK-backed) with no OMP catalog descriptor, so it is architecturally
- * excluded from SELECTABLE_PROVIDERS / getProviderSetupGroups() (a hard
- * invariant covered by catalog/providers.test.ts). Without a bespoke
- * injection here, the /login setup UI would never show it at all — it
- * would be fully built, tested, and catalogued, but completely
- * unreachable from the real product.
  */
+
 import { describe, it, expect, vi } from 'vitest';
 import { act } from 'react';
 import { renderHook } from '../../test-utils/render.js';
 import { useProviderSetupData } from './useProviderSetupData.js';
-import {
-  PlumbProviderCategory,
-  type PlumbProvider,
-} from '@google/gemini-cli-provider';
+import { PlumbProviderCategory, type PlumbProvider } from '@plumb/provider';
 
 const claudeSubscriptionProvider: PlumbProvider = {
   id: 'claude-subscription',
@@ -40,9 +29,8 @@ const watsonxProvider: PlumbProvider = {
   group: 'API Providers',
 };
 
-vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+vi.mock('@plumb/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/provider')>();
   return {
     ...actual,
     getPlumbModelRegistry: () => ({

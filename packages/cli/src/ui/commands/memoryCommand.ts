@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   listMemoryFiles,
   refreshMemory,
   showMemory,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { MessageType } from '../types.js';
 import {
   CommandKind,
@@ -19,6 +18,7 @@ import {
   type SlashCommandActionReturn,
 } from './types.js';
 import { InboxDialog } from '../components/InboxDialog.js';
+import { MemoryBrowser } from '../components/MemoryBrowser/MemoryBrowser.js';
 
 const showSubCommand: SlashCommand = {
   name: 'show',
@@ -83,7 +83,7 @@ const reloadSubCommand: SlashCommand = {
 
 const listSubCommand: SlashCommand = {
   name: 'list',
-  description: 'Lists the paths of the GEMINI.md files in use',
+  description: 'Lists the paths of the PLUMB.md files in use',
   kind: CommandKind.BUILT_IN,
   autoExecute: true,
   action: async (context) => {
@@ -145,12 +145,41 @@ const inboxSubCommand: SlashCommand = {
   },
 };
 
+const browseSubCommand: SlashCommand = {
+  name: 'browse',
+  description:
+    'Browse, filter, delete, and export extraction-inbox memory records',
+  kind: CommandKind.BUILT_IN,
+  autoExecute: true,
+  action: (
+    context,
+  ): OpenCustomDialogActionReturn | SlashCommandActionReturn => {
+    const config = context.services.agentContext?.config;
+    if (!config) {
+      return {
+        type: 'message',
+        messageType: 'error',
+        content: 'Config not loaded.',
+      };
+    }
+
+    return {
+      type: 'custom_dialog',
+      component: React.createElement(MemoryBrowser, {
+        config,
+        onClose: () => context.ui.removeComponent(),
+      }),
+    };
+  },
+};
+
 export const memoryCommand = (_config: Config | null): SlashCommand => {
   const subCommands: SlashCommand[] = [
     showSubCommand,
     reloadSubCommand,
     listSubCommand,
     inboxSubCommand,
+    browseSubCommand,
   ];
 
   return {

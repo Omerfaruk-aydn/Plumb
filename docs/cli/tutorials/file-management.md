@@ -1,19 +1,19 @@
-# File management with Gemini CLI
+# File management with PLUMB
 
-Explore, analyze, and modify your codebase using Gemini CLI. In this guide,
-you'll learn how to provide Gemini CLI with files and directories, modify and
-create files, and control what Gemini CLI can see.
+Explore, analyze, and modify your codebase using PLUMB. In this guide, you'll
+learn how to provide PLUMB with files and directories, modify and create files,
+and control what PLUMB can see.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- PLUMB installed and authenticated.
 - A project directory to work with (for example, a git repository).
 
 ## Providing context by reading files
 
-Gemini CLI will generally try to read relevant files, sometimes prompting you
-for access (depending on your settings). To ensure that Gemini CLI uses a file,
-you can also include it directly.
+PLUMB will generally try to read relevant files, sometimes prompting you for
+access (depending on your settings). To ensure that PLUMB uses a file, you can
+also include it directly.
 
 ### Direct file inclusion (`@`)
 
@@ -45,9 +45,8 @@ careful with large folders, as this consumes more tokens.
 
 ## How to find files (Exploration)
 
-If you _don't_ know the exact file path, you can ask Gemini CLI to find it for
-you. This is useful when navigating a new codebase or looking for specific
-logic.
+If you _don't_ know the exact file path, you can ask PLUMB to find it for you.
+This is useful when navigating a new codebase or looking for specific logic.
 
 ### Scenario: Find a component definition
 
@@ -69,14 +68,14 @@ turn.
 
 ## How to modify code
 
-Once Gemini CLI has context, you can direct it to make specific edits. The agent
-is capable of complex refactoring, not just simple text replacement.
+Once PLUMB has context, you can direct it to make specific edits. The agent is
+capable of complex refactoring, not just simple text replacement.
 
 ```none
 `Update @src/components/UserProfile.tsx to show a loading spinner if the user data is null.`
 ```
 
-Gemini CLI uses the `replace` tool to propose a targeted code change.
+PLUMB uses the `replace` tool to propose a targeted code change.
 
 ### Creating new files
 
@@ -86,12 +85,12 @@ You can also ask the agent to create entirely new files or folder structures.
 `Create a new file @src/components/LoadingSpinner.tsx with a simple Tailwind CSS spinner.`
 ```
 
-Gemini CLI uses the `write_file` tool to generate the new file from scratch.
+PLUMB uses the `write_file` tool to generate the new file from scratch.
 
 ## Review and confirm changes
 
-Gemini CLI prioritizes safety. Before any file is modified, it presents a
-unified diff of the proposed changes.
+PLUMB prioritizes safety. Before any file is modified, it presents a unified
+diff of the proposed changes.
 
 ```diff
 - if (!user) return null;
@@ -113,13 +112,13 @@ or, better yet, run your project's tests.
 `Run the tests for the UserProfile component.`
 ```
 
-Gemini CLI uses the `run_shell_command` tool to execute your test runner (for
+PLUMB uses the `run_shell_command` tool to execute your test runner (for
 example, `npm test` or `jest`). This ensures the changes didn't break existing
 functionality.
 
 ## Advanced: Controlling what Gemini sees
 
-By default, Gemini CLI respects your `.gitignore` file. It won't read or search
+By default, PLUMB respects your `.gitignore` file. It won't read or search
 through `node_modules`, build artifacts, or other ignored paths.
 
 If you have sensitive files (like `.env`) or large assets that you want to keep

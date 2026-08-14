@@ -1,21 +1,14 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Task 8 Tool Authority Matrix:
- * Exercises tool call normalization and single-execution authority across all
- * 9 target architecture families, proving:
- * - TOOL_EXECUTION_DUPLICATION = ZERO
- * - PLUMB CoreToolScheduler remains the sole execution authority
- * - Tool calls stream normalized tool_call events and accept tool-result continuation
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { PlumbModelRegistry } from '../registry/model-registry.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import { registerPlumbCredentialStoreFactory } from '../auth/credential-store.js';
 import {
@@ -109,7 +102,7 @@ describe('Task 8 — Tool Authority Matrix', () => {
   ];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     registry = new PlumbModelRegistry();
     calls.length = 0;

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,14 +51,13 @@ vi.mock('../ui/commands/permissionsCommand.js', async () => {
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { BuiltinCommandLoader } from './BuiltinCommandLoader.js';
-import { isNightly, type Config } from '@google/gemini-cli-core';
+import { isNightly, type Config } from '@plumb/core';
 import { CommandKind } from '../ui/commands/types.js';
 
 import { restoreCommand } from '../ui/commands/restoreCommand.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     isNightly: vi.fn().mockResolvedValue(false),
@@ -189,7 +187,7 @@ describe('BuiltinCommandLoader', () => {
   });
 
   it('should include upgrade command when authType is login_with_google', async () => {
-    const { AuthType } = await import('@google/gemini-cli-core');
+    const { AuthType } = await import('@plumb/core');
     (mockConfig.getContentGeneratorConfig as Mock).mockReturnValue({
       authType: AuthType.LOGIN_WITH_GOOGLE,
     });

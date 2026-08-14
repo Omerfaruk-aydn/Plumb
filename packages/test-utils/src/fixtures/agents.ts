@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Represents a test agent used in evaluations and tests.
- */
 export interface TestAgent {
   /** The unique name of the agent. */
   readonly name: string;

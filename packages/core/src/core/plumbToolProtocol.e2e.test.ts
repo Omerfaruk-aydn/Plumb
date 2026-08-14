@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import { createServer, type Server } from 'node:http';
@@ -14,11 +11,11 @@ import {
   enableToolRouteDiag,
   getLastToolRouteDiag,
   getPlumbModelRegistry,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { LlmRole } from '../telemetry/llmRole.js';
 import { PlumbContentGenerator } from './plumbContentGenerator.js';
 import { GeminiEventType, Turn } from './turn.js';
-import { type GeminiChat, StreamEventType } from './geminiChat.js';
+import { type PlumbChat, StreamEventType } from './plumbChat.js';
 import { makeFakeConfig } from '../test-utils/config.js';
 import { PolicyDecision } from '../policy/types.js';
 import { MessageBus } from '../confirmation-bus/message-bus.js';
@@ -350,7 +347,7 @@ async function runFixture(fixture: Fixture): Promise<Counters> {
         }
       })();
     },
-  } as unknown as GeminiChat;
+  } as unknown as PlumbChat;
   const turn = new Turn(chat, 'deterministic-probe');
   const requests: ToolCallRequestInfo[] = [];
   for await (const event of turn.run(

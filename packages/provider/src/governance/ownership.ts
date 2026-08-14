@@ -1,21 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB subsystem ownership governance.
- *
- * Loads docs/architecture/plumb-ownership-manifest.json and validates that:
- *  - every declared file exists on disk (globs expand);
- *  - every subsystem has exactly ONE active production owner;
- *  - the active claimant matches the manifest's recorded activeOwner;
- *  - forbidden classifications are honored (e.g. the Codex private-file
- *    bridge may never be a thin UI facade);
- *  - in --target mode, every OMP-required subsystem is owned by an
- *    ACTIVE_OMP_SOURCE file (the activation gate).
- *
- * Erasable-only TypeScript: the CLI runner scripts/validate-omp-ownership.mjs
- * imports this module through Node's built-in type stripping.
  */
 
 import * as fs from 'node:fs';
@@ -168,8 +153,8 @@ const SECRET_STORE_SUBSYSTEMS = new Set(['secret-store']);
  */
 const PROVIDER_AUTHORITY_MODULES = new Set([
   'packages/provider/src/catalog/providers.ts',
-  'packages/provider/src/omp-ai/registry/registry.ts',
-  'packages/provider/src/omp-catalog/provider-models/descriptors.ts',
+  'packages/provider/src/vendor-ai/registry/registry.ts',
+  'packages/provider/src/vendor-catalog/provider-models/descriptors.ts',
 ]);
 
 /**
@@ -458,20 +443,23 @@ function normalizeImportedText(
     t = t.replace(textImportRe, (_m, file) => `@@TEXT_IMPORT(${file})@@\n`);
   }
 
-  // `@oh-my-pi/pi-utils` maps onto the local omp-shims modules (pi-utils.js,
+  // `@oh-my-pi/pi-utils` maps onto the local vendor-shims modules (pi-utils.js,
   // pi-utils-type-guards.js, ...) at arbitrary relative depth.
   const shimToken = '@@OMP_SHIM@@';
   if (isLocal) {
-    t = t.replace(/"(?:\.\.\/)*omp-shims\/[a-z0-9.-]+\.js"/g, `"${shimToken}"`);
+    t = t.replace(
+      /"(?:\.\.\/)*vendor-shims\/[a-z0-9.-]+\.js"/g,
+      `"${shimToken}"`,
+    );
   } else {
     t = t.replace(/"@oh-my-pi\/pi-utils(?:\/[a-z0-9-]+)?"/g, `"${shimToken}"`);
   }
 
-  // `@oh-my-pi/pi-catalog[/<module>]` maps onto the local omp-catalog tree.
+  // `@oh-my-pi/pi-catalog[/<module>]` maps onto the local vendor-catalog tree.
   const catalogToken = (mod: string) => `@@PI_CATALOG(${mod})@@`;
   if (isLocal) {
     t = t.replace(
-      /"(?:\.\.\/)*omp-catalog\/([^"]+?)\.js"/g,
+      /"(?:\.\.\/)*vendor-catalog\/([^"]+?)\.js"/g,
       (_m, mod) => `"${catalogToken(mod)}"`,
     );
   } else {
@@ -626,8 +614,11 @@ export function validateOwnership(
     if (entry.classification !== 'ACTIVE_OMP_SOURCE') continue;
     if (rel.endsWith('.md.js')) continue;
     const upstreamRel = rel
-      .replace('packages/provider/src/omp-ai/', 'packages/ai/src/')
-      .replace('packages/provider/src/omp-catalog/', 'packages/catalog/src/');
+      .replace('packages/provider/src/vendor-ai/', 'packages/ai/src/')
+      .replace(
+        'packages/provider/src/vendor-catalog/',
+        'packages/catalog/src/',
+      );
     if (rel === upstreamRel) {
       warnings.push(`source fidelity: no upstream mapping for ${rel}`);
       continue;

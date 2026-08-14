@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -175,7 +174,7 @@ export interface LogRequest {
 
 /**
  * Determine the surface that the user is currently using.  Surface is effectively the
- * distribution channel in which the user is using Gemini CLI.  Gemini CLI comes bundled
+ * distribution channel in which the user is using PLUMB.  PLUMB comes bundled
  * w/ Firebase Studio and Cloud Shell.  Users that manually download themselves will
  * likely be "SURFACE_NOT_SET".
  *

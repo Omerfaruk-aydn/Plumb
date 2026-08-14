@@ -1,11 +1,11 @@
 ---
 name: tui-tester
-description: Expert guidance for testing Gemini CLI behavior and visual output using terminal automation.
+description: Expert guidance for testing PLUMB behavior and visual output using terminal automation.
 ---
 
 # TUI Tester Skill
 
-This skill provides the operational manual for verifying Gemini CLI behavioral changes and visual output using terminal automation.
+This skill provides the operational manual for verifying PLUMB behavioral changes and visual output using terminal automation.
 
 ## Core Responsibilities
 
@@ -39,16 +39,16 @@ agent-tui live start --open
 - **Atomic Execution**: Execute exactly one command per turn. Do not pipeline actions.
 - **The Loop**: Action -> Wait -> Screenshot -> Verify -> Next Action.
 
-### 4. Gemini CLI Specifics
+### 4. PLUMB Specifics
 - **Build First**: Always run `npm run build` or `npm run build:all` before testing local changes.
-- **Bypass Trust**: Set `GEMINI_CLI_TRUST_WORKSPACE=true` to avoid focus-stealing modals.
-- **Isolate Config**: Use `GEMINI_CLI_HOME` to prevent interference with your personal settings.
+- **Bypass Trust**: Set `PLUMB_TRUST_WORKSPACE=true` to avoid focus-stealing modals.
+- **Isolate Config**: Use `PLUMB_CLI_HOME` to prevent interference with your personal settings.
 
 ## Workflow Example
 
 ```bash
 # Start the CLI
-env GEMINI_CLI_TRUST_WORKSPACE=true agent-tui run node packages/cli/dist/index.js
+env PLUMB_TRUST_WORKSPACE=true agent-tui run node packages/cli/dist/index.js
 
 # Wait for the prompt
 agent-tui wait "│" --assert

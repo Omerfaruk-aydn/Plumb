@@ -1,9 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Discovery adapter contract tests.
- * Verifies every registered adapter responds correctly at the HTTP boundary.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';

@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * A utility to manage writing text to stdout, ensuring that newlines
- * are handled consistently and robustly across the application.
  */
 
 import stripAnsi from 'strip-ansi';

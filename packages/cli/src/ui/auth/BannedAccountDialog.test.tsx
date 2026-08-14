@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,17 +9,13 @@ import { waitFor } from '../../test-utils/async.js';
 import { BannedAccountDialog } from './BannedAccountDialog.js';
 import { RadioButtonSelect } from '../components/shared/RadioButtonSelect.js';
 import { useKeypress } from '../hooks/useKeypress.js';
-import {
-  openBrowserSecurely,
-  shouldLaunchBrowser,
-} from '@google/gemini-cli-core';
+import { openBrowserSecurely, shouldLaunchBrowser } from '@plumb/core';
 import { Text } from 'ink';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import type { AccountSuspensionInfo } from '../contexts/UIStateContext.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     openBrowserSecurely: vi.fn(),

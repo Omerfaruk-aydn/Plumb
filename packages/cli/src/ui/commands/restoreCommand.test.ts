@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,11 +10,7 @@ import * as path from 'node:path';
 import { restoreCommand } from './restoreCommand.js';
 import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
-import {
-  GEMINI_DIR,
-  type Config,
-  type GitService,
-} from '@google/gemini-cli-core';
+import { PLUMB_DIR, type Config, type GitService } from '@plumb/core';
 
 describe('restoreCommand', () => {
   let mockContext: CommandContext;
@@ -30,7 +25,7 @@ describe('restoreCommand', () => {
     testRootDir = await fs.mkdtemp(
       path.join(os.tmpdir(), 'restore-command-test-'),
     );
-    geminiTempDir = path.join(testRootDir, GEMINI_DIR);
+    geminiTempDir = path.join(testRootDir, PLUMB_DIR);
     checkpointsDir = path.join(geminiTempDir, 'checkpoints');
     // The command itself creates this, but for tests it's easier to have it ready.
     // Some tests might remove it to test error paths.

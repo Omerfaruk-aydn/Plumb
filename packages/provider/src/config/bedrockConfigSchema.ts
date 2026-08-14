@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Amazon Bedrock configuration domain schema. Bedrock delegates credential
- * *resolution* entirely to the AWS SDK's own default credential chain (env
- * vars, shared config/credentials files, ECS/EC2/IRSA, SSO) -- PLUMB never
- * stores an AWS secret access key itself. What PLUMB's in-app setup UX
- * actually needs to capture is: which chain mode to use, an optional named
- * profile, and the region (Bedrock's `ListFoundationModels`/runtime APIs
- * are region-scoped, unlike a single global endpoint).
  */
+
 import type { CloudProviderConfigSchema } from './cloudConfigSchema.js';
 import {
   getVisibleCloudFields,

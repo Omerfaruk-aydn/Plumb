@@ -1,15 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TestRig } from './test-helper.js';
-import {
-  WhisperModelManager,
-  WhisperTranscriptionProvider,
-} from '@google/gemini-cli-core';
+import { WhisperModelManager, WhisperTranscriptionProvider } from '@plumb/core';
 import * as fs from 'node:fs';
 import commandExists from 'command-exists';
 

@@ -1,17 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical save/load/remove/refresh/clear-override orchestration shared by
- * every flat-schema cloud provider (Bedrock/Vertex/watsonx -- OCI keeps its
- * own ociCloudConfigActions.ts because its IAM-subtype visibility rules and
- * OCID validation are genuinely bespoke). One factory call per provider
- * produces the exact same atomicity/precedence guarantees OCI's module
- * hand-wrote: validate -> credential store -> safe config, atomic on
- * failure; effective values resolved PLUMB override > environment >
- * nothing, with provenance for the source-provenance UI.
  */
+
 import {
   ensurePlumbCredentialStore,
   getPlumbProviderRegistry,
@@ -20,7 +11,7 @@ import {
   type CloudProviderConfigSchema,
   type CloudConfigFormValues,
   type CloudConfigValidationErrors,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 export type CloudFieldConfigSource = 'plumb' | 'env' | 'none';
 
@@ -114,9 +105,7 @@ export function createCloudConfigActions(opts: {
     }
 
     try {
-      const { saveProviderCloudConfig } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { saveProviderCloudConfig } = await import('@plumb/core');
       await saveProviderCloudConfig(providerId, safeConfig);
     } catch (err) {
       return {
@@ -129,9 +118,7 @@ export function createCloudConfigActions(opts: {
   }
 
   async function load(): Promise<CloudExistingConfig> {
-    const { getCachedProviderCloudConfig } = await import(
-      '@google/gemini-cli-core'
-    );
+    const { getCachedProviderCloudConfig } = await import('@plumb/core');
     const safeConfig = { ...getCachedProviderCloudConfig(providerId) };
     for (const [field, envVar] of Object.entries(overridableFields)) {
       const effective = resolveProviderConfigValue(providerId, field, envVar);
@@ -148,9 +135,7 @@ export function createCloudConfigActions(opts: {
   }
 
   async function remove(): Promise<void> {
-    const { clearProviderCloudConfig } = await import(
-      '@google/gemini-cli-core'
-    );
+    const { clearProviderCloudConfig } = await import('@plumb/core');
     await clearProviderCloudConfig(providerId);
     try {
       const store = await ensurePlumbCredentialStore();
@@ -161,15 +146,13 @@ export function createCloudConfigActions(opts: {
   }
 
   async function refresh(): Promise<void> {
-    const { removeOmpModelCacheEntry } = await import(
-      '@google/gemini-cli-provider'
-    );
+    const { removeOmpModelCacheEntry } = await import('@plumb/provider');
     removeOmpModelCacheEntry(providerId);
   }
 
   async function clearOverrides(): Promise<void> {
     const [{ getCachedProviderCloudConfig, saveProviderCloudConfig }] =
-      await Promise.all([import('@google/gemini-cli-core')]);
+      await Promise.all([import('@plumb/core')]);
     const current = { ...getCachedProviderCloudConfig(providerId) };
     for (const field of Object.keys(overridableFields)) {
       delete current[field];

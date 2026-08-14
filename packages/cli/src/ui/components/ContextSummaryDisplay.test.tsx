@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -47,7 +46,7 @@ describe('<ContextSummaryDisplay />', () => {
     const props = {
       ...baseProps,
       geminiMdFileCount: 1,
-      contextFileNames: ['GEMINI.md'],
+      contextFileNames: ['PLUMB.md'],
       mcpServers: { 'test-server': { command: 'test' } },
       ideContext: {
         workspaceState: {
@@ -64,7 +63,7 @@ describe('<ContextSummaryDisplay />', () => {
     const props = {
       ...baseProps,
       geminiMdFileCount: 1,
-      contextFileNames: ['GEMINI.md'],
+      contextFileNames: ['PLUMB.md'],
       mcpServers: { 'test-server': { command: 'test' } },
       ideContext: {
         workspaceState: {

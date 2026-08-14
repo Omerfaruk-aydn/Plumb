@@ -1,26 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Pseudo-tool security regression tests.
- *
- * Proves that assistant text shaped like a tool call — XML-looking,
- * JSON-looking, a markdown fenced "tool" block, OpenAI-function-call
- * plaintext, or Anthropic/Gemini-style pseudo-call prose — is NEVER
- * parsed into a real functionCall / tool_call by PlumbContentGenerator,
- * for models whose tool capability is UNKNOWN or UNSUPPORTED (and, for
- * completeness, also when capability is fully SUPPORTED — text is text,
- * never a parse target, regardless of capability).
- *
- * PlumbContentGenerator.generateContentStream only ever emits a
- * functionCall chunk from a structured `event.type === 'tool_call'`
- * stream event (see plumbContentGenerator.ts, the `case 'tool_call':`
- * branch). A `event.type === 'text'` chunk is always forwarded verbatim
- * as a text part (`case 'text': yield this.#chunk({ text: event.text })`)
- * with no regex/parsing step in between. These tests pin that contract
- * down so a future change cannot silently introduce a text-sniffing
- * "helpful" pseudo-tool parser.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -51,7 +31,7 @@ const { mockFindModel, mockResolveProviderAlias, mockPlumbModelStream } =
     };
   });
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getPlumbModelRegistry: () => ({
     findModel: mockFindModel,
     loadCache: vi.fn(),

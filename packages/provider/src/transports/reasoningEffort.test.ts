@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical reasoning_effort (OpenAI-compatible dialect) capability
- * resolver test matrix. Fixes the live bug: GitHub Copilot rejects
- * `reasoning_effort` for `kimi-k2.7-code` ("does not support reasoning
- * effort") because the transport previously sent the caller-requested
- * value unconditionally, with zero capability check.
- *
- * `thinking` (Anthropic) and `reasoning_effort` (OpenAI-style) are
- * deliberately NOT the same resolver — see anthropicTokenBudget.test.ts
- * for the separate Anthropic invariant, and CASE 5 below for the
- * no-collision proof.
  */
+
 import { describe, it, expect } from 'vitest';
 import { resolveReasoningEffortRequest } from './streaming.js';
 

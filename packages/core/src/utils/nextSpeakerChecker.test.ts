@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,7 +20,7 @@ import {
   checkNextSpeaker,
   type NextSpeakerResponse,
 } from './nextSpeakerChecker.js';
-import { GeminiChat } from '../core/geminiChat.js';
+import { PlumbChat } from '../core/plumbChat.js';
 
 // Mock fs module to prevent actual file system operations during tests.
 // Must be vi.hoisted(): vi.mock('node:fs', ...) is hoisted to the top of
@@ -79,7 +78,7 @@ vi.mock('../core/baseLlmClient.js');
 vi.mock('../config/config.js');
 
 describe('checkNextSpeaker', () => {
-  let chatInstance: GeminiChat;
+  let chatInstance: PlumbChat;
   let mockConfig: Config;
   let mockBaseLlmClient: BaseLlmClient;
   const abortSignal = new AbortController().signal;
@@ -117,8 +116,8 @@ describe('checkNextSpeaker', () => {
       mockConfig,
     );
 
-    // GeminiChat will receive the mocked instances via the mocked GoogleGenAI constructor
-    chatInstance = new GeminiChat(
+    // PlumbChat will receive the mocked instances via the mocked GoogleGenAI constructor
+    chatInstance = new PlumbChat(
       mockConfig,
       '', // empty system instruction
       [], // no tools

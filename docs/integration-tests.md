@@ -6,8 +6,8 @@ in this project.
 ## Overview
 
 The integration tests are designed to validate the end-to-end functionality of
-Gemini CLI. They execute the built binary in a controlled environment and verify
-that it behaves as expected when interacting with the file system.
+PLUMB. They execute the built binary in a controlled environment and verify that
+it behaves as expected when interacting with the file system.
 
 These tests are located in the `integration-tests` directory and are run using a
 custom test runner.
@@ -285,8 +285,8 @@ defined in `.github/workflows/chained_e2e.yml`. This workflow automatically runs
 the integrations tests for pull requests against the `main` branch, or when a
 pull request is added to a merge queue.
 
-The workflow runs the tests in different sandboxing environments to ensure
-Gemini CLI is tested across each:
+The workflow runs the tests in different sandboxing environments to ensure PLUMB
+is tested across each:
 
 - `sandbox:none`: Runs the tests without any sandboxing.
 - `sandbox:docker`: Runs the tests in a Docker container.

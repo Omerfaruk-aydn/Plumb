@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   type GlobToolParams,
   type GlobPath,
 } from './glob.js';
-import { partListUnionToString } from '../core/geminiRequest.js';
+import { partListUnionToString } from '../core/plumbRequest.js';
 import path from 'node:path';
 import { isSubpath } from '../utils/paths.js';
 import fs from 'node:fs/promises';
@@ -24,7 +23,7 @@ import * as glob from 'glob';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
 import {
   DEFAULT_FILE_FILTERING_OPTIONS,
-  GEMINI_IGNORE_FILE_NAME,
+  PLUMB_IGNORE_FILE_NAME,
 } from '../config/constants.js';
 
 vi.mock('glob', { spy: true });
@@ -395,7 +394,7 @@ describe('GlobTool', () => {
 
     it('should respect .geminiignore files by default', async () => {
       await fs.writeFile(
-        path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME),
+        path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'gemini-ignored_test.txt',
       );
       await fs.writeFile(
@@ -433,7 +432,7 @@ describe('GlobTool', () => {
 
     it('should not respect .geminiignore when respect_gemini_ignore is false', async () => {
       await fs.writeFile(
-        path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME),
+        path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'gemini-ignored_test.txt',
       );
       await fs.writeFile(

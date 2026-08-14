@@ -13,11 +13,11 @@
 │[m   [38;2;255;255;255m [m [38;2;255;255;255m3.[m [38;2;255;255;255mVertex AI[m[K[38;2;215;255;215m[141C│
 │[m[K[38;2;215;255;215m[158C│
 │[m   [38;2;255;135;175mFailed to sign in. Message: Authentication consent could not be obtained.[m[K[38;2;215;255;215m[82C│
-│[m   [38;2;255;135;175mPlease run Gemini CLI in an interactive terminal to authenticate, or use NO_BROWSER=true for manual authentication.[m[K[38;2;215;255;215m[40C│
+│[m   [38;2;255;135;175mPlease run PLUMB in an interactive terminal to authenticate, or use NO_BROWSER=true for manual authentication.[m[K[38;2;215;255;215m[40C│
 │[m[K[38;2;215;255;215m[158C│
 │[m   [38;2;175;175;175m(Use Enter to select)[m[K[38;2;215;255;215m[134C│
 │[m[K[38;2;215;255;215m[158C│
-│[m   [38;2;255;255;255mTerms of Services and Privacy Notice for Gemini CLI[m[K[38;2;215;255;215m[104C│
+│[m   [38;2;255;255;255mTerms of Services and Privacy Notice for PLUMB[m[K[38;2;215;255;215m[104C│
 │[m[K[38;2;215;255;215m[158C│
 │[m   [38;2;135;175;255mhttps://geminicli.com/docs/resources/tos-privacy/[m[K[38;2;215;255;215m[106C│
 │[m[K[38;2;215;255;215m[158C│
@@ -29,7 +29,7 @@
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mDo you trust the files in this folder?[m[117X[38;2;255;255;175m[117C│[m 
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
- [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows Gemini CLI to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows PLUMB to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m 
  [38;2;255;255;175m│[m [38;2;255;255;255mconfigurations could execute code on your behalf or change the behavior of the CLI.[m[72X[38;2;255;255;175m[72C│[m 
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
@@ -58,7 +58,7 @@ Hook system initialized successfully[21X[21C[7;1H[K[38;2;255;255;175m
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mDo you trust the files in this folder?[m[117X[38;2;255;255;175m[117C│[m 
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
- [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows Gemini CLI to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows PLUMB to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m 
  [38;2;255;255;175m│[m [38;2;255;255;255mconfigurations could execute code on your behalf or change the behavior of the CLI.[m[72X[38;2;255;255;175m[72C│[m 
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m 
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mThis folder contains:[m[134X[38;2;255;255;175m[134C│[m 
@@ -164,7 +164,7 @@ Hook system initialized successfully[21X[21C[7;1H[K[38;2;255;255;175m
  [38;2;71;150;228m [38;2;102;136;217m▗[38;2;132;122;206m▟[38;2;164;113;167m▀[38;2;195;103;127m [m    [38;2;255;255;255m▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌[m[K
  [38;2;71;150;228m▝[38;2;102;136;217m▀[38;2;132;122;206m [38;2;153;116;180m [38;2;174;109;153m [38;2;195;103;127m [m   [38;2;255;255;255m ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀[m[K
 [K
- [1m[38;2;255;255;255mGemini CLI[22m[38;2;175;175;175m v0.55.0-nightly.20260729.g3499c84f7[m[K
+ [1m[38;2;255;255;255mPLUMB[22m[38;2;175;175;175m v0.55.0-nightly.20260729.g3499c84f7[m[K
 [K
 [K
 [K[38;2;255;255;175m
@@ -177,7 +177,7 @@ Hook system initialized successfully[21X[21C[7;1H[K[38;2;255;255;175m
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mDo you trust the files in this folder?[m[117X[38;2;255;255;175m[117C│[m
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m
- [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows Gemini CLI to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m
+ [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows PLUMB to load its local configurations, including custom commands, hooks, MCP servers, agent skills, and settings. These[m     [38;2;255;255;175m│[m
  [38;2;255;255;175m│[m [38;2;255;255;255mconfigurations could execute code on your behalf or change the behavior of the CLI.[m[72X[38;2;255;255;175m[72C│[m
  [38;2;255;255;175m│[m[156X[38;2;255;255;175m[156C│[m
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mThis folder contains:[m[134X[38;2;255;255;175m[134C│[m

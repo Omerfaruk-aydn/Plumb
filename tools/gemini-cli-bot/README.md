@@ -1,4 +1,4 @@
-# Gemini CLI Bot (Cognitive Repository)
+# PLUMB Bot (Cognitive Repository)
 
 This directory contains the foundational architecture for the `gemini-cli-bot`,
 transforming the repository into a proactive, evolutionary system.
@@ -13,8 +13,8 @@ long-term strategic optimization.
 - **Purpose**: High-frequency, deterministic maintenance.
 - **Frequency**: 30-minute cron (`.github/workflows/gemini-cli-bot-pulse.yml`).
 - **Implementation**: Pure TypeScript/JavaScript scripts.
-- **Classification**: Optionally utilizes Gemini CLI for high-confidence
-  semantic classification (e.g., triage, labeling, sentiment) while preferring
+- **Classification**: Optionally utilizes PLUMB for high-confidence semantic
+  classification (e.g., triage, labeling, sentiment) while preferring
   deterministic logic for equivalent tasks.
 - **Phases**:
   - **Reflex Execution**: Runs triage, routing, and automated maintenance
@@ -26,7 +26,7 @@ long-term strategic optimization.
 - **Purpose**: Strategic investigation, policy refinement, and proactive
   self-optimization.
 - **Frequency**: 24-hour cron (`.github/workflows/gemini-cli-bot-brain.yml`).
-- **Implementation**: Agentic Gemini CLI phases.
+- **Implementation**: Agentic PLUMB phases.
 - **Phases**:
   - **Metrics Collection**: Executes scripts in `metrics/scripts/` to track
     repository health (Open issues, PR latency, throughput, etc.).

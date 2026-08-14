@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F12 (PLUMB-UI-DEVRIM-PROMPT.md) idle detection. Uses a single re-armed
- * setTimeout (cleared and restarted on every keypress), never a repeating
- * setInterval -- the established safe pattern in this codebase for state
- * that must be observable in components rendered directly/unmocked in
- * their own tests (see useValueChangeFlash.ts).
  */
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useKeypress } from './useKeypress.js';
 

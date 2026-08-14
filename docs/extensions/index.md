@@ -1,13 +1,13 @@
-# Gemini CLI extensions
+# PLUMB extensions
 
-Gemini CLI extensions package prompts, MCP servers, custom commands, themes,
-hooks, sub-agents, and agent skills into a familiar and user-friendly format.
-With extensions, you can expand the capabilities of Gemini CLI and share those
+PLUMB extensions package prompts, MCP servers, custom commands, themes, hooks,
+sub-agents, and agent skills into a familiar and user-friendly format. With
+extensions, you can expand the capabilities of PLUMB and share those
 capabilities with others. They are designed to be easily installable and
 shareable.
 
 To see what's possible, browse the
-[Gemini CLI extension gallery](https://geminicli.com/extensions/browse/).
+[PLUMB extension gallery](https://geminicli.com/extensions/browse/).
 
 ## Choose your path
 
@@ -15,7 +15,7 @@ Choose the guide that best fits your needs.
 
 ### I want to use extensions
 
-Learn how to discover, install, and manage extensions to enhance your Gemini CLI
+Learn how to discover, install, and manage extensions to enhance your PLUMB
 experience.
 
 - **[Manage extensions](#manage-extensions):** List and verify your installed

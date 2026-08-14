@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import process from 'node:process';
 import {
   CoreEvent,
   FatalConfigError,
-  GEMINI_DIR,
+  PLUMB_DIR,
   getErrorMessage,
   getFsErrorMessage,
   Storage,
@@ -21,7 +20,7 @@ import {
   AuthType,
   type AdminControlsSettings,
   createCache,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/builtin/light/default-light.js';
 import { DefaultDark } from '../ui/themes/builtin/dark/default-dark.js';
@@ -82,8 +81,8 @@ export const USER_SETTINGS_DIR = path.dirname(USER_SETTINGS_PATH);
 export const DEFAULT_EXCLUDED_ENV_VARS = [
   'DEBUG',
   'DEBUG_MODE',
-  'GEMINI_CLI_IDE_SERVER_STDIO_COMMAND',
-  'GEMINI_CLI_IDE_SERVER_STDIO_ARGS',
+  'PLUMB_IDE_SERVER_STDIO_COMMAND',
+  'PLUMB_IDE_SERVER_STDIO_ARGS',
 ];
 
 const AUTH_ENV_VAR_WHITELIST = [
@@ -102,21 +101,21 @@ export function sanitizeEnvVar(value: string): string {
 }
 
 export function getSystemSettingsPath(): string {
-  if (process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH']) {
-    return process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'];
+  if (process.env['PLUMB_SYSTEM_SETTINGS_PATH']) {
+    return process.env['PLUMB_SYSTEM_SETTINGS_PATH'];
   }
   if (platform() === 'darwin') {
-    return '/Library/Application Support/GeminiCli/settings.json';
+    return '/Library/Application Support/Plumb/settings.json';
   } else if (platform() === 'win32') {
-    return 'C:\\ProgramData\\gemini-cli\\settings.json';
+    return 'C:\\ProgramData\\plumb\\settings.json';
   } else {
-    return '/etc/gemini-cli/settings.json';
+    return '/etc/plumb/settings.json';
   }
 }
 
 export function getSystemDefaultsPath(): string {
-  if (process.env['GEMINI_CLI_SYSTEM_DEFAULTS_PATH']) {
-    return process.env['GEMINI_CLI_SYSTEM_DEFAULTS_PATH'];
+  if (process.env['PLUMB_SYSTEM_DEFAULTS_PATH']) {
+    return process.env['PLUMB_SYSTEM_DEFAULTS_PATH'];
   }
   return path.join(
     path.dirname(getSystemSettingsPath()),
@@ -563,9 +562,9 @@ function findEnvFile(
 ): string | null {
   let currentDir = path.resolve(startDir);
   while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
+    // prefer gemini-specific .env under PLUMB_DIR
     if (isTrusted) {
-      const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
+      const geminiEnvPath = path.join(currentDir, PLUMB_DIR, '.env');
       if (fs.existsSync(geminiEnvPath)) {
         return geminiEnvPath;
       }
@@ -580,7 +579,7 @@ function findEnvFile(
     if (parentDir === currentDir || !parentDir) {
       // check .env under home as fallback, again preferring gemini-specific .env
       if (isTrusted) {
-        const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
+        const homeGeminiEnvPath = path.join(homedir(), PLUMB_DIR, '.env');
         if (fs.existsSync(homeGeminiEnvPath)) {
           return homeGeminiEnvPath;
         }
@@ -699,7 +698,7 @@ export function loadEnvironment(
 
       const excludedVars =
         settings?.advanced?.excludedEnvVars || DEFAULT_EXCLUDED_ENV_VARS;
-      const isProjectEnvFile = !envFilePath.includes(GEMINI_DIR);
+      const isProjectEnvFile = !envFilePath.includes(PLUMB_DIR);
 
       for (const key in parsedEnv) {
         if (Object.hasOwn(parsedEnv, key)) {

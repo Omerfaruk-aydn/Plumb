@@ -11,7 +11,7 @@ the PLUMB production rebuild.
 
 | Donor / Source   | Canonical Repository       | Verified Remote URL                               | Pinned Immutable SHA                       | License    | Verification Status |
 | :--------------- | :------------------------- | :------------------------------------------------ | :----------------------------------------- | :--------- | :------------------ |
-| **Gemini CLI**   | `google-gemini/gemini-cli` | `https://github.com/google-gemini/gemini-cli.git` | `dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9` | Apache-2.0 | `VERIFIED_CLEAN`    |
+| **PLUMB**        | `google-gemini/gemini-cli` | `https://github.com/google-gemini/gemini-cli.git` | `dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9` | Apache-2.0 | `VERIFIED_CLEAN`    |
 | **Qwen Code**    | `QwenLM/qwen-code`         | `https://github.com/QwenLM/qwen-code.git`         | `584f6a4bec686e641e48e0ba819ef9d308f9dccc` | Apache-2.0 | `VERIFIED_CLEAN`    |
 | **Kesit Legacy** | `Omerfaruk-aydn/KES-T`     | `https://github.com/Omerfaruk-aydn/KES-T.git`     | `368da051e164341a5322ba4f5dc39fc08c9b578d` | Apache-2.0 | `VERIFIED_CLEAN`    |
 
@@ -37,9 +37,9 @@ the PLUMB production rebuild.
 
 To eliminate runtime ambiguity and multiple raw-mode/terminal owners:
 
-- **Ink/React Terminal Renderer**: Owned exclusively by Gemini CLI runtime.
-- **Terminal Lifecycle & Raw Mode**: Owned exclusively by Gemini CLI.
-- **Tool Execution & Session Management**: Owned exclusively by Gemini CLI core
-  with Kesit security enforcement hooks.
+- **Ink/React Terminal Renderer**: Owned exclusively by PLUMB runtime.
+- **Terminal Lifecycle & Raw Mode**: Owned exclusively by PLUMB.
+- **Tool Execution & Session Management**: Owned exclusively by PLUMB core with
+  Kesit security enforcement hooks.
 - **Diff & Checkpoint Views**: Qwen Ink components imported as single-owner
   subviews within Gemini UI container.

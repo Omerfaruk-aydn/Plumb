@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression: selecting provider = 'watsonx' must reach
- * the real official @ibm-cloud/watsonx-ai SDK through the real dispatch
- * chain (catalog/model-catalog.ts -> transports/streaming.ts's
- * plumbModelStream -> registered 'watsonx-chat' transport), and must NEVER
- * fall through to a generic OpenAI-compatible request or any other
- * provider's transport.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';

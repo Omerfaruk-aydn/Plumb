@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { tokenLimit, hasKnownTokenLimit } from '@google/gemini-cli-core';
+import { tokenLimit, hasKnownTokenLimit } from '@plumb/core';
 
 /**
  * False only when the active model's real context window has been

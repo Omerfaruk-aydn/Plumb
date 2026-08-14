@@ -1,25 +1,13 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase 4 cloud model-switch matrix: for Bedrock, Azure, and Vertex,
- * proves selecting model A, then B, then A again produces zero stale
- * wire-model/deployment/endpoint/dialect state -- request N+1 never
- * carries anything left over from request N.
- *
- * cloudProviderSwitchMatrix.test.ts already has a MODEL_SWITCH-labeled
- * test, but it exercises a CONFIG change (AWS_REGION) on the same model,
- * not switching between two actual different models -- that invariant
- * (select model A, request; select model B, request; select model A
- * again, request; assert zero stale identity) was previously unproven
- * for every cloud provider.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import type { PlumbStreamEvent } from '../types.js';
 
 function header(
@@ -58,7 +46,7 @@ describe('Phase 4 cloud model-switch matrix (A -> B -> A, zero stale identity)',
   }> = [];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     calls.length = 0;
     setProviderConfigResolver(undefined);

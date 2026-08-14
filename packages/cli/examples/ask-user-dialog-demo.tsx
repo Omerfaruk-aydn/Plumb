@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { useState } from 'react';
 import { render, Box, Text } from 'ink';
 import { AskUserDialog } from '../src/ui/components/AskUserDialog.js';
 import { KeypressProvider } from '../src/ui/contexts/KeypressContext.js';
-import { QuestionType, type Question } from '@google/gemini-cli-core';
+import { QuestionType, type Question } from '@plumb/core';
 
 const DEMO_QUESTIONS: Question[] = [
   {

@@ -1,4 +1,4 @@
-# `Gemini CLI SDK`
+# `PLUMB SDK`
 
 > **Implementation Status:** Core agent loop, tool execution, and session
 > context are implemented. Advanced features like hooks, skills, subagents, and
@@ -15,7 +15,7 @@ Equivalent to `gemini -p "what does this project do?"`. Loads all workspace and
 user settings.
 
 ```ts
-import { GeminiCliAgent } from '@google/gemini-cli-sdk';
+import { GeminiCliAgent } from '@plumb/sdk';
 
 const simpleAgent = new GeminiCliAgent({
   cwd: '/path/to/some/dir',
@@ -45,7 +45,7 @@ System instructions can be provided by a static string OR dynamically via a
 function:
 
 ```ts
-import { GeminiCliAgent } from "@google/gemini-cli-sdk";
+import { GeminiCliAgent } from "@plumb/sdk";
 
 const agent = new GeminiCliAgent({
   instructions: "This is a static string instruction"; // this is valid
@@ -55,7 +55,7 @@ const agent = new GeminiCliAgent({
 
 Validation:
 
-- Static string instructions show up where GEMINI.md content normally would in
+- Static string instructions show up where PLUMB.md content normally would in
   model call
 - Dynamic instructions show up and contain dynamic content.
 
@@ -65,7 +65,7 @@ Validation:
 > tool definitions and execution.
 
 ```ts
-import { GeminiCliAgent, tool, z } from "@google/gemini-cli-sdk";
+import { GeminiCliAgent, tool, z } from "@plumb/sdk";
 
 const addTool = tool({
   name: 'add',
@@ -96,7 +96,7 @@ Validation:
 SDK users can provide programmatic custom hooks
 
 ```ts
-import { GeminiCliAgent, hook, z } from '@google/gemini-cli-sdk';
+import { GeminiCliAgent, hook, z } from '@plumb/sdk';
 import { reformat } from './reformat.js';
 
 const myHook = hook(
@@ -111,7 +111,7 @@ const myHook = hook(
     // void return is a no-op
     if (!filePath.endsWith('.ts')) return;
 
-    // ctx.fs gives us a filesystem interface that obeys Gemini CLI permissions/sandbox
+    // ctx.fs gives us a filesystem interface that obeys PLUMB permissions/sandbox
     const reformatted = await reformat(await ctx.fs.read(filePath));
     await ctx.fs.write(filePath, reformatted);
 
@@ -129,7 +129,7 @@ SDK Hooks can also run as standalone scripts to implement userland "command"
 style hooks:
 
 ```ts
-import { hook } from "@google/gemini-cli-sdk";
+import { hook } from "@plumb/sdk";
 
 // define a hook as above
 const myHook = hook({...}, (hook) => {...});
@@ -182,7 +182,7 @@ const agent = new GeminiCliAgent({
 > **Status:** Not Implemented.
 
 ```ts
-import { GeminiCliAgent, subagent } from "@google/gemini-cli";
+import { GeminiCliAgent, subagent } from "plumb-cli";
 
 const mySubagent = subagent({
   name: "my-subagent",
@@ -207,11 +207,11 @@ const agent = new GeminiCliAgent({
 
 > **Status:** Not Implemented.
 
-Potentially the most important feature of the Gemini CLI SDK is support for
+Potentially the most important feature of the PLUMB SDK is support for
 extensions, which modularly encapsulate all of the primitives listed above:
 
 ```ts
-import { GeminiCliAgent, extension } from "@google/gemini-cli-sdk";
+import { GeminiCliAgent, extension } from "@plumb/sdk";
 
 const myExtension = extension({
   name: "my-extension",
@@ -233,8 +233,8 @@ The SDK will include a wrapper utility to interact with the agent via ACP
 instead of the SDK's natural API.
 
 ```ts
-import { GeminiCliAgent } from "@google/gemini-cli-sdk";
-import { GeminiCliAcpServer } from "@google/gemini-cli-sdk/acp";
+import { GeminiCliAgent } from "@plumb/sdk";
+import { GeminiCliAcpServer } from "@plumb/sdk/acp";
 
 const server = new GeminiCliAcpServer(new GeminiCliAgent({...}));
 server.start(); // calling start runs a stdio ACP server
@@ -305,7 +305,7 @@ export interface AgentShellOptions {
 
 export interface AgentShellProcess {
   // figure out how to have a streaming shell process here that supports stdin too
-  // investigate how Gemini CLI already does this
+  // investigate how PLUMB already does this
 }
 ```
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import type {
   SettingsFile,
 } from '../../config/settings.js';
 import { SettingScope } from '../../config/settings.js';
-import { checkExhaustive } from '@google/gemini-cli-core';
+import { checkExhaustive } from '@plumb/core';
 
 export const SettingsContext = React.createContext<LoadedSettings | undefined>(
   undefined,

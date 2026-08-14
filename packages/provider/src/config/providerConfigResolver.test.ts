@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider config resolution precedence: PLUMB-saved configuration beats
- * the environment variable, which beats the fallback default. A user who
- * has never configured anything through PLUMB's UI (no resolver wired, or
- * a wired resolver that returns {}) must see exactly the same behavior as
- * before this feature existed -- reading straight from the environment.
  */
+
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   setProviderConfigResolver,

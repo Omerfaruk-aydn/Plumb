@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import {
   type SettingsType,
   type SettingsValue,
 } from '../config/settingsSchema.js';
-import { ExperimentFlags, type Config } from '@google/gemini-cli-core';
+import { ExperimentFlags, type Config } from '@plumb/core';
 
 // The schema is now nested, but many parts of the UI and logic work better
 // with a flattened structure and dot-notation keys. This section flattens the

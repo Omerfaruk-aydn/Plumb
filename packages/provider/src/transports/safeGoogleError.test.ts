@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Safe Google 4xx Error extraction and redaction test suite.
  */
 
 import { describe, it, expect } from 'vitest';

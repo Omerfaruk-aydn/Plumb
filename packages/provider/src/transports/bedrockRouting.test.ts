@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression: selecting provider = 'amazon-bedrock' must
- * reach the real, SigV4-signed AWS Bedrock Converse Stream transport
- * (catalog/model-catalog.ts -> transports/streaming.ts's plumbModelStream ->
- * the registered 'bedrock-converse-stream' transport), and must NEVER fall
- * through to the generic OpenAI-compatible transport (which would send a
- * plain `Authorization: Bearer` request to `{baseUrl}/chat/completions` --
- * AWS rejects that outright, and no valid signature would ever be present).
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';
@@ -91,7 +83,7 @@ describe('amazon-bedrock routing (production-shaped, no mocking of streaming.ts/
   const ORIGINAL_ENV = { ...process.env };
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     process.env['AWS_ACCESS_KEY_ID'] = 'AKIATESTTESTTESTTEST';
     process.env['AWS_SECRET_ACCESS_KEY'] =

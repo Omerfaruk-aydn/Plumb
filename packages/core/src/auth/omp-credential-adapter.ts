@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import type {
@@ -12,7 +9,7 @@ import type {
   PlumbCredential,
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 interface OmpCredentialRecord {
   oauth: PlumbOAuthCredential[];

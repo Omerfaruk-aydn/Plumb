@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,8 +9,8 @@ import {
   type ComponentEvalCase,
 } from './component-test-helper.js';
 import { type EvalPolicy } from './test-helper.js';
-import { SnapshotGenerator } from '@google/gemini-cli-core';
-import { NodeType, type ConcreteNode } from '@google/gemini-cli-core';
+import { SnapshotGenerator } from '@plumb/core';
+import { NodeType, type ConcreteNode } from '@plumb/core';
 import { LLMJudge } from './llm-judge.js';
 
 function snapshotEvalTest(policy: EvalPolicy, evalCase: ComponentEvalCase) {

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,12 +9,10 @@ import { activate } from './extension.js';
 import {
   IDE_DEFINITIONS,
   detectIdeFromEnv,
-} from '@google/gemini-cli-core/src/ide/detect-ide.js';
+} from '@plumb/core/src/ide/detect-ide.js';
 
-vi.mock('@google/gemini-cli-core/src/ide/detect-ide.js', async () => {
-  const actual = await vi.importActual(
-    '@google/gemini-cli-core/src/ide/detect-ide.js',
-  );
+vi.mock('@plumb/core/src/ide/detect-ide.js', async () => {
+  const actual = await vi.importActual('@plumb/core/src/ide/detect-ide.js');
   return {
     ...actual,
     detectIdeFromEnv: vi.fn(() => IDE_DEFINITIONS.vscode),
@@ -290,7 +287,7 @@ describe('activate', () => {
 
       expect(executeCommandMock).toHaveBeenCalledWith(
         'workbench.extensions.installExtension',
-        'Google.gemini-cli-vscode-ide-companion',
+        'Google.plumb-vscode-ide-companion',
       );
     });
 

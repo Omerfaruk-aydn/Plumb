@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   clearProviderCloudConfig: vi.fn(async () => undefined),
 }));
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getLocalProviderConfigSchema: vi.fn(() => ({
     providerId: 'vllm',
     authModes: [
@@ -81,7 +78,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
   })),
 }));
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   getCachedProviderCloudConfig: vi.fn(() => ({})),
   saveProviderCloudConfig: mocks.saveProviderCloudConfig,
   clearProviderCloudConfig: mocks.clearProviderCloudConfig,

@@ -1,19 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Generated snapshot of the OMP-derived provider inventory.
- *
- * Derived from `packages/provider/src/catalog/providers.ts` (PLUMB → OMP
- * projection). This fixture freezes the SELECTABLE_PROVIDERS shape so
- * reference-route regression tests can pin the catalog today and detect
- * silent drift in future commits.
- *
- * Regeneration: `scripts/build-inventory.ts` reads the catalog and writes
- * this file. The generated rows are a frozen subset of the live catalog
- * copied at the time of the Phase A commit, used only by the
- * `reference-route` tests and the `diagnostics` reporting.
  */
 
 export interface FrozenProviderRow {

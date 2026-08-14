@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -46,7 +45,7 @@ describe('Config Path Validation', () => {
   });
 
   it('should allow access to a file under ~/.gemini once that directory is added to the workspace', () => {
-    // Use settings.json rather than GEMINI.md as the example: the latter is
+    // Use settings.json rather than PLUMB.md as the example: the latter is
     // now reachable via a surgical isPathAllowed allowlist regardless of
     // workspace membership (covered by dedicated tests in config.test.ts), so
     // it can no longer demonstrate the workspace-addition semantic on its

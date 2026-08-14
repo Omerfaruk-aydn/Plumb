@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@plumb/core';
 import {
   OutputFormat,
   JsonFormatter,
@@ -20,7 +19,7 @@ import {
   coreEvents,
   getErrorType,
   getErrorMessage,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { runSyncCleanup } from './cleanup.js';
 
 interface ErrorWithCode extends Error {

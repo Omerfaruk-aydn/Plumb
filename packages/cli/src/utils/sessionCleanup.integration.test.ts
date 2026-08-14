@@ -1,17 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi } from 'vitest';
 import { cleanupExpiredSessions } from './sessionCleanup.js';
 import type { Settings } from '../config/settings.js';
-import {
-  SESSION_FILE_PREFIX,
-  type Config,
-  debugLogger,
-} from '@google/gemini-cli-core';
+import { SESSION_FILE_PREFIX, type Config, debugLogger } from '@plumb/core';
 
 // Create a mock config for integration testing
 function createTestConfig(): Config {

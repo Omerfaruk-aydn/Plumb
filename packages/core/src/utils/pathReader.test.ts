@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,10 +21,10 @@ const createMockConfig = (
   mockFileService?: FileDiscoveryService,
   fileFiltering: {
     respectGitIgnore?: boolean;
-    respectGeminiIgnore?: boolean;
+    respectPlumbIgnore?: boolean;
   } = {},
 ): Config => {
-  const { respectGitIgnore = true, respectGeminiIgnore = true } = fileFiltering;
+  const { respectGitIgnore = true, respectPlumbIgnore = true } = fileFiltering;
   const workspace = new WorkspaceContext(cwd, otherDirs);
   const fileSystemService = new StandardFileSystemService();
   return {
@@ -35,7 +34,7 @@ const createMockConfig = (
     getFileSystemService: () => fileSystemService,
     getFileService: () => mockFileService,
     getFileFilteringRespectGitIgnore: () => respectGitIgnore,
-    getFileFilteringRespectGeminiIgnore: () => respectGeminiIgnore,
+    getFileFilteringRespectGeminiIgnore: () => respectPlumbIgnore,
   } as unknown as Config;
 };
 
@@ -307,7 +306,7 @@ describe('readPathFromWorkspace', () => {
         ['ignored.txt'],
         {
           respectGitIgnore: true,
-          respectGeminiIgnore: true,
+          respectPlumbIgnore: true,
         },
       );
     });
@@ -352,12 +351,12 @@ describe('readPathFromWorkspace', () => {
       } as unknown as FileDiscoveryService;
       const config = createMockConfig(CWD, [], mockFileService, {
         respectGitIgnore: false,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       });
       await readPathFromWorkspace('file.txt', config);
       expect(mockFileService.filterFiles).toHaveBeenCalledWith(['file.txt'], {
         respectGitIgnore: false,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       });
     });
 
@@ -374,14 +373,14 @@ describe('readPathFromWorkspace', () => {
       } as unknown as FileDiscoveryService;
       const config = createMockConfig(CWD, [], mockFileService, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       });
       await readPathFromWorkspace('my-dir', config);
       expect(mockFileService.filterFiles).toHaveBeenCalledWith(
         [path.join('my-dir', 'file.txt')],
         {
           respectGitIgnore: true,
-          respectGeminiIgnore: false,
+          respectPlumbIgnore: false,
         },
       );
     });

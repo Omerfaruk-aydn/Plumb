@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,8 +15,8 @@ import { reportError } from '../utils/errorReporting.js';
 import {
   InvalidStreamError,
   StreamEventType,
-  type GeminiChat,
-} from './geminiChat.js';
+  type PlumbChat,
+} from './plumbChat.js';
 
 const mockSendMessageStream = vi.fn();
 const mockGetHistory = vi.fn();
@@ -73,7 +72,7 @@ describe('Turn', () => {
         },
       },
     };
-    turn = new Turn(mockChatInstance as unknown as GeminiChat, 'prompt-id-1');
+    turn = new Turn(mockChatInstance as unknown as PlumbChat, 'prompt-id-1');
     mockGetHistory.mockReturnValue([]);
     mockSendMessageStream.mockResolvedValue((async function* () {})());
   });

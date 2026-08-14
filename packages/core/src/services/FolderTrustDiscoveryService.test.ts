@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { FolderTrustDiscoveryService } from './FolderTrustDiscoveryService.js';
-import { GEMINI_DIR } from '../utils/paths.js';
+import { PLUMB_DIR } from '../utils/paths.js';
 
 describe('FolderTrustDiscoveryService', () => {
   let tempDir: string;
@@ -26,7 +25,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should discover commands, skills, mcps, and hooks', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
 
     // Mock commands
@@ -77,7 +76,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should flag security warnings for sensitive settings', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
 
     const settings = {
@@ -119,7 +118,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should handle malformed settings.json', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
     await fs.writeFile(path.join(geminiDir, 'settings.json'), 'invalid json');
 
@@ -130,7 +129,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should handle null settings.json', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
     await fs.writeFile(path.join(geminiDir, 'settings.json'), 'null');
 
@@ -140,7 +139,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should handle array settings.json', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
     await fs.writeFile(path.join(geminiDir, 'settings.json'), '[]');
 
@@ -150,7 +149,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should handle string settings.json', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
     await fs.writeFile(path.join(geminiDir, 'settings.json'), '"string"');
 
@@ -160,7 +159,7 @@ describe('FolderTrustDiscoveryService', () => {
   });
 
   it('should flag security warning for custom agents', async () => {
-    const geminiDir = path.join(tempDir, GEMINI_DIR);
+    const geminiDir = path.join(tempDir, PLUMB_DIR);
     await fs.mkdir(geminiDir, { recursive: true });
 
     const agentsDir = path.join(geminiDir, 'agents');

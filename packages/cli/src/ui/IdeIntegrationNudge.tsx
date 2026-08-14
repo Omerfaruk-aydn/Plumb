@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IdeInfo } from '@google/gemini-cli-core';
+import type { IdeInfo } from '@plumb/core';
 import { Box, Text } from 'ink';
 import {
   RadioButtonSelect,

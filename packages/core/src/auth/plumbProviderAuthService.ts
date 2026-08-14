@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,7 +14,7 @@ import type {
   IPlumbCredentialStore,
   OAuthCredentials,
   OAuthLoginCallbacks,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import {
   ensurePlumbCredentialStore,
   getPlumbProviderRegistry,
@@ -25,7 +24,7 @@ import {
   resolveProviderAlias,
   installBunGlobal,
   PlumbProviderCategory,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 // ─── Types ─────────────────────────────────────────────────────────────
@@ -776,7 +775,7 @@ export class PlumbProviderAuthService {
       cursor: 'Cursor',
       'xai-oauth': 'xAI / SuperGrok',
       'kimi-code': 'Kimi Code',
-      'google-gemini-cli': 'Google Gemini CLI',
+      'google-gemini-cli': 'Google PLUMB',
       'google-login': 'Google Login',
     };
     return names[providerId] ?? providerId;

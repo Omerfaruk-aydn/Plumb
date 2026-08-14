@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,17 +9,13 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { ExtensionManager } from './extension-manager.js';
 import { createTestMergedSettings } from './settings.js';
-import { cleanupTmpDir } from '@google/gemini-cli-test-utils';
-import {
-  loadAgentsFromDirectory,
-  loadSkillsFromDir,
-} from '@google/gemini-cli-core';
+import { cleanupTmpDir } from '@plumb/test-utils';
+import { loadAgentsFromDirectory, loadSkillsFromDir } from '@plumb/core';
 
 let currentTempHome = '';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     homedir: () => currentTempHome,

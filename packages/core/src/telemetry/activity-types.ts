@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Types of user activities that can be tracked
- */
 export enum ActivityType {
   USER_INPUT_START = 'user_input_start',
   USER_INPUT_END = 'user_input_end',

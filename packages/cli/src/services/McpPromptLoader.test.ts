@@ -1,15 +1,14 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { McpPromptLoader } from './McpPromptLoader.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@plumb/core';
 import type { PromptArgument } from '@modelcontextprotocol/sdk/types.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CommandKind, type CommandContext } from '../ui/commands/types.js';
-import * as cliCore from '@google/gemini-cli-core';
+import * as cliCore from '@plumb/core';
 
 // Define the mock prompt data at a higher scope
 const mockPrompt = {

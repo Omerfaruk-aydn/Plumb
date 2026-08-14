@@ -1,19 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Skill Initializer - Creates a new skill from template
- *
- * Usage:
- *     node init_skill.cjs <skill-name> --path <path>
- *
- * Examples:
- *     node init_skill.cjs my-new-skill --path skills/public
  */
 
 const fs = require('node:fs');
@@ -79,20 +68,20 @@ Executable code that can be run directly to perform specific operations.
 
 **Appropriate for:** Node.cjs scripts (cjs), shell scripts, or any executable code that performs automation, data processing, or specific operations.
 
-**Note:** Scripts may be executed without loading into context, but can still be read by Gemini CLI for patching or environment adjustments.
+**Note:** Scripts may be executed without loading into context, but can still be read by PLUMB for patching or environment adjustments.
 
 ### references/
-Documentation and reference material intended to be loaded into context to inform Gemini CLI's process and thinking.
+Documentation and reference material intended to be loaded into context to inform PLUMB's process and thinking.
 
 **Examples from other skills:**
 - Product management: communication.md, context_building.md - detailed workflow guides
 - BigQuery: API reference documentation and query examples
 - Finance: Schema documentation, company policies
 
-**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that Gemini CLI should reference while working.
+**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that PLUMB should reference while working.
 
 ### assets/
-Files not intended to be loaded into context, but rather used within the output Gemini CLI produces.
+Files not intended to be loaded into context, but rather used within the output PLUMB produces.
 
 **Examples from other skills:**
 - Brand styling: PowerPoint template files (.pptx), logo files

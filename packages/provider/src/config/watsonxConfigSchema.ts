@@ -1,18 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * IBM watsonx.ai configuration domain schema. watsonx has a single
- * credential shape (an IBM Cloud IAM API key, resolved through
- * PlumbSecureCredentialStore exactly like OCI's api_key mode) but requires
- * choosing exactly one of two mutually-exclusive scopes -- Project or
- * Space (packages/provider/src/transports/watsonx.ts's
- * resolveWatsonxContext() already enforces "projectId wins if both are
- * somehow set"; this schema prevents that ambiguity from ever being
- * constructed in the first place by treating scope as the auth-mode
- * selector, so only one of projectId/spaceId is ever visible/saved).
  */
+
 import type { CloudProviderConfigSchema } from './cloudConfigSchema.js';
 import {
   getVisibleCloudFields,

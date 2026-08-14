@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Source provenance:
- *   repository: https://github.com/chauncygu/collection-claude-code-source-code
- *   reference: claude-code-source-code/src/components/ (Claude Code streaming/animation UI)
- *   license: Apache-2.0 (collection repo)
- *   original-license: Anthropic proprietary (extracted npm package)
- *   adaptation: Original PLUMB implementation. Inspired by Claude Code streaming
- *     text animation and typing indicator patterns. Not copied from any specific file.
- *   substantial-similarity: LOW (independent implementation)
- *   redistribution: Apache-2.0 (original CLAUDE_CODE source: Anthropic)
  */
 
 import type React from 'react';

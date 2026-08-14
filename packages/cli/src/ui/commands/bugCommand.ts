@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import {
   getVersion,
   INITIAL_HISTORY_LENGTH,
   debugLogger,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { terminalCapabilityManager } from '../utils/terminalCapabilityManager.js';
 import { exportHistoryToFile } from '../utils/historyExportUtils.js';
 import {
@@ -100,39 +99,44 @@ export const bugCommand: SlashCommand = {
       }
     }
 
-    let bugReportUrl =
-      'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title={title}&info={info}&problem={problem}';
-
     const bugCommandSettings = config?.getBugCommand();
-    if (bugCommandSettings?.urlTemplate) {
-      bugReportUrl = bugCommandSettings.urlTemplate;
-    }
+    const urlTemplate = bugCommandSettings?.urlTemplate;
 
-    bugReportUrl = bugReportUrl
-      .replace('{title}', encodeURIComponent(bugDescription))
-      .replace('{info}', encodeURIComponent(info))
-      .replace('{problem}', encodeURIComponent(problemValue));
-
-    context.ui.addItem(
-      {
-        type: MessageType.INFO,
-        text: `To submit your bug report, please open the following URL in your browser:\n${bugReportUrl}${historyFileMessage}`,
-      },
-      Date.now(),
-    );
-
-    try {
-      await open(bugReportUrl);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+    if (!urlTemplate) {
       context.ui.addItem(
         {
-          type: MessageType.ERROR,
-          text: `Could not open URL in browser: ${errorMessage}`,
+          type: MessageType.INFO,
+          text: `No bug tracker is configured for this build. Set "bugCommand.urlTemplate" in settings to enable /bug.\n\nHere is your diagnostic info to include in a manual report:\n${info}${historyFileMessage}`,
         },
         Date.now(),
       );
+    } else {
+      const bugReportUrl = urlTemplate
+        .replace('{title}', encodeURIComponent(bugDescription))
+        .replace('{info}', encodeURIComponent(info))
+        .replace('{problem}', encodeURIComponent(problemValue));
+
+      context.ui.addItem(
+        {
+          type: MessageType.INFO,
+          text: `To submit your bug report, please open the following URL in your browser:\n${bugReportUrl}${historyFileMessage}`,
+        },
+        Date.now(),
+      );
+
+      try {
+        await open(bugReportUrl);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        context.ui.addItem(
+          {
+            type: MessageType.ERROR,
+            text: `Could not open URL in browser: ${errorMessage}`,
+          },
+          Date.now(),
+        );
+      }
     }
 
     const rss = process.memoryUsage().rss;

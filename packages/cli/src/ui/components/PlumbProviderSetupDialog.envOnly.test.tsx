@@ -1,29 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: providers whose real credential is entirely ambient
- * environment variables (no PLUMB-collected API key, no OAuth)
- * previously had authMethods that fell into none of AuthStep's
- * hasOAuth/hasApiKey/hasDeviceCode branches, AND the authenticate-step
- * Enter handler had no branch for "env-only, nothing to type" either --
- * so pressing Enter with an empty input was silently swallowed
- * (the same class of dead-end fixed for claude-subscription, but
- * triggered by a plain data shape any real provider could have).
- *
- * Uses a synthetic provider id/env-var shape (not 'amazon-bedrock' --
- * Bedrock now has its own rich cloud-configuration screen, see
- * PlumbCloudProviderConfigForm.tsx/CLOUD_CONFIGURATION_PROVIDER_IDS) so
- * this keeps exercising the generic env-only 'authenticate' step
- * regardless of which real providers later grow a cloud-config screen.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
-import { PlumbProviderCategory } from '@google/gemini-cli-provider';
-import type { PlumbProvider } from '@google/gemini-cli-provider';
+import { PlumbProviderCategory } from '@plumb/provider';
+import type { PlumbProvider } from '@plumb/provider';
 
 const ENTER = String.fromCharCode(13);
 const DOWN_ARROW = String.fromCharCode(27) + '[B';

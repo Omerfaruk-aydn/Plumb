@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Proves `plumb --diagnose-credential-scope <provider>` proves (rather than
- * assumes) which literal string a provider's credential is actually stored
- * under, probing both the PLUMB presentation id and the OMP catalog id
- * directly against the real secure store — without ever printing a secret
- * or modifying the store.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -15,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockStoreGetCredentials = vi.fn();
 const mockStoreGetProviderMetadata = vi.fn();
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   initializePlumbProviders: vi.fn().mockResolvedValue(undefined),
   getPlumbCredentialStore: () => ({
     getCredentials: mockStoreGetCredentials,
@@ -23,7 +16,7 @@ vi.mock('@google/gemini-cli-core', () => ({
   }),
 }));
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   installBunGlobal: vi.fn(),
   registerPlumbCredentialStoreFactory: vi.fn(),
   initBundledModels: vi.fn(),

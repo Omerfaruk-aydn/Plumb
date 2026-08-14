@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,13 +8,13 @@ import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { createMockSettings } from '../../test-utils/settings.js';
 import { PlumbModelDialog } from './PlumbModelDialog.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@plumb/core';
 import type {
   PlumbModel,
   PlumbProvider,
   PlumbProviderState,
-} from '@google/gemini-cli-provider';
-import { PlumbProviderCategory } from '@google/gemini-cli-provider';
+} from '@plumb/provider';
+import { PlumbProviderCategory } from '@plumb/provider';
 
 const KEY_ENTER = String.fromCharCode(0x0d);
 const KEY_ESCAPE = String.fromCharCode(0x1b);
@@ -109,9 +108,8 @@ let setModelMock: ReturnType<typeof vi.fn>;
 let setPlumbProviderMock: ReturnType<typeof vi.fn>;
 let refreshAuthMock: ReturnType<typeof vi.fn>;
 
-vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+vi.mock('@plumb/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/provider')>();
   return {
     ...actual,
     getPlumbProviderRegistry: () => ({

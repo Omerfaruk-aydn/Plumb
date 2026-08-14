@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Tests for telemetry sanitization functions.
- *
- * This test file focuses on validating PII protection through sanitization,
- * particularly for hook names that may contain sensitive information like
- * API keys, credentials, file paths, and command arguments.
  */
 
 import { describe, it, expect } from 'vitest';

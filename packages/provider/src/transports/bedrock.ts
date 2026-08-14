@@ -1,35 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * AWS Bedrock Converse Stream transport — real production dialect
- * (`bedrock-converse-stream`, see omp-catalog/models.json's `amazon-bedrock`
- * entries), never a generic OpenAI-compatible passthrough.
- *
- * CREDENTIAL AUTHORITY: the standard AWS credential chain (env static keys,
- * `~/.aws/credentials` profile, SSO, credential_process, EC2 IMDSv2 — see
- * `aws-credentials.ts`'s `resolveAwsCredentials`) or, when set, an
- * `AWS_BEARER_TOKEN_BEDROCK` bearer token. PLUMB never invents its own
- * signing or credential resolution here — every AWS-specific primitive
- * (`resolveAwsCredentials`, `signRequest`, `decodeEventStream`) is imported
- * unchanged from the existing, exported OMP Bedrock provider module, the
- * same real implementation the upstream `omp-ai/stream.ts` dispatcher uses.
- *
- * REGION: PLUMB config (`resolveProviderConfigValue`) beats
- * `AWS_REGION`/`AWS_DEFAULT_REGION`, same precedence as every other cloud
- * provider (see providerConfigResolver.ts) — falls back to `us-east-1`.
- *
- * SCOPE: text + streaming + system prompt + multi-turn history + usage +
- * cancellation + tool/function calling via Bedrock's native Converse
- * `toolUse`/`toolResult` content blocks. Tool EXECUTION is never performed
- * here — this transport only translates `contentBlockStart`/`Delta` toolUse
- * events into PLUMB's generic `tool_call` PlumbStreamEvent; the caller's
- * normal CoreToolScheduler-backed agent loop executes the tool and reinjects
- * the result as a `role: 'tool'` message on the next turn.
- *
- * Official docs referenced: Bedrock Runtime ConverseStream
- * (https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html).
  */
 
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';
@@ -37,9 +8,9 @@ import { resolveProviderConfigValue } from '../config/providerConfigResolver.js'
 import {
   resolveAwsCredentials,
   invalidateAwsCredentialCache,
-} from '../omp-ai/providers/aws-credentials.js';
-import { signRequest } from '../omp-ai/providers/aws-sigv4.js';
-import { decodeEventStream } from '../omp-ai/providers/aws-eventstream.js';
+} from '../vendor-ai/providers/aws-credentials.js';
+import { signRequest } from '../vendor-ai/providers/aws-sigv4.js';
+import { decodeEventStream } from '../vendor-ai/providers/aws-eventstream.js';
 import {
   resolveEffectiveToolChoice,
   resolveRouteToolPolicy,

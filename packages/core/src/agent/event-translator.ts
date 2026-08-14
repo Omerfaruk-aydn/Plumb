@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Pure, stateless-per-call translation functions that convert
- * ServerGeminiStreamEvent objects into AgentEvent objects.
- *
- * No side effects, no generators. Each call to `translateEvent` takes an event
- * and mutable TranslationState, returning zero or more AgentEvents.
  */
 
 import type { FinishReason } from '@google/genai';

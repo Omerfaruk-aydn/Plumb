@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,11 +13,11 @@ describe('renderOperationalGuidelines - memory', () => {
     topicUpdateNarration: false,
   };
 
-  it('should distinguish shared GEMINI.md instructions from private MEMORY.md', () => {
+  it('should distinguish shared PLUMB.md instructions from private MEMORY.md', () => {
     const result = renderOperationalGuidelines(baseOptions);
     expect(result).toContain('Instruction and Memory Files');
-    expect(result).toContain('GEMINI.md');
-    expect(result).toContain('./GEMINI.md');
+    expect(result).toContain('PLUMB.md');
+    expect(result).toContain('./PLUMB.md');
     expect(result).toContain('MEMORY.md');
     expect(result).toContain('sibling `*.md` file');
     expect(result).toContain('There is no `save_memory` tool');
@@ -41,7 +40,7 @@ describe('renderOperationalGuidelines - memory', () => {
     expect(result).toContain('Never duplicate or mirror the same fact');
 
     // MEMORY.md must be scoped to its sibling notes only and must never
-    // point at GEMINI.md topics.
+    // point at PLUMB.md topics.
     expect(result).toContain('index for its sibling `*.md` notes');
     expect(result).toContain('never use it to point at');
   });
@@ -71,7 +70,7 @@ describe('renderOperationalGuidelines - memory', () => {
   });
 
   it('should include the Global Personal Memory bullet, cross-project routing rule, and four-tier mutual-exclusion when globalMemoryPath is provided', () => {
-    const globalMemoryPath = '/Users/test/.gemini/GEMINI.md';
+    const globalMemoryPath = '/Users/test/.gemini/PLUMB.md';
     const result = renderOperationalGuidelines({
       ...baseOptions,
       globalMemoryPath,

@@ -1,20 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @fileoverview Supersedes stale `take_snapshot` outputs in the browser
- * subagent's conversation history. Each snapshot contains the full
- * accessibility tree and is only meaningful as the "current" page state;
- * prior snapshots are stale and waste context-window tokens.
- *
- * Called via the {@link LocalAgentDefinition.onBeforeTurn} hook before each
- * model call so the model only ever sees the most recent snapshot in full.
- */
-
-import type { GeminiChat, HistoryTurn } from '../../core/geminiChat.js';
+import type { PlumbChat, HistoryTurn } from '../../core/plumbChat.js';
 import type { Part } from '@google/genai';
 import { debugLogger } from '../../utils/debugLogger.js';
 
@@ -36,9 +25,9 @@ export const SNAPSHOT_SUPERSEDED_PLACEHOLDER =
  * - There are fewer than 2 snapshots (nothing to supersede).
  * - All prior snapshots have already been superseded.
  *
- * Uses {@link GeminiChat.setHistory} to apply the modified history.
+ * Uses {@link PlumbChat.setHistory} to apply the modified history.
  */
-export function supersedeStaleSnapshots(chat: GeminiChat): void {
+export function supersedeStaleSnapshots(chat: PlumbChat): void {
   const history = chat.getHistoryTurns();
 
   // Locate all (contentIndex, partIndex) tuples for take_snapshot responses.

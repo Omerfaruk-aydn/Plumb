@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,9 +15,8 @@ vi.mock('node:os', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     homedir: vi.fn(() => path.resolve('/mock/home')),
@@ -29,7 +27,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { loadEnvironment, type Settings } from './settings.js';
-import { GEMINI_DIR, homedir as coreHomedir } from '@google/gemini-cli-core';
+import { PLUMB_DIR, homedir as coreHomedir } from '@plumb/core';
 
 vi.mock('node:fs');
 
@@ -101,7 +99,7 @@ describe('Environment Isolation', () => {
   });
 
   it('should still load .gemini/.env even if ignoreLocalEnv is true', () => {
-    const workspaceGeminiEnv = path.join(mockWorkspace, GEMINI_DIR, '.env');
+    const workspaceGeminiEnv = path.join(mockWorkspace, PLUMB_DIR, '.env');
     vi.mocked(fs.existsSync).mockImplementation(
       (p) => p.toString() === workspaceGeminiEnv,
     );

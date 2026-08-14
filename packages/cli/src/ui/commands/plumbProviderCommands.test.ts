@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression coverage for a real bug found during a UX audit: this file
- * had zero test coverage and `// @ts-nocheck`, so every `context.ui.addItem`
- * call silently used the wrong field name (`content`/`id`/`timestamp`
- * instead of the real HistoryItem shape's `text`). Every command in this
- * file would have rendered blank/crashed InfoMessage's `text.split('\n')`
- * on `undefined`. These tests assert the real shape `addItem` is called
- * with, so that regression can never land silently again.
  */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   providerCommand,
@@ -22,7 +14,7 @@ import {
 import type { CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   ensurePlumbCredentialStore: vi.fn().mockResolvedValue({
     listAuthenticatedProviders: vi.fn().mockResolvedValue([]),
   }),

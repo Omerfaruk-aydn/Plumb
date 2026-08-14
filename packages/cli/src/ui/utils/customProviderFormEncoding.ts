@@ -1,15 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Pure text <-> structured-data encoding for the custom provider Ink form's
- * two multi-value fields (safe headers, manual models). Kept separate from
- * the component so the parsing rules -- what counts as a delimiter, what
- * gets trimmed, what an empty field means -- are unit-testable without
- * driving a terminal.
  */
-import type { CustomProviderManualModel } from '@google/gemini-cli-provider';
+
+import type { CustomProviderManualModel } from '@plumb/provider';
 
 /** "Name: value, Name2: value2" -> {Name: value, Name2: value2}. */
 export function parseSafeHeadersText(text: string): Record<string, string> {

@@ -1,22 +1,14 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Task 12 Account Switch & Cache Invalidation Matrix:
- * Proves immediate cache invalidation and zero residual state across:
- * 1. Vertex ADC / GCP project switch
- * 2. watsonx project switch
- * 3. Azure resource/deployment switch
- * 4. OAuth token switch
- * 5. Custom provider definition update switch
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { PlumbModelRegistry } from '../registry/model-registry.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import { registerPlumbCredentialStoreFactory } from '../auth/credential-store.js';
 import {
@@ -83,7 +75,7 @@ describe('Task 12 — Account Switch & Cache Invalidation Matrix', () => {
   const CUSTOM_ID = 'custom:12121212-1212-4212-a212-121212121212';
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     registry = new PlumbModelRegistry();
     calls.length = 0;

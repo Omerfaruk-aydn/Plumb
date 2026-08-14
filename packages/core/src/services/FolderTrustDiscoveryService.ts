@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import stripJsonComments from 'strip-json-comments';
-import { GEMINI_DIR } from '../utils/paths.js';
+import { PLUMB_DIR } from '../utils/paths.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { isNodeError } from '../utils/errors.js';
 
@@ -44,7 +43,7 @@ export class FolderTrustDiscoveryService {
       discoveryErrors: [],
     };
 
-    const geminiDir = path.join(workspaceDir, GEMINI_DIR);
+    const geminiDir = path.join(workspaceDir, PLUMB_DIR);
     if (!(await this.exists(geminiDir))) {
       return results;
     }

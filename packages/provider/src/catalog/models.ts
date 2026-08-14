@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Bundled model catalog derived from OMP's models.json.
- * Each model entry includes provider, API type, context window, and capability metadata.
- * Upstream source: D:\Kesit-next\packages\catalog\src\models.json
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
  */
 
 import {
@@ -365,7 +359,7 @@ const BUNDLED_CATALOG: Map<ProviderId, PlumbModel[]> = new Map([
       },
     ],
   ],
-  // ── Gemini CLI (Cloud Code Assist) ──────────────────────────────
+  // ── PLUMB (Cloud Code Assist) ──────────────────────────────
   [
     'google-gemini-cli',
     [

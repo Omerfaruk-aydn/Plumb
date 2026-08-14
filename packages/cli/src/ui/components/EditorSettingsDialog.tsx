@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +22,7 @@ import {
   isEditorAvailable,
   EDITOR_DISPLAY_NAMES,
   coreEvents,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { useKeypress } from '../hooks/useKeypress.js';
 
 interface EditorDialogProps {

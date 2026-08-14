@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +22,7 @@ import {
   getLocalProviderConfigSchema,
   LOCAL_PROVIDER_IDS,
   validateCodingPlanApiKey,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
 import { useKeyMatchers } from '../hooks/useKeyMatchers.js';
@@ -43,7 +42,7 @@ import {
   BEDROCK_CONFIG_SCHEMA,
   VERTEX_CONFIG_SCHEMA,
   WATSONX_CONFIG_SCHEMA,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { bedrockCloudConfigActions } from '../utils/bedrockCloudConfigActions.js';
 import { vertexCloudConfigActions } from '../utils/vertexCloudConfigActions.js';
 import { watsonxCloudConfigActions } from '../utils/watsonxCloudConfigActions.js';
@@ -562,7 +561,7 @@ export const PlumbProviderSetupDialog: React.FC<
         // discovered-models map so the next `getModelsForProvider` call
         // surfaces the new account's real list, not the previous one.
         try {
-          const providerPkg = await import('@google/gemini-cli-provider');
+          const providerPkg = await import('@plumb/provider');
           providerPkg
             .getPlumbModelRegistry?.()
             ?.invalidateCache('claude-subscription');

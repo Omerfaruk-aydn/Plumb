@@ -1,29 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
- */
-
-/**
- * Windows ConPTY acceptance test for `plumb --test-provider github-copilot`.
- *
- * Proves on a real ConPTY that:
- *  1. the built CLI starts and stays running;
- *  2. startup output is received BEFORE any input is sent;
- *  3. the verification URL and a redacted-code marker arrive before cancel;
- *  4. at least one heartbeat line is received;
- *  5. Ctrl+C produces Cancelling... / LIVE_TEST_CANCELLED;
- *  6. nothing arrives after the final result;
- *  7. the process exits;
- *  8. the terminal is restored (raw mode released, report says so).
- *
- * The harness runs with PLUMB_ACCEPTANCE_STUB=1, a deterministic provider
- * boundary that never touches the network.
- *
- * Under the previous implementation (output buffered until cleanup) this test
- * fails at step 2 because nothing arrives before input/cancellation.
  */
 
 import { describe, it, expect } from 'vitest';

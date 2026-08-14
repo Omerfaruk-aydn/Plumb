@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * This test verifies MCP (Model Context Protocol) server integration.
- * It uses a minimal MCP server implementation that doesn't require
- * external dependencies, making it compatible with Docker sandbox mode.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,8 +17,7 @@ import { writeFileSync } from 'node:fs';
 // This implements the MCP protocol directly using Node.js built-ins
 const serverScript = `#!/usr/bin/env node
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,7 +14,7 @@ import {
   type CommandContext,
 } from './types.js';
 import { MessageType, type HistoryItem } from '../types.js';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@plumb/core';
 import {
   expandHomeDir,
   getDirectorySuggestions,
@@ -48,7 +47,7 @@ async function finishAddingDirectories(
       }
       addItem({
         type: MessageType.INFO,
-        text: `Successfully added GEMINI.md files from the following directories if there are:\n- ${added.join('\n- ')}`,
+        text: `Successfully added PLUMB.md files from the following directories if there are:\n- ${added.join('\n- ')}`,
       });
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion

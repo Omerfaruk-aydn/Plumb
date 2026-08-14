@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +22,7 @@ import {
   type CustomTheme,
   type SandboxConfig,
   type VertexAiRoutingConfig,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { SessionRetentionSettings } from './settings.js';
 import { DEFAULT_MIN_RETENTION } from '../utils/sessionCleanup.js';
 
@@ -566,6 +565,88 @@ const SETTINGS_SCHEMA = {
           { value: 'full', label: 'Full' },
         ],
       },
+      diffStyle: {
+        type: 'enum',
+        label: 'Diff Style',
+        category: 'UI',
+        requiresRestart: false,
+        default: 'auto',
+        description:
+          'Diff layout: auto (split at >=120 columns, stacked below), always stacked, or always split.',
+        showInDialog: true,
+        options: [
+          { value: 'auto', label: 'Auto' },
+          { value: 'stacked', label: 'Stacked' },
+          { value: 'split', label: 'Split' },
+        ],
+      },
+      scrollSpeed: {
+        type: 'number',
+        label: 'Scroll Speed',
+        category: 'UI',
+        requiresRestart: false,
+        default: 1,
+        description:
+          "Lines scrolled per mouse wheel tick before any acceleration ramp is applied. Default (1) matches PLUMB's existing scroll feel; raise it for a faster base speed.",
+        showInDialog: true,
+      },
+      scrollAcceleration: {
+        type: 'boolean',
+        label: 'Scroll Acceleration',
+        category: 'UI',
+        requiresRestart: false,
+        default: false,
+        description:
+          'Exponentially ramp scroll speed on fast consecutive wheel ticks (macOS-style). When off, the ramp matches the fixed curve PLUMB has always used.',
+        showInDialog: true,
+      },
+      cursor: {
+        type: 'object',
+        label: 'Input Cursor',
+        category: 'UI',
+        requiresRestart: false,
+        default: {},
+        description: 'Terminal cursor style while the input prompt is focused.',
+        showInDialog: false,
+        properties: {
+          style: {
+            type: 'enum',
+            label: 'Cursor Style',
+            category: 'UI',
+            requiresRestart: false,
+            default: 'default',
+            description:
+              'Terminal cursor shape: default (leave as the terminal set it), block, underline, or line (bar).',
+            showInDialog: true,
+            options: [
+              { value: 'default', label: 'Default' },
+              { value: 'block', label: 'Block' },
+              { value: 'underline', label: 'Underline' },
+              { value: 'line', label: 'Line' },
+            ],
+          },
+          blinking: {
+            type: 'boolean',
+            label: 'Cursor Blinking',
+            category: 'UI',
+            requiresRestart: false,
+            default: true,
+            description:
+              'Whether the cursor blinks (ignored for style: default).',
+            showInDialog: true,
+          },
+        },
+      },
+      mouse: {
+        type: 'boolean',
+        label: 'Mouse Support',
+        category: 'UI',
+        requiresRestart: false,
+        default: true,
+        description:
+          'Enable mouse capture (click, drag-scroll) on startup. Turn off if you rely on your terminal’s native text selection instead.',
+        showInDialog: true,
+      },
       showStatusInTitle: {
         type: 'boolean',
         label: 'Show Thoughts in Title',
@@ -697,7 +778,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: false,
         default: false,
         description:
-          'Hide the context summary (GEMINI.md, MCP servers) above the input.',
+          'Hide the context summary (PLUMB.md, MCP servers) above the input.',
         showInDialog: true,
       },
       footer: {
@@ -960,6 +1041,113 @@ const SETTINGS_SCHEMA = {
             description:
               'Render output in plain-text to be more screen reader accessible',
             showInDialog: true,
+          },
+        },
+      },
+      attention: {
+        type: 'object',
+        label: 'Attention Sounds',
+        category: 'UI',
+        requiresRestart: false,
+        default: {},
+        description:
+          'OS-native attention sounds and desktop notifications for questions, permission requests, errors, and completions.',
+        showInDialog: false,
+        properties: {
+          enabled: {
+            type: 'boolean',
+            label: 'Enable Attention Sounds',
+            category: 'UI',
+            requiresRestart: false,
+            default: false,
+            description: 'Play a short sound on attention-worthy events.',
+            showInDialog: true,
+          },
+          sound: {
+            type: 'boolean',
+            label: 'Sound',
+            category: 'UI',
+            requiresRestart: false,
+            default: true,
+            description:
+              'Play sound (in addition to any desktop notification).',
+            showInDialog: true,
+          },
+          volume: {
+            type: 'number',
+            label: 'Volume',
+            category: 'UI',
+            requiresRestart: false,
+            default: 0.4,
+            description: 'Playback volume from 0 (silent) to 1 (full).',
+            showInDialog: true,
+          },
+          pack: {
+            type: 'string',
+            label: 'Sound Pack',
+            category: 'UI',
+            requiresRestart: false,
+            default: 'plumb.default',
+            description: 'Name of the sound pack to use for attention sounds.',
+            showInDialog: false,
+          },
+          overrides: {
+            type: 'object',
+            label: 'Attention Sound Overrides',
+            category: 'UI',
+            requiresRestart: false,
+            default: {},
+            description:
+              'Per-event overrides to disable specific attention sounds.',
+            showInDialog: false,
+            properties: {
+              error: {
+                type: 'boolean',
+                label: 'Error Sound',
+                category: 'UI',
+                requiresRestart: false,
+                default: true,
+                description: 'Play a sound when an error occurs.',
+                showInDialog: true,
+              },
+              question: {
+                type: 'boolean',
+                label: 'Question Sound',
+                category: 'UI',
+                requiresRestart: false,
+                default: true,
+                description: 'Play a sound when the agent asks a question.',
+                showInDialog: true,
+              },
+              permission: {
+                type: 'boolean',
+                label: 'Permission Sound',
+                category: 'UI',
+                requiresRestart: false,
+                default: true,
+                description:
+                  'Play a sound when a tool permission is requested.',
+                showInDialog: true,
+              },
+              done: {
+                type: 'boolean',
+                label: 'Done Sound',
+                category: 'UI',
+                requiresRestart: false,
+                default: true,
+                description: 'Play a sound when a response completes.',
+                showInDialog: true,
+              },
+              subagent_done: {
+                type: 'boolean',
+                label: 'Subagent Done Sound',
+                category: 'UI',
+                requiresRestart: false,
+                default: true,
+                description: 'Play a sound when a subagent run completes.',
+                showInDialog: true,
+              },
+            },
           },
         },
       },
@@ -1476,7 +1664,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: true,
         default: ['.git'] as string[],
         description:
-          'File or directory names that mark the boundary for GEMINI.md discovery. ' +
+          'File or directory names that mark the boundary for PLUMB.md discovery. ' +
           'The upward traversal stops at the first directory containing any of these markers. ' +
           'An empty array disables parent traversal.',
         showInDialog: false,
@@ -1503,7 +1691,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: false,
         default: false,
         description: oneLine`
-          Controls how /memory reload loads GEMINI.md files.
+          Controls how /memory reload loads PLUMB.md files.
           When true, include directories are scanned; when false, only the current directory is used.
         `,
         showInDialog: true,
@@ -1526,7 +1714,7 @@ const SETTINGS_SCHEMA = {
             description: 'Respect .gitignore files when searching.',
             showInDialog: true,
           },
-          respectGeminiIgnore: {
+          respectPlumbIgnore: {
             type: 'boolean',
             label: 'Respect .geminiignore',
             category: 'Context',

@@ -1,17 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider-specific model discovery adapters (THIN PLUMB UI FACADE).
- *
- * The OpenAI-compatible `/models` HTTP boundary is the responsibility of the
- * imported OMP runtime (`omp-catalog/discovery/openai-compatible.ts`); this
- * module only keeps the PLUMB `DiscoveredModel` result shape and the
- * local-only fallbacks (ollama/lm-studio/llama.cpp/vLLM) that are PLUMB
- * product configuration rather than OMP catalog descriptors.
- *
- * OMP source: packages/catalog/src/discovery/openai-compatible.ts
- * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
 import type {
@@ -20,14 +9,14 @@ import type {
   PlumbKnownApi,
   PlumbModelPricing,
 } from '../types.js';
-import { fetchOpenAICompatibleModels as ompFetchModels } from '../omp-catalog/discovery/openai-compatible.js';
-import { createModelManager } from '../omp-catalog/model-manager.js';
-import { installBunGlobal } from '../omp-shims/bun-runtime.js';
-import { PROVIDER_DESCRIPTORS } from '../omp-catalog/provider-models/descriptors.js';
-import type { ProviderDescriptor } from '../omp-catalog/provider-models/descriptor-types.js';
-import type { Api } from '../omp-catalog/types.js';
+import { fetchOpenAICompatibleModels as ompFetchModels } from '../vendor-catalog/discovery/openai-compatible.js';
+import { createModelManager } from '../vendor-catalog/model-manager.js';
+import { installBunGlobal } from '../vendor-shims/bun-runtime.js';
+import { PROVIDER_DESCRIPTORS } from '../vendor-catalog/provider-models/descriptors.js';
+import type { ProviderDescriptor } from '../vendor-catalog/provider-models/descriptor-types.js';
+import type { Api } from '../vendor-catalog/types.js';
 import { resolvePlumbProviderId } from '../catalog/providers.js';
-import { getBundledModels } from '../omp-catalog/models.js';
+import { getBundledModels } from '../vendor-catalog/models.js';
 import {
   resolveLocalProviderBaseUrl,
   resolveOllamaNativeBaseUrl,
@@ -375,17 +364,17 @@ class OpenAICompatLocalDiscovery implements ProviderModelDiscovery {
 
 /**
  * Generic discovery adapter backed by the OMP `createModelManager` /
- * `fetchDynamicModels` pipeline (`omp-catalog/model-manager.ts`). Used for
+ * `fetchDynamicModels` pipeline (`vendor-catalog/model-manager.ts`). Used for
  * every catalog provider that has a standard `{apiKey, baseUrl, fetch}`
  * model-manager factory (`PROVIDER_DESCRIPTORS`) but no hand-written adapter
  * above — this is what actually activates the dynamic-discovery machinery
- * already wired per-provider in `omp-catalog/provider-models/*.ts` (Google
+ * already wired per-provider in `vendor-catalog/provider-models/*.ts` (Google
  * Gemini API, Vertex AI, GitHub Copilot, Anthropic, Azure, OpenRouter's OMP
  * variant, and ~35 others), which until this adapter existed was built,
  * tested, and governance-tracked but never actually called from the live
  * `PlumbModelRegistry` discovery path.
  *
- * `specialModelManager` providers (Antigravity, Gemini CLI, OpenAI Codex)
+ * `specialModelManager` providers (Antigravity, PLUMB, OpenAI Codex)
  * are excluded from `PROVIDER_DESCRIPTORS` by design — their model manager
  * needs an OAuth-token-driven config this generic `{apiKey}` bridge cannot
  * build, and they already have bespoke coding-agent-runtime wiring.
@@ -421,7 +410,7 @@ class OmpModelManagerDiscovery implements ProviderModelDiscovery {
     try {
       // OMP internals (fingerprintStatic, cache-provider-id) call Bun.hash;
       // installBunGlobal() is idempotent and must run before any OMP module
-      // executes Bun-flavored code under Node (see omp-shims/bun-runtime.ts).
+      // executes Bun-flavored code under Node (see vendor-shims/bun-runtime.ts).
       const manager = createModelManager<Api>(options);
       const result = await manager.refresh();
       return result.models.map((m) => ({
@@ -573,9 +562,9 @@ class WatsonxDiscovery implements ProviderModelDiscovery {
  * -- a distinct host/API from `bedrock-runtime.{region}.amazonaws.com`,
  * which only handles inference, not catalog listing). Reuses the existing,
  * real, governance-owned AWS credential chain
- * (omp-ai/providers/aws-credentials.ts: env -> profile static/SSO/
+ * (vendor-ai/providers/aws-credentials.ts: env -> profile static/SSO/
  * credential_process -> EC2 IMDSv2) and SigV4 signer
- * (omp-ai/providers/aws-sigv4.ts) -- no second AWS credential resolution
+ * (vendor-ai/providers/aws-sigv4.ts) -- no second AWS credential resolution
  * path, no hand-rolled request signing.
  *
  * PROVENANCE HONESTY: `ListFoundationModels` returns the region-wide
@@ -590,8 +579,8 @@ class BedrockDiscovery implements ProviderModelDiscovery {
   async discover(context: DiscoveryContext): Promise<DiscoveredModel[]> {
     try {
       const [{ resolveAwsCredentials }, { signRequest }] = await Promise.all([
-        import('../omp-ai/providers/aws-credentials.js'),
-        import('../omp-ai/providers/aws-sigv4.js'),
+        import('../vendor-ai/providers/aws-credentials.js'),
+        import('../vendor-ai/providers/aws-sigv4.js'),
       ]);
       const region =
         context.baseUrl?.trim() ||
@@ -662,7 +651,7 @@ class BedrockDiscovery implements ProviderModelDiscovery {
  *
  * Until that ARM credential authority exists, this formalizes PLUMB's
  * existing manual mechanism (`AZURE_OPENAI_DEPLOYMENT_NAME_MAP`, already
- * consumed by omp-ai/providers/azure-openai-responses.ts's
+ * consumed by vendor-ai/providers/azure-openai-responses.ts's
  * `resolveDeploymentName`/`parseAzureDeploymentNameMap`) into the same
  * discovery pipeline every other provider uses, so a user's configured
  * deployments actually show up in /model instead of being invisible until
@@ -677,7 +666,7 @@ class AzureDeploymentDiscovery implements ProviderModelDiscovery {
     const raw = process.env['AZURE_OPENAI_DEPLOYMENT_NAME_MAP'];
     if (!raw) return [];
     const { parseAzureDeploymentNameMap } = await import(
-      '../omp-ai/providers/openai-shared.js'
+      '../vendor-ai/providers/openai-shared.js'
     );
     const map = parseAzureDeploymentNameMap(raw);
     return [...map.entries()].map(([modelId, deploymentName]) => ({

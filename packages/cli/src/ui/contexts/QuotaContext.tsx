@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { createContext, useContext } from 'react';
 import type { QuotaStats } from '../types.js';
-import type { UserTierId } from '@google/gemini-cli-core';
+import type { UserTierId } from '@plumb/core';
 import type {
   ProQuotaDialogRequest,
   ValidationDialogRequest,

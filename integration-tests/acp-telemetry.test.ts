@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -68,7 +67,7 @@ describe('ACP telemetry', () => {
         env: {
           ...process.env,
           GEMINI_API_KEY: 'fake-key',
-          GEMINI_CLI_HOME: rig.homeDir!,
+          PLUMB_CLI_HOME: rig.homeDir!,
           GEMINI_TELEMETRY_ENABLED: 'true',
           GEMINI_TELEMETRY_TRACES_ENABLED: 'true',
           GEMINI_TELEMETRY_TARGET: 'local',

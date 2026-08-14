@@ -1,19 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  coreEvents,
-  convertSessionToClientHistory,
-} from '@google/gemini-cli-core';
-import type {
-  HistoryTurn,
-  Config,
-  ResumedSessionData,
-} from '@google/gemini-cli-core';
+import { coreEvents, convertSessionToClientHistory } from '@plumb/core';
+import type { HistoryTurn, Config, ResumedSessionData } from '@plumb/core';
 import type { HistoryItemWithoutId } from '../types.js';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { convertSessionToHistoryFormats } from './useSessionBrowser.js';

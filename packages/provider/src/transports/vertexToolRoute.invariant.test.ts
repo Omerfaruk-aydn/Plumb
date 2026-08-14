@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression for the Vertex `request.tools.count=0` defect.
- * Uses the real catalog/google-vertex model and the real route/prepare path —
- * no mock of streaming.ts/model-catalog.ts. Asserts that when a forced
- * tool-selection control is emitted, the wire carries >= 1 Google function
- * declaration (plumb_tool_probe) and the native `toolConfig.functionCallingConfig`
- * forced selector is present — NEVER raw OpenAI tool_choice. Must fail against
- * the d2283c4 behavior where tools were dropped / diag left at 0.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import {
@@ -20,7 +12,7 @@ import {
   CANONICAL_PROBE_TOOL,
 } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import type { PlumbStreamEvent, PlumbModel } from '../types.js';
 
 describe('google-vertex forced tool-route invariant (production-shaped)', () => {
@@ -28,7 +20,7 @@ describe('google-vertex forced tool-route invariant (production-shaped)', () => 
   const ORIGINAL_ENV = { ...process.env };
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     process.env['GOOGLE_CLOUD_PROJECT'] = 'plumb-test-project';
     process.env['GOOGLE_CLOUD_LOCATION'] = 'us-central1';

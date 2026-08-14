@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -57,13 +56,14 @@ import {
   coreEvents,
   debugLogger,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { useVoiceMode } from '../hooks/useVoiceMode.js';
 import {
   parseInputForHighlighting,
   parseSegmentsFromTokens,
 } from '../utils/highlight.js';
 import { useKittyKeyboardProtocol } from '../hooks/useKittyKeyboardProtocol.js';
+import { useCursorStyle } from '../hooks/useCursorStyle.js';
 import {
   clipboardHasImage,
   saveClipboardImage,
@@ -243,6 +243,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   const { stdout } = useStdout();
   const { merged: settings } = useSettings();
   const kittyProtocol = useKittyKeyboardProtocol();
+  useCursorStyle();
   const isShellFocused = useShellFocusState();
   const {
     setEmbeddedShellFocused,

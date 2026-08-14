@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Durable, non-secret storage for user-defined custom provider definitions
- * (id/dialect/base URL/credential placement/safe headers/manual models).
- * Credentials themselves never land here -- they stay in the OS-protected
- * `PlumbSecureCredentialStore` keyed by the definition's stable ID, so a
- * definition file leak can never expose a secret.
  */
 
 import * as fs from 'node:fs/promises';
@@ -18,7 +11,7 @@ import {
   normalizeCustomProviderDefinition,
   type CustomProviderDefinition,
   type CustomProviderDefinitionInput,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 interface CustomProviderFile {
   version: typeof CUSTOM_PROVIDER_DEFINITION_VERSION;

@@ -1,35 +1,13 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase 4 cold-start matrix: proves that Bedrock/Azure/Vertex/watsonx's
- * REQUEST #1 already uses PLUMB-persisted safe config, reaching the real
- * transport/fetch boundary -- no second-request self-healing.
- *
- * `providerCloudConfigCache.test.ts` (packages/core) already proves the
- * store -> in-memory cache -> `setProviderConfigResolver` bridge itself
- * survives a simulated process restart, for OCI, up through
- * `getCatalogModels()`. That generic bridge is provider-agnostic (every
- * cloud transport calls the identical `resolveProviderConfigValue`), so
- * this file covers the complementary, still-unproven half for the other
- * four Phase 4 providers: given a resolver that behaves exactly like one
- * freshly populated from the persisted store (packages/core's
- * `initializeProviderCloudConfigCache` contract), does the very FIRST
- * `plumbModelStream` call for that provider -- with no prior warm-up
- * call, and no relevant environment variable set as a coincidental
- * fallback -- already build the correct real HTTP request?
- *
- * Each test pairs a cold-start case (fresh resolver installed, first call
- * correct) with an anti-tautology case (no resolver installed, first call
- * falls back to the wired default/env value instead) to prove the
- * resolver is actually being consulted, not incidentally matching.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import type { PlumbStreamEvent } from '../types.js';
 
@@ -87,7 +65,7 @@ describe('Phase 4 cloud provider cold-start matrix (request #1 is already correc
   }> = [];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     calls.length = 0;
     mockTextChatStream.mockReset();

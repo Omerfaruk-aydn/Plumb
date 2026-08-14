@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Browser agent invocation that handles async tool setup.
- *
- * Unlike regular LocalSubagentInvocation, this invocation:
- * 1. Uses browserAgentFactory to create definition with MCP tools
- * 2. Cleans up browser resources after execution
- *
- * The MCP tools are only available in the browser agent's isolated registry.
  */
 
 import { randomUUID } from 'node:crypto';

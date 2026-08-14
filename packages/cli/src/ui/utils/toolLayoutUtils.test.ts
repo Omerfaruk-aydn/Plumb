@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +13,7 @@ import {
   TOOL_RESULT_ASB_RESERVED_LINE_COUNT,
   TOOL_RESULT_MIN_LINES_SHOWN,
 } from './toolLayoutUtils.js';
-import { CoreToolCallStatus } from '@google/gemini-cli-core';
+import { CoreToolCallStatus } from '@plumb/core';
 import {
   ACTIVE_SHELL_MAX_LINES,
   COMPLETED_SHELL_MAX_LINES,

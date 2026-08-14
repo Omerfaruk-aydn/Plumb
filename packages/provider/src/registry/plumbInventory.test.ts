@@ -1,23 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase A — Reference-route regression test.
- *
- * This test runs against the catalog directly (no Ink / no React rendering)
- * so it does not depend on the pre-existing `act is not a function` failure
- * in `PlumbProviderSetupDialog.test.tsx`. It pins the truth:
- *
- * - The verified reference routes (`nvidia`, `ollama`, `lm-studio`, `llama-cpp`,
- *   `vllm`, `custom-openai-compat`) are present in `SELECTABLE_PROVIDERS`.
- * - Each is marked `available: true`.
- * - Each has the expected category / group.
- * - The reference-route ids are present in the frozen inventory fixture.
- *
- * If any future commit removes a reference route from `SELECTABLE_PROVIDERS`
- * or drops a reference id from the fixture, this test fails. That is the
- * only job: protect the verified routes from regression.
  */
 
 import { describe, it, expect } from 'vitest';

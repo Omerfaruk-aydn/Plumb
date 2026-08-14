@@ -67,7 +67,7 @@ indicate work not yet complete.
 | zhipu-coding-plan     | Zhipu Coding Plan         | API-key validation against coding plan endpoint                  |
 | zai                   | Z.AI                      | API-key configuration                                            |
 | antigravity           | Google Antigravity        | OAuth flow                                                       |
-| google-gemini-cli     | Gemini CLI (CCA)          | OAuth flow, project selection                                    |
+| google-gemini-cli     | PLUMB (CCA)               | OAuth flow, project selection                                    |
 | devin                 | Devin (Codeium)           | OAuth flow                                                       |
 | gitlab-duo            | GitLab Duo                | OAuth flow                                                       |
 | gitlab-duo-agent      | GitLab Duo Workflow       | OAuth flow                                                       |

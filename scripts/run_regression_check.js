@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Executes a high-signal regression check for behavioral evaluations.
- *
- * This script runs a targeted set of stable tests in an optimistic first pass.
- * If failures occur, it employs a "Best-of-4" retry logic to handle natural flakiness.
- * For confirmed failures (0/3), it performs Dynamic Baseline Verification by
- * checking the failure against the 'main' branch to distinguish between
- * model drift and PR-introduced regressions.
  */
 
 import { execSync } from 'node:child_process';

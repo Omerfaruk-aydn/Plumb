@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config as CoreConfig } from '@google/gemini-cli-core';
+import type { Config as CoreConfig } from '@plumb/core';
 import type { AgentFilesystem } from './types.js';
 import fs from 'node:fs/promises';
 

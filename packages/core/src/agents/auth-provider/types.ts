@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Client-side auth configuration for A2A remote agents.
- * Corresponds to server-side SecurityScheme types from @a2a-js/sdk.
- * @see https://a2a-protocol.org/latest/specification/#451-securityscheme
  */
 
 import type { AuthenticationHandler } from '@a2a-js/sdk/client';

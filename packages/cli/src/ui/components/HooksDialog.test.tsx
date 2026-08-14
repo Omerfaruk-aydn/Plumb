@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,7 +26,7 @@ describe('HooksDialog', () => {
       description: `Test hook: ${name}`,
       ...options?.config,
     },
-    source: options?.source ?? '/mock/path/GEMINI.md',
+    source: options?.source ?? '/mock/path/PLUMB.md',
     eventName,
     enabled,
     ...options,

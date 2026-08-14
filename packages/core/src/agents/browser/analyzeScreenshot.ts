@@ -1,20 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Tool for visual identification via a single model call.
- *
- * The semantic browser agent uses this tool when it needs to identify
- * elements by visual attributes not present in the accessibility tree
- * (e.g., color, layout, precise coordinates).
- *
- * Unlike the semantic agent which works with the accessibility tree,
- * this tool sends a screenshot to a computer-use model for visual analysis.
- * It returns the model's analysis (coordinates, element descriptions) back
- * to the browser agent, which retains full control of subsequent actions.
  */
 
 import {

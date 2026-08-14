@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ import { isSubpath, resolveToRealPath } from '../utils/paths.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { Config } from '../config/config.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../config/constants.js';
 import { createMockWorkspaceContext } from '../test-utils/mockWorkspaceContext.js';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { PassThrough, Readable } from 'node:stream';
@@ -116,14 +115,14 @@ function createMockConfig(
     getDebugMode: () => false,
     getFileFilteringOptions: () => ({
       respectGitIgnore: true,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
       customIgnoreFilePaths: [],
     }),
     getFileFilteringRespectGitIgnore(this: Config) {
       return this.getFileFilteringOptions().respectGitIgnore;
     },
     getFileFilteringRespectGeminiIgnore(this: Config) {
-      return this.getFileFilteringOptions().respectGeminiIgnore;
+      return this.getFileFilteringOptions().respectPlumbIgnore;
     },
     storage: {
       getProjectTempDir: vi.fn().mockReturnValue('/tmp/project'),
@@ -559,7 +558,7 @@ describe('RipGrepTool', () => {
     it('should filter out files based on FileDiscoveryService even if ripgrep returns them', async () => {
       // Create .geminiignore to ignore 'ignored.txt'
       await fs.writeFile(
-        path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME),
+        path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'ignored.txt',
       );
 
@@ -1316,7 +1315,7 @@ describe('RipGrepTool', () => {
         'getFileFilteringOptions',
       ).mockReturnValue({
         respectGitIgnore: false,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
         customIgnoreFilePaths: [],
       });
       const gitIgnoreDisabledTool = new RipGrepTool(
@@ -1352,7 +1351,7 @@ describe('RipGrepTool', () => {
 
     it('should add .geminiignore when enabled and patterns exist', async () => {
       const geminiIgnorePath = resolveToRealPath(
-        path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME),
+        path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
       );
       await fs.writeFile(geminiIgnorePath, 'ignored.log');
 
@@ -1362,7 +1361,7 @@ describe('RipGrepTool', () => {
         'getFileFilteringOptions',
       ).mockReturnValue({
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
         customIgnoreFilePaths: [],
       });
       const geminiIgnoreTool = new RipGrepTool(
@@ -1398,7 +1397,7 @@ describe('RipGrepTool', () => {
 
     it('should skip .geminiignore when disabled', async () => {
       const geminiIgnorePath = resolveToRealPath(
-        path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME),
+        path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
       );
       await fs.writeFile(geminiIgnorePath, 'ignored.log');
       const configWithoutGeminiIgnore = createMockConfig(tempRootDir);
@@ -1407,7 +1406,7 @@ describe('RipGrepTool', () => {
         'getFileFilteringOptions',
       ).mockReturnValue({
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
         customIgnoreFilePaths: [],
       });
       const geminiIgnoreTool = new RipGrepTool(

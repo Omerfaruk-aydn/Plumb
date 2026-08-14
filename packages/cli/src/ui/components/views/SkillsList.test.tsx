@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { render } from '../../../test-utils/render.js';
 import { describe, it, expect } from 'vitest';
 import { SkillsList } from './SkillsList.js';
-import { type SkillDefinition } from '@google/gemini-cli-core';
+import { type SkillDefinition } from '@plumb/core';
 import { SKILLS_DOCS_URL } from '../../constants.js';
 
 describe('SkillsList Component', () => {

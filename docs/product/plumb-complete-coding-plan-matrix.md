@@ -41,7 +41,7 @@ packages/ai/src/registry/oauth/ + packages/catalog/src/discovery/
 | 18  | zai-coding-plan     | Z.AI GLM Coding Plan            | oauth+api_key       | api.z.ai                            | anthropic-messages | static                | BLOCKED_EXTERNAL_CREDENTIAL |
 | 19  | xai-oauth           | xAI Grok (SuperGrok)            | oauth (device)      | auth.x.ai                           | openai-compat      | static                | BLOCKED_EXTERNAL_CREDENTIAL |
 | 20  | google-antigravity  | Google Antigravity              | oauth (Google)      | cloudcode-pa.googleapis.com         | google-gemini-cli  | dynamic               | BLOCKED_EXTERNAL_CREDENTIAL |
-| 21  | google-gemini-cli   | Gemini CLI (CCA)                | oauth (Google)      | cloudcode-pa.googleapis.com         | google-gemini-cli  | dynamic               | BLOCKED_EXTERNAL_CREDENTIAL |
+| 21  | google-gemini-cli   | PLUMB (CCA)                     | oauth (Google)      | cloudcode-pa.googleapis.com         | google-gemini-cli  | dynamic               | BLOCKED_EXTERNAL_CREDENTIAL |
 | 22  | gitlab-duo          | GitLab Duo                      | oauth (PKCE)        | gitlab.com                          | gitlab-duo         | static                | BLOCKED_EXTERNAL_CREDENTIAL |
 | 23  | gitlab-duo-agent    | GitLab Duo Workflow             | oauth (PKCE)        | gitlab.com                          | gitlab-duo-agent   | dynamic (GraphQL)     | BLOCKED_EXTERNAL_CREDENTIAL |
 | 24  | kimi-code           | Kimi Code                       | oauth (device)      | auth.kimi.com                       | openai-compat      | static                | BLOCKED_EXTERNAL_CREDENTIAL |

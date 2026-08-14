@@ -1,24 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Converts common LaTeX-style syntax in model output into terminal-friendly
- * Unicode (and lightweight markdown where appropriate).
- *
- * Terminals cannot natively render LaTeX, but model responses — especially for
- * math, CS, and algorithms — frequently include constructs like `$\{P_0,
- * \dots, P_n\}$` or `$\to$`. Left as-is, the raw backslash commands show up
- * verbatim and make the output look broken.
- *
- * This function is a conservative, lossy post-processor that handles the
- * common cases and leaves anything it does not recognise untouched, so that
- * legitimate backslash content (e.g. Windows paths, regex examples) is not
- * mangled.
- *
- * See issue #25656.
  */
 
 // Greek letters, lower and upper case, plus the common "var" variants.

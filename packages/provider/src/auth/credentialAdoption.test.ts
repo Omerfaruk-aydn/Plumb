@@ -1,24 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression for the live-observed Antigravity acceptance
- * failure: "Authentication successful." followed IMMEDIATELY by a production
- * stream reporting `No credential available for provider: antigravity
- * (NO_CREDENTIAL)`.
- *
- * Root cause chain this test pins: a completed OMP login result must be
- * ADOPTED into the canonical credential authority (factory-registered secure
- * store + PlumbProviderRegistry) under the PLUMB presentation id
- * (`antigravity`), and the production request builder
- * (buildAntigravityRequest -> resolvePlumbProviderId(model.provider) ->
- * resolveUsablePlumbCredential) must then resolve it — with no second
- * login, no duplicate scope, and no apiKey sidestep.
- *
- * Everything here is real except the credential store backend (in-memory;
- * no OS keychain in unit tests) and global fetch (never reached —
- * buildAntigravityRequest only constructs the descriptor).
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -46,7 +28,7 @@ import type {
   PlumbCredentialEntry,
   PlumbModel,
 } from '../types.js';
-import type { OAuthCredentials } from '../omp-ai/registry/oauth/types.js';
+import type { OAuthCredentials } from '../vendor-ai/registry/oauth/types.js';
 
 // Keep model-cache/model-registry side effects (disk/home writes) out of
 // this test — the registry's auth path stays real.

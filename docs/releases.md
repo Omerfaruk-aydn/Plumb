@@ -1,4 +1,4 @@
-# Gemini CLI releases
+# PLUMB releases
 
 <!-- prettier-ignore -->
 > [!IMPORTANT]
@@ -9,22 +9,21 @@
 Our release flows support both `dev` and `prod` environments.
 
 The `dev` environment pushes to a private GitHub-hosted NPM repository, with the
-package names beginning with `@google-gemini/**` instead of `@google/**`.
+package names beginning with `@plumb/**`.
 
-The `prod` environment pushes to the public global NPM registry via Wombat
-Dressing Room, which is Google's system for managing NPM packages in the
-`@google/**` namespace. The packages are all named `@google/**`.
+The `prod` environment pushes to the public global NPM registry, with packages
+named `plumb-cli` and `@plumb/**`.
 
 More information can be found about these systems in the
 [NPM Package Overview](npm.md)
 
 ### Package scopes
 
-| Package    | `prod` (Wombat Dressing Room) | `dev` (GitHub Private NPM Repo)           |
-| ---------- | ----------------------------- | ----------------------------------------- |
-| CLI        | @google/gemini-cli            | @google-gemini/gemini-cli                 |
-| Core       | @google/gemini-cli-core       | @google-gemini/gemini-cli-core A2A Server |
-| A2A Server | @google/gemini-cli-a2a-server | @google-gemini/gemini-cli-a2a-server      |
+| Package    | `prod` (Wombat Dressing Room) | `dev` (GitHub Private NPM Repo) |
+| ---------- | ----------------------------- | ------------------------------- |
+| CLI        | plumb-cli                     | plumb-cli                       |
+| Core       | @plumb/core                   | @plumb/core                     |
+| A2A Server | @plumb/a2a-server             | @plumb/a2a-server               |
 
 ## Release cadence and tags
 
@@ -48,7 +47,7 @@ These releases will not have been fully vetted and may contain regressions or
 other outstanding issues. Help us test and install with `preview` tag.
 
 ```bash
-npm install -g @google/gemini-cli@preview
+npm install -g plumb-cli@preview
 ```
 
 ### Stable
@@ -57,7 +56,7 @@ This will be the full promotion of last week's release + any bug fixes and
 validations. Use `latest` tag.
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g plumb-cli@latest
 ```
 
 ### Nightly
@@ -67,7 +66,7 @@ npm install -g @google/gemini-cli@latest
   there are pending validations and issues. Use `nightly` tag.
 
 ```bash
-npm install -g @google/gemini-cli@nightly
+npm install -g plumb-cli@nightly
 ```
 
 ## Weekly release promotion
@@ -177,9 +176,9 @@ require a full release cycle.
       release administrator.
 5.  Click **Run workflow**.
 
-The workflow will then run `npm dist-tag add` for the appropriate `gemini-cli`,
-`gemini-cli-core` and `gemini-cli-a2a-server` packages, pointing the specified
-channel to the specified version.
+The workflow will then run `npm dist-tag add` for the appropriate `plumb-cli`,
+`@plumb/core` and `@plumb/a2a-server` packages, pointing the specified channel
+to the specified version.
 
 ## Patching
 
@@ -380,12 +379,12 @@ packages are working as expected. This can be done by installing the packages
 locally and running a set of tests to ensure that they are functioning
 correctly.
 
-- `npx -y @google/gemini-cli@latest --version` to validate the push worked as
-  expected if you were not doing a rc or dev tag
-- `npx -y @google/gemini-cli@<release tag> --version` to validate the tag pushed
+- `npx -y plumb-cli@latest --version` to validate the push worked as expected if
+  you were not doing a rc or dev tag
+- `npx -y plumb-cli@<release tag> --version` to validate the tag pushed
   appropriately
 - _This is destructive locally_
-  `npm uninstall @google/gemini-cli && npm uninstall -g @google/gemini-cli && npm cache clean --force &&  npm install @google/gemini-cli@<version>`
+  `npm uninstall plumb-cli && npm uninstall -g plumb-cli && npm cache clean --force &&  npm install plumb-cli@<version>`
 - Smoke testing a basic run through of exercising a few llm commands and tools
   is recommended to ensure that the packages are working as expected. We'll
   codify this more in the future.
@@ -462,12 +461,12 @@ Here are the key stages:
 
 **Stage 3: Publishing standard packages to NPM**
 
-- **What happens:** The `npm publish` command is run for the
-  `@google/gemini-cli-core` and `@google/gemini-cli` packages.
+- **What happens:** The `npm publish` command is run for the `@plumb/core` and
+  `plumb-cli` packages.
 - **Why:** This publishes them as standard Node.js packages. Users installing
-  via `npm install -g @google/gemini-cli` will download these packages, and
-  `npm` will handle installing the `@google/gemini-cli-core` dependency
-  automatically. The code in these packages is not bundled into a single file.
+  via `npm install -g plumb-cli` will download these packages, and `npm` will
+  handle installing the `@plumb/core` dependency automatically. The code in
+  these packages is not bundled into a single file.
 
 **Stage 4: Assembling and creating the GitHub release asset**
 
@@ -510,8 +509,7 @@ executable that enables `npx` usage directly from the GitHub repository.
 **Summary of artifacts**
 
 - **NPM:** Publishes standard, un-bundled Node.js packages. The primary artifact
-  is the code in `packages/cli/dist`, which depends on
-  `@google/gemini-cli-core`.
+  is the code in `packages/cli/dist`, which depends on `@plumb/core`.
 - **GitHub release:** Publishes a single, bundled `gemini.js` file that contains
   all dependencies, for easy execution via `npx`.
 

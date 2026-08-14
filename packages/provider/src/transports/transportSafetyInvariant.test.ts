@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Global transport safety invariant: a provider-specific dialect must NEVER
- * silently fall through to the generic OpenAI-compatible transport. This is
- * the direct regression guard for the class of bug the Bedrock/Azure
- * incidents exposed (an unregistered/misrouted `model.api` value silently
- * sending that provider's credential to a generic
- * `{baseUrl}/chat/completions` endpoint that was never its real API).
- *
- * `plumbModelStream`'s dispatch switch must fail loudly
- * (TRANSPORT_NOT_REGISTERED) for any dialect that is neither a registered
- * transport nor an explicitly-listed, deliberate OpenAI-compatible alias.
  */
+
 import { describe, it, expect, vi } from 'vitest';
 import { plumbModelStream, hasPlumbTransport } from './streaming.js';
 import type { PlumbKnownApi, PlumbModel, PlumbStreamEvent } from '../types.js';

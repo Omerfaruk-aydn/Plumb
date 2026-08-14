@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Tests the Claude Subscription tool-authority ADAPTER in isolation:
- * schema conversion, MCP server registration, and the
- * request/executor/result round-trip. The real CoreToolScheduler
- * execution authority (packages/core) is exercised separately in
- * packages/core's own tests — here the executor is a controllable fake,
- * proving the adapter calls it exactly once per tool invocation and
- * faithfully translates both directions, never executing anything itself.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type {
   PlumbModel,

@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI Responses transport unit tests: SSE event parsing (text deltas,
- * streamed and non-streamed function-call arguments, usage, errors,
- * cancellation), tool-call/tool-result history reconstruction as flat
- * Responses `input` items, and OCI_GENAI_API_KEY vs OCI_IAM auth-mode
- * isolation at the request-signing boundary.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { PlumbModel, PlumbStreamEvent } from '../types.js';
 
@@ -87,8 +81,7 @@ describe('streamOciGenaiResponses', () => {
       },
     ]);
     expect(fetchSpy).not.toHaveBeenCalled();
-  }, // That's cheap in isolation (<50ms) but under the full provider suite's // vi.resetModules() + a cold re-import of the oci-common SDK graph. // This is the first test in the file to call importFresh(), which does
-  // parallel worker-thread contention it has been observed to exceed the
+  }, // parallel worker-thread contention it has been observed to exceed the // That's cheap in isolation (<50ms) but under the full provider suite's // vi.resetModules() + a cold re-import of the oci-common SDK graph. // This is the first test in the file to call importFresh(), which does
   // default 5000ms -- not a hang (isolated runs are fast and correct),
   // just legitimate CPU contention from many concurrent heavy test files.
   20_000);

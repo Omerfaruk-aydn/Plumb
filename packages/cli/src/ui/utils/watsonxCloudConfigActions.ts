@@ -1,13 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import {
   WATSONX_CONFIG_SCHEMA,
   validateWatsonxConfig,
   buildWatsonxSaveOperation,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { createCloudConfigActions } from './genericCloudConfigActions.js';
 
 export const watsonxCloudConfigActions = createCloudConfigActions({

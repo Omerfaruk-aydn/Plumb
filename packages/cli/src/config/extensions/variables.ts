@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as path from 'node:path';
 import { type VariableSchema, VARIABLE_SCHEMA } from './variableSchema.js';
-import { GEMINI_DIR } from '@google/gemini-cli-core';
+import { PLUMB_DIR } from '@plumb/core';
 
 /**
  * Represents a set of keys that will be considered invalid while unmarshalling
@@ -18,7 +17,7 @@ const UNMARSHALL_KEY_IGNORE_LIST: Set<string> = new Set<string>([
   'prototype',
 ]);
 
-export const EXTENSIONS_DIRECTORY_NAME = path.join(GEMINI_DIR, 'extensions');
+export const EXTENSIONS_DIRECTORY_NAME = path.join(PLUMB_DIR, 'extensions');
 export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
 export const INSTALL_METADATA_FILENAME = '.gemini-extension-install.json';
 export const EXTENSION_SETTINGS_FILENAME = '.env';

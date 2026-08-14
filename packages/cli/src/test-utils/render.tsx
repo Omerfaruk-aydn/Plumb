@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -44,8 +43,8 @@ import {
 } from '../ui/contexts/OverflowContext.js';
 import { InputOwnershipProvider } from '../ui/contexts/InputOwnershipContext.js';
 
-import { makeFakeConfig } from '@google/gemini-cli-core';
-import { type Config } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@plumb/core';
+import { type Config } from '@plumb/core';
 import { FakePersistentState } from './persistentStateFake.js';
 import { AppContext, type AppState } from '../ui/contexts/AppContext.js';
 import { createMockSettings } from './settings.js';

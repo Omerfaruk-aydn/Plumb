@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +42,7 @@ import {
   applyInboxMemoryPatch,
   dismissInboxMemoryPatch,
   isProjectSkillPatchTarget,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 type Phase =
   | 'list'
@@ -122,7 +121,7 @@ const PATCH_ACTION_CHOICES: PatchAction[] = [
 ];
 
 // Dismiss-first: memory patches modify durable on-disk state outside the
-// project (private MEMORY.md and sibling files, plus ~/.gemini/GEMINI.md),
+// project (private MEMORY.md and sibling files, plus ~/.gemini/PLUMB.md),
 // so a stray Enter on a freshly-opened memory-patch preview must NOT apply.
 // The lower-stakes skill-patch list (PATCH_ACTION_CHOICES) keeps Apply as
 // the default.

@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type React from 'react';
 import { Text } from 'ink';
 import { type ActiveHook } from '../types.js';
-import { isUserVisibleHook } from '@google/gemini-cli-core';
+import { isUserVisibleHook } from '@plumb/core';
 import { GENERIC_WORKING_LABEL } from '../textConstants.js';
 import { theme } from '../semantic-colors.js';
 

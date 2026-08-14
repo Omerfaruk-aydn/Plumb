@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   CONTEXT_USAGE_CRITICAL_THRESHOLD,
 } from './contextUsage.js';
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   hasKnownTokenLimit: () => true,
   tokenLimit: () => 100_000,
 }));

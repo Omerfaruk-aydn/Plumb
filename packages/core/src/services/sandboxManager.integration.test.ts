@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import {
   describe,
   it,
@@ -203,7 +203,7 @@ describe('SandboxManager Integration', () => {
         expect(result.stdout.trim()).toBe('sandbox test');
       });
 
-      // The Windows sandbox wrapper (GeminiSandbox.exe) uses standard pipes
+      // The Windows sandbox wrapper (PlumbSandbox.exe) uses standard pipes
       // for I/O interception, which breaks ConPTY pseudo-terminal inheritance.
       it.skipIf(Platform.isWindows)(
         'supports interactive terminals',

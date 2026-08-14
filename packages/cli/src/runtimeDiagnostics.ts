@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB production CLI diagnostics.
- *
- * Implements the handlers behind `--runtime-identity` and `--diagnose-logo`.
- * Both handlers print a plain-text report to stdout and exit without starting
- * the interactive UI. No secrets are printed: environment variables are
- * reported as presence booleans, except TERM/COLORTERM which are not
- * credential-bearing.
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
@@ -19,14 +10,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { BRAND_CONSTANTS } from '@google/gemini-cli-core';
+import { BRAND_CONSTANTS } from '@plumb/core';
 import {
   installBunGlobal,
   buildUniversalModelInventory,
   type PlumbMessage,
   type PlumbTool,
   type UniversalModelInventory,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import type { MergedSettings } from './config/settings.js';
 
@@ -205,14 +196,11 @@ export function buildRuntimeIdentityReport(): RuntimeIdentityReport {
   const repoHead = resolveCurrentRepoHead(resolution.packageRoot);
 
   const distEntry = path.join(resolution.packageRoot, 'dist', 'index.js');
-  const sourceEntry = path.join(resolution.packageRoot, 'src', 'gemini.tsx');
+  const sourceEntry = path.join(resolution.packageRoot, 'src', 'plumb.tsx');
 
-  const coreEntry = resolvePackageModule(
-    '@google/gemini-cli-core',
-    resolution.jsEntryPath,
-  );
+  const coreEntry = resolvePackageModule('@plumb/core', resolution.jsEntryPath);
   const providerEntry = resolvePackageModule(
-    '@google/gemini-cli-provider',
+    '@plumb/provider',
     resolution.jsEntryPath,
   );
   const providerStartupDist = fileState(
@@ -419,12 +407,9 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   // (the probes below load the OMP registry/auth/transport closure).
   installBunGlobal();
   const resolution = resolveCommandResolution();
-  const coreEntry = resolvePackageModule(
-    '@google/gemini-cli-core',
-    resolution.jsEntryPath,
-  );
+  const coreEntry = resolvePackageModule('@plumb/core', resolution.jsEntryPath);
   const providerEntry = resolvePackageModule(
-    '@google/gemini-cli-provider',
+    '@plumb/provider',
     resolution.jsEntryPath,
   );
   const providerRoot = providerEntry ? path.dirname(providerEntry) : null;
@@ -433,49 +418,49 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   const probes: ProviderModuleProbe[] = [
     {
       label: 'provider.registry.module',
-      distPath: distModule(providerRoot, 'omp-ai/registry/registry.js'),
+      distPath: distModule(providerRoot, 'vendor-ai/registry/registry.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'auth.registry.module',
-      distPath: distModule(providerRoot, 'omp-ai/registry/oauth/index.js'),
+      distPath: distModule(providerRoot, 'vendor-ai/registry/oauth/index.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'auth.storage.module',
-      distPath: distModule(providerRoot, 'omp-ai/auth-storage.js'),
+      distPath: distModule(providerRoot, 'vendor-ai/auth-storage.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'model.registry.module',
-      distPath: distModule(providerRoot, 'omp-catalog/model-manager.js'),
+      distPath: distModule(providerRoot, 'vendor-catalog/model-manager.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'model.cache.module',
-      distPath: distModule(providerRoot, 'omp-catalog/model-cache.js'),
+      distPath: distModule(providerRoot, 'vendor-catalog/model-cache.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'transport.registry.module',
-      distPath: distModule(providerRoot, 'omp-ai/stream.js'),
+      distPath: distModule(providerRoot, 'vendor-ai/stream.js'),
       exists: false,
       loadable: null,
       loadError: null,
     },
     {
       label: 'stream.normalizer.module',
-      distPath: distModule(providerRoot, 'omp-ai/utils/event-stream.js'),
+      distPath: distModule(providerRoot, 'vendor-ai/utils/event-stream.js'),
       exists: false,
       loadable: null,
       loadError: null,
@@ -517,7 +502,7 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   let legacyAuthInstantiated = 'unknown';
   let plumbAdapterExport = 'unavailable';
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
     if (
       Array.isArray(providerModule.PROVIDER_REGISTRY) &&
       providerModule.PROVIDER_REGISTRY.length > 0
@@ -542,7 +527,7 @@ export async function buildProviderRuntimeDiagnostics(): Promise<ProviderRuntime
   }
 
   try {
-    const coreModule = await import('@google/gemini-cli-core');
+    const coreModule = await import('@plumb/core');
     legacyAuthInstantiated = coreModule.isPlumbProviderAuthServiceInstantiated
       ? String(coreModule.isPlumbProviderAuthServiceInstantiated())
       : 'unavailable';
@@ -746,7 +731,7 @@ export async function buildAuthDiagnostics(
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
     const registry = providerModule.getPlumbProviderRegistry
       ? providerModule.getPlumbProviderRegistry()
       : null;
@@ -889,7 +874,7 @@ export async function buildModelsDiagnostics(
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     // Resolve canonical OMP id
     const resolveAlias = providerModule.resolveProviderAlias as
@@ -902,7 +887,7 @@ export async function buildModelsDiagnostics(
     // Catalog descriptor
     const entry = providerModule.getCatalogProviderEntry?.(canonicalId);
     lines.push(
-      `descriptor.module: ${entry ? 'omp-catalog/provider-models/descriptors.ts' : 'NONE'}`,
+      `descriptor.module: ${entry ? 'vendor-catalog/provider-models/descriptors.ts' : 'NONE'}`,
     );
     if (entry) {
       lines.push(`default.model: ${entry.defaultModel}`);
@@ -930,7 +915,9 @@ export async function buildModelsDiagnostics(
       'CATALOG_PROVIDER_FALLBACK'
     ] as Record<string, string> | undefined;
     const catalogId = fallbackMap?.[canonicalId] ?? canonicalId;
-    lines.push(`discovery.adapter: omp-catalog/discovery/openai-compatible.ts`);
+    lines.push(
+      `discovery.adapter: vendor-catalog/discovery/openai-compatible.ts`,
+    );
     lines.push(`catalog.provider.id: ${catalogId}`);
 
     // Bundled models count
@@ -1123,7 +1110,7 @@ export async function buildProviderModelsDiagnostics(
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const resolveAlias = providerModule.resolveProviderAlias as
       | ((id: string) => string)
@@ -1813,8 +1800,8 @@ export async function buildToolSchemaDiagnostics(
   const lines: string[] = [];
   const failures: string[] = [];
   try {
-    const core = await import('@google/gemini-cli-core');
-    const provider = await import('@google/gemini-cli-provider');
+    const core = await import('@plumb/core');
+    const provider = await import('@plumb/provider');
 
     const family =
       filter?.model && core.isGemini3Model?.(filter.model)
@@ -2189,7 +2176,7 @@ export async function buildToolActivityUiDiagnostics(): Promise<ToolActivityUiDi
   // whether a batch of tool calls is always-visible root-level activity or
   // hidden background-subagent activity.
   try {
-    const core = await import('@google/gemini-cli-core');
+    const core = await import('@plumb/core');
     const hasEventType = core.MessageBusType?.TOOL_CALLS_UPDATE !== undefined;
     lines.push(
       `tool.activity.event.bus: ${hasEventType ? 'present' : 'MISSING'} (MessageBusType.TOOL_CALLS_UPDATE)`,
@@ -2219,7 +2206,7 @@ export async function buildToolActivityUiDiagnostics(): Promise<ToolActivityUiDi
     }
   } catch (err) {
     lines.push(
-      'tool.activity.event.bus: UNAVAILABLE (failed to load @google/gemini-cli-core)',
+      'tool.activity.event.bus: UNAVAILABLE (failed to load @plumb/core)',
     );
     failures.push(
       `core import failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -2302,7 +2289,7 @@ export async function buildPlanDiagnostics(
   lines.push(`git.head.embedded: ${BUILD_IDENTITY.gitHead}`);
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const canonicalId = providerModule.resolveProviderAlias
       ? providerModule.resolveProviderAlias(providerId)
@@ -2542,7 +2529,7 @@ export function printCodingPlanLiveStatus(): number {
 // ─── Antigravity route diagnostics ────────────────────────────────────
 //
 // Both handlers below call the SAME production function
-// (buildAntigravityRequest, exported from @google/gemini-cli-provider's
+// (buildAntigravityRequest, exported from @plumb/provider's
 // transports/streaming.ts) that normal chat calls via plumbModelStream —
 // see NORMAL_CHAT_TRANSPORT_FUNCTION == DIAGNOSTIC_TRANSPORT_FUNCTION in
 // the streaming.test.ts suite for the structural proof. Neither handler
@@ -2578,7 +2565,7 @@ async function readPersistedAntigravitySelection(): Promise<{
 
 /** Safe (non-secret) summary of an AntigravityRequestDescriptor. */
 function describeAntigravityRequest(
-  descriptor: import('@google/gemini-cli-provider').AntigravityRequestDescriptor,
+  descriptor: import('@plumb/provider').AntigravityRequestDescriptor,
 ): string[] {
   const lines: string[] = [];
   const url = new URL(descriptor.url);
@@ -2651,7 +2638,7 @@ const ANTIGRAVITY_CANONICAL_ID = 'google-antigravity';
  * Run the canonical production provider-runtime bootstrap
  * (registerPlumbCredentialStoreFactory + bundled model registration +
  * registry initialization) — the exact same function normal chat calls
- * from `@google/gemini-cli-core` during startup. Idempotent: safe to call
+ * from `@plumb/core` during startup. Idempotent: safe to call
  * once more even though the CLI's normal startup path already calls it,
  * and safe to call from a diagnostic process that never reaches that path.
  * This function is the ONLY place a diagnostic may reach for provider
@@ -2659,9 +2646,7 @@ const ANTIGRAVITY_CANONICAL_ID = 'google-antigravity';
  */
 async function bootstrapProductionProviderRuntime(): Promise<boolean> {
   try {
-    const { initializePlumbProviders } = await import(
-      '@google/gemini-cli-core'
-    );
+    const { initializePlumbProviders } = await import('@plumb/core');
     await initializePlumbProviders();
     return true;
   } catch {
@@ -2714,7 +2699,7 @@ const NO_CREDENTIAL_PROBE: RawCredentialProbe = {
 async function probeRawCredentialScope(
   scope: string,
 ): Promise<RawCredentialProbe> {
-  const core = await import('@google/gemini-cli-core');
+  const core = await import('@plumb/core');
   const store = core.getPlumbCredentialStore();
 
   const [entries, metadata] = await Promise.all([
@@ -2834,7 +2819,7 @@ export async function buildCredentialScopeDiagnostics(
 
   try {
     installBunGlobal();
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
     const runtimeInitialized = await bootstrapProductionProviderRuntime();
     lines.push(`runtime.initialized: ${runtimeInitialized}`);
 
@@ -2907,7 +2892,7 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
 
   try {
     installBunGlobal();
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const runtimeInitialized = await bootstrapProductionProviderRuntime();
     lines.push(`runtime.initialized: ${runtimeInitialized}`);
@@ -2992,7 +2977,7 @@ export async function buildAntigravityRouteDiagnostics(): Promise<{
     );
     lines.push('buildRequest.used: true');
     lines.push(
-      'buildRequest.source: packages/provider/src/omp-ai/providers/google-gemini-cli.ts',
+      'buildRequest.source: packages/provider/src/vendor-ai/providers/plumbGoogleGeminiCli.ts',
     );
 
     const result = await providerModule.buildAntigravityRequest({
@@ -3048,7 +3033,7 @@ export async function runAntigravityRouteTest(
 
   try {
     installBunGlobal();
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const runtimeInitialized = await bootstrapProductionProviderRuntime();
     process.stdout.write(`runtime.initialized: ${runtimeInitialized}\n`);
@@ -3279,7 +3264,7 @@ export async function runAntigravityClaudeMatrixTest(
 
   try {
     installBunGlobal();
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const runtimeInitialized = await bootstrapProductionProviderRuntime();
     if (!runtimeInitialized) {

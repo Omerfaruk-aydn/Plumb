@@ -1,29 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Phase 5 — Real Input-Stack Test
- *
- * These tests reproduce the real production input hierarchy where a competing
- * High-priority keypress handler (simulating Composer/InputPrompt) coexists
- * with PlumbProviderSetupDialog inside the same KeypressProvider.
- *
- * The real DefaultAppLayout renders either Composer OR DialogManager, so
- * InputPrompt is not mounted when the dialog is visible. However, these tests
- * verify that if InputPrompt WERE mounted (due to rendering bugs, race
- * conditions, or future changes), the exclusive input ownership system
- * would still prevent it from stealing Enter from the dialog.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
-import { PlumbProviderCategory } from '@google/gemini-cli-provider';
-import type { PlumbProvider } from '@google/gemini-cli-provider';
+import { PlumbProviderCategory } from '@plumb/provider';
+import type { PlumbProvider } from '@plumb/provider';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
 import { useKeyMatchers } from '../hooks/useKeyMatchers.js';

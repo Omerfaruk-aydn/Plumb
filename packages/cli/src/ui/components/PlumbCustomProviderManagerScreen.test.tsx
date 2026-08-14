@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real interaction tests for the custom provider CRUD screen. Only the
- * actions boundary (../utils/customProviderConfigActions.ts) is mocked;
- * every rendering/navigation/save/delete behavior below is real, driven by
- * actual Ink keypress events.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act } from 'react';
 import type React from 'react';
@@ -18,7 +13,7 @@ import {
 import { waitFor } from '../../test-utils/async.js';
 import { PlumbCustomProviderManagerScreen } from './PlumbCustomProviderManagerScreen.js';
 import type { CustomProviderConfigActions } from '../utils/customProviderConfigActions.js';
-import type { CustomProviderDefinition } from '@google/gemini-cli-provider';
+import type { CustomProviderDefinition } from '@plumb/provider';
 
 async function renderReady(
   props: React.ComponentProps<typeof PlumbCustomProviderManagerScreen>,

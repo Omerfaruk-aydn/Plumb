@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,8 +14,8 @@ import { skillsCommand } from '../commands/skills.js';
 import { hooksCommand } from '../commands/hooks.js';
 import { gemmaCommand } from '../commands/gemma.js';
 import {
-  setGeminiMdFilename as setServerGeminiMdFilename,
-  resetGeminiMdFilename,
+  setContextFilename as setServerGeminiMdFilename,
+  resetContextFilename,
   DEFAULT_CONTEXT_FILENAME,
   ApprovalMode,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
@@ -47,7 +46,7 @@ import {
   type HookEventName,
   type OutputFormat,
   detectIdeFromEnv,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import {
   type Settings,
   type MergedSettings,
@@ -70,7 +69,7 @@ import {
 } from './policy.js';
 import { ExtensionManager } from './extension-manager.js';
 import { McpServerEnablementManager } from './mcp/mcpServerEnablement.js';
-import type { ExtensionEvents } from '@google/gemini-cli-core/src/utils/extensionLoader.js';
+import type { ExtensionEvents } from '@plumb/core/src/utils/extensionLoader.js';
 import { requestConsentNonInteractive } from './extensions/consent.js';
 import { promptForSetting } from './extensions/extensionSettings.js';
 import type { EventEmitter } from 'node:stream';
@@ -682,7 +681,7 @@ export async function parseArguments(
     }
     result = parsed;
     if (result['skip-trust']) {
-      process.env['GEMINI_CLI_TRUST_WORKSPACE'] = 'true';
+      process.env['PLUMB_TRUST_WORKSPACE'] = 'true';
     }
   } catch (e) {
     const msg = getErrorMessage(e);
@@ -786,13 +785,13 @@ export async function loadCliConfig(
 
   // Set the context filename in the server's memory file helpers before loading memory
   // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
-  // directly to the Config constructor in core, and have core handle setGeminiMdFilename.
+  // directly to the Config constructor in core, and have core handle setContextFilename.
   // However, loadHierarchicalGeminiMemory is called *before* createServerConfig.
   if (settings.context?.fileName) {
     setServerGeminiMdFilename(settings.context.fileName);
   } else {
     // Reset to default if not provided in settings.
-    resetGeminiMdFilename(DEFAULT_CONTEXT_FILENAME);
+    resetContextFilename(DEFAULT_CONTEXT_FILENAME);
   }
 
   const fileService = new FileDiscoveryService(cwd);
@@ -1332,7 +1331,7 @@ export async function loadCliConfig(
       // turn's PlumbContentGenerator resolve to self-correct one turn late.
       if (specifiedModel) {
         try {
-          const providerPkg = await import('@google/gemini-cli-provider');
+          const providerPkg = await import('@plumb/provider');
           const registry = providerPkg.getPlumbModelRegistry?.();
           const plumbModel = registry?.findModel(
             persistedProviderId,

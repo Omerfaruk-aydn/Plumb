@@ -1,27 +1,27 @@
 # IDE Integration
 
-Gemini CLI can integrate with your IDE to provide a more seamless and
-context-aware experience. This integration allows the CLI to understand your
-workspace better and enables powerful features like native in-editor diffing.
+PLUMB can integrate with your IDE to provide a more seamless and context-aware
+experience. This integration allows the CLI to understand your workspace better
+and enables powerful features like native in-editor diffing.
 
-There are two primary ways to integrate Gemini CLI with an IDE:
+There are two primary ways to integrate PLUMB with an IDE:
 
-1.  **VS Code companion extension**: Install the "Gemini CLI Companion"
-    extension on [Antigravity](https://antigravity.google),
+1.  **VS Code companion extension**: Install the "PLUMB Companion" extension on
+    [Antigravity](https://antigravity.google),
     [Visual Studio Code](https://code.visualstudio.com/), or other VS Code
     compatible editors.
 2.  **Agent Client Protocol (ACP)**: An open protocol for interoperability
     between AI coding agents and IDEs. This method is used for integrations with
     tools like JetBrains and Zed, which leverage the ACP Agent Registry for easy
-    discovery and installation of compatible agents like Gemini CLI.
+    discovery and installation of compatible agents like PLUMB.
 
 ## VS Code companion extension
 
-The **Gemini CLI Companion extension** grants Gemini CLI direct access to your
-VS Code compatible IDEs and improves your experience by providing real-time
-context such as open files, cursor positions, and text selection. The extension
-also enables a native diffing interface so you can seamlessly review and apply
-AI-generated code changes directly within your editor.
+The **PLUMB Companion extension** grants PLUMB direct access to your VS Code
+compatible IDEs and improves your experience by providing real-time context such
+as open files, cursor positions, and text selection. The extension also enables
+a native diffing interface so you can seamlessly review and apply AI-generated
+code changes directly within your editor.
 
 ### Features
 
@@ -37,15 +37,14 @@ AI-generated code changes directly within your editor.
   changes directly within your IDE's native diff viewer. This lets you review,
   edit, and accept or reject the suggested changes seamlessly.
 
-- **VS Code commands:** You can access Gemini CLI features directly from the VS
-  Code Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`):
-  - `Gemini CLI: Run`: Starts a new Gemini CLI session in the integrated
-    terminal.
-  - `Gemini CLI: Accept Diff`: Accepts the changes in the active diff editor.
-  - `Gemini CLI: Close Diff Editor`: Rejects the changes and closes the active
-    diff editor.
-  - `Gemini CLI: View Third-Party Notices`: Displays the third-party notices for
-    the extension.
+- **VS Code commands:** You can access PLUMB features directly from the VS Code
+  Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`):
+  - `PLUMB: Run`: Starts a new PLUMB session in the integrated terminal.
+  - `PLUMB: Accept Diff`: Accepts the changes in the active diff editor.
+  - `PLUMB: Close Diff Editor`: Rejects the changes and closes the active diff
+    editor.
+  - `PLUMB: View Third-Party Notices`: Displays the third-party notices for the
+    extension.
 
 ### Installation and setup
 
@@ -53,15 +52,15 @@ There are three ways to set up the IDE integration:
 
 #### 1. Automatic nudge (recommended)
 
-When you run Gemini CLI inside a supported editor, it will automatically detect
-your environment and prompt you to connect. Answering "Yes" will automatically
-run the necessary setup, which includes installing the companion extension and
+When you run PLUMB inside a supported editor, it will automatically detect your
+environment and prompt you to connect. Answering "Yes" will automatically run
+the necessary setup, which includes installing the companion extension and
 enabling the connection.
 
 #### 2. Manual installation from CLI
 
 If you previously dismissed the prompt or want to install the extension
-manually, you can run the following command inside Gemini CLI:
+manually, you can run the following command inside PLUMB:
 
 ```
 /ide install
@@ -74,16 +73,16 @@ This will find the correct extension for your IDE and install it.
 You can also install the extension directly from a marketplace.
 
 - **For Visual Studio Code:** Install from the
-  [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=google.gemini-cli-vscode-ide-companion).
+  [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=google.plumb-vscode-ide-companion).
 - **For VS Code forks:** To support forks of VS Code, the extension is also
   published on the
-  [Open VSX Registry](https://open-vsx.org/extension/google/gemini-cli-vscode-ide-companion).
+  [Open VSX Registry](https://open-vsx.org/extension/google/plumb-vscode-ide-companion).
   Follow your editor's instructions for installing extensions from this
   registry.
 
 <!-- prettier-ignore -->
 > [!NOTE]
-> The "Gemini CLI Companion" extension may appear towards the bottom of
+> The "PLUMB Companion" extension may appear towards the bottom of
 > search results. If you don't see it immediately, try scrolling down or
 > sorting by "Newly Published".
 >
@@ -105,8 +104,8 @@ You can control the IDE integration from within the CLI:
   /ide disable
   ```
 
-When enabled, Gemini CLI will automatically attempt to connect to the IDE
-companion extension.
+When enabled, PLUMB will automatically attempt to connect to the IDE companion
+extension.
 
 #### Checking the status
 
@@ -134,14 +133,14 @@ editor.
 
 - Click the **checkmark icon** in the diff editor's title bar.
 - Save the file (for example, with `Cmd+S` or `Ctrl+S`).
-- Open the Command Palette and run **Gemini CLI: Accept Diff**.
+- Open the Command Palette and run **PLUMB: Accept Diff**.
 - Respond with `yes` in the CLI when prompted.
 
 **To reject a diff**, you can:
 
 - Click the **'x' icon** in the diff editor's title bar.
 - Close the diff editor tab.
-- Open the Command Palette and run **Gemini CLI: Close Diff Editor**.
+- Open the Command Palette and run **PLUMB: Close Diff Editor**.
 - Respond with `no` in the CLI when prompted.
 
 You can also **modify the suggested changes** directly in the diff view before
@@ -165,9 +164,9 @@ documentation.
 
 ### The ACP Agent Registry
 
-Gemini CLI is officially available in the **ACP Agent Registry**. This allows
-you to install and update Gemini CLI directly within supporting IDEs and
-eliminates the need for manual downloads or IDE-specific extensions.
+PLUMB is officially available in the **ACP Agent Registry**. This allows you to
+install and update PLUMB directly within supporting IDEs and eliminates the need
+for manual downloads or IDE-specific extensions.
 
 Using the registry ensures:
 
@@ -183,8 +182,8 @@ section.
 
 ### IDE-specific integration
 
-Gemini CLI is an ACP-compatible agent available in the ACP Agent Registry.
-Here’s how different IDEs leverage the ACP and the registry:
+PLUMB is an ACP-compatible agent available in the ACP Agent Registry. Here’s how
+different IDEs leverage the ACP and the registry:
 
 #### JetBrains IDEs
 
@@ -204,17 +203,17 @@ Learn more about Zed's integration with the ACP Registry in their
 
 #### Other ACP-compatible IDEs
 
-Any other IDE that supports the ACP Agent Registry can install Gemini CLI
-directly through their in-built registry features.
+Any other IDE that supports the ACP Agent Registry can install PLUMB directly
+through their in-built registry features.
 
 ## Using with sandboxing
 
-If you are using Gemini CLI within a sandbox, be aware of the following:
+If you are using PLUMB within a sandbox, be aware of the following:
 
 - **On macOS:** The IDE integration requires network access to communicate with
   the IDE companion extension. You must use a Seatbelt profile that allows
   network access.
-- **In a Docker container:** If you run Gemini CLI inside a Docker (or Podman)
+- **In a Docker container:** If you run PLUMB inside a Docker (or Podman)
   container, the IDE integration can still connect to the VS Code extension
   running on your host machine. The CLI is configured to automatically find the
   IDE server on `host.docker.internal`. No special configuration is usually
@@ -230,13 +229,13 @@ If you are using Gemini CLI within a sandbox, be aware of the following:
 - **Message:**
   `🔴 Disconnected: Failed to connect to IDE companion extension in [IDE Name]. Please ensure the extension is running. To install the extension, run /ide install.`
 
-  - **Cause:** Gemini CLI could not find the necessary environment variables
+  - **Cause:** PLUMB could not find the necessary environment variables
     (`GEMINI_CLI_IDE_WORKSPACE_PATH` or `GEMINI_CLI_IDE_SERVER_PORT`) to connect
     to the IDE. This usually means the IDE companion extension is not running or
     did not initialize correctly.
   - **Solution:**
-    1.  Make sure you have installed the **Gemini CLI Companion** extension in
-        your IDE and that it is enabled.
+    1.  Make sure you have installed the **PLUMB Companion** extension in your
+        IDE and that it is enabled.
     2.  Open a new terminal window in your IDE to ensure it picks up the correct
         environment.
 
@@ -248,10 +247,10 @@ If you are using Gemini CLI within a sandbox, be aware of the following:
 
 #### Manual PID override
 
-If automatic IDE detection fails, or if you are running Gemini CLI in a
-standalone terminal and want to manually associate it with a specific IDE
-instance, you can set the `GEMINI_CLI_IDE_PID` environment variable to the
-process ID (PID) of your IDE.
+If automatic IDE detection fails, or if you are running PLUMB in a standalone
+terminal and want to manually associate it with a specific IDE instance, you can
+set the `GEMINI_CLI_IDE_PID` environment variable to the process ID (PID) of
+your IDE.
 
 **macOS/Linux**
 
@@ -265,13 +264,13 @@ export GEMINI_CLI_IDE_PID=12345
 $env:GEMINI_CLI_IDE_PID=12345
 ```
 
-When this variable is set, Gemini CLI will skip automatic detection and attempt
-to connect using the provided PID.
+When this variable is set, PLUMB will skip automatic detection and attempt to
+connect using the provided PID.
 
 #### Configuration errors
 
 - **Message:**
-  `🔴 Disconnected: Directory mismatch. Gemini CLI is running in a different location than the open workspace in [IDE Name]. Please run the CLI from one of the following directories: [List of directories]`
+  `🔴 Disconnected: Directory mismatch. PLUMB is running in a different location than the open workspace in [IDE Name]. Please run the CLI from one of the following directories: [List of directories]`
 
   - **Cause:** The CLI's current working directory is outside the workspace you
     have open in your IDE.
@@ -286,18 +285,18 @@ to connect using the provided PID.
 #### General errors
 
 - **Message:**
-  `IDE integration is not supported in your current environment. To use this feature, run Gemini CLI in one of these supported IDEs: [List of IDEs]`
+  `IDE integration is not supported in your current environment. To use this feature, run PLUMB in one of these supported IDEs: [List of IDEs]`
 
-  - **Cause:** You are running Gemini CLI in a terminal or environment that is
-    not a supported IDE.
-  - **Solution:** Run Gemini CLI from the integrated terminal of a supported
-    IDE, like Antigravity or VS Code.
+  - **Cause:** You are running PLUMB in a terminal or environment that is not a
+    supported IDE.
+  - **Solution:** Run PLUMB from the integrated terminal of a supported IDE,
+    like Antigravity or VS Code.
 
 - **Message:**
-  `No installer is available for IDE. Please install Gemini CLI Companion extension manually from the marketplace.`
+  `No installer is available for IDE. Please install PLUMB Companion extension manually from the marketplace.`
   - **Cause:** You ran `/ide install`, but the CLI does not have an automated
     installer for your specific IDE.
-  - **Solution:** Open your IDE's extension marketplace, search for "Gemini CLI
+  - **Solution:** Open your IDE's extension marketplace, search for "PLUMB
     Companion", and
     [install it manually](#3-manual-installation-from-a-marketplace).
 

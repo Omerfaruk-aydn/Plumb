@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -139,13 +138,13 @@ export const INFORMATIVE_TIPS = [
   'Update all or specific extensions with /extensions update',
   'Get help on commands with /help',
   'Manage IDE integration with /ide',
-  'Create a project-specific GEMINI.md file with /init',
+  'Create a project-specific PLUMB.md file with /init',
   'List configured MCP servers and tools with /mcp list',
   'Authenticate with an OAuth-enabled MCP server with /mcp auth',
   'Reload MCP servers with /mcp reload',
   'See the current instructional context with /memory show',
-  'Reload instructional context from GEMINI.md files with /memory reload',
-  'List the paths of the GEMINI.md files in use with /memory list',
+  'Reload instructional context from PLUMB.md files with /memory reload',
+  'List the paths of the PLUMB.md files in use with /memory list',
   'Choose your Gemini model with /model',
   'Display the privacy notice with /privacy',
   'Restore project files to a previous state with /restore',

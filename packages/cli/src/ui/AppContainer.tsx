@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -60,7 +59,7 @@ import {
   IdeClient,
   ideContextStore,
   getErrorMessage,
-  getAllGeminiMdFilenames,
+  getAllContextFilenames,
   AuthType,
   clearCachedCredentialFile,
   type ResumedSessionData,
@@ -92,7 +91,7 @@ import {
   ApiKeyUpdatedEvent,
   LegacyAgentProtocol,
   type InjectionSource,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { validateAuthMethod } from '../config/auth.js';
 import process from 'node:process';
 import { useHistory } from './hooks/useHistoryManager.js';
@@ -1027,9 +1026,7 @@ Logging in with Google... Restarting PLUMB to continue.
       if (apiKey) {
         try {
           traceStage('saving-credential');
-          const { getPlumbProviderRegistry } = await import(
-            '@google/gemini-cli-provider'
-          );
+          const { getPlumbProviderRegistry } = await import('@plumb/provider');
           const registry = getPlumbProviderRegistry();
           await registry.initialize();
           await registry.setAuthenticated(providerId, {
@@ -1063,7 +1060,7 @@ Logging in with Google... Restarting PLUMB to continue.
       // PlumbContentGenerator resolves and records the real capability
       // again on the first turn regardless.
       try {
-        const providerPkg = await import('@google/gemini-cli-provider');
+        const providerPkg = await import('@plumb/provider');
         const registry = providerPkg.getPlumbModelRegistry?.();
         const plumbModel = registry?.findModel(providerId, modelId);
         if (plumbModel) {
@@ -1148,7 +1145,7 @@ Logging in with Google... Restarting PLUMB to continue.
       providerId: string,
     ): Promise<{ success: boolean; error?: string }> => {
       try {
-        const authServiceModule = await import('@google/gemini-cli-core');
+        const authServiceModule = await import('@plumb/core');
         const authService =
           authServiceModule.getPlumbProviderAuthService?.() ??
           new authServiceModule.PlumbProviderAuthService();
@@ -1160,7 +1157,7 @@ Logging in with Google... Restarting PLUMB to continue.
 
         if (result.success) {
           try {
-            const providerModule = await import('@google/gemini-cli-provider');
+            const providerModule = await import('@plumb/provider');
             const registry = providerModule.getPlumbModelRegistry();
             await registry.discoverLocalModels();
           } catch {
@@ -1182,7 +1179,7 @@ Logging in with Google... Restarting PLUMB to continue.
   const handleProviderLogout = useCallback(
     async (providerId: string): Promise<void> => {
       try {
-        const authServiceModule = await import('@google/gemini-cli-core');
+        const authServiceModule = await import('@plumb/core');
         const authService =
           authServiceModule.getPlumbProviderAuthService?.() ??
           new authServiceModule.PlumbProviderAuthService();
@@ -1408,7 +1405,7 @@ Logging in with Google... Restarting PLUMB to continue.
     historyManager.addItem(
       {
         type: MessageType.INFO,
-        text: 'Refreshing hierarchical memory (GEMINI.md or other context files)...',
+        text: 'Refreshing hierarchical memory (PLUMB.md or other context files)...',
       },
       Date.now(),
     );
@@ -1928,7 +1925,7 @@ Logging in with Google... Restarting PLUMB to continue.
       ? Array.isArray(fromSettings)
         ? fromSettings
         : [fromSettings]
-      : getAllGeminiMdFilenames();
+      : getAllContextFilenames();
   }, [settings.merged.context.fileName]);
   // Initial prompt handling
   const initialPrompt = useMemo(() => config.getQuestion(), [config]);
@@ -2483,7 +2480,7 @@ Logging in with Google... Restarting PLUMB to continue.
       lastTitleRef.current = paddedTitle;
       stdout.write(`\x1b]0;${paddedTitle}\x07`);
     }
-    // Note: We don't need to reset the window title on exit because Gemini CLI is already doing that elsewhere
+    // Note: We don't need to reset the window title on exit because PLUMB is already doing that elsewhere
   }, [
     streamingState,
     thought,

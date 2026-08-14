@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { debugLogger, isNodeError, Storage } from '@google/gemini-cli-core';
+import { debugLogger, isNodeError, Storage } from '@plumb/core';
 
 const MAX_HISTORY_LENGTH = 100;
 

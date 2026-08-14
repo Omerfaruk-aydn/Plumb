@@ -1,7 +1,7 @@
 # Auto Memory
 
-Auto Memory is an experimental feature that mines your past Gemini CLI sessions
-in the background and proposes durable memory updates and reusable
+Auto Memory is an experimental feature that mines your past PLUMB sessions in
+the background and proposes durable memory updates and reusable
 [Agent Skills](./skills.md). You review each candidate before it becomes
 available to future sessions: apply memory updates, promote skills, or discard
 anything you do not want.
@@ -12,7 +12,7 @@ anything you do not want.
 
 ## Overview
 
-Every session you run with Gemini CLI is recorded locally as a transcript. Auto
+Every session you run with PLUMB is recorded locally as a transcript. Auto
 Memory scans those transcripts for durable facts, preferences, workflow
 constraints, and procedural patterns that recur across sessions. It can draft
 memory updates as unified diff `.patch` files and draft reusable procedures as
@@ -36,7 +36,7 @@ drafts, and never applies them without your approval.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- PLUMB installed and authenticated.
 - At least one idle project session with 10 or more user messages. Auto Memory
   ignores active, trivial, and sub-agent sessions.
 
@@ -58,8 +58,8 @@ Auto Memory is off by default. Enable it in your settings file:
     }
     ```
 
-3.  Restart Gemini CLI. The flag requires a restart because the extraction
-    service starts during session boot.
+3.  Restart PLUMB. The flag requires a restart because the extraction service
+    starts during session boot.
 
 ## How Auto Memory works
 
@@ -80,11 +80,11 @@ UI, consume your interactive turns, or surface tool prompts.
     inbox items.
 4.  **Safety boundaries.** Auto Memory writes candidates to a review inbox. It
     cannot directly edit active memory files, settings, credentials, or project
-    `GEMINI.md` files.
+    `PLUMB.md` files.
 5.  **Patch validation.** Skill update patches are parsed and dry-run before
     they are surfaced. Memory patches are parsed, target-allowlisted, and
     applied atomically only when you approve them from the inbox.
-6.  **Notification.** When a run produces new candidates, Gemini CLI surfaces an
+6.  **Notification.** When a run produces new candidates, PLUMB surfaces an
     inline message telling you how many items are waiting.
 
 ## How to review extracted items
@@ -104,7 +104,7 @@ updates. From there you can:
 - **Review** memory diffs before they touch active files.
 - **Apply** or dismiss private and global memory patches. Private patches target
   the project memory directory; global patches target only your personal
-  `~/.gemini/GEMINI.md` file.
+  `~/.gemini/PLUMB.md` file.
 
 Promoted skills become discoverable in the next session and follow the standard
 [skill discovery precedence](./skills.md#skill-discovery-tiers). Applied memory
@@ -114,7 +114,7 @@ session.
 ## How to disable Auto Memory
 
 To turn off background extraction, set the flag back to `false` in your settings
-file and restart Gemini CLI:
+file and restart PLUMB:
 
 ```json
 {
@@ -148,7 +148,7 @@ start. Existing inbox items remain on disk; you can either drain them with
   incidents.
 - Auto Memory does not extract memory or skills from the current session. It
   only considers sessions that have been idle for three hours or more.
-- Project or workspace shared instructions in project `GEMINI.md` files are not
+- Project or workspace shared instructions in project `PLUMB.md` files are not
   auto-extractable. Auto Memory can propose private project memory, global
   personal memory, and skills.
 - Inbox items are stored per project. Skills extracted in one workspace are not
@@ -159,6 +159,6 @@ start. Existing inbox items remain on disk; you can either drain them with
 
 - Learn how skills are discovered and activated in [Agent Skills](./skills.md).
 - Explore the [memory management tutorial](./tutorials/memory-management.md) for
-  the complementary explicit-memory and `GEMINI.md` workflows.
+  the complementary explicit-memory and `PLUMB.md` workflows.
 - Review the experimental settings catalog in
   [Settings](./settings.md#experimental).

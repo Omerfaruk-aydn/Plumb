@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,19 +16,19 @@ describe('AcknowledgedAgentsService', () => {
 
   beforeEach(async () => {
     // Create a unique temp directory for each test
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-cli-test-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'plumb-test-'));
 
-    // Override GEMINI_CLI_HOME to point to the temp directory
-    originalGeminiCliHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = tempDir;
+    // Override PLUMB_CLI_HOME to point to the temp directory
+    originalGeminiCliHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = tempDir;
   });
 
   afterEach(async () => {
     // Restore environment variable
     if (originalGeminiCliHome) {
-      process.env['GEMINI_CLI_HOME'] = originalGeminiCliHome;
+      process.env['PLUMB_CLI_HOME'] = originalGeminiCliHome;
     } else {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     }
 
     // Clean up temp directory

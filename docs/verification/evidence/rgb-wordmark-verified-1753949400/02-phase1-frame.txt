@@ -14,12 +14,12 @@
 │     3. Vertex AI│
 ││
 │   Failed to sign in. Message: Authentication consent could not be obtained.  │
-│   Please run Gemini CLI in an interactive terminal to authenticate, or use   │
+│   Please run PLUMB in an interactive terminal to authenticate, or use   │
 │   NO_BROWSER=true for manual authentication.│
 ││
 │   (Use Enter to select)│
 ││
-│   Terms of Services and Privacy Notice for Gemini CLI│
+│   Terms of Services and Privacy Notice for PLUMB│
 ││
 │   https://geminicli.com/docs/resources/tos-privacy/│
 ││
@@ -33,7 +33,7 @@
  │X│ 
  │ Do you trust the files in this folder?X│ 
  │X│ 
- │ Trusting a folder allows Gemini CLI to load its local configurations,      │ 
+ │ Trusting a folder allows PLUMB to load its local configurations,      │ 
  │ including custom commands, hooks, MCP servers, agent skills, and settings. │ 
  │ These configurations could execute code on your behalf or change the       │ 
  │ behavior of the CLI.X│ 

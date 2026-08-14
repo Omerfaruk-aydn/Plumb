@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider-aware replacement for the legacy Gemini-only /model dialog.
- * Renders only when the active auth type is PLUMB_PROVIDER — see
- * DialogManager's isModelDialogOpen branch.
  */
 
 import type React from 'react';
@@ -15,8 +10,8 @@ import {
   PlumbProviderCategory,
   resolveAutoModel,
   type PlumbModel,
-} from '@google/gemini-cli-provider';
-import { AuthType, debugLogger } from '@google/gemini-cli-core';
+} from '@plumb/provider';
+import { AuthType, debugLogger } from '@plumb/core';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
@@ -92,11 +87,11 @@ export function PlumbModelDialog({
         // missing values, so this is safe even when the registry has no
         // real number for the id.
         try {
-          const providerPkg = await import('@google/gemini-cli-provider');
+          const providerPkg = await import('@plumb/provider');
           const registry = providerPkg.getPlumbModelRegistry?.();
           const plumbModel = registry?.findModel(providerId, modelId);
           if (plumbModel) {
-            const core = await import('@google/gemini-cli-core');
+            const core = await import('@plumb/core');
             const rec = (core as Record<string, unknown>)[
               'recordPlumbModelContextWindow'
             ];
@@ -213,7 +208,7 @@ export function PlumbModelDialog({
         // refresh path so just re-invoking refresh keeps the dialog
         // UX consistent with what users see on first open.
         try {
-          void import('@google/gemini-cli-provider').then((m) =>
+          void import('@plumb/provider').then((m) =>
             m
               .getPlumbModelRegistry?.()
               ?.refreshProvider?.('claude-subscription'),

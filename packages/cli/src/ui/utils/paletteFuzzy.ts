@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Deterministic, dependency-free fuzzy scorer for the command palette.
- * Subsequence match (like `SearchableModelPicker`'s `fuzzyMatch`), but also
- * returns a score for ranking and the matched character indices for
- * highlighting -- neither of which a boolean match can give the palette.
  */
 
 export interface FuzzyMatch {

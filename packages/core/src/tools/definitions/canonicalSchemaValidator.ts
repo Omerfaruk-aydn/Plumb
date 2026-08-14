@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * ONE canonical structural validator for PLUMB tool input schemas. Every
- * provider-facing tool serializer (OpenAI, Anthropic, Gemini, MCP, Claude
- * Agent SDK, ...) must consume a schema that has already passed this check
- * -- this module does not itself know about any wire dialect. Per-dialect
- * normalization (strict-mode enforcement, Google keyword stripping, CCA
- * fallback, ...) lives in packages/provider/src/omp-ai/utils/schema and is
- * unaffected by this module; this is the shared, dialect-agnostic gate that
- * runs BEFORE any of that, so a structurally broken canonical schema never
- * reaches a network call in the first place.
  */
 
 export interface CanonicalSchemaValidationResult {

@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Parses custom headers and returns a map of key and vallues
- */
 export function parseCustomHeaders(
   envValue: string | undefined,
 ): Record<string, string> {

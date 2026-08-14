@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,11 +8,7 @@ import { policiesCommand } from './policiesCommand.js';
 import { CommandKind } from './types.js';
 import { MessageType } from '../types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
-import {
-  type Config,
-  PolicyDecision,
-  ApprovalMode,
-} from '@google/gemini-cli-core';
+import { type Config, PolicyDecision, ApprovalMode } from '@plumb/core';
 
 describe('policiesCommand', () => {
   let mockContext: ReturnType<typeof createMockCommandContext>;

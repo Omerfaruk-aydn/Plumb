@@ -1,7 +1,7 @@
-# Gemini CLI cheatsheet
+# PLUMB cheatsheet
 
-This page provides a reference for commonly used Gemini CLI commands, options,
-and parameters.
+This page provides a reference for commonly used PLUMB commands, options, and
+parameters.
 
 ## CLI commands
 
@@ -29,17 +29,17 @@ and parameters.
 
 These commands are available within the interactive REPL.
 
-| Command              | Description                                     |
-| -------------------- | ----------------------------------------------- |
-| `/skills reload`     | Reload discovered skills from disk              |
-| `/agents reload`     | Reload the agent registry                       |
-| `/commands list`     | List available custom slash commands            |
-| `/commands reload`   | Reload custom slash commands                    |
-| `/memory reload`     | Reload context files (for example, `GEMINI.md`) |
-| `/mcp reload`        | Restart and reload MCP servers                  |
-| `/extensions reload` | Reload all active extensions                    |
-| `/help`              | Show help for all commands                      |
-| `/quit`              | Exit the interactive session                    |
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `/skills reload`     | Reload discovered skills from disk             |
+| `/agents reload`     | Reload the agent registry                      |
+| `/commands list`     | List available custom slash commands           |
+| `/commands reload`   | Reload custom slash commands                   |
+| `/memory reload`     | Reload context files (for example, `PLUMB.md`) |
+| `/mcp reload`        | Restart and reload MCP servers                 |
+| `/extensions reload` | Reload all active extensions                   |
+| `/help`              | Show help for all commands                     |
+| `/quit`              | Exit the interactive session                   |
 
 ## CLI Options
 

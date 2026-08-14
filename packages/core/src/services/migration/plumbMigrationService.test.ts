@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,9 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
   let targetDir: string;
 
   beforeEach(() => {
-    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-migration-full-test-'));
+    tmpHome = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-migration-full-test-'),
+    );
     sourceDir = path.join(tmpHome, '.gemini');
     targetDir = path.join(tmpHome, '.plumb');
   });
@@ -47,7 +48,10 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
   // Case 3: Only new config
   it('Case 3: only new config exists', () => {
     fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(path.join(targetDir, 'settings.json'), '{"theme":"PLUMB"}');
+    fs.writeFileSync(
+      path.join(targetDir, 'settings.json'),
+      '{"theme":"PLUMB"}',
+    );
 
     const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(res.migrated).toBe(false);
@@ -57,8 +61,14 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
   it('Case 4: both exist and match', () => {
     fs.mkdirSync(sourceDir, { recursive: true });
     fs.mkdirSync(targetDir, { recursive: true });
-    fs.writeFileSync(path.join(sourceDir, 'auth.json'), '{"token":"secret-123"}');
-    fs.writeFileSync(path.join(targetDir, 'auth.json'), '{"token":"secret-123"}');
+    fs.writeFileSync(
+      path.join(sourceDir, 'auth.json'),
+      '{"token":"secret-123"}',
+    );
+    fs.writeFileSync(
+      path.join(targetDir, 'auth.json'),
+      '{"token":"secret-123"}',
+    );
 
     const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(res.skipped).toContain('auth.json');
@@ -74,7 +84,9 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
 
     const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(res.conflicts).toContain('mcp.json');
-    expect(fs.readFileSync(path.join(targetDir, 'mcp.json'), 'utf8')).toBe('{"servers":["new"]}');
+    expect(fs.readFileSync(path.join(targetDir, 'mcp.json'), 'utf8')).toBe(
+      '{"servers":["new"]}',
+    );
   });
 
   // Case 6: Partially migrated state
@@ -95,7 +107,11 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
     fs.mkdirSync(sourceDir, { recursive: true });
     fs.writeFileSync(path.join(sourceDir, 'session.json'), '{"id":"abc"}');
 
-    const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir, dryRun: true });
+    const res = PlumbMigrationService.migrateConfig({
+      sourceDir,
+      targetDir,
+      dryRun: true,
+    });
     expect(res.filesCopied).toContain('session.json');
     expect(fs.existsSync(targetDir)).toBe(false);
   });
@@ -139,7 +155,11 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
 
     const res = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(res.filesCopied.length).toBeGreaterThan(0);
-    expect(fs.existsSync(path.join(targetDir, 'extensions', 'installed', 'ext1.json'))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(targetDir, 'extensions', 'installed', 'ext1.json'),
+      ),
+    ).toBe(true);
   });
 
   // Case 12: Unix / WSL path normalization
@@ -148,14 +168,22 @@ describe('PlumbMigrationService Complete 12-Case Matrix', () => {
     fs.writeFileSync(path.join(sourceDir, 'skills', 'skill1.md'), '# Skill');
 
     PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
-    expect(fs.existsSync(path.join(targetDir, 'skills', 'skill1.md'))).toBe(true);
+    expect(fs.existsSync(path.join(targetDir, 'skills', 'skill1.md'))).toBe(
+      true,
+    );
   });
 
   // Security & Data Secrecy Assertions
   it('preserves auth token secrecy, MCP config, sessions, and skills without data loss or .gemini deletion', () => {
     fs.mkdirSync(sourceDir, { recursive: true });
-    fs.writeFileSync(path.join(sourceDir, 'auth_tokens.json'), '{"secret":"oauth-token-xyz"}');
-    fs.writeFileSync(path.join(sourceDir, 'mcp_config.json'), '{"servers":["default"]}');
+    fs.writeFileSync(
+      path.join(sourceDir, 'auth_tokens.json'),
+      '{"secret":"oauth-token-xyz"}',
+    );
+    fs.writeFileSync(
+      path.join(sourceDir, 'mcp_config.json'),
+      '{"servers":["default"]}',
+    );
 
     const res1 = PlumbMigrationService.migrateConfig({ sourceDir, targetDir });
     expect(res1.filesCopied).toContain('auth_tokens.json');

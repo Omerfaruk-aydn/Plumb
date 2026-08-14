@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F2 (PLUMB-UI-DEVRIM-PROMPT.md): "copy the code, not the whole message."
- * Pure extraction, no rendering -- reused by /copy code and any future
- * code-block action.
  */
 
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})[ \t]*(\S*)[ \t]*$/;

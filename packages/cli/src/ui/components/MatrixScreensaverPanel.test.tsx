@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The panel now animates via a real setInterval (see its own doc
- * comment); every render here pins frameOverride so the component never
- * arms that timer during tests -- rendering a real repeating interval
- * under vi.useFakeTimers() hangs this project's test harness (confirmed
- * empirically, see GradientStreamCursor.test.tsx). Live animation is
- * verified by running the real binary, not here.
  */
+
 import { describe, it, expect } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { MatrixScreensaverPanel } from './MatrixScreensaverPanel.js';

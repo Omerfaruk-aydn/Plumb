@@ -1,32 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Dependency-inversion seam for resolving a provider's safe (non-secret)
- * cloud configuration -- region, profile, project/space/compartment,
- * deployment map, auth mode, etc. `packages/provider` cannot import
- * `packages/core` (same constraint documented on `PlumbToolExecutor` in
- * types.ts), so `packages/core` -- which owns `PlumbSecureCredentialStore`,
- * the canonical place PLUMB's in-app configuration UX persists this data --
- * injects a real resolver here at startup via `setProviderConfigResolver`.
- *
- * Callers throughout `packages/provider` (catalog/model-catalog.ts's
- * per-provider ambient-config resolution) must use `resolveProviderConfigValue`
- * instead of reading `process.env` directly for any field a user can now
- * configure through PLUMB's in-app setup UX, so PLUMB-saved configuration
- * takes precedence over environment variables while environment-only setups
- * keep working unchanged (see `resolveProviderConfigValue`'s doc comment for
- * the exact precedence).
- *
- * SYNCHRONOUS BY DESIGN: model-catalog.ts's `getCatalogModels`/
- * `getCatalogModel` are called synchronously from many existing call sites
- * across the codebase; making that chain asynchronous would be a much
- * larger, riskier refactor than this feature requires. `packages/core`'s
- * real resolver (see core/src/config/providerCloudConfigCache.ts) is
- * therefore backed by an in-memory cache populated once at startup (and
- * refreshed synchronously on every configuration save), not a live
- * per-call disk/keychain read.
  */
 
 export type ProviderSafeConfig = Readonly<Record<string, string>>;

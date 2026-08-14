@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase 7 custom-provider switch matrix: exercises the real production
- * dispatch chain (plumbModelStream -> the real per-dialect transport)
- * across all three custom-provider dialects in sequence, proving zero
- * credential/header/endpoint/model/dialect bleed between consecutive
- * requests to DIFFERENT custom provider definitions -- each one carries
- * its own baseUrl, credentialPlacement, safeHeaders, and API key, and
- * none of that may survive into the next definition's request.
- *
- * Chain: CUSTOM_OPENAI -> CUSTOM_ANTHROPIC -> CUSTOM_GEMINI -> CUSTOM_OPENAI
- * (closing the loop back to the first definition).
  */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { plumbModelStream } from './streaming.js';
 import {

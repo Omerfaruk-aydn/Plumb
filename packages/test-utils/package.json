@@ -1,5 +1,5 @@
 {
-  "name": "@google/gemini-cli-test-utils",
+  "name": "@plumb/test-utils",
   "version": "0.55.0-nightly.20260729.g3499c84f7",
   "private": true,
   "main": "src/index.ts",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/gemini-cli-core": "file:../core",
+    "@plumb/core": "file:../core",
     "@lydell/node-pty": "1.1.0",
     "asciichart": "1.5.25",
     "strip-ansi": "7.1.2",

@@ -1,15 +1,10 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect } from 'react';
-import {
-  ApprovalMode,
-  type Config,
-  getAdminErrorMessage,
-} from '@google/gemini-cli-core';
+import { ApprovalMode, type Config, getAdminErrorMessage } from '@plumb/core';
 import { useKeypress } from './useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
 import { useKeyMatchers } from './useKeyMatchers.js';

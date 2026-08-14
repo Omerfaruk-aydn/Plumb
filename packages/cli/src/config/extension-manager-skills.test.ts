@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { ExtensionManager } from './extension-manager.js';
-import { debugLogger, coreEvents } from '@google/gemini-cli-core';
+import { debugLogger, coreEvents } from '@plumb/core';
 import { createTestMergedSettings } from './settings.js';
 import { createExtension } from '../test-utils/createExtension.js';
 import { EXTENSIONS_DIRECTORY_NAME } from './extensions/variables.js';
@@ -28,10 +27,9 @@ vi.mock('node:os', async (importOriginal) => {
   };
 });
 
-// Mock @google/gemini-cli-core
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+// Mock @plumb/core
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     homedir: mockHomedir,
@@ -41,9 +39,8 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
     loadAgentsFromDirectory: vi
       .fn()
       .mockImplementation(async () => ({ agents: [], errors: [] })),
-    loadSkillsFromDir: (
-      await importOriginal<typeof import('@google/gemini-cli-core')>()
-    ).loadSkillsFromDir,
+    loadSkillsFromDir: (await importOriginal<typeof import('@plumb/core')>())
+      .loadSkillsFromDir,
   };
 });
 

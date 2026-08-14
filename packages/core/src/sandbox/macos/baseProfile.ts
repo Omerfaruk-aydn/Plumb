@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * The base macOS Seatbelt (SBPL) profile for tool execution.
- *
- * This uses a strict allowlist (deny default) but imports Apple's base system profile
- * to handle undocumented internal dependencies, sysctls, and IPC mach ports required
- * by standard tools to avoid "Abort trap: 6".
- */
 export const BASE_SEATBELT_PROFILE = `(version 1)
 (deny default)
 

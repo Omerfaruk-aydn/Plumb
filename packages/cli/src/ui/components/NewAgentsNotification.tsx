@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState } from 'react';
 import { Box, Text } from 'ink';
-import { type AgentDefinition } from '@google/gemini-cli-core';
+import { type AgentDefinition } from '@plumb/core';
 import { theme } from '../semantic-colors.js';
 import {
   RadioButtonSelect,

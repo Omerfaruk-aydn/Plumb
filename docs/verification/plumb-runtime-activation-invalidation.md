@@ -14,10 +14,11 @@ The previous verification report claimed:
 > PLUMB_FULL_OMP_AUTH_PROVIDER_RUNTIME_TRANSPLANT_READY_FOR_USER_APPROVAL
 
 That claim is **not accepted**. It described the import of OMP source
-(`packages/provider/src/omp-ai/`, `packages/provider/src/omp-catalog/`) and a
-green typecheck/build/test suite, but it did **not** prove that the imported
-runtime is the active production authority. This document records the specific
-unproven properties so the activation work can be verified independently.
+(`packages/provider/src/vendor-ai/`, `packages/provider/src/vendor-catalog/`)
+and a green typecheck/build/test suite, but it did **not** prove that the
+imported runtime is the active production authority. This document records the
+specific unproven properties so the activation work can be verified
+independently.
 
 ## Verified Facts at Invalidation Time
 
@@ -26,44 +27,44 @@ unproven properties so the activation work can be verified independently.
 The production entry route at HEAD `e19b7dd` executes through PLUMB-native
 modules, not the imported OMP modules:
 
-| Subsystem                  | Active production module at HEAD                                                                                        | Imported OMP counterpart (not active)                  |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Provider list / registry   | `packages/provider/src/registry/provider-registry.ts` (+ `catalog/providers.ts`)                                        | `omp-ai/registry/registry.ts` (`PROVIDER_REGISTRY`)    |
-| Auth / OAuth orchestration | `packages/core/src/auth/plumbProviderAuthService.ts` (+ `oauth-pkce.ts`, `oauth-callback-server.ts`, `codex-bridge.ts`) | `omp-ai/registry/oauth/*`, `omp-ai/auth-storage.ts`    |
-| Model registry             | `packages/provider/src/registry/model-registry.ts`                                                                      | `omp-catalog/model-manager.ts`                         |
-| Model cache                | `packages/provider/src/registry/model-cache.ts`                                                                         | `omp-catalog/model-cache.ts`                           |
-| Model discovery            | `packages/provider/src/registry/model-discovery.ts`                                                                     | `omp-catalog/discovery/*`                              |
-| Transport                  | `packages/provider/src/transports/streaming.ts` (`plumbModelStream`)                                                    | `omp-ai/stream.ts`, `omp-ai/providers/*`               |
-| Secret storage             | `packages/core/src/auth/plumbSecureCredentialStore.ts` (keytar)                                                         | `omp-ai/auth-storage.ts` (`SqliteAuthCredentialStore`) |
+| Subsystem                  | Active production module at HEAD                                                                                        | Imported OMP counterpart (not active)                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Provider list / registry   | `packages/provider/src/registry/provider-registry.ts` (+ `catalog/providers.ts`)                                        | `vendor-ai/registry/registry.ts` (`PROVIDER_REGISTRY`)    |
+| Auth / OAuth orchestration | `packages/core/src/auth/plumbProviderAuthService.ts` (+ `oauth-pkce.ts`, `oauth-callback-server.ts`, `codex-bridge.ts`) | `vendor-ai/registry/oauth/*`, `vendor-ai/auth-storage.ts` |
+| Model registry             | `packages/provider/src/registry/model-registry.ts`                                                                      | `vendor-catalog/model-manager.ts`                         |
+| Model cache                | `packages/provider/src/registry/model-cache.ts`                                                                         | `vendor-catalog/model-cache.ts`                           |
+| Model discovery            | `packages/provider/src/registry/model-discovery.ts`                                                                     | `vendor-catalog/discovery/*`                              |
+| Transport                  | `packages/provider/src/transports/streaming.ts` (`plumbModelStream`)                                                    | `vendor-ai/stream.ts`, `vendor-ai/providers/*`            |
+| Secret storage             | `packages/core/src/auth/plumbSecureCredentialStore.ts` (keytar)                                                         | `vendor-ai/auth-storage.ts` (`SqliteAuthCredentialStore`) |
 
 Production consumers (`AppContainer`, `useProviderSetupData`,
 `plumbContentGenerator`, `plumbProviderCommands`, `useAuth`) import the
 PLUMB-native modules only. None of them import `PROVIDER_REGISTRY`,
 `CATALOG_PROVIDERS`, `OAuthCallbackFlow`, `refreshOAuthToken`, or
-`omp-ai`/`omp-catalog` modules.
+`vendor-ai`/`vendor-catalog` modules.
 
 ### 2. The imported OMP runtime is partially unloadable under Node
 
 Probing the compiled dist with Node v24.13.0:
 
-| Module                                    | Load result                                                                           |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `dist/omp-ai/registry/registry.js`        | loads (73 providers)                                                                  |
-| `dist/omp-ai/registry/oauth/index.js`     | loads                                                                                 |
-| `dist/omp-ai/stream.js`                   | loads                                                                                 |
-| `dist/omp-ai/auth-storage.js`             | **fails**: `import { Database } from "bun:sqlite"` — no runtime implementation exists |
-| `dist/omp-ai/utils/openrouter-headers.js` | **fails**: `require is not defined in ES module scope` (post-build rewrite artifact)  |
-| `dist/omp-ai/auth-broker/discover.js`     | **fails**: `Cannot find package 'bun'` (`import { YAML } from "bun"`)                 |
+| Module                                       | Load result                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `dist/vendor-ai/registry/registry.js`        | loads (73 providers)                                                                  |
+| `dist/vendor-ai/registry/oauth/index.js`     | loads                                                                                 |
+| `dist/vendor-ai/stream.js`                   | loads                                                                                 |
+| `dist/vendor-ai/auth-storage.js`             | **fails**: `import { Database } from "bun:sqlite"` — no runtime implementation exists |
+| `dist/vendor-ai/utils/openrouter-headers.js` | **fails**: `require is not defined in ES module scope` (post-build rewrite artifact)  |
+| `dist/vendor-ai/auth-broker/discover.js`     | **fails**: `Cannot find package 'bun'` (`import { YAML } from "bun"`)                 |
 
 These failures are masked today because nothing in production imports the broken
 modules (they are reached only through lazy dynamic imports or the unexported
-`omp-ai/index.ts` barrel). "Typecheck passes" does not mean "the imported
+`vendor-ai/index.ts` barrel). "Typecheck passes" does not mean "the imported
 runtime runs".
 
 ### 3. Post-build JS patching is in place
 
 `scripts/build_package.js` runs `scripts/fix-omp-barrel-imports.mjs` against
-`dist/omp-ai` after `tsc` emit. The fixer rewrites compiled JavaScript (JSON
+`dist/vendor-ai` after `tsc` emit. The fixer rewrites compiled JavaScript (JSON
 imports to `require()` reads, `bun` imports to stubs). This is brittle and has
 already produced broken output (see row 2: the `require()` rewrite emits code
 that cannot run in Node ESM; `import { YAML } from "bun"` was not rewritten at
@@ -71,7 +72,7 @@ all).
 
 ### 4. The pi-utils shim is a reimplementation, not the OMP utility source
 
-`packages/provider/src/omp-shims/pi-utils.ts` (273 lines) reimplements 33
+`packages/provider/src/vendor-shims/pi-utils.ts` (273 lines) reimplements 33
 functions that OMP imports from `@oh-my-pi/pi-utils`. No parity tests exist. The
 real OMP utility source is available at
 `D:\PLUMB-upstreams\oh-my-pi\packages\utils\src\` (SHA
@@ -79,7 +80,7 @@ real OMP utility source is available at
 
 ### 5. The model cache JSON backend drops upstream guarantees
 
-`omp-catalog/model-cache.ts` writes `~/.plumb/models.json` with a plain
+`vendor-catalog/model-cache.ts` writes `~/.plumb/models.json` with a plain
 `writeFileSync` — no atomic temp+rename, no locking, no size bounds. The
 upstream SQLite cache (`bun:sqlite`, `PRAGMA busy_timeout`, `journal_mode=WAL`,
 `INSERT OR REPLACE`) provides cross-process atomicity the JSON port drops.

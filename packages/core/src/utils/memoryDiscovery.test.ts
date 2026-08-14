@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,15 +17,11 @@ import {
   readGeminiMdFiles,
 } from './memoryDiscovery.js';
 import {
-  setGeminiMdFilename,
+  setContextFilename,
   DEFAULT_CONTEXT_FILENAME,
   PROJECT_MEMORY_INDEX_FILENAME,
 } from '../tools/memoryTool.js';
-import {
-  GEMINI_DIR,
-  toAbsolutePath,
-  homedir as pathsHomedir,
-} from './paths.js';
+import { PLUMB_DIR, toAbsolutePath, homedir as pathsHomedir } from './paths.js';
 import type { GeminiCLIExtension } from '../config/config.js';
 import { SimpleExtensionLoader } from './extensionLoader.js';
 
@@ -87,7 +82,7 @@ describe('memoryDiscovery', () => {
   afterEach(async () => {
     vi.unstubAllEnvs();
     // Some tests set this to a different value.
-    setGeminiMdFilename(DEFAULT_CONTEXT_FILENAME);
+    setContextFilename(DEFAULT_CONTEXT_FILENAME);
     // Clean up the temporary directory to prevent resource leaks.
     // Use maxRetries option for robust cleanup without race conditions
     await fsPromises.rm(testRootDir, {
@@ -98,7 +93,7 @@ describe('memoryDiscovery', () => {
     });
   });
 
-  describe('EISDIR handling for GEMINI.md as a directory', () => {
+  describe('EISDIR handling for PLUMB.md as a directory', () => {
     it('readGeminiMdFiles returns null content (without throwing) when path is a directory', async () => {
       const dirAsFilePath = await createEmptyDir(
         path.join(projectRoot, DEFAULT_CONTEXT_FILENAME),
@@ -115,7 +110,7 @@ describe('memoryDiscovery', () => {
   describe('getGlobalMemoryPaths', () => {
     it('should find global memory file if it exists', async () => {
       const globalMemoryFile = await createTestFile(
-        path.join(homedir, GEMINI_DIR, DEFAULT_CONTEXT_FILENAME),
+        path.join(homedir, PLUMB_DIR, DEFAULT_CONTEXT_FILENAME),
         'Global memory content',
       );
 
@@ -166,7 +161,7 @@ describe('memoryDiscovery', () => {
       );
     });
 
-    it('should fall back to legacy GEMINI.md when MEMORY.md is absent', async () => {
+    it('should fall back to legacy PLUMB.md when MEMORY.md is absent', async () => {
       const memoryDir = await createEmptyDir(path.join(testRootDir, 'memdir3'));
       const legacyFile = await createTestFile(
         path.join(memoryDir, DEFAULT_CONTEXT_FILENAME),
@@ -178,7 +173,7 @@ describe('memoryDiscovery', () => {
       expect(result).toContain(legacyFile);
     });
 
-    it('should return empty array when neither MEMORY.md nor GEMINI.md exists', async () => {
+    it('should return empty array when neither MEMORY.md nor PLUMB.md exists', async () => {
       const memoryDir = await createEmptyDir(path.join(testRootDir, 'memdir4'));
 
       const result = await getUserProjectMemoryPaths(memoryDir);
@@ -190,7 +185,7 @@ describe('memoryDiscovery', () => {
   describe('getExtensionMemoryPaths', () => {
     it('should return active extension context files', async () => {
       const extFile = await createTestFile(
-        path.join(testRootDir, 'ext', 'GEMINI.md'),
+        path.join(testRootDir, 'ext', 'PLUMB.md'),
         'Extension content',
       );
       const loader = new SimpleExtensionLoader([
@@ -208,7 +203,7 @@ describe('memoryDiscovery', () => {
 
     it('should ignore inactive extensions', async () => {
       const extFile = await createTestFile(
-        path.join(testRootDir, 'ext', 'GEMINI.md'),
+        path.join(testRootDir, 'ext', 'PLUMB.md'),
         'Extension content',
       );
       const loader = new SimpleExtensionLoader([
@@ -269,11 +264,11 @@ describe('memoryDiscovery', () => {
       );
 
       // No .git, so ceiling falls back to the trusted root itself.
-      // notesDir has no GEMINI.md and won't traverse up to docsDir.
+      // notesDir has no PLUMB.md and won't traverse up to docsDir.
       const resultNotes = await getEnvironmentMemoryPaths([notesDir]);
       expect(resultNotes).toHaveLength(0);
 
-      // docsDir has a GEMINI.md at the trusted root itself, so it's found.
+      // docsDir has a PLUMB.md at the trusted root itself, so it's found.
       const resultDocs = await getEnvironmentMemoryPaths([docsDir]);
       expect(resultDocs).toHaveLength(1);
       expect(resultDocs[0]).toBe(docsFile);
@@ -310,7 +305,7 @@ describe('memoryDiscovery', () => {
             const normalizedPath = String(filePath).replace(/\\/g, '/');
             return {
               dev: 1,
-              ino: normalizedPath.endsWith('/GEMINI.md') ? 101 : 202,
+              ino: normalizedPath.endsWith('/PLUMB.md') ? 101 : 202,
             };
           }),
         };
@@ -321,7 +316,7 @@ describe('memoryDiscovery', () => {
         const memoryTool = await import('../tools/memoryTool.js');
         const memoryDiscovery = await import('./memoryDiscovery.js');
         vi.mocked(paths.homedir).mockReturnValue('/home/tester');
-        memoryTool.setGeminiMdFilename(['GEMINI.md', 'gemini.md']);
+        memoryTool.setContextFilename(['PLUMB.md', 'gemini.md']);
 
         const result = await memoryDiscovery.getEnvironmentMemoryPaths(
           ['/case-root'],
@@ -329,7 +324,7 @@ describe('memoryDiscovery', () => {
         );
 
         expect(result).toEqual([
-          paths.toAbsolutePath('/case-root/GEMINI.md'),
+          paths.toAbsolutePath('/case-root/PLUMB.md'),
           paths.toAbsolutePath('/case-root/gemini.md'),
         ]);
       } finally {
@@ -369,7 +364,7 @@ describe('memoryDiscovery', () => {
 
     it('should keep multiple memory files from the same directory adjacent and in order', async () => {
       // Configure multiple memory filenames
-      setGeminiMdFilename(['PRIMARY.md', 'SECONDARY.md']);
+      setContextFilename(['PRIMARY.md', 'SECONDARY.md']);
 
       const dir = await createEmptyDir(
         path.join(testRootDir, 'multi_file_dir'),
@@ -404,7 +399,7 @@ describe('memoryDiscovery', () => {
       );
 
       // create hard link to simulate case-insensitive filesystem behavior
-      const geminiFileLink = path.join(projectRoot, 'GEMINI.md');
+      const geminiFileLink = path.join(projectRoot, 'PLUMB.md');
       try {
         await fsPromises.link(geminiFile, geminiFileLink);
       } catch (error) {
@@ -448,7 +443,7 @@ describe('memoryDiscovery', () => {
         'Lowercase file content',
       );
       const geminiFileUpper = await createTestFile(
-        path.join(projectRoot, 'GEMINI.md'),
+        path.join(projectRoot, 'PLUMB.md'),
         'Uppercase file content',
       );
 
@@ -489,7 +484,7 @@ describe('memoryDiscovery', () => {
         'Project root memory',
       );
 
-      const link1 = path.join(projectRoot, 'GEMINI.md');
+      const link1 = path.join(projectRoot, 'PLUMB.md');
       const link2 = path.join(projectRoot, 'Gemini.md');
 
       try {
@@ -623,7 +618,7 @@ describe('memoryDiscovery', () => {
         'JIT memory content',
       );
 
-      const geminiFileLink = path.join(subDir, 'GEMINI.md');
+      const geminiFileLink = path.join(subDir, 'PLUMB.md');
       try {
         await fsPromises.link(geminiFile, geminiFileLink);
       } catch (error) {
@@ -643,7 +638,7 @@ describe('memoryDiscovery', () => {
       const stats2 = await fsPromises.lstat(geminiFileLink);
       expect(stats1.ino).toBe(stats2.ino);
 
-      setGeminiMdFilename(['gemini.md', 'GEMINI.md']);
+      setContextFilename(['gemini.md', 'PLUMB.md']);
 
       const result = await loadJitSubdirectoryMemory(
         targetFile,
@@ -716,7 +711,7 @@ describe('memoryDiscovery', () => {
         new Set(),
       );
 
-      // Should find the GEMINI.md in the same directory as the file
+      // Should find the PLUMB.md in the same directory as the file
       expect(result.files).toHaveLength(1);
       expect(result.files[0].path).toBe(subDirMemory);
       expect(result.files[0].content).toBe('Src context rules');
@@ -767,7 +762,7 @@ describe('memoryDiscovery', () => {
         new Set(),
       );
 
-      // subDir is within the trusted root, so its GEMINI.md is found
+      // subDir is within the trusted root, so its PLUMB.md is found
       expect(result.files).toHaveLength(1);
       expect(result.files[0].path).toBe(subDirMemory);
       expect(result.files[0].content).toBe('Content without git');

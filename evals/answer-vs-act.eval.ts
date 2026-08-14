@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, expect } from 'vitest';
 import { evalTest } from './test-helper.js';
-import { EDIT_TOOL_NAMES } from '@google/gemini-cli-core';
+import { EDIT_TOOL_NAMES } from '@plumb/core';
 
 const FILES = {
   'app.ts': 'const add = (a: number, b: number) => a - b;',

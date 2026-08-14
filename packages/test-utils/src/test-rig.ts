@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,11 +10,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env } from 'node:process';
 import { setTimeout as sleep } from 'node:timers/promises';
-import {
-  PREVIEW_GEMINI_FLASH_MODEL,
-  GEMINI_DIR,
-} from '@google/gemini-cli-core';
-export { GEMINI_DIR };
+import { PREVIEW_GEMINI_FLASH_MODEL, PLUMB_DIR } from '@plumb/core';
+export { PLUMB_DIR };
 import * as pty from '@lydell/node-pty';
 import stripAnsi from 'strip-ansi';
 import * as os from 'node:os';
@@ -445,10 +441,10 @@ export class TestRig {
   }
 
   private _createSettingsFile(overrideSettings?: Record<string, unknown>) {
-    const projectGeminiDir = join(this.testDir!, GEMINI_DIR);
+    const projectGeminiDir = join(this.testDir!, PLUMB_DIR);
     mkdirSync(projectGeminiDir, { recursive: true });
 
-    const userGeminiDir = join(this.homeDir!, GEMINI_DIR);
+    const userGeminiDir = join(this.homeDir!, PLUMB_DIR);
     mkdirSync(userGeminiDir, { recursive: true });
 
     // In sandbox mode, use an absolute path for telemetry inside the container
@@ -505,7 +501,7 @@ export class TestRig {
 
   private _createStateFile(overrideState?: Record<string, unknown>) {
     if (!this.homeDir) throw new Error('TestRig homeDir is not initialized');
-    const userGeminiDir = join(this.homeDir, GEMINI_DIR);
+    const userGeminiDir = join(this.homeDir, PLUMB_DIR);
     mkdirSync(userGeminiDir, { recursive: true });
 
     const state = deepMerge(
@@ -538,7 +534,7 @@ export class TestRig {
   }
 
   /**
-   * The command and args to use to invoke Gemini CLI. Allows us to switch
+   * The command and args to use to invoke PLUMB. Allows us to switch
    * between using the bundled gemini.js (the default) and using the installed
    * 'gemini' (used to verify npm bundles).
    */
@@ -643,12 +639,12 @@ export class TestRig {
 
     // Update settings in workspace and home
     const updateSettings = (dir: string) => {
-      const settingsPath = join(dir, GEMINI_DIR, 'settings.json');
+      const settingsPath = join(dir, PLUMB_DIR, 'settings.json');
       let settings: any = {};
       if (fs.existsSync(settingsPath)) {
         settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       } else {
-        fs.mkdirSync(join(dir, GEMINI_DIR), { recursive: true });
+        fs.mkdirSync(join(dir, PLUMB_DIR), { recursive: true });
       }
 
       if (!settings.mcpServers) {
@@ -695,7 +691,7 @@ export class TestRig {
 
     return {
       ...cleanEnv,
-      GEMINI_CLI_HOME: this.homeDir!,
+      PLUMB_CLI_HOME: this.homeDir!,
       GEMINI_PTY_INFO: 'child_process',
       ...extraEnv,
     };

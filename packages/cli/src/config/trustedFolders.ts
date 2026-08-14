@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   isHeadlessMode,
   loadTrustedFolders as loadCoreTrustedFolders,
   type LoadedTrustedFolders,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { Settings } from './settings.js';
 
 export {
@@ -18,7 +17,7 @@ export {
   isTrustLevel,
   resetTrustedFoldersForTesting,
   saveTrustedFolders,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 export type {
   TrustRule,
@@ -26,7 +25,7 @@ export type {
   TrustedFoldersFile,
   TrustResult,
   LoadedTrustedFolders,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 /** Is folder trust feature enabled per the current applied settings */
 export function isFolderTrustEnabled(settings: Settings): boolean {

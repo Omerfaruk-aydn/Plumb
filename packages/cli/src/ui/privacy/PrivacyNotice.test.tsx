@@ -1,23 +1,18 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { render } from '../../test-utils/render.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrivacyNotice } from './PrivacyNotice.js';
-import type {
-  AuthType,
-  Config,
-  ContentGeneratorConfig,
-} from '@google/gemini-cli-core';
+import type { AuthType, Config, ContentGeneratorConfig } from '@plumb/core';
 
 // Mock child components
-vi.mock('./GeminiPrivacyNotice.js', async () => {
+vi.mock('./PlumbGeminiPrivacyNotice.js', async () => {
   const { Text } = await import('ink');
   return {
-    GeminiPrivacyNotice: () => <Text>GeminiPrivacyNotice</Text>,
+    PlumbGeminiPrivacyNotice: () => <Text>PlumbGeminiPrivacyNotice</Text>,
   };
 });
 
@@ -48,7 +43,7 @@ describe('PrivacyNotice', () => {
   it.each([
     {
       authType: 'gemini-api-key' as AuthType,
-      expectedComponent: 'GeminiPrivacyNotice',
+      expectedComponent: 'PlumbGeminiPrivacyNotice',
     },
     {
       authType: 'vertex-ai' as AuthType,

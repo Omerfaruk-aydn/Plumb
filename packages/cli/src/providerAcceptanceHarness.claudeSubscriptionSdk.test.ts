@@ -1,33 +1,13 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression for the live-observed Claude Subscription
- * acceptance false failure:
- *
- *   auth.status CONNECTED_SUBSCRIPTION, real Agent SDK stream started and
- *   completed, safe.error none — yet result: LIVE_TEST_FAILED.
- *
- * Root cause (pinned here end-to-end): the transport read assistant content
- * from a top-level `content` field the pinned Agent SDK (0.1.77) never
- * populates — SDKAssistantMessage nests it at `message.message.content` —
- * so every real assistant reply was silently dropped and the harness's
- * honest success predicate (stream completed AND text seen) correctly
- * failed. This test mocks ONLY the Agent SDK package boundary (with the
- * EXACT pinned SDK message shape) and the filesystem home; the harness,
- * plumbModelStream dispatch, and streamClaudeSubscription transport are all
- * the real production modules. Against the broken transport it fails
- * (no text -> LIVE_TEST_FAILED); with the fix it passes.
- *
- * Never prints account secrets, tokens, or raw SDK internals.
  */
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initializePlumbProviders } from '@google/gemini-cli-core';
+import { initializePlumbProviders } from '@plumb/core';
 import { runProviderAcceptanceTest } from './providerAcceptanceHarness.js';
 
 const mockQuery = vi.fn();
@@ -85,8 +65,8 @@ describe('providerAcceptanceHarness — claude-subscription against the real tra
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-claude-acceptance-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    previousHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
     mockQuery.mockReset();
     lines = [];
     await initializePlumbProviders();
@@ -94,9 +74,9 @@ describe('providerAcceptanceHarness — claude-subscription against the real tra
 
   afterEach(() => {
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     fs.rmSync(isolatedHome, { recursive: true, force: true });
   });
@@ -139,9 +119,7 @@ describe('providerAcceptanceHarness — claude-subscription against the real tra
 
   it('still fails honestly when the SDK stream completes without any text (no fabricated success)', async () => {
     mockQuery
-      .mockReturnValueOnce(
-        makeSdkQuery([], { subscriptionType: 'max' }),
-      )
+      .mockReturnValueOnce(makeSdkQuery([], { subscriptionType: 'max' }))
       .mockReturnValueOnce(
         makeSdkQuery([
           {
@@ -163,4 +141,3 @@ describe('providerAcceptanceHarness — claude-subscription against the real tra
     expect(joined).toContain('result: LIVE_TEST_FAILED');
   }, 30_000);
 });
-

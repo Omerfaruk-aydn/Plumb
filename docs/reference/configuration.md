@@ -1,6 +1,6 @@
-# Gemini CLI configuration
+# PLUMB configuration
 
-Gemini CLI offers several ways to configure its behavior, including environment
+PLUMB offers several ways to configure its behavior, including environment
 variables, command-line arguments, and settings files. This document outlines
 the different configuration methods and available settings.
 
@@ -22,7 +22,7 @@ overridden by higher numbers):
 
 ## Settings files
 
-Gemini CLI uses JSON settings files for persistent configuration. There are four
+PLUMB uses JSON settings files for persistent configuration. There are four
 locations for these files:
 
 <!-- prettier-ignore -->
@@ -30,38 +30,37 @@ locations for these files:
 > JSON-aware editors can use autocomplete and validation by pointing to
 > the generated schema at `schemas/settings.schema.json` in this repository.
 > When working outside the repo, reference the hosted schema at
-> `https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json`.
+> `https://raw.githubusercontent.com/google-/-cli/main/schemas/settings.schema.json`.
 
 - **System defaults file:**
-  - **Location:** `/etc/gemini-cli/system-defaults.json` (Linux),
-    `C:\ProgramData\gemini-cli\system-defaults.json` (Windows) or
-    `/Library/Application Support/GeminiCli/system-defaults.json` (macOS). The
-    path can be overridden using the `GEMINI_CLI_SYSTEM_DEFAULTS_PATH`
-    environment variable.
+  - **Location:** `/etc/-cli/system-defaults.json` (Linux),
+    `C:\ProgramData\-cli\system-defaults.json` (Windows) or
+    `/Library/Application Support/Cli/system-defaults.json` (macOS). The
+    path can be overridden using the `PLUMB_SYSTEM_DEFAULTS_PATH` environment
+    variable.
   - **Scope:** Provides a base layer of system-wide default settings. These
     settings have the lowest precedence and are intended to be overridden by
     user, project, or system override settings.
 - **User settings file:**
-  - **Location:** `~/.gemini/settings.json` (where `~` is your home directory).
-  - **Scope:** Applies to all Gemini CLI sessions for the current user. User
-    settings override system defaults.
+  - **Location:** `~/./settings.json` (where `~` is your home directory).
+  - **Scope:** Applies to all PLUMB sessions for the current user. User settings
+    override system defaults.
 - **Project settings file:**
-  - **Location:** `.gemini/settings.json` within your project's root directory.
-  - **Scope:** Applies only when running Gemini CLI from that specific project.
+  - **Location:** `./settings.json` within your project's root directory.
+  - **Scope:** Applies only when running PLUMB from that specific project.
     Project settings override user settings and system defaults.
 - **System settings file:**
-  - **Location:** `/etc/gemini-cli/settings.json` (Linux),
-    `C:\ProgramData\gemini-cli\settings.json` (Windows) or
-    `/Library/Application Support/GeminiCli/settings.json` (macOS). The path can
-    be overridden using the `GEMINI_CLI_SYSTEM_SETTINGS_PATH` environment
-    variable.
-  - **Scope:** Applies to all Gemini CLI sessions on the system, for all users.
+  - **Location:** `/etc/-cli/settings.json` (Linux),
+    `C:\ProgramData\-cli\settings.json` (Windows) or
+    `/Library/Application Support/Cli/settings.json` (macOS). The path can
+    be overridden using the `PLUMB_SYSTEM_SETTINGS_PATH` environment variable.
+  - **Scope:** Applies to all PLUMB sessions on the system, for all users.
     System settings act as overrides, taking precedence over all other settings
     files. May be useful for system administrators at enterprises to have
-    controls over users' Gemini CLI setups.
+    controls over users' PLUMB setups.
 
 **Note on environment variables in settings:** String values within your
-`settings.json` and `gemini-extension.json` files can reference environment
+`settings.json` and `-extension.json` files can reference environment
 variables using `$VAR_NAME`, `${VAR_NAME}`, or `${VAR_NAME:-DEFAULT_VALUE}`
 syntax. These variables will be automatically resolved when the settings are
 loaded. For example, if you have an environment variable `MY_API_TOKEN`, you
@@ -70,17 +69,17 @@ want to provide a fallback value, use `${MY_API_TOKEN:-default-token}`.
 Additionally, each extension can have its own `.env` file in its directory,
 which will be loaded automatically.
 
-**Note for Enterprise Users:** For guidance on deploying and managing Gemini CLI
-in a corporate environment, see the
-[Enterprise Configuration](../cli/enterprise.md) documentation.
+**Note for Enterprise Users:** For guidance on deploying and managing PLUMB in a
+corporate environment, see the [Enterprise Configuration](../cli/enterprise.md)
+documentation.
 
-### The `.gemini` directory in your project
+### The `.` directory in your project
 
-In addition to a project settings file, a project's `.gemini` directory can
-contain other project-specific files related to Gemini CLI's operation, such as:
+In addition to a project settings file, a project's `.` directory can
+contain other project-specific files related to PLUMB's operation, such as:
 
 - [Custom sandbox profiles](#sandboxing) (for example,
-  `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
+  `./sandbox-macos-custom.sb`, `./sandbox.Dockerfile`).
 
 ### Available settings in `settings.json`
 
@@ -289,9 +288,16 @@ their corresponding top-level category object in your `settings.json` file.
   - **Default:** `"off"`
   - **Values:** `"off"`, `"full"`
 
+- **`ui.diffStyle`** (enum):
+
+  - **Description:** Diff layout: auto (split at >=120 columns, stacked below),
+    always stacked, or always split.
+  - **Default:** `"auto"`
+  - **Values:** `"auto"`, `"stacked"`, `"split"`
+
 - **`ui.showStatusInTitle`** (boolean):
 
-  - **Description:** Show Gemini CLI model thoughts in the terminal window title
+  - **Description:** Show PLUMB model thoughts in the terminal window title
     during the working phase
   - **Default:** `false`
 
@@ -303,8 +309,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showHomeDirectoryWarning`** (boolean):
 
-  - **Description:** Show a warning when running Gemini CLI in the home
-    directory.
+  - **Description:** Show a warning when running PLUMB in the home directory.
   - **Default:** `true`
   - **Requires restart:** Yes
 
@@ -336,6 +341,23 @@ their corresponding top-level category object in your `settings.json` file.
     reads) in a compact, structured format.
   - **Default:** `true`
 
+- **`ui.groupToolSummary`** (boolean):
+
+  - **Description:** Once a batch of tool calls in a turn has finished, collapse
+    it into a single summary line (e.g. "3 files read, 1 search - 1.2s") instead
+    of leaving every tool card expanded. Press Ctrl+O to expand/collapse the
+    last turn.
+  - **Default:** `false`
+
+- **`ui.enableInlineImages`** (boolean):
+
+  - **Description:** When a tool returns a single image (e.g. a screenshot),
+    render it inline using the Kitty or iTerm2 terminal graphics protocol
+    instead of a text placeholder. Requires a supporting terminal; falls back to
+    text automatically when unsupported. Off by default since this writes raw
+    escape sequences directly to the terminal outside the normal render path.
+  - **Default:** `false`
+
 - **`ui.animatedLogo`** (boolean):
 
   - **Description:** Enable smooth animated RGB gradient on the welcome screen
@@ -354,7 +376,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.hideContextSummary`** (boolean):
 
-  - **Description:** Hide the context summary (GEMINI.md, MCP servers) above the
+  - **Description:** Hide the context summary (PLUMB.md, MCP servers) above the
     input.
   - **Default:** `false`
 
@@ -491,10 +513,55 @@ their corresponding top-level category object in your `settings.json` file.
   - **Requires restart:** Yes
 
 - **`ui.accessibility.screenReader`** (boolean):
+
   - **Description:** Render output in plain-text to be more screen reader
     accessible
   - **Default:** `false`
   - **Requires restart:** Yes
+
+- **`ui.attention.enabled`** (boolean):
+
+  - **Description:** Play a short sound on attention-worthy events.
+  - **Default:** `false`
+
+- **`ui.attention.sound`** (boolean):
+
+  - **Description:** Play sound (in addition to any desktop notification).
+  - **Default:** `true`
+
+- **`ui.attention.volume`** (number):
+
+  - **Description:** Playback volume from 0 (silent) to 1 (full).
+  - **Default:** `0.4`
+
+- **`ui.attention.pack`** (string):
+
+  - **Description:** Name of the sound pack to use for attention sounds.
+  - **Default:** `"plumb.default"`
+
+- **`ui.attention.overrides.error`** (boolean):
+
+  - **Description:** Play a sound when an error occurs.
+  - **Default:** `true`
+
+- **`ui.attention.overrides.question`** (boolean):
+
+  - **Description:** Play a sound when the agent asks a question.
+  - **Default:** `true`
+
+- **`ui.attention.overrides.permission`** (boolean):
+
+  - **Description:** Play a sound when a tool permission is requested.
+  - **Default:** `true`
+
+- **`ui.attention.overrides.done`** (boolean):
+
+  - **Description:** Play a sound when a response completes.
+  - **Default:** `true`
+
+- **`ui.attention.overrides.subagent_done`** (boolean):
+  - **Description:** Play a sound when a subagent run completes.
+  - **Default:** `true`
 
 #### `ide`
 
@@ -544,7 +611,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`model.name`** (string):
 
-  - **Description:** The Gemini model to use for conversations.
+  - **Description:** The  model to use for conversations.
   - **Default:** `undefined`
 
 - **`model.maxSessionTurns`** (number):
@@ -629,64 +696,64 @@ their corresponding top-level category object in your `settings.json` file.
           }
         }
       },
-      "gemini-3-pro-preview": {
+      "-3-pro-preview": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3-pro-preview"
+          "model": "-3-pro-preview"
         }
       },
-      "gemini-3-flash-preview": {
+      "-3-flash-preview": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3-flash-preview"
+          "model": "-3-flash-preview"
         }
       },
-      "gemini-3.1-pro-preview": {
+      "-3.1-pro-preview": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3.1-pro-preview"
+          "model": "-3.1-pro-preview"
         }
       },
-      "gemini-3.1-pro-preview-customtools": {
+      "-3.1-pro-preview-customtools": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3.1-pro-preview-customtools"
+          "model": "-3.1-pro-preview-customtools"
         }
       },
-      "gemini-3.1-flash-lite-preview": {
+      "-3.1-flash-lite-preview": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3.1-flash-lite-preview"
+          "model": "-3.1-flash-lite-preview"
         }
       },
-      "gemini-2.5-pro": {
+      "-2.5-pro": {
         "extends": "chat-base-2.5",
         "modelConfig": {
-          "model": "gemini-2.5-pro"
+          "model": "-2.5-pro"
         }
       },
-      "gemini-2.5-flash": {
+      "-2.5-flash": {
         "extends": "chat-base-2.5",
         "modelConfig": {
-          "model": "gemini-2.5-flash"
+          "model": "-2.5-flash"
         }
       },
-      "gemini-2.5-flash-lite": {
+      "-2.5-flash-lite": {
         "extends": "chat-base-2.5",
         "modelConfig": {
-          "model": "gemini-2.5-flash-lite"
+          "model": "-2.5-flash-lite"
         }
       },
-      "gemini-3.1-flash-lite": {
+      "-3.1-flash-lite": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3.1-flash-lite"
+          "model": "-3.1-flash-lite"
         }
       },
-      "gemini-3.5-flash": {
+      "-3.5-flash": {
         "extends": "chat-base-3",
         "modelConfig": {
-          "model": "gemini-3.5-flash"
+          "model": "-3.5-flash"
         }
       },
       "gemma-4-31b-it": {
@@ -701,22 +768,22 @@ their corresponding top-level category object in your `settings.json` file.
           "model": "gemma-4-26b-a4b-it"
         }
       },
-      "gemini-2.5-flash-base": {
+      "-2.5-flash-base": {
         "extends": "base",
         "modelConfig": {
-          "model": "gemini-2.5-flash"
+          "model": "-2.5-flash"
         }
       },
-      "gemini-3-flash-base": {
+      "-3-flash-base": {
         "extends": "base",
         "modelConfig": {
-          "model": "gemini-3-flash-preview"
+          "model": "-3-flash-preview"
         }
       },
-      "gemini-3.5-flash-base": {
+      "-3.5-flash-base": {
         "extends": "base",
         "modelConfig": {
-          "model": "gemini-3.5-flash"
+          "model": "-3.5-flash"
         }
       },
       "classifier": {
@@ -787,7 +854,7 @@ their corresponding top-level category object in your `settings.json` file.
         }
       },
       "web-search": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {
           "generateContentConfig": {
             "tools": [
@@ -799,7 +866,7 @@ their corresponding top-level category object in your `settings.json` file.
         }
       },
       "web-fetch": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {
           "generateContentConfig": {
             "tools": [
@@ -811,29 +878,29 @@ their corresponding top-level category object in your `settings.json` file.
         }
       },
       "web-fetch-fallback": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {}
       },
       "loop-detection": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {}
       },
       "loop-detection-double-check": {
         "extends": "base",
         "modelConfig": {
-          "model": "gemini-3-pro-preview"
+          "model": "-3-pro-preview"
         }
       },
       "llm-edit-fixer": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {}
       },
       "next-speaker-checker": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {}
       },
       "context-snapshotter": {
-        "extends": "gemini-3-flash-base",
+        "extends": "-3-flash-base",
         "modelConfig": {
           "generateContentConfig": {
             "thinkingConfig": {
@@ -847,42 +914,42 @@ their corresponding top-level category object in your `settings.json` file.
       },
       "chat-compression-3-pro": {
         "modelConfig": {
-          "model": "gemini-3-pro-preview"
+          "model": "-3-pro-preview"
         }
       },
       "chat-compression-3-flash": {
         "modelConfig": {
-          "model": "gemini-3-flash-preview"
+          "model": "-3-flash-preview"
         }
       },
       "chat-compression-3.1-flash-lite": {
         "modelConfig": {
-          "model": "gemini-3.1-flash-lite"
+          "model": "-3.1-flash-lite"
         }
       },
       "chat-compression-2.5-pro": {
         "modelConfig": {
-          "model": "gemini-2.5-pro"
+          "model": "-2.5-pro"
         }
       },
       "chat-compression-2.5-flash": {
         "modelConfig": {
-          "model": "gemini-2.5-flash"
+          "model": "-2.5-flash"
         }
       },
       "chat-compression-2.5-flash-lite": {
         "modelConfig": {
-          "model": "gemini-2.5-flash-lite"
+          "model": "-2.5-flash-lite"
         }
       },
       "chat-compression-default": {
         "modelConfig": {
-          "model": "gemini-3-pro-preview"
+          "model": "-3-pro-preview"
         }
       },
       "agent-history-provider-summarizer": {
         "modelConfig": {
-          "model": "gemini-3-flash-preview"
+          "model": "-3-flash-preview"
         }
       }
     }
@@ -915,9 +982,9 @@ their corresponding top-level category object in your `settings.json` file.
 
     ```json
     {
-      "gemini-3.1-flash-lite": {
+      "-3.1-flash-lite": {
         "tier": "flash-lite",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": false,
         "isVisible": true,
         "features": {
@@ -925,9 +992,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-3.1-pro-preview": {
+      "-3.1-pro-preview": {
         "tier": "pro",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": true,
         "isVisible": true,
         "features": {
@@ -935,9 +1002,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-3.1-pro-preview-customtools": {
+      "-3.1-pro-preview-customtools": {
         "tier": "pro",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": true,
         "isVisible": false,
         "features": {
@@ -945,9 +1012,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-3-pro-preview": {
+      "-3-pro-preview": {
         "tier": "pro",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": true,
         "isVisible": true,
         "features": {
@@ -955,9 +1022,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-3-flash-preview": {
+      "-3-flash-preview": {
         "tier": "flash",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": true,
         "isVisible": true,
         "features": {
@@ -965,9 +1032,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-3.5-flash": {
+      "-3.5-flash": {
         "tier": "flash",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": false,
         "isVisible": true,
         "features": {
@@ -975,9 +1042,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": true
         }
       },
-      "gemini-2.5-pro": {
+      "-2.5-pro": {
         "tier": "pro",
-        "family": "gemini-2.5",
+        "family": "-2.5",
         "isPreview": false,
         "isVisible": true,
         "features": {
@@ -985,9 +1052,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": false
         }
       },
-      "gemini-2.5-flash": {
+      "-2.5-flash": {
         "tier": "flash",
-        "family": "gemini-2.5",
+        "family": "-2.5",
         "isPreview": false,
         "isVisible": true,
         "features": {
@@ -995,9 +1062,9 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": false
         }
       },
-      "gemini-2.5-flash-lite": {
+      "-2.5-flash-lite": {
         "tier": "flash-lite",
-        "family": "gemini-2.5",
+        "family": "-2.5",
         "isPreview": false,
         "isVisible": true,
         "features": {
@@ -1064,15 +1131,15 @@ their corresponding top-level category object in your `settings.json` file.
           "multimodalToolUse": false
         }
       },
-      "auto-gemini-3": {
+      "auto--3": {
         "tier": "auto",
-        "family": "gemini-3",
+        "family": "-3",
         "isPreview": true,
         "isVisible": false
       },
-      "auto-gemini-2.5": {
+      "auto--2.5": {
         "tier": "auto",
-        "family": "gemini-2.5",
+        "family": "-2.5",
         "isPreview": false,
         "isVisible": false
       }
@@ -1095,203 +1162,203 @@ their corresponding top-level category object in your `settings.json` file.
       "gemma-4-26b-a4b-it": {
         "default": "gemma-4-26b-a4b-it"
       },
-      "gemini-3.1-pro-preview": {
-        "default": "gemini-3.1-pro-preview",
+      "-3.1-pro-preview": {
+        "default": "-3.1-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           }
         ]
       },
-      "gemini-3.1-pro-preview-customtools": {
-        "default": "gemini-3.1-pro-preview-customtools",
+      "-3.1-pro-preview-customtools": {
+        "default": "-3.1-pro-preview-customtools",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           }
         ]
       },
-      "gemini-3-flash-preview": {
-        "default": "gemini-3-flash-preview",
+      "-3-flash-preview": {
+        "default": "-3-flash-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false,
-              "useGemini3_5Flash": true
+              "use3_5Flash": true
             },
-            "target": "gemini-3.5-flash"
+            "target": "-3.5-flash"
           },
           {
             "condition": {
               "hasAccessToPreview": false,
-              "useGemini3_5Flash": false
+              "use3_5Flash": false
             },
-            "target": "gemini-2.5-flash"
+            "target": "-2.5-flash"
           }
         ]
       },
-      "gemini-3.5-flash": {
-        "default": "gemini-3.5-flash",
+      "-3.5-flash": {
+        "default": "-3.5-flash",
         "contexts": [
           {
             "condition": {
-              "useGemini3_5Flash": false,
+              "use3_5Flash": false,
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-flash"
+            "target": "-2.5-flash"
           },
           {
             "condition": {
-              "useGemini3_5Flash": false
+              "use3_5Flash": false
             },
-            "target": "gemini-3-flash-preview"
+            "target": "-3-flash-preview"
           }
         ]
       },
-      "gemini-2.5-flash": {
-        "default": "gemini-2.5-flash",
+      "-2.5-flash": {
+        "default": "-2.5-flash",
         "contexts": [
           {
             "condition": {
-              "useGemini3_5Flash": true
+              "use3_5Flash": true
             },
-            "target": "gemini-3.5-flash"
+            "target": "-3.5-flash"
           }
         ]
       },
-      "gemini-3-pro-preview": {
-        "default": "gemini-3-pro-preview",
+      "-3-pro-preview": {
+        "default": "-3-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "useGemini3_1": true,
+              "use3_1": true,
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           },
           {
             "condition": {
-              "useGemini3_1": true
+              "use3_1": true
             },
-            "target": "gemini-3.1-pro-preview"
+            "target": "-3.1-pro-preview"
           }
         ]
       },
       "auto": {
-        "default": "gemini-3-pro-preview",
+        "default": "-3-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "useGemini3_1": true,
+              "use3_1": true,
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           },
           {
             "condition": {
-              "useGemini3_1": true
+              "use3_1": true
             },
-            "target": "gemini-3.1-pro-preview"
+            "target": "-3.1-pro-preview"
           }
         ]
       },
       "pro": {
-        "default": "gemini-3-pro-preview",
+        "default": "-3-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "useGemini3_1": true,
+              "use3_1": true,
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           },
           {
             "condition": {
-              "useGemini3_1": true
+              "use3_1": true
             },
-            "target": "gemini-3.1-pro-preview"
+            "target": "-3.1-pro-preview"
           }
         ]
       },
-      "gemini-3.1-flash-lite": {
-        "default": "gemini-3.1-flash-lite"
+      "-3.1-flash-lite": {
+        "default": "-3.1-flash-lite"
       },
       "flash": {
-        "default": "gemini-3-flash-preview",
+        "default": "-3-flash-preview",
         "contexts": [
           {
             "condition": {
-              "useGemini3_5Flash": true
+              "use3_5Flash": true
             },
-            "target": "gemini-3.5-flash"
+            "target": "-3.5-flash"
           },
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-flash"
+            "target": "-2.5-flash"
           }
         ]
       },
       "flash-lite": {
-        "default": "gemini-3.1-flash-lite"
+        "default": "-3.1-flash-lite"
       },
-      "auto-gemini-3": {
-        "default": "gemini-3-pro-preview",
+      "auto--3": {
+        "default": "-3-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "useGemini3_1": true,
+              "use3_1": true,
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           },
           {
             "condition": {
-              "useGemini3_1": true
+              "use3_1": true
             },
-            "target": "gemini-3.1-pro-preview"
+            "target": "-3.1-pro-preview"
           }
         ]
       },
-      "auto-gemini-2.5": {
-        "default": "gemini-2.5-pro"
+      "auto--2.5": {
+        "default": "-2.5-pro"
       }
     }
     ```
@@ -1307,55 +1374,55 @@ their corresponding top-level category object in your `settings.json` file.
     ```json
     {
       "flash": {
-        "default": "gemini-3-flash-preview",
+        "default": "-3-flash-preview",
         "contexts": [
           {
             "condition": {
-              "useGemini3_5Flash": true
+              "use3_5Flash": true
             },
-            "target": "gemini-3.5-flash"
+            "target": "-3.5-flash"
           },
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-flash"
+            "target": "-2.5-flash"
           },
           {
             "condition": {
-              "requestedModels": ["gemini-2.5-pro", "auto-gemini-2.5"]
+              "requestedModels": ["-2.5-pro", "auto--2.5"]
             },
-            "target": "gemini-2.5-flash"
+            "target": "-2.5-flash"
           }
         ]
       },
       "pro": {
-        "default": "gemini-3-pro-preview",
+        "default": "-3-pro-preview",
         "contexts": [
           {
             "condition": {
               "hasAccessToPreview": false
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "requestedModels": ["gemini-2.5-pro", "auto-gemini-2.5"]
+              "requestedModels": ["-2.5-pro", "auto--2.5"]
             },
-            "target": "gemini-2.5-pro"
+            "target": "-2.5-pro"
           },
           {
             "condition": {
-              "useGemini3_1": true,
+              "use3_1": true,
               "useCustomTools": true
             },
-            "target": "gemini-3.1-pro-preview-customtools"
+            "target": "-3.1-pro-preview-customtools"
           },
           {
             "condition": {
-              "useGemini3_1": true
+              "use3_1": true
             },
-            "target": "gemini-3.1-pro-preview"
+            "target": "-3.1-pro-preview"
           }
         ]
       }
@@ -1374,7 +1441,7 @@ their corresponding top-level category object in your `settings.json` file.
     {
       "preview": [
         {
-          "model": "gemini-3-pro-preview",
+          "model": "-3-pro-preview",
           "actions": {
             "terminal": "prompt",
             "transient": "prompt",
@@ -1389,7 +1456,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-3-flash-preview",
+          "model": "-3-flash-preview",
           "isLastResort": true,
           "maxAttempts": 10,
           "actions": {
@@ -1408,7 +1475,7 @@ their corresponding top-level category object in your `settings.json` file.
       ],
       "auto-preview": [
         {
-          "model": "gemini-3-pro-preview",
+          "model": "-3-pro-preview",
           "maxAttempts": 3,
           "actions": {
             "terminal": "prompt",
@@ -1424,7 +1491,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-3-flash-preview",
+          "model": "-3-flash-preview",
           "isLastResort": true,
           "maxAttempts": 10,
           "actions": {
@@ -1443,7 +1510,7 @@ their corresponding top-level category object in your `settings.json` file.
       ],
       "default": [
         {
-          "model": "gemini-2.5-pro",
+          "model": "-2.5-pro",
           "actions": {
             "terminal": "prompt",
             "transient": "prompt",
@@ -1458,7 +1525,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-2.5-flash",
+          "model": "-2.5-flash",
           "isLastResort": true,
           "maxAttempts": 10,
           "actions": {
@@ -1477,7 +1544,7 @@ their corresponding top-level category object in your `settings.json` file.
       ],
       "auto-default": [
         {
-          "model": "gemini-2.5-pro",
+          "model": "-2.5-pro",
           "maxAttempts": 3,
           "actions": {
             "terminal": "prompt",
@@ -1493,7 +1560,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-2.5-flash",
+          "model": "-2.5-flash",
           "isLastResort": true,
           "maxAttempts": 10,
           "actions": {
@@ -1527,7 +1594,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-2.5-flash",
+          "model": "-2.5-flash",
           "actions": {
             "terminal": "silent",
             "transient": "silent",
@@ -1542,7 +1609,7 @@ their corresponding top-level category object in your `settings.json` file.
           }
         },
         {
-          "model": "gemini-2.5-pro",
+          "model": "-2.5-pro",
           "isLastResort": true,
           "actions": {
             "terminal": "silent",
@@ -1659,9 +1726,9 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`context.memoryBoundaryMarkers`** (array):
 
-  - **Description:** File or directory names that mark the boundary for
-    GEMINI.md discovery. The upward traversal stops at the first directory
-    containing any of these markers. An empty array disables parent traversal.
+  - **Description:** File or directory names that mark the boundary for PLUMB.md
+    discovery. The upward traversal stops at the first directory containing any
+    of these markers. An empty array disables parent traversal.
   - **Default:**
 
     ```json
@@ -1678,7 +1745,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`context.loadMemoryFromIncludeDirectories`** (boolean):
 
-  - **Description:** Controls how /memory reload loads GEMINI.md files. When
+  - **Description:** Controls how /memory reload loads PLUMB.md files. When
     true, include directories are scanned; when false, only the current
     directory is used.
   - **Default:** `false`
@@ -1689,9 +1756,9 @@ their corresponding top-level category object in your `settings.json` file.
   - **Default:** `true`
   - **Requires restart:** Yes
 
-- **`context.fileFiltering.respectGeminiIgnore`** (boolean):
+- **`context.fileFiltering.respectPlumbIgnore`** (boolean):
 
-  - **Description:** Respect .geminiignore files when searching.
+  - **Description:** Respect .ignore files when searching.
   - **Default:** `true`
   - **Requires restart:** Yes
 
@@ -1717,7 +1784,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`context.fileFiltering.customIgnoreFilePaths`** (array):
   - **Description:** Additional ignore file paths to respect. These files take
-    precedence over .geminiignore and .gitignore. Files earlier in the array
+    precedence over .ignore and .gitignore. Files earlier in the array
     take precedence over files later in the array, e.g. the first file takes
     precedence over the second one.
   - **Default:** `[]`
@@ -2016,7 +2083,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`experimental.gemma`** (boolean):
 
-  - **Description:** Enable access to Gemma 4 models via Gemini API.
+  - **Description:** Enable access to Gemma 4 models via  API.
   - **Default:** `true`
   - **Requires restart:** Yes
 
@@ -2035,10 +2102,10 @@ their corresponding top-level category object in your `settings.json` file.
 - **`experimental.voice.backend`** (enum):
 
   - **Description:** The backend to use for voice transcription. Note: When
-    using the Gemini Live backend, voice recordings are sent to Google Cloud for
+    using the  Live backend, voice recordings are sent to Google Cloud for
     transcription.
-  - **Default:** `"gemini-live"`
-  - **Values:** `"gemini-live"`, `"whisper"`
+  - **Default:** `"-live"`
+  - **Values:** `"-live"`, `"whisper"`
 
 - **`experimental.voice.whisperModel`** (enum):
 
@@ -2107,7 +2174,7 @@ their corresponding top-level category object in your `settings.json` file.
 
   - **Description:** The URI (web URL or local file path) of the extension
     registry.
-  - **Default:** `"https://geminicli.com/extensions.json"`
+  - **Default:** `"https://cli.com/extensions.json"`
   - **Requires restart:** Yes
 
 - **`experimental.extensionReloading`** (boolean):
@@ -2158,21 +2225,21 @@ their corresponding top-level category object in your `settings.json` file.
 - **`experimental.gemmaModelRouter.enabled`** (boolean):
 
   - **Description:** Enable the Gemma Model Router (experimental). Requires a
-    local endpoint serving Gemma via the Gemini API using LiteRT-LM shim.
+    local endpoint serving Gemma via the  API using LiteRT-LM shim.
   - **Default:** `false`
   - **Requires restart:** Yes
 
 - **`experimental.gemmaModelRouter.autoStartServer`** (boolean):
 
-  - **Description:** Automatically start the LiteRT-LM server when Gemini CLI
-    starts and the Gemma router is enabled.
+  - **Description:** Automatically start the LiteRT-LM server when PLUMB starts
+    and the Gemma router is enabled.
   - **Default:** `false`
   - **Requires restart:** Yes
 
 - **`experimental.gemmaModelRouter.binaryPath`** (string):
 
   - **Description:** Custom path to the LiteRT-LM binary. Leave empty to use the
-    default location (~/.gemini/bin/litert/).
+    default location (~/./bin/litert/).
   - **Default:** `""`
   - **Requires restart:** Yes
 
@@ -2435,14 +2502,14 @@ their corresponding top-level category object in your `settings.json` file.
 #### `mcpServers`
 
 Configures connections to one or more Model-Context Protocol (MCP) servers for
-discovering and using custom tools. Gemini CLI attempts to connect to each
-configured MCP server to discover available tools. Every discovered tool is
-prepended with the `mcp_` prefix and its server alias to form a fully qualified
-name (FQN) (for example, `mcp_serverAlias_actualToolName`) to avoid conflicts.
-Note that the system might strip certain schema properties from MCP tool
-definitions for compatibility. At least one of `command`, `url`, or `httpUrl`
-must be provided. If multiple are specified, the order of precedence is
-`httpUrl`, then `url`, then `command`.
+discovering and using custom tools. PLUMB attempts to connect to each configured
+MCP server to discover available tools. Every discovered tool is prepended with
+the `mcp_` prefix and its server alias to form a fully qualified name (FQN) (for
+example, `mcp_serverAlias_actualToolName`) to avoid conflicts. Note that the
+system might strip certain schema properties from MCP tool definitions for
+compatibility. At least one of `command`, `url`, or `httpUrl` must be provided.
+If multiple are specified, the order of precedence is `httpUrl`, then `url`,
+then `command`.
 
 <!-- prettier-ignore -->
 > [!WARNING]
@@ -2486,8 +2553,8 @@ must be provided. If multiple are specified, the order of precedence is
 
 #### `telemetry`
 
-Configures logging and metrics collection for Gemini CLI. For more information,
-see [Telemetry](../cli/telemetry.md).
+Configures logging and metrics collection for PLUMB. For more information, see
+[Telemetry](../cli/telemetry.md).
 
 - **Properties:**
   - **`enabled`** (boolean): Whether or not telemetry is enabled.
@@ -2554,7 +2621,7 @@ of v0.3.0:
     "usageStatisticsEnabled": true
   },
   "model": {
-    "name": "gemini-1.5-pro-latest",
+    "name": "-1.5-pro-latest",
     "maxSessionTurns": 10,
     "summarizeToolOutput": {
       "run_shell_command": {
@@ -2563,7 +2630,7 @@ of v0.3.0:
     }
   },
   "context": {
-    "fileName": ["CONTEXT.md", "GEMINI.md"],
+    "fileName": ["CONTEXT.md", "PLUMB.md"],
     "includeDirectories": ["path/to/dir1", "~/path/to/dir2", "../path/to/dir3"],
     "loadFromIncludeDirectories": true,
     "fileFiltering": {
@@ -2582,7 +2649,7 @@ The CLI keeps a history of shell commands you run. To avoid conflicts between
 different projects, this history is stored in a project-specific directory
 within your user's home folder.
 
-- **Location:** `~/.gemini/tmp/<project_hash>/shell_history`
+- **Location:** `~/./tmp/<project_hash>/shell_history`
   - `<project_hash>` is a unique identifier generated from your project's root
     path.
   - The history is stored in a file named `shell_history`.
@@ -2606,49 +2673,49 @@ loading order is:
 
 **Environment variable exclusion:** Some environment variables (like `DEBUG` and
 `DEBUG_MODE`) are automatically excluded from being loaded from project `.env`
-files to prevent interference with gemini-cli behavior. Variables from
-`.gemini/.env` files are never excluded. You can customize this behavior using
+files to prevent interference with -cli behavior. Variables from
+`./.env` files are never excluded. You can customize this behavior using
 the `advanced.excludedEnvVars` setting in your `settings.json` file.
 
-- **`GEMINI_API_KEY`**:
-  - Your API key for the Gemini API.
+- **`_API_KEY`**:
+  - Your API key for the  API.
   - One of several available
     [authentication methods](../get-started/authentication.mdx).
   - Set this in your shell profile (for example, `~/.bashrc`, `~/.zshrc`) or an
     `.env` file.
-- **`GEMINI_MODEL`**:
-  - Specifies the default Gemini model to use.
+- **`_MODEL`**:
+  - Specifies the default  model to use.
   - Overrides the hardcoded default
-  - Example: `export GEMINI_MODEL="gemini-3-flash-preview"` (Windows PowerShell:
-    `$env:GEMINI_MODEL="gemini-3-flash-preview"`)
-- **`GEMINI_CLI_TRUST_WORKSPACE`**:
+  - Example: `export _MODEL="-3-flash-preview"` (Windows PowerShell:
+    `$env:_MODEL="-3-flash-preview"`)
+- **`PLUMB_TRUST_WORKSPACE`**:
   - If set to `"true"`, trusts the current workspace for the duration of the
     session, bypassing the folder trust check.
   - Useful for headless environments (for example, CI/CD pipelines).
-- **`GEMINI_CLI_TRUSTED_FOLDERS_PATH`**:
+- **`_CLI_TRUSTED_FOLDERS_PATH`**:
   - Overrides the default location for the `trustedFolders.json` file.
   - Useful if you want to store this configuration in a custom location instead
-    of the default `~/.gemini/`.
-- **`GEMINI_CLI_IDE_PID`**:
+    of the default `~/./`.
+- **`_CLI_IDE_PID`**:
   - Manually specifies the PID of the IDE process to use for integration. This
-    is useful when running Gemini CLI in a standalone terminal while still
-    wanting to associate it with a specific IDE instance.
+    is useful when running PLUMB in a standalone terminal while still wanting to
+    associate it with a specific IDE instance.
   - Overrides the automatic IDE detection logic.
-- **`GEMINI_CLI_HOME`**:
-  - Specifies the root directory for Gemini CLI's user-level configuration and
+- **`PLUMB_CLI_HOME`**:
+  - Specifies the root directory for PLUMB's user-level configuration and
     storage.
   - By default, this is the user's system home directory. The CLI will create a
-    `.gemini` folder inside this directory.
+    `.` folder inside this directory.
   - Useful for shared compute environments or keeping CLI state isolated.
-  - Example: `export GEMINI_CLI_HOME="/path/to/user/config"` (Windows
-    PowerShell: `$env:GEMINI_CLI_HOME="C:\path\to\user\config"`)
-- **`GEMINI_CLI_SURFACE`**:
+  - Example: `export PLUMB_CLI_HOME="/path/to/user/config"` (Windows PowerShell:
+    `$env:PLUMB_CLI_HOME="C:\path\to\user\config"`)
+- **`_CLI_SURFACE`**:
   - Specifies a custom label to include in the `User-Agent` header for API
     traffic reporting.
   - This is useful for tracking specific internal tools or distribution
     channels.
-  - Example: `export GEMINI_CLI_SURFACE="my-custom-tool"` (Windows PowerShell:
-    `$env:GEMINI_CLI_SURFACE="my-custom-tool"`)
+  - Example: `export _CLI_SURFACE="my-custom-tool"` (Windows PowerShell:
+    `$env:_CLI_SURFACE="my-custom-tool"`)
 - **`GOOGLE_API_KEY`**:
   - Your Google Cloud API key.
   - Required for using Vertex AI in express mode.
@@ -2674,17 +2741,17 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
     (Windows PowerShell:
     `$env:GOOGLE_APPLICATION_CREDENTIALS="C:\path\to\your\credentials.json"`)
 - **`GOOGLE_GENAI_API_VERSION`**:
-  - Specifies the API version to use for Gemini API requests.
+  - Specifies the API version to use for  API requests.
   - When set, overrides the default API version used by the SDK.
   - Example: `export GOOGLE_GENAI_API_VERSION="v1"` (Windows PowerShell:
     `$env:GOOGLE_GENAI_API_VERSION="v1"`)
-- **`GOOGLE_GEMINI_BASE_URL`**:
-  - Overrides the default base URL for Gemini API requests (when using
-    `gemini-api-key` authentication).
+- **`GOOGLE__BASE_URL`**:
+  - Overrides the default base URL for  API requests (when using
+    `-api-key` authentication).
   - Must be a valid URL. For security, it must use HTTPS unless pointing to
     `localhost` (or `127.0.0.1` / `[::1]`).
-  - Example: `export GOOGLE_GEMINI_BASE_URL="https://my-proxy.com"` (Windows
-    PowerShell: `$env:GOOGLE_GEMINI_BASE_URL="https://my-proxy.com"`)
+  - Example: `export GOOGLE__BASE_URL="https://my-proxy.com"` (Windows
+    PowerShell: `$env:GOOGLE__BASE_URL="https://my-proxy.com"`)
 - **`GOOGLE_VERTEX_BASE_URL`**:
   - Overrides the default base URL for Vertex AI API requests (when using
     `vertex-ai` authentication).
@@ -2697,31 +2764,31 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
   - Your Google Cloud Project ID for Telemetry in Google Cloud
   - Example: `export OTLP_GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"` (Windows
     PowerShell: `$env:OTLP_GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"`).
-- **`GEMINI_TELEMETRY_ENABLED`**:
+- **`_TELEMETRY_ENABLED`**:
   - Set to `true` or `1` to enable telemetry. Any other value is treated as
     disabling it.
   - Overrides the `telemetry.enabled` setting.
-- **`GEMINI_TELEMETRY_TRACES_ENABLED`**:
+- **`_TELEMETRY_TRACES_ENABLED`**:
   - Set to `true` or `1` to enable detailed tracing with large attributes. Any
     other value is treated as disabling it.
   - Overrides the `telemetry.traces` setting.
-- **`GEMINI_TELEMETRY_TARGET`**:
+- **`_TELEMETRY_TARGET`**:
   - Sets the telemetry target (`local` or `gcp`).
   - Overrides the `telemetry.target` setting.
-- **`GEMINI_TELEMETRY_OTLP_ENDPOINT`**:
+- **`_TELEMETRY_OTLP_ENDPOINT`**:
   - Sets the OTLP endpoint for telemetry.
   - Overrides the `telemetry.otlpEndpoint` setting.
-- **`GEMINI_TELEMETRY_OTLP_PROTOCOL`**:
+- **`_TELEMETRY_OTLP_PROTOCOL`**:
   - Sets the OTLP protocol (`grpc` or `http`).
   - Overrides the `telemetry.otlpProtocol` setting.
-- **`GEMINI_TELEMETRY_LOG_PROMPTS`**:
+- **`_TELEMETRY_LOG_PROMPTS`**:
   - Set to `true` or `1` to enable or disable logging of user prompts. Any other
     value is treated as disabling it.
   - Overrides the `telemetry.logPrompts` setting.
-- **`GEMINI_TELEMETRY_OUTFILE`**:
+- **`_TELEMETRY_OUTFILE`**:
   - Sets the file path to write telemetry to when the target is `local`.
   - Overrides the `telemetry.outfile` setting.
-- **`GEMINI_TELEMETRY_USE_COLLECTOR`**:
+- **`_TELEMETRY_USE_COLLECTOR`**:
   - Set to `true` or `1` to enable or disable using an external OTLP collector.
     Any other value is treated as disabling it.
   - Overrides the `telemetry.useCollector` setting.
@@ -2730,19 +2797,19 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
   - Required for using Vertex AI in non-express mode.
   - Example: `export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"` (Windows
     PowerShell: `$env:GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"`).
-- **`GEMINI_SANDBOX`**:
+- **`_SANDBOX`**:
   - Alternative to the `sandbox` setting in `settings.json`.
   - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
-- **`GEMINI_SYSTEM_MD`**:
+- **`_SYSTEM_MD`**:
   - Replaces the built‑in system prompt with content from a Markdown file.
-  - `true`/`1`: Use project default path `./.gemini/system.md`.
+  - `true`/`1`: Use project default path `././system.md`.
   - Any other string: Treat as a path (relative/absolute supported, `~`
     expands).
   - `false`/`0` or unset: Use the built‑in prompt. See
     [System Prompt Override](../cli/system-prompt.md).
-- **`GEMINI_WRITE_SYSTEM_MD`**:
+- **`_WRITE_SYSTEM_MD`**:
   - Writes the current built‑in system prompt to a file for review.
-  - `true`/`1`: Write to `./.gemini/system.md`. Otherwise treat the value as a
+  - `true`/`1`: Write to `././system.md`. Otherwise treat the value as a
     path.
   - Run the CLI once with this set to generate the file.
 - **`SEATBELT_PROFILE`** (macOS specific):
@@ -2756,15 +2823,15 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
     allows network.
   - `strict-proxied`: Same as `strict-open` but routes network through proxy.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create
-    a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/`
-    directory (for example, `my-project/.gemini/sandbox-macos-custom.sb`).
+    a file named `sandbox-macos-<profile_name>.sb` in your project's `./`
+    directory (for example, `my-project/./sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI
   itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful
     for troubleshooting.
   - **Note:** These variables are automatically excluded from project `.env`
-    files by default to prevent interference with gemini-cli behavior. Use
-    `.gemini/.env` files if you need to set these for gemini-cli specifically.
+    files by default to prevent interference with -cli behavior. Use
+    `./.env` files if you need to set these for -cli specifically.
 - **`NO_COLOR`**:
   - Set to any value to disable all color output in the CLI.
 - **`CLI_TITLE`**:
@@ -2775,7 +2842,7 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
 
 ### Environment variable redaction
 
-To prevent accidental leakage of sensitive information, Gemini CLI automatically
+To prevent accidental leakage of sensitive information, PLUMB automatically
 redacts potential secrets from environment variables when executing tools (such
 as shell commands). This "best effort" redaction applies to variables inherited
 from the system or loaded from `.env` files.
@@ -2798,7 +2865,7 @@ from the system or loaded from `.env` files.
 
 - Common system variables (for example, `PATH`, `HOME`, `USER`, `SHELL`, `TERM`,
   `LANG`).
-- Variables starting with `GEMINI_CLI_`.
+- Variables starting with `_CLI_`.
 - GitHub Action specific variables.
 
 **Configuration:**
@@ -2831,7 +2898,7 @@ for that specific session.
 - **`--allowed-tools <tool1,tool2,...>`**:
   - A comma-separated list of tool names that will bypass the confirmation
     dialog.
-  - Example: `gemini --allowed-tools "ShellTool(git status)"`
+  - Example: ` --allowed-tools "ShellTool(git status)"`
 - **`--approval-mode <mode>`**:
   - Sets the approval mode for tool calls. Available modes:
     - `default`: Prompt for approval on each tool call (default behavior)
@@ -2844,7 +2911,7 @@ for that specific session.
       > functional.
   - Cannot be used together with `--yolo`. Use `--approval-mode=yolo` instead of
     `--yolo` for the new unified approach.
-  - Example: `gemini --approval-mode auto_edit`
+  - Example: ` --approval-mode auto_edit`
 - **`--debug`** (**`-d`**):
   - Enables debug mode for this session, providing more verbose output. Open the
     debug console with F12 to see the additional logging.
@@ -2852,13 +2919,13 @@ for that specific session.
   - Delete a specific chat session by its index number or full session UUID.
   - Use `--list-sessions` first to see available sessions, their indices, and
     UUIDs.
-  - Example: `gemini --delete-session 3` or
-    `gemini --delete-session a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+  - Example: ` --delete-session 3` or
+    ` --delete-session a1b2c3d4-e5f6-7890-abcd-ef1234567890`
 - **`--extensions <extension_name ...>`** (**`-e <extension_name ...>`**):
   - Specifies a list of extensions to use for the session. If not provided, all
     available extensions are used.
-  - Use the special term `gemini -e none` to disable all extensions.
-  - Example: `gemini -e my-extension -e my-other-extension`
+  - Use the special term ` -e none` to disable all extensions.
+  - Example: ` -e my-extension -e my-other-extension`
 - **`--fake-responses`**:
   - Path to a file with fake model responses for testing.
 - **`--help`** (or **`-h`**):
@@ -2876,10 +2943,10 @@ for that specific session.
   - List all available chat sessions for the current project and exit.
   - Shows session indices, dates, message counts, and preview of first user
     message.
-  - Example: `gemini --list-sessions`
+  - Example: ` --list-sessions`
 - **`--model <model_name>`** (**`-m <model_name>`**):
-  - Specifies the Gemini model to use for this session.
-  - Example: `npm start -- --model gemini-3-pro-preview`
+  - Specifies the  model to use for this session.
+  - Example: `npm start -- --model -3-pro-preview`
 - **`--output-format <format>`**:
   - **Description:** Specifies the format of the CLI output for non-interactive
     mode.
@@ -2890,21 +2957,21 @@ for that specific session.
   - **Note:** For structured output and scripting, use the
     `--output-format json` or `--output-format stream-json` flag.
 - **`--prompt <your_prompt>`** (**`-p <your_prompt>`**):
-  - Used to pass a prompt directly to the command. This invokes Gemini CLI in a
+  - Used to pass a prompt directly to the command. This invokes PLUMB in a
     non-interactive mode.
 - **`--prompt-interactive <your_prompt>`** (**`-i <your_prompt>`**):
   - Starts an interactive session with the provided prompt as the initial input.
   - The prompt is processed within the interactive session, not before it.
   - Cannot be used when piping input from stdin.
-  - Example: `gemini -i "explain this code"`
+  - Example: ` -i "explain this code"`
 - **`--record-responses`**:
   - Path to a file to record model responses for testing.
 - **`--resume [session_id]`** (**`-r [session_id]`**):
   - Resume a previous chat session. Use "latest" for the most recent session,
     provide a session index number, or provide a full session UUID.
   - If no session_id is provided, defaults to "latest".
-  - Example: `gemini --resume 5` or `gemini --resume latest` or
-    `gemini --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890` or `gemini --resume`
+  - Example: ` --resume 5` or ` --resume latest` or
+    ` --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890` or ` --resume`
   - See [Session Management](../cli/session-management.md) for more details.
 - **`--sandbox`** (**`-s`**):
   - Enables sandbox mode for this session.
@@ -2919,9 +2986,9 @@ for that specific session.
 ## Context files (hierarchical instructional context)
 
 While not strictly configuration for the CLI's _behavior_, context files
-(defaulting to `GEMINI.md` but configurable via the `context.fileName` setting)
+(defaulting to `PLUMB.md` but configurable via the `context.fileName` setting)
 are crucial for configuring the _instructional context_ (also referred to as
-"memory") provided to the Gemini model. This powerful feature lets you give
+"memory") provided to the  model. This powerful feature lets you give
 project-specific instructions, coding style guides, or any relevant background
 information to the AI, making its responses more tailored and accurate to your
 needs. The CLI includes UI elements, such as an indicator in the footer showing
@@ -2929,10 +2996,10 @@ the number of loaded context files, to keep you informed about the active
 context.
 
 - **Purpose:** These Markdown files contain instructions, guidelines, or context
-  that you want the Gemini model to be aware of during your interactions. The
+  that you want the  model to be aware of during your interactions. The
   system is designed to manage this instructional context hierarchically.
 
-### Example context file content (for example, `GEMINI.md`)
+### Example context file content (for example, `PLUMB.md`)
 
 Here's a conceptual example of what a context file at the root of a TypeScript
 project might contain:
@@ -2974,14 +3041,14 @@ you. Project-specific context files are highly encouraged to establish
 conventions and context.
 
 - **Hierarchical loading and precedence:** The CLI implements a sophisticated
-  hierarchical memory system by loading context files (for example, `GEMINI.md`)
+  hierarchical memory system by loading context files (for example, `PLUMB.md`)
   from several locations. Content from files lower in this list (more specific)
   typically overrides or supplements content from files higher up (more
   general). The exact concatenation order and final context can be inspected
   using the `/memory show` command. The typical loading order is:
   1.  **Global context file:**
-      - Location: `~/.gemini/<configured-context-filename>` (for example,
-        `~/.gemini/GEMINI.md` in your user home directory).
+      - Location: `~/./<configured-context-filename>` (for example,
+        `~/./PLUMB.md` in your user home directory).
       - Scope: Provides default instructions for all your projects.
   2.  **Project root and ancestors context files:**
       - Location: The CLI searches for the configured context file in the
@@ -3000,7 +3067,7 @@ conventions and context.
         component, module, or subsection of your project.
 - **Concatenation and UI indication:** The contents of all found context files
   are concatenated (with separators indicating their origin and path) and
-  provided as part of the system prompt to the Gemini model. The CLI footer
+  provided as part of the system prompt to the  model. The CLI footer
   displays the count of loaded context files, giving you a quick visual cue
   about the active instructional context.
 - **Importing content:** You can modularize your context files by importing
@@ -3017,27 +3084,27 @@ conventions and context.
 
 By understanding and utilizing these configuration layers and the hierarchical
 nature of context files, you can effectively manage the AI's memory and tailor
-Gemini CLI's responses to your specific needs and projects.
+PLUMB's responses to your specific needs and projects.
 
 ## Sandboxing
 
-Gemini CLI can execute potentially unsafe operations (like shell commands and
-file modifications) within a sandboxed environment to protect your system.
+PLUMB can execute potentially unsafe operations (like shell commands and file
+modifications) within a sandboxed environment to protect your system.
 
 Sandboxing is disabled by default, but you can enable it in a few ways:
 
 - Using `--sandbox` or `-s` flag.
-- Setting `GEMINI_SANDBOX` environment variable.
+- Setting `_SANDBOX` environment variable.
 - Sandbox is enabled when using `--yolo` or `--approval-mode=yolo` by default.
 
-By default, it uses a pre-built `gemini-cli-sandbox` Docker image.
+By default, it uses a pre-built `plumb-sandbox` Docker image.
 
 For project-specific sandboxing needs, you can create a custom Dockerfile at
-`.gemini/sandbox.Dockerfile` in your project's root directory. This Dockerfile
+`./sandbox.Dockerfile` in your project's root directory. This Dockerfile
 can be based on the base sandbox image:
 
 ```dockerfile
-FROM gemini-cli-sandbox
+FROM plumb-sandbox
 
 # Add your custom dependencies or configurations here.
 # Note: The base image runs as the non-root 'node' user.
@@ -3049,21 +3116,21 @@ FROM gemini-cli-sandbox
 # COPY ./my-config /app/my-config
 ```
 
-When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX`
-environment variable when running Gemini CLI to automatically build the custom
+When `./sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX`
+environment variable when running PLUMB to automatically build the custom
 sandbox image:
 
 ```bash
-BUILD_SANDBOX=1 gemini -s
+BUILD_SANDBOX=1  -s
 ```
 
 Building a custom sandbox with `BUILD_SANDBOX` is only supported when running
-Gemini CLI from source. If you installed the CLI with npm, build the Docker
-image separately and reference that image in your sandbox configuration.
+PLUMB from source. If you installed the CLI with npm, build the Docker image
+separately and reference that image in your sandbox configuration.
 
 ## Usage statistics
 
-To help us improve Gemini CLI, we collect anonymized usage statistics. This data
+To help us improve PLUMB, we collect anonymized usage statistics. This data
 helps us understand how the CLI is used, identify common issues, and prioritize
 new features.
 
@@ -3072,7 +3139,7 @@ new features.
 - **Tool calls:** We log the names of the tools that are called, whether they
   succeed or fail, and how long they take to execute. We do not collect the
   arguments passed to the tools or any data returned by them.
-- **API requests:** We log the Gemini model used for each request, the duration
+- **API requests:** We log the  model used for each request, the duration
   of the request, and whether it was successful. We do not collect the content
   of the prompts or responses.
 - **Session information:** We collect information about the configuration of the
@@ -3083,7 +3150,7 @@ new features.
 - **Personally identifiable information (PII):** We do not collect any personal
   information, such as your name, email address, or API keys.
 - **Prompt and response content:** We do not log the content of your prompts or
-  the responses from the Gemini model.
+  the responses from the  model.
 - **File content:** We do not log the content of any files that are read or
   written by the CLI.
 

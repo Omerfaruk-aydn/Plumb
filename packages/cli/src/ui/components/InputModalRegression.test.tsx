@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Input and modal regression tests.
- * Verifies that new UI component integrations did not reintroduce:
- * - Duplicate Composer/InputPrompt ownership
- * - Provider setup Enter failures
- * - Modal key conflicts
- * - Duplicate Escape/Ctrl+C handling
- * - Duplicated tool confirmation
- * - Legacy Gemini auth screens
- * - OAuth waiting for API-key providers
  */
 
 import { describe, it, expect } from 'vitest';

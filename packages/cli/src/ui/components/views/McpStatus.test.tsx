@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { render } from '../../../test-utils/render.js';
 import { describe, it, expect, vi } from 'vitest';
 import { McpStatus } from './McpStatus.js';
-import { MCPServerStatus } from '@google/gemini-cli-core';
+import { MCPServerStatus } from '@plumb/core';
 import { MessageType } from '../../types.js';
 
 describe('McpStatus', () => {
@@ -87,10 +86,9 @@ describe('McpStatus', () => {
   });
 
   it('renders correctly with a disconnected server', async () => {
-    vi.spyOn(
-      await import('@google/gemini-cli-core'),
-      'getMCPServerStatus',
-    ).mockReturnValue(MCPServerStatus.DISCONNECTED);
+    vi.spyOn(await import('@plumb/core'), 'getMCPServerStatus').mockReturnValue(
+      MCPServerStatus.DISCONNECTED,
+    );
     const { lastFrame, unmount } = await render(<McpStatus {...baseProps} />);
     expect(lastFrame()).toMatchSnapshot();
     unmount();

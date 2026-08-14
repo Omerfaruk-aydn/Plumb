@@ -1,8 +1,8 @@
 # Get started with Agent Skills
 
-Agent Skills extend Gemini CLI with specialized expertise. In this tutorial,
-you'll learn how to create your first skill, bundle custom logic, and activate
-it during a session.
+Agent Skills extend PLUMB with specialized expertise. In this tutorial, you'll
+learn how to create your first skill, bundle custom logic, and activate it
+during a session.
 
 ## Create your first skill
 
@@ -78,11 +78,11 @@ fetch(url, { method: 'HEAD' })
 
 ## Verify discovery
 
-Gemini CLI automatically discovers skills in the `.gemini/skills` directory (as
-well as the `.agents/skills` alias).
+PLUMB automatically discovers skills in the `.gemini/skills` directory (as well
+as the `.agents/skills` alias).
 
-To check if Gemini CLI found your new skill, use the `/skills list` command
-within an interactive session:
+To check if PLUMB found your new skill, use the `/skills list` command within an
+interactive session:
 
 ```bash
 /skills list

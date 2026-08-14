@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,7 +20,7 @@ vi.mock('../utils/path_utils.js', () => ({
 }));
 
 // Mocks for constructor dependencies
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   GeminiEventType: {
     PRIMARY_TURN_STARTED: 'PRIMARY_TURN_STARTED',
     SECONDARY_TURN_STARTED: 'SECONDARY_TURN_STARTED',

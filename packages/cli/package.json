@@ -3,10 +3,6 @@
   "version": "0.55.0-nightly.20260729.g3499c84f7",
   "description": "PLUMB CLI — provider-first multi-provider terminal agent. The 'plumb' command is the primary entry point; the 'gemini' bin alias is retained for backwards compatibility and resolves to the same PLUMB-owned dist entry.",
   "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git"
-  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -26,15 +22,16 @@
     "typecheck": "tsc --noEmit"
   },
   "files": [
-    "dist"
+    "dist",
+    "assets"
   ],
   "config": {
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.55.0-nightly.20260729.g3499c84f7"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "0.16.1",
-    "@google/gemini-cli-core": "file:../core",
-    "@google/gemini-cli-provider": "file:../provider",
+    "@plumb/core": "file:../core",
+    "@plumb/provider": "file:../provider",
     "@google/genai": "1.30.0",
     "@iarna/toml": "2.2.5",
     "@modelcontextprotocol/sdk": "1.23.0",
@@ -75,7 +72,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "@google/gemini-cli-test-utils": "file:../test-utils",
+    "@plumb/test-utils": "file:../test-utils",
     "@types/command-exists": "1.2.3",
     "@types/hast": "3.0.4",
     "@types/node": "20.11.24",

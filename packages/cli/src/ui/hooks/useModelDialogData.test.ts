@@ -1,21 +1,19 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '../../test-utils/render.js';
 import { useModelDialogData } from './useModelDialogData.js';
-import type { PlumbProviderState } from '@google/gemini-cli-provider';
+import type { PlumbProviderState } from '@plumb/provider';
 
 let activeStates: PlumbProviderState[];
 let getModelsForProviderMock: ReturnType<typeof vi.fn>;
 let discoverProviderModelsMock: ReturnType<typeof vi.fn>;
 
-vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+vi.mock('@plumb/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/provider')>();
   return {
     ...actual,
     getPlumbProviderRegistry: () => ({

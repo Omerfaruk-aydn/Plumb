@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * CRUD orchestration for user-defined custom providers. Unlike the flat
- * single-secret cloud providers (bedrockCloudConfigActions.ts and friends),
- * a custom provider is one of many entries in the durable
- * `CustomProviderDefinitionStore` list, so every write here re-hydrates the
- * in-memory definition table and the model registry's manual-model snapshot
- * immediately -- the running session must reflect an edit or delete without
- * a restart, the same guarantee cold start gets from plumbInit.
  */
+
 import {
   createCustomProviderId,
   getPlumbModelRegistry,
@@ -20,11 +12,11 @@ import {
   type CustomProviderDefinition,
   type CustomProviderDefinitionInput,
   type CustomProviderValidationErrors,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import {
   getCustomProviderDefinitionStore,
   type CustomProviderDefinitionStore,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 export interface CustomProviderSaveResult {
   success: boolean;

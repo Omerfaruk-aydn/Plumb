@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, isGitRepository } from '@google/gemini-cli-core';
+import { debugLogger, isGitRepository } from '@plumb/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as childProcess from 'node:child_process';
@@ -96,7 +95,7 @@ export function getInstallationInfo(
     if (process.platform === 'darwin') {
       try {
         const brewPrefix = childProcess
-          .execSync('brew --prefix gemini-cli', {
+          .execSync('brew --prefix plumb-cli', {
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
           })
@@ -108,18 +107,18 @@ export function getInstallationInfo(
             packageManager: PackageManager.HOMEBREW,
             isGlobal: true,
             updateMessage:
-              'Installed via Homebrew. Please update with "brew upgrade gemini-cli".',
+              'Installed via Homebrew. Please update with "brew upgrade plumb-cli".',
           };
         }
       } catch {
-        // Brew is not installed or gemini-cli is not installed via brew.
+        // Brew is not installed or plumb-cli is not installed via brew.
         // Continue to the next check.
       }
     }
 
     // Check for Volta
     if (realPath.includes('/.volta/') || realPath.includes('/Volta/')) {
-      const updateCommand = 'volta install @google/gemini-cli@latest';
+      const updateCommand = 'volta install plumb-cli@latest';
       return {
         packageManager: PackageManager.VOLTA,
         isGlobal: true,
@@ -137,7 +136,7 @@ export function getInstallationInfo(
       realPath.includes('/Library/pnpm/global/') ||
       realPath.includes('/AppData/Local/pnpm/global/')
     ) {
-      const updateCommand = 'pnpm add -g @google/gemini-cli@latest';
+      const updateCommand = 'pnpm add -g plumb-cli@latest';
       return {
         packageManager: PackageManager.PNPM,
         isGlobal: true,
@@ -150,7 +149,7 @@ export function getInstallationInfo(
 
     // Check for yarn
     if (realPath.includes('/.yarn/global')) {
-      const updateCommand = 'yarn global add @google/gemini-cli@latest';
+      const updateCommand = 'yarn global add plumb-cli@latest';
       return {
         packageManager: PackageManager.YARN,
         isGlobal: true,
@@ -170,7 +169,7 @@ export function getInstallationInfo(
       };
     }
     if (realPath.includes('/.bun/install/global')) {
-      const updateCommand = 'bun add -g @google/gemini-cli@latest';
+      const updateCommand = 'bun add -g plumb-cli@latest';
       return {
         packageManager: PackageManager.BUN,
         isGlobal: true,
@@ -203,7 +202,7 @@ export function getInstallationInfo(
     }
 
     // Assume global npm
-    const updateCommand = 'npm install -g @google/gemini-cli@latest';
+    const updateCommand = 'npm install -g plumb-cli@latest';
     return {
       packageManager: PackageManager.NPM,
       isGlobal: true,

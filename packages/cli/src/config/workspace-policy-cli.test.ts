@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as path from 'node:path';
 import { loadCliConfig, type CliArgs } from './config.js';
 import { createTestMergedSettings } from './settings.js';
-import * as ServerConfig from '@google/gemini-cli-core';
+import * as ServerConfig from '@plumb/core';
 import { isWorkspaceTrusted } from './trustedFolders.js';
 import * as Policy from './policy.js';
 
@@ -20,10 +19,8 @@ vi.mock('./trustedFolders.js', () => ({
 const mockCheckIntegrity = vi.fn();
 const mockAcceptIntegrity = vi.fn();
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual<typeof ServerConfig>(
-    '@google/gemini-cli-core',
-  );
+vi.mock('@plumb/core', async () => {
+  const actual = await vi.importActual<typeof ServerConfig>('@plumb/core');
   return {
     ...actual,
     createPolicyEngineConfig: vi.fn().mockResolvedValue({

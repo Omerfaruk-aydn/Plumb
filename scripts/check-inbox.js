@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Diagnostic: instantiate the real Config and call the same listing functions
- * the inbox UI uses. Should print out all skills + skill patches + memory
- * patches the user would see in `/memory inbox`.
- */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 

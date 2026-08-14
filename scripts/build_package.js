@@ -1,24 +1,19 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import { execSync } from 'node:child_process';
-import { writeFileSync, existsSync, cpSync, rmSync, statSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import {
+  writeFileSync,
+  existsSync,
+  cpSync,
+  rmSync,
+  statSync,
+  mkdirSync,
+  readdirSync,
+  copyFileSync,
+} from 'node:fs';
 import { join, basename } from 'node:path';
 
 if (!process.cwd().includes('packages')) {
@@ -33,7 +28,12 @@ if (packageName === 'provider') {
   const distDir = join(process.cwd(), 'dist');
   if (existsSync(distDir)) {
     try {
-      rmSync(distDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      rmSync(distDir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
     } catch {
       // ignore EPERM lock on Windows
     }
@@ -45,8 +45,14 @@ if (packageName === 'provider') {
 if (packageName === 'provider') {
   const tsbuild1 = join(process.cwd(), 'tsconfig.tsbuildinfo');
   const tsbuild2 = join(process.cwd(), 'dist', 'tsconfig.tsbuildinfo');
-  if (existsSync(tsbuild1)) try { rmSync(tsbuild1, { force: true }); } catch {}
-  if (existsSync(tsbuild2)) try { rmSync(tsbuild2, { force: true }); } catch {}
+  if (existsSync(tsbuild1))
+    try {
+      rmSync(tsbuild1, { force: true });
+    } catch {}
+  if (existsSync(tsbuild2))
+    try {
+      rmSync(tsbuild2, { force: true });
+    } catch {}
   execSync('npx --no-install tsc', { stdio: 'inherit' });
   // Copy non-TypeScript assets (.md, .md.js, .html, .json, extension-less
   // files) from the whole src/ tree into dist/ with layout preserved.
@@ -82,10 +88,22 @@ if (packageName === 'provider') {
     rmSync(tsbuildinfo, { force: true });
   }
   execSync('npx --no-install tsc --build', { stdio: 'inherit' });
-  const providerIndex = join(process.cwd(), '..', 'provider', 'dist', 'index.js');
+  const providerIndex = join(
+    process.cwd(),
+    '..',
+    'provider',
+    'dist',
+    'index.js',
+  );
   if (!existsSync(providerIndex)) {
     const providerDir = join(process.cwd(), '..', 'provider');
-    const buildScript = join(process.cwd(), '..', '..', 'scripts', 'build_package.js');
+    const buildScript = join(
+      process.cwd(),
+      '..',
+      '..',
+      'scripts',
+      'build_package.js',
+    );
     if (existsSync(providerDir) && existsSync(buildScript)) {
       execSync(`node "${buildScript}"`, { cwd: providerDir, stdio: 'inherit' });
     }

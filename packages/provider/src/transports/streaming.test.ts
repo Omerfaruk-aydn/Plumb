@@ -1,14 +1,10 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Transport/stream activation contract: OMP EventStream is the active
- * stream-normalization authority and is importable by the PLUMB facade.
  */
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { installBunGlobal } from '../omp-shims/bun-runtime.js';
+import { installBunGlobal } from '../vendor-shims/bun-runtime.js';
 import {
   createNormalizationStream,
   enableToolRouteDiag,
@@ -21,7 +17,7 @@ import {
   resolveAdvertisedTools,
 } from './streaming.js';
 import { extractSafeResponsesErrorDetails } from './errorClassification.js';
-import { EventStream as OmpEventStream } from '../omp-ai/utils/event-stream.js';
+import { EventStream as OmpEventStream } from '../vendor-ai/utils/event-stream.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
 import {
   __resetCustomProviderDefinitionsForTests,
@@ -1446,7 +1442,7 @@ describe('plumbModelStream â€” Google Antigravity (Cloud Code Assist) trans
   // (`/models/<id>:streamGenerateContent`) that doesn't exist on the real
   // Cloud Code Assist host, producing a Google HTML 404. The real endpoint
   // is `/v1internal:streamGenerateContent` with `Authorization: Bearer` â€”
-  // see the pinned reference in omp-ai/providers/google-gemini-cli.ts.
+  // see the pinned reference in vendor-ai/providers/plumbGoogleGeminiCli.ts.
   const antigravityModel = (modelId: string): PlumbModel => ({
     id: modelId,
     provider: 'google-antigravity',

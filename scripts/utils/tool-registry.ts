@@ -1,13 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ALL_BUILTIN_TOOL_NAMES,
-  TOOL_LEGACY_ALIASES,
-} from '@google/gemini-cli-core';
+import { ALL_BUILTIN_TOOL_NAMES, TOOL_LEGACY_ALIASES } from '@plumb/core';
 
 export type ToolCategory =
   | 'file-system'

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,11 +20,11 @@ import { createExtension } from '../test-utils/createExtension.js';
 import { ExtensionManager } from './extension-manager.js';
 import { themeManager, DEFAULT_THEME } from '../ui/themes/theme-manager.js';
 import {
-  GEMINI_DIR,
+  PLUMB_DIR,
   type Config,
   tmpdir,
   NoopSandboxManager,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { createTestMergedSettings, SettingScope } from './settings.js';
 
 describe('ExtensionManager theme loading', () => {
@@ -34,9 +33,7 @@ describe('ExtensionManager theme loading', () => {
   let tempHomeDir: string;
 
   beforeAll(async () => {
-    tempHomeDir = await fs.promises.mkdtemp(
-      path.join(tmpdir(), 'gemini-cli-test-'),
-    );
+    tempHomeDir = await fs.promises.mkdtemp(path.join(tmpdir(), 'plumb-test-'));
   });
 
   afterAll(async () => {
@@ -46,8 +43,8 @@ describe('ExtensionManager theme loading', () => {
   });
 
   beforeEach(() => {
-    process.env['GEMINI_CLI_HOME'] = tempHomeDir;
-    userExtensionsDir = path.join(tempHomeDir, GEMINI_DIR, 'extensions');
+    process.env['PLUMB_CLI_HOME'] = tempHomeDir;
+    userExtensionsDir = path.join(tempHomeDir, PLUMB_DIR, 'extensions');
     // Ensure userExtensionsDir is clean for each test
     fs.rmSync(userExtensionsDir, { recursive: true, force: true });
     fs.mkdirSync(userExtensionsDir, { recursive: true });
@@ -70,7 +67,7 @@ describe('ExtensionManager theme loading', () => {
   });
 
   afterEach(() => {
-    delete process.env['GEMINI_CLI_HOME'];
+    delete process.env['PLUMB_CLI_HOME'];
   });
 
   it('should register themes from an extension when started', async () => {
@@ -198,7 +195,7 @@ describe('ExtensionManager theme loading', () => {
       getImportFormat: () => 'tree',
       getFileFilteringOptions: () => ({
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       }),
       getDiscoveryMaxDirs: () => 200,
       getMemoryBoundaryMarkers: () => ['.git'],

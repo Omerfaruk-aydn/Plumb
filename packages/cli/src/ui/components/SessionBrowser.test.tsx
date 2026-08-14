@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { render } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@plumb/core';
 import { SessionBrowser, type SessionBrowserProps } from './SessionBrowser.js';
 import { type SessionInfo } from '../../utils/sessionUtils.js';
 

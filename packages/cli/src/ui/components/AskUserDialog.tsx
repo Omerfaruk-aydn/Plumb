@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ import {
 import { Box, Text, type DOMElement } from 'ink';
 import { useMouseClick } from '../hooks/useMouseClick.js';
 import { theme } from '../semantic-colors.js';
-import { checkExhaustive, type Question } from '@google/gemini-cli-core';
+import { checkExhaustive, type Question } from '@plumb/core';
 import { BaseSelectionList } from './shared/BaseSelectionList.js';
 import type { SelectionListItem } from '../hooks/useSelectionList.js';
 import { TabHeader, type Tab } from './shared/TabHeader.js';

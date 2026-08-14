@@ -1,22 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression: selecting provider = 'claude-subscription'
- * must reach the real official Agent SDK (@anthropic-ai/claude-agent-sdk)
- * through the real dispatch chain (catalog/model-catalog.ts ->
- * transports/streaming.ts's plumbModelStream -> registered
- * 'claude-agent-sdk' transport), and must NEVER fall through to the
- * Anthropic Messages API (HTTP fetch to api.anthropic.com), the raw
- * OMP Claude OAuth flow, or any other provider's transport.
- *
- * This exercises the REAL production modules end-to-end (no mocking of
- * streaming.ts, model-catalog.ts, or the transport registry itself) —
- * only the true network/SDK boundary is mocked: global fetch (to prove
- * no HTTP request ever leaves the process for this provider) and the
- * dynamically-imported Agent SDK package (to avoid a real subprocess).
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';

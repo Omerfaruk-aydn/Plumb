@@ -47,13 +47,13 @@ on:
 
 jobs:
   build-mac:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "true"
     uses: './.github/workflows/build-unsigned-mac-binaries.yml'
     with:
       ref: '${{ github.event.inputs.ref }}'
 
   release:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "true"
     needs: ['build-mac']
     runs-on: 'ubuntu-latest'
     environment: "${{ github.event.inputs.environment || 'prod' }}"

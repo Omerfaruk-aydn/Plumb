@@ -1,15 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as fs from 'node:fs/promises';
-import {
-  fetchWithTimeout,
-  resolveToRealPath,
-  isPrivateIp,
-} from '@google/gemini-cli-core';
+import { fetchWithTimeout, resolveToRealPath, isPrivateIp } from '@plumb/core';
 import { AsyncFzf } from 'fzf';
 
 export interface RegistryExtension {

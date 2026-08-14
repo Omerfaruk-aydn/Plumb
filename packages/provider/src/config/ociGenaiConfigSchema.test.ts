@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI configuration domain schema: conditional field visibility, canonical
- * validation, and the safe/secret save-mapping split. This is the single
- * source of truth the Ink UI must render/validate from -- these tests
- * exist so the UI can never silently drift from these rules.
  */
+
 import { describe, it, expect } from 'vitest';
 import {
   getVisibleOciFields,

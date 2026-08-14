@@ -1,25 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Exclusive Modal Input Ownership
- *
- * Ensures exactly one component owns keyboard input at any time.
- * When a modal dialog (like PlumbProviderSetupDialog) is open, it becomes
- * the sole input owner. Composer/InputPrompt must not be active simultaneously.
- *
- * Allowed owners (only one active at a time):
- * - COMPOSER           — normal chat input
- * - PROVIDER_SETUP     — PLUMB provider setup dialog
- * - SETTINGS_DIALOG    — settings dialog
- * - MODEL_DIALOG       — model picker dialog
- * - COMMAND_DIALOG     — command palette
- * - AUTH_DIALOG        — authentication dialog
- * - EMBEDDED_SHELL     — background shell input
- * - COPY_MODE          — copy mode (selecting text)
  */
 
 import type React from 'react';

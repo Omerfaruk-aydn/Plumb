@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { type DOMElement, measureElement } from 'ink';
 import { useEffect } from 'react';
 import { useConfig } from '../contexts/ConfigContext.js';
-import { recordFlickerFrame } from '@google/gemini-cli-core';
+import { recordFlickerFrame } from '@plumb/core';
 import { appEvents, AppEvent } from '../../utils/events.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 

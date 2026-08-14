@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   SessionStartSource,
   flushTelemetry,
   resetBrowserSession,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { CommandKind, type SlashCommand } from './types.js';
 import { MessageType } from '../types.js';
 import { randomUUID } from 'node:crypto';
@@ -36,7 +35,7 @@ export const clearCommand: SlashCommand = {
 
     // Start a new conversation recording with a new session ID
     // We MUST do this before calling resetChat() so the new ChatRecordingService
-    // initialized by GeminiChat picks up the new session ID.
+    // initialized by PlumbChat picks up the new session ID.
     let newSessionId: string | undefined;
     if (config) {
       newSessionId = randomUUID();

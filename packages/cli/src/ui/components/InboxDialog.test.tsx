@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import type {
   InboxSkill,
   InboxPatch,
   InboxMemoryPatch,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import {
   dismissInboxSkill,
   dismissInboxMemoryPatch,
@@ -23,7 +22,7 @@ import {
   dismissInboxPatch,
   applyInboxMemoryPatch,
   isProjectSkillPatchTarget,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { waitFor } from '../../test-utils/async.js';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { createMockSettings } from '../../test-utils/settings.js';
@@ -33,9 +32,8 @@ const altBufferSettings = createMockSettings({
   ui: { useAlternateBuffer: true },
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@plumb/core')>();
 
   return {
     ...original,

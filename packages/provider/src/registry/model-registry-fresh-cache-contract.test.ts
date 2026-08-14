@@ -1,13 +1,8 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Fresh cache contract: a fresh, authoritative, provider-matching, non-empty
- * on-disk cache must never be discarded merely because this cycle's live
- * discovery attempt came back empty/failed. This is the root-cause fix for
- * the GitHub Copilot "cache.model.count=79 but effective discovered count=0"
- * false-empty regression.
  */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlumbModel } from '../types.js';
 

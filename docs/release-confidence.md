@@ -1,8 +1,8 @@
 # Release confidence strategy
 
 This document outlines the strategy for gaining confidence in every release of
-Gemini CLI. It serves as a checklist and quality gate for release manager to
-ensure we are shipping a high-quality product.
+PLUMB. It serves as a checklist and quality gate for release manager to ensure
+we are shipping a high-quality product.
 
 ## The goal
 
@@ -42,8 +42,8 @@ All workflows in `.github/workflows/chained_e2e.yml` must pass.
 After a release is published to npm, the `smoke-test.yml` workflow runs. This
 must pass to confirm the package is installable and the binary is executable.
 
-- **Command:** `npx -y @google/gemini-cli@<tag> --version` must return the
-  correct version without error.
+- **Command:** `npx -y plumb-cli@<tag> --version` must return the correct
+  version without error.
 - **Platform:** Currently runs on `ubuntu-latest`.
 
 ## Level 2: Manual verification and dogfooding
@@ -59,7 +59,7 @@ The weekly release cadence promotes code from `main` -> `nightly` -> `preview`
   least **one week** before being promoted to `stable`.
 - **Action:** Maintainers should install the preview version locally:
   ```bash
-  npm install -g @google/gemini-cli@preview
+  npm install -g plumb-cli@preview
   ```
 - **Goal:** To catch regressions and UX issues in day-to-day usage before they
   reach the broad user base.
@@ -71,10 +71,9 @@ manually run through this checklist.
 
 - **Setup:**
 
-  - [ ] Uninstall any existing global version:
-        `npm uninstall -g @google/gemini-cli`
+  - [ ] Uninstall any existing global version: `npm uninstall -g plumb-cli`
   - [ ] Clear npx cache (optional but recommended): `npm cache clean --force`
-  - [ ] Install the preview version: `npm install -g @google/gemini-cli@preview`
+  - [ ] Install the preview version: `npm install -g plumb-cli@preview`
   - [ ] Verify version: `gemini --version`
 
 - **Authentication:**

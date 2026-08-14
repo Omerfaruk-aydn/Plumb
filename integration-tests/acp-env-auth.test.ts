@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -60,7 +59,7 @@ describe.skip('ACP Environment and Auth', () => {
         stdio: ['pipe', 'pipe', 'inherit'],
         env: {
           ...process.env,
-          GEMINI_CLI_HOME: rig.homeDir!,
+          PLUMB_CLI_HOME: rig.homeDir!,
           GEMINI_API_KEY: undefined,
           VERBOSE: 'true',
         },
@@ -125,7 +124,7 @@ describe.skip('ACP Environment and Auth', () => {
         stdio: ['pipe', 'pipe', 'inherit'],
         env: {
           ...process.env,
-          GEMINI_CLI_HOME: rig.homeDir!,
+          PLUMB_CLI_HOME: rig.homeDir!,
           GEMINI_API_KEY: undefined,
           VERBOSE: 'true',
         },

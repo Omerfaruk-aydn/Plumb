@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +16,7 @@ describe('PolicyIntegrityManager', () => {
   let integrityStoragePath: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-cli-test-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'plumb-test-'));
     integrityStoragePath = path.join(tempDir, 'policy_integrity.json');
 
     vi.spyOn(Storage, 'getPolicyIntegrityStoragePath').mockReturnValue(

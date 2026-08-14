@@ -1,18 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression: selecting provider = 'oci-genai' must
- * reach OCI's real, officially-documented Responses API endpoint
- * (https://inference.generativeai.{region}.oci.oraclecloud.com/openai/v1/responses)
- * through the real dispatch chain (catalog/model-catalog.ts ->
- * transports/streaming.ts's plumbModelStream -> the registered
- * 'oci-openai-responses' transport), carrying the real, required
- * opc-compartment-id/OpenAI-Project headers and Bearer credential (in
- * OCI_GENAI_API_KEY mode) -- never a generic openai.com request and never
- * a dropped project/compartment header.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';

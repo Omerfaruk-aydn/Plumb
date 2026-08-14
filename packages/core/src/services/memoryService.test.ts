@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -74,7 +73,7 @@ vi.mock('../agents/registry.js', () => ({
 vi.mock('../config/storage.js', () => ({
   Storage: {
     getUserSkillsDir: vi.fn().mockReturnValue('/tmp/fake-user-skills'),
-    getGlobalGeminiDir: vi.fn().mockReturnValue('/tmp/fake-global-gemini'),
+    getGlobalPlumbDir: vi.fn().mockReturnValue('/tmp/fake-global-gemini'),
   },
 }));
 
@@ -587,7 +586,7 @@ describe('memoryService', () => {
       await fs.mkdir(skillsDir, { recursive: true });
       await fs.mkdir(chatsDir, { recursive: true });
       await fs.mkdir(globalMemoryDir, { recursive: true });
-      vi.mocked(Storage.getGlobalGeminiDir).mockReturnValue(globalMemoryDir);
+      vi.mocked(Storage.getGlobalPlumbDir).mockReturnValue(globalMemoryDir);
 
       const conversation = createConversation({
         sessionId: 'inbox-only-session',
@@ -617,7 +616,7 @@ describe('memoryService', () => {
             path.join(inboxDir, 'global', 'reply-style.patch'),
             [
               `--- /dev/null`,
-              `+++ ${path.join(globalMemoryDir, 'GEMINI.md')}`,
+              `+++ ${path.join(globalMemoryDir, 'PLUMB.md')}`,
               `@@ -0,0 +1,1 @@`,
               `+Prefer concise architecture summaries.`,
               ``,

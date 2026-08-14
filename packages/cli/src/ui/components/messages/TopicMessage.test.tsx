@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import {
   TOPIC_PARAM_STRATEGIC_INTENT,
   CoreToolCallStatus,
   UPDATE_TOPIC_TOOL_NAME,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 describe('<TopicMessage />', () => {
   const baseArgs = {

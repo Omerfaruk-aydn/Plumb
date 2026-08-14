@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import type {
   AnyDeclarativeTool,
   AnyToolInvocation,
   UserFeedbackPayload,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import {
   ToolErrorType,
   GeminiEventType,
@@ -22,7 +21,7 @@ import {
   CoreEvent,
   CoreToolCallStatus,
   JsonStreamEventType,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { Part } from '@google/genai';
 import { runNonInteractive } from './nonInteractiveCliAgentSession.js';
 import {
@@ -56,9 +55,8 @@ const mockCoreEvents = vi.hoisted(() => ({
 
 const mockSchedulerSchedule = vi.hoisted(() => vi.fn());
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@plumb/core')>();
 
   class MockChatRecordingService {
     initialize = vi.fn();
@@ -277,7 +275,7 @@ describe('runNonInteractive', () => {
   });
 
   it('should stream the specific stream started by send', async () => {
-    const { LegacyAgentSession } = await import('@google/gemini-cli-core');
+    const { LegacyAgentSession } = await import('@plumb/core');
     const streamSpy = vi.spyOn(LegacyAgentSession.prototype, 'stream');
     const events: ServerGeminiStreamEvent[] = [
       { type: GeminiEventType.Content, value: 'Hello again' },
@@ -301,7 +299,7 @@ describe('runNonInteractive', () => {
   });
 
   it('fails fast if the session acknowledges a message send without a stream', async () => {
-    const { LegacyAgentSession } = await import('@google/gemini-cli-core');
+    const { LegacyAgentSession } = await import('@plumb/core');
     const sendSpy = vi
       .spyOn(LegacyAgentSession.prototype, 'send')
       .mockResolvedValue({ streamId: null });
@@ -1295,7 +1293,7 @@ describe('runNonInteractive', () => {
 
     // Cancellation will throw FatalCancellationError directly
 
-    const { LegacyAgentSession } = await import('@google/gemini-cli-core');
+    const { LegacyAgentSession } = await import('@plumb/core');
     const sendSpy = vi.spyOn(LegacyAgentSession.prototype, 'send');
 
     await expect(
@@ -1990,7 +1988,7 @@ describe('runNonInteractive', () => {
       .mockReturnValue('model-1');
 
     // Mock debugLogger.error
-    const { debugLogger } = await import('@google/gemini-cli-core');
+    const { debugLogger } = await import('@plumb/core');
     const debugLoggerErrorSpy = vi
       .spyOn(debugLogger, 'error')
       .mockImplementation(() => {});

@@ -1,8 +1,8 @@
 # Agent Client Protocol (ACP) Implementation
 
 This directory contains the implementation of the Agent Client Protocol (ACP)
-for the Gemini CLI. The ACP allows external clients (like IDE extensions) to
-communicate with the Gemini CLI agent over a structured JSON-RPC based protocol.
+for the PLUMB. The ACP allows external clients (like IDE extensions) to
+communicate with the PLUMB agent over a structured JSON-RPC based protocol.
 
 ## Directory Structure
 
@@ -50,17 +50,17 @@ To run specific tests, use Vitest with the workspace filter:
 
 ```bash
 # General pattern
-npm test -w @google/gemini-cli -- src/acp/<test-file-name>.ts
+npm test -w plumb-cli -- src/acp/<test-file-name>.ts
 
 # Example
-npm test -w @google/gemini-cli -- src/acp/acpRpcDispatcher.test.ts
+npm test -w plumb-cli -- src/acp/acpRpcDispatcher.test.ts
 ```
 
 Note: You may need to ensure your environment has Node available. If running in
 a restricted environment, try sourcing NVM first:
 
 ```bash
-source ~/.nvm/nvm.sh && nvm use default && npm test -w @google/gemini-cli -- src/acp/acpSession.test.ts
+source ~/.nvm/nvm.sh && nvm use default && npm test -w plumb-cli -- src/acp/acpSession.test.ts
 ```
 
 ### Adding New Features

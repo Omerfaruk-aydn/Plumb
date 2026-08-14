@@ -1,40 +1,14 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Task 6 Long Provider Switch Matrix:
- * Exercises 19 distinct provider authorities across coherent switch chains
- * asserting zero state leak, zero authority bleed, and zero residual headers
- * on round-trip returning to initial providers.
- *
- * Included Authorities:
- * 1. OpenAI
- * 2. Anthropic
- * 3. Gemini
- * 4. GitHub Copilot
- * 5. Claude Subscription (SDK boundary)
- * 6. Antigravity
- * 7. Bedrock
- * 8. Azure
- * 9. Vertex
- * 10. watsonx (SDK boundary)
- * 11. OCI
- * 12. Ollama
- * 13. LM Studio
- * 14. OpenRouter
- * 15. Portkey
- * 16. Cloudflare AI Gateway
- * 17. Custom OpenAI
- * 18. Custom Anthropic
- * 19. Custom Gemini
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { PlumbModelRegistry } from '../registry/model-registry.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import { registerPlumbCredentialStoreFactory } from '../auth/credential-store.js';
 import {
@@ -139,7 +113,7 @@ describe('Task 6 — Long Provider Switch Matrix', () => {
   ];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     registry = new PlumbModelRegistry();
     setCustomProviderDefinitions(CUSTOM_DEFINITIONS);

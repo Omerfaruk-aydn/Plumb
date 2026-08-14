@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,7 +23,7 @@ import {
 import { computeSessionStats } from '../utils/computeStats.js';
 import { useSettings } from '../contexts/SettingsContext.js';
 import type { QuotaStats } from '../types.js';
-import { LlmRole, getDisplayString } from '@google/gemini-cli-core';
+import { LlmRole, getDisplayString } from '@plumb/core';
 
 // A more flexible and powerful StatRow component
 interface StatRowProps {

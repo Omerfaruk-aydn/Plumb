@@ -1,14 +1,14 @@
 # Agent Skills
 
-Agent Skills let you extend Gemini CLI with specialized expertise, procedural
+Agent Skills let you extend PLUMB with specialized expertise, procedural
 workflows, and task-specific resources. Based on the
 [Agent Skills](https://agentskills.io) open standard, a "skill" is a
 self-contained directory that packages instructions and assets into a
 discoverable capability.
 
-Unlike general context files ([GEMINI.md](./gemini-md.md)), which provide
+Unlike general context files ([PLUMB.md](./gemini-md.md)), which provide
 persistent workspace-wide background, Skills represent **on-demand expertise**.
-This lets Gemini CLI maintain a vast library of specialized capabilities—such as
+This lets PLUMB maintain a vast library of specialized capabilities—such as
 security auditing, cloud deployments, or codebase migrations—without cluttering
 the model's immediate context window.
 
@@ -17,9 +17,9 @@ the model's immediate context window.
 The lifecycle of an Agent Skill involves discovery, activation, and conditional
 resource access.
 
-1.  **Discovery**: At the start of a session, Gemini CLI scans the discovery
-    tiers and injects the name and description of all enabled skills into the
-    system prompt.
+1.  **Discovery**: At the start of a session, PLUMB scans the discovery tiers
+    and injects the name and description of all enabled skills into the system
+    prompt.
 2.  **Activation**: When Gemini identifies a task matching a skill's
     description, it calls the `activate_skill` tool.
 3.  **Consent**: You will see a confirmation prompt in the UI detailing the
@@ -34,10 +34,10 @@ resource access.
 
 ## Discovery tiers
 
-Gemini CLI discovers skills from several locations, following a specific order
-of precedence (lowest to highest):
+PLUMB discovers skills from several locations, following a specific order of
+precedence (lowest to highest):
 
-1.  **Built-in skills**: Standard skills included with Gemini CLI that provide
+1.  **Built-in skills**: Standard skills included with PLUMB that provide
     foundational capabilities.
 2.  **Extension skills**: Skills bundled within installed
     [extensions](../extensions/index.md).

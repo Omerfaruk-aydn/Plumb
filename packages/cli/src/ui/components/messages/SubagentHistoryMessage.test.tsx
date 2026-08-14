@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { SubagentHistoryMessage } from './SubagentHistoryMessage.js';
 import type { HistoryItemSubagent } from '../../types.js';
-import { SubagentState } from '@google/gemini-cli-core';
+import { SubagentState } from '@plumb/core';
 
 describe('SubagentHistoryMessage', () => {
   const mockItem: HistoryItemSubagent = {

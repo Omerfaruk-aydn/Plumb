@@ -1,14 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { OmpAuthSchemaKeychainAdapter } from './omp-credential-adapter.js';
 import type {
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 describe('OmpAuthSchemaKeychainAdapter', () => {
   let adapter: OmpAuthSchemaKeychainAdapter;

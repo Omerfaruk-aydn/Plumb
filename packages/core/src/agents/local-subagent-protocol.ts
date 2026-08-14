@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview LocalSubagentProtocol — wraps LocalAgentExecutor behind the
- * AgentProtocol interface, translating SubagentActivityEvent callbacks into
- * AgentEvents and exposing the executor result via getResult().
- *
- * Pattern mirrors LegacyAgentProtocol, but the loop body runs
- * LocalAgentExecutor instead of GeminiClient.sendMessageStream().
  */
 
 import { randomUUID } from 'node:crypto';

@@ -1,7 +1,7 @@
 # Hooks reference
 
-This document provides the technical specification for Gemini CLI hooks,
-including JSON schemas and API details.
+This document provides the technical specification for PLUMB hooks, including
+JSON schemas and API details.
 
 ## Global hook mechanics
 
@@ -300,7 +300,7 @@ state saving.
 
 ## Stable Model API
 
-Gemini CLI uses these structures to ensure hooks don't break across SDK updates.
+PLUMB uses these structures to ensure hooks don't break across SDK updates.
 
 **LLMRequest**:
 

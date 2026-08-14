@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
-import { SubagentState } from '@google/gemini-cli-core';
+import { SubagentState } from '@plumb/core';
 import { SuggestionChips } from './SuggestionChips.js';
 import type { SessionEdit } from '../utils/sessionEditHistory.js';
 import type { AgentRun } from '../utils/sessionAgentActivity.js';

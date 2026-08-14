@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,27 +17,36 @@ import {
 
 describe('PLUMB Phase 3 Full-Frame RGB Wordmark Production Suite', () => {
   it('1. Welcome 80x24 full frame renders block wordmark', async () => {
-    const { lastFrame } = await renderWithProviders(<AppHeader version="1.0.0" />, {
-      uiState: { terminalWidth: 80 },
-    });
+    const { lastFrame } = await renderWithProviders(
+      <AppHeader version="1.0.0" />,
+      {
+        uiState: { terminalWidth: 80 },
+      },
+    );
     const frame = lastFrame();
     expect(frame).toContain('████');
     expect(frame).toContain('PLUMB CLI v1.0.0');
   });
 
   it('2. Welcome 120x36 full frame renders block wordmark', async () => {
-    const { lastFrame } = await renderWithProviders(<AppHeader version="1.0.0" />, {
-      uiState: { terminalWidth: 120 },
-    });
+    const { lastFrame } = await renderWithProviders(
+      <AppHeader version="1.0.0" />,
+      {
+        uiState: { terminalWidth: 120 },
+      },
+    );
     const frame = lastFrame();
     expect(frame).toContain('████');
     expect(frame).toContain('PLUMB CLI v1.0.0');
   });
 
   it('3. Welcome 160x50 full frame renders block wordmark', async () => {
-    const { lastFrame } = await renderWithProviders(<AppHeader version="1.0.0" />, {
-      uiState: { terminalWidth: 160 },
-    });
+    const { lastFrame } = await renderWithProviders(
+      <AppHeader version="1.0.0" />,
+      {
+        uiState: { terminalWidth: 160 },
+      },
+    );
     const frame = lastFrame();
     expect(frame).toContain('████');
     expect(frame).toContain('PLUMB CLI v1.0.0');
@@ -49,9 +57,12 @@ describe('PLUMB Phase 3 Full-Frame RGB Wordmark Production Suite', () => {
   });
 
   it('5. Narrow viewport (<60 cols) renders one-line PLUMB fallback without wrapping', async () => {
-    const { lastFrame } = await renderWithProviders(<AppHeader version="1.0.0" />, {
-      uiState: { terminalWidth: 40 },
-    });
+    const { lastFrame } = await renderWithProviders(
+      <AppHeader version="1.0.0" />,
+      {
+        uiState: { terminalWidth: 40 },
+      },
+    );
     const frame = lastFrame();
     expect(frame).toContain('PLUMB');
     expect(frame).not.toContain('████');

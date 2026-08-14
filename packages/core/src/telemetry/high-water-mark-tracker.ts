@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * High-water mark tracker for memory metrics
- * Only triggers when memory usage increases by a significant threshold
- */
 export class HighWaterMarkTracker {
   private waterMarks: Map<string, number> = new Map();
   private lastUpdateTimes: Map<string, number> = new Map();

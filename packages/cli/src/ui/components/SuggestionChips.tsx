@@ -1,18 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F11 (PLUMB-UI-DEVRIM-PROMPT.md) "next-action chips", scoped to a static
- * one-line hint rather than clickable/selectable chips: a real chip
- * widget would need its own keyboard focus mode, which risks stealing
- * keystrokes from the composer right after a response -- exactly when the
- * user is most likely about to type. Instead this surfaces the same
- * shortcuts F7 (alt+r, diff review) and F8 (alt+a, agent mission control)
- * already bound, scoped to just the turn that finished (via
- * getLastTurnHistoryItems), so it reads as a contextual suggestion
- * without adding a new interaction surface.
  */
+
 import type React from 'react';
 import { Text } from 'ink';
 import { theme } from '../semantic-colors.js';

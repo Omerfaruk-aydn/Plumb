@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { CommandModule } from 'yargs';
 import { migrateCommand } from './hooks/migrate.js';
-import { initializeOutputListenersAndFlush } from '../gemini.js';
+import { initializeOutputListenersAndFlush } from '../plumb.js';
 
 export const hooksCommand: CommandModule = {
   command: 'hooks <command>',

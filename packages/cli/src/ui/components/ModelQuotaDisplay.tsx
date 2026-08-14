@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import { Box, Text } from 'ink';
 import { ProgressBar } from './ProgressBar.js';
 import { theme } from '../semantic-colors.js';
 import { formatResetTime } from '../utils/formatters.js';
-import { getDisplayString } from '@google/gemini-cli-core';
+import { getDisplayString } from '@plumb/core';
 import { useConfig } from '../contexts/ConfigContext.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 

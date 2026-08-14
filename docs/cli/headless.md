@@ -1,7 +1,7 @@
 # Headless mode reference
 
-Headless mode provides a programmatic interface to Gemini CLI, returning
-structured text or JSON output without an interactive terminal UI.
+Headless mode provides a programmatic interface to PLUMB, returning structured
+text or JSON output without an interactive terminal UI.
 
 ## Technical reference
 

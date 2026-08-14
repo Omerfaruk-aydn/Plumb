@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F12 (PLUMB-UI-DEVRIM-PROMPT.md) idle screensaver: a real animated
- * "matrix flicker" -- each tick regenerates the pattern from a seed
- * derived from the activation seed plus the current frame number, via a
- * real setInterval. Same mechanism as GeminiSpinner/GradientStreamCursor
- * (useColorCycle): screen-reader disables it, and this component's own
- * test file mocks the animation rather than exercising the live
- * interval directly, since rendering a real repeating interval under
- * vi.useFakeTimers() hangs this project's test harness (Ink's async
- * render scheduling and the fake-timer-driven interval fight each
- * other -- confirmed empirically, see GradientStreamCursor.test.tsx).
  */
+
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Text, useIsScreenReaderEnabled } from 'ink';

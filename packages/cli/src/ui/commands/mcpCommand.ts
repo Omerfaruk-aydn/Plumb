@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import type {
   CommandContext,
 } from './types.js';
 import { CommandKind } from './types.js';
-import type { MessageActionReturn } from '@google/gemini-cli-core';
+import type { MessageActionReturn } from '@plumb/core';
 import {
   DiscoveredMCPTool,
   getMCPDiscoveryState,
@@ -22,7 +21,7 @@ import {
   mcpServerRequiresOAuth,
   CoreEvent,
   coreEvents,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 import { MessageType, type HistoryItemMcpStatus } from '../types.js';
 import {
@@ -113,7 +112,7 @@ const authCommand: SlashCommand = {
       });
 
       // Import dynamically to avoid circular dependencies
-      const { MCPOAuthProvider } = await import('@google/gemini-cli-core');
+      const { MCPOAuthProvider } = await import('@plumb/core');
 
       let oauthConfig = server.oauth;
       if (!oauthConfig) {

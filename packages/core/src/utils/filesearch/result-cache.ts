@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Implements an in-memory cache for file search results.
- * This cache optimizes subsequent searches by leveraging previously computed results.
- */
 export class ResultCache {
   private readonly cache: Map<string, string[]>;
   private hits = 0;

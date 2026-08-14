@@ -1,14 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
- 
+
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
- 
- 
 
 import { spawn, execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
@@ -108,10 +105,9 @@ export async function getCodexStatus(): Promise<CodexStatus> {
     try {
       const payload = parseJwtPayload(tokens.accessToken);
       if (payload) {
-        const auth = getJwtField(
-          payload,
-          'https://api.openai.com/auth',
-        ) as Record<string, unknown> | undefined;
+        const auth = getJwtField(payload, 'https://api.openai.com/auth') as
+          | Record<string, unknown>
+          | undefined;
         if (auth) {
           const pt = auth['chatgpt_plan_type'];
           if (typeof pt === 'string') planType = pt;

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import {
   type ConfigParameters,
   type SandboxConfig,
 } from './config.js';
-import { createMockSandboxConfig } from '@google/gemini-cli-test-utils';
+import { createMockSandboxConfig } from '@plumb/test-utils';
 import { DEFAULT_MAX_ATTEMPTS } from '../utils/retry.js';
 import { ExperimentFlags } from '../code_assist/experiments/flagNames.js';
 import { debugLogger } from '../utils/debugLogger.js';
@@ -33,7 +32,7 @@ import {
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { setGeminiMdFilename as mockSetGeminiMdFilename } from '../tools/memoryTool.js';
+import { setContextFilename as mockSetGeminiMdFilename } from '../tools/memoryTool.js';
 import {
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
@@ -147,8 +146,8 @@ vi.mock('../tools/memoryTool', async (importOriginal) => {
     await importOriginal<typeof import('../tools/memoryTool.js')>();
   return {
     ...actual,
-    setGeminiMdFilename: vi.fn(),
-    getCurrentGeminiMdFilename: vi.fn(() => 'GEMINI.md'),
+    setContextFilename: vi.fn(),
+    getCurrentContextFilename: vi.fn(() => 'PLUMB.md'),
   };
 });
 
@@ -279,7 +278,7 @@ describe('Server Config (config.ts)', () => {
   const MODEL = DEFAULT_GEMINI_MODEL;
   const SANDBOX: SandboxConfig = createMockSandboxConfig({
     command: 'docker',
-    image: 'gemini-cli-sandbox',
+    image: 'plumb-sandbox',
   });
   const TARGET_DIR = '/path/to/target';
   const DEBUG_MODE = false;
@@ -1021,7 +1020,7 @@ describe('Server Config (config.ts)', () => {
     expect(config.getUserMemory()).toBe('');
   });
 
-  it('Config constructor should call setGeminiMdFilename with contextFileName if provided', () => {
+  it('Config constructor should call setContextFilename with contextFileName if provided', () => {
     const contextFileName = 'CUSTOM_AGENTS.md';
     const paramsWithContextFile: ConfigParameters = {
       ...baseParams,
@@ -1031,7 +1030,7 @@ describe('Server Config (config.ts)', () => {
     expect(mockSetGeminiMdFilename).toHaveBeenCalledWith(contextFileName);
   });
 
-  it('Config constructor should not call setGeminiMdFilename if contextFileName is not provided', () => {
+  it('Config constructor should not call setContextFilename if contextFileName is not provided', () => {
     new Config(baseParams); // baseParams does not have contextFileName
     expect(mockSetGeminiMdFilename).not.toHaveBeenCalled();
   });
@@ -1159,7 +1158,7 @@ describe('Server Config (config.ts)', () => {
       ...baseParams,
       fileFiltering: {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
         customIgnoreFilePaths: ['.myignore'],
       },
     };
@@ -1171,7 +1170,7 @@ describe('Server Config (config.ts)', () => {
       path.resolve(TARGET_DIR),
       {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
         customIgnoreFilePaths: ['.myignore'],
       },
     );
@@ -2041,7 +2040,7 @@ describe('GemmaModelRouterSettings', () => {
   const MODEL = DEFAULT_GEMINI_MODEL;
   const SANDBOX: SandboxConfig = createMockSandboxConfig({
     command: 'docker',
-    image: 'gemini-cli-sandbox',
+    image: 'plumb-sandbox',
   });
   const TARGET_DIR = '/path/to/target';
   const DEBUG_MODE = false;
@@ -2435,7 +2434,7 @@ describe('BaseLlmClient Lifecycle', () => {
   const MODEL = 'gemini-pro';
   const SANDBOX: SandboxConfig = createMockSandboxConfig({
     command: 'docker',
-    image: 'gemini-cli-sandbox',
+    image: 'plumb-sandbox',
   });
   const TARGET_DIR = '/path/to/target';
   const DEBUG_MODE = false;
@@ -2500,7 +2499,7 @@ describe('Generation Config Merging (HACK)', () => {
   const MODEL = 'gemini-pro';
   const SANDBOX: SandboxConfig = createMockSandboxConfig({
     command: 'docker',
-    image: 'gemini-cli-sandbox',
+    image: 'plumb-sandbox',
   });
   const TARGET_DIR = '/path/to/target';
   const DEBUG_MODE = false;
@@ -2816,7 +2815,7 @@ describe('LocalLiteRtLmClient Lifecycle', () => {
   const MODEL = 'gemini-pro';
   const SANDBOX: SandboxConfig = createMockSandboxConfig({
     command: 'docker',
-    image: 'gemini-cli-sandbox',
+    image: 'plumb-sandbox',
   });
   const TARGET_DIR = '/path/to/target';
   const DEBUG_MODE = false;
@@ -3136,7 +3135,7 @@ describe('Config Quota & Preview Model Access', () => {
       allowedPaths: [],
       networkAccess: false,
       command: 'docker',
-      image: 'gemini-cli-sandbox',
+      image: 'plumb-sandbox',
     },
   };
 
@@ -3562,7 +3561,7 @@ describe('Config JIT Initialization', () => {
         .fn()
         .mockReturnValue('Environment Memory\n\nMCP Instructions'),
       getUserProjectMemory: vi.fn().mockReturnValue(''),
-      getLoadedPaths: vi.fn().mockReturnValue(new Set(['/path/to/GEMINI.md'])),
+      getLoadedPaths: vi.fn().mockReturnValue(new Set(['/path/to/PLUMB.md'])),
     } as unknown as MemoryContextManager;
     (MemoryContextManager as unknown as Mock).mockImplementation(
       () => mockMemoryContextManager,
@@ -3618,14 +3617,14 @@ describe('Config JIT Initialization', () => {
 
     // Verify state update (delegated to MemoryContextManager)
     expect(config.getGeminiMdFileCount()).toBe(1);
-    expect(config.getGeminiMdFilePaths()).toEqual(['/path/to/GEMINI.md']);
+    expect(config.getGeminiMdFilePaths()).toEqual(['/path/to/PLUMB.md']);
   });
 
   describe('memory path access', () => {
     it('should NOT add the global ~/.gemini directory to the workspace', async () => {
       // Memory does not broaden the workspace to include the global ~/.gemini/
       // directory. Cross-project personal preferences are routed to
-      // ~/.gemini/GEMINI.md via the surgical isPathAllowed allowlist instead.
+      // ~/.gemini/PLUMB.md via the surgical isPathAllowed allowlist instead.
       const params: ConfigParameters = {
         sessionId: 'test-session',
         targetDir: '/tmp/test',
@@ -3638,12 +3637,12 @@ describe('Config JIT Initialization', () => {
       await config.initialize();
 
       const directories = config.getWorkspaceContext().getDirectories();
-      expect(directories).not.toContain(Storage.getGlobalGeminiDir());
+      expect(directories).not.toContain(Storage.getGlobalPlumbDir());
     });
 
-    it('should allow isPathAllowed to write the global ~/.gemini/GEMINI.md file', async () => {
+    it('should allow isPathAllowed to write the global ~/.gemini/PLUMB.md file', async () => {
       // Surgical allowlist: the prompt routes cross-project personal
-      // preferences to ~/.gemini/GEMINI.md, so the agent must be able to edit
+      // preferences to ~/.gemini/PLUMB.md, so the agent must be able to edit
       // that exact file via edit/write_file.
       const params: ConfigParameters = {
         sessionId: 'test-session',
@@ -3657,14 +3656,14 @@ describe('Config JIT Initialization', () => {
       await config.initialize();
 
       const globalGeminiMdPath = path.join(
-        Storage.getGlobalGeminiDir(),
-        'GEMINI.md',
+        Storage.getGlobalPlumbDir(),
+        'PLUMB.md',
       );
       expect(config.isPathAllowed(globalGeminiMdPath)).toBe(true);
     });
 
     it('should NOT allow isPathAllowed to write other files under ~/.gemini/ (least privilege)', async () => {
-      // The allowlist is surgical: only ~/.gemini/GEMINI.md is reachable.
+      // The allowlist is surgical: only ~/.gemini/PLUMB.md is reachable.
       // settings.json, keybindings.json, credentials, etc. remain disallowed.
       const params: ConfigParameters = {
         sessionId: 'test-session',
@@ -3677,7 +3676,7 @@ describe('Config JIT Initialization', () => {
       config = new Config(params);
       await config.initialize();
 
-      const globalDir = Storage.getGlobalGeminiDir();
+      const globalDir = Storage.getGlobalPlumbDir();
       expect(config.isPathAllowed(path.join(globalDir, 'settings.json'))).toBe(
         false,
       );
@@ -3866,7 +3865,7 @@ describe('Config JIT Initialization', () => {
       );
       const activeMemoryPath = path.join(fakeMemoryTempDir, 'MEMORY.md');
       const projectTempPath = path.join(fakeProjectTempDir, 'logs', 'run.log');
-      const workspaceMemoryPath = path.join('/tmp/test', 'GEMINI.md');
+      const workspaceMemoryPath = path.join('/tmp/test', 'PLUMB.md');
 
       expect(config.validatePathAccess(activeMemoryPath)).toBeNull();
 

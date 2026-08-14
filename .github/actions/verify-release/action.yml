@@ -5,7 +5,7 @@ inputs:
   npm-package:
     description: 'NPM Package'
     required: true
-    default: '@google/gemini-cli@latest'
+    default: 'plumb-cli@latest'
   npm-registry-url:
     description: 'NPM Registry URL'
     required: true
@@ -92,10 +92,10 @@ runs:
       working-directory: '${{ inputs.working-directory }}'
       env:
         GEMINI_API_KEY: '${{ inputs.gemini_api_key }}'
-        GEMINI_CLI_TRUST_WORKSPACE: true
+        PLUMB_TRUST_WORKSPACE: true
         INTEGRATION_TEST_USE_INSTALLED_GEMINI: 'true'
         # We must diable CI mode here because it interferes with interactive tests.
-        # See https://github.com/google-gemini/gemini-cli/issues/10517
+        # See prior investigation notes for this CI-mode interactive-test conflict
         CI: 'false'
       shell: 'bash'
       run: |

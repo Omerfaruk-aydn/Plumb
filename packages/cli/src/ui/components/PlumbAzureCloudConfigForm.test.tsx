@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real interaction tests for the Azure OpenAI configuration screen --
- * first-class deployment-list management (Add/Edit/Remove), never a raw
- * comma-separated env-string editor. Only the persistence boundary
- * (azureCloudConfigActions.js) is mocked.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import type React from 'react';

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -48,9 +47,8 @@ const {
   },
 }));
 
-vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+vi.mock('@plumb/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/provider')>();
   return {
     // Keep the honest classification helpers (classifyBatchResult,
     // computeBatchBreakdown, resolveLiveModelAuthority) REAL so the batch
@@ -168,7 +166,7 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   writeToStdout: vi.fn((value: string) => output.push(value)),
   Config: class {},
   CANONICAL_NO_ARGS_SCHEMA: {},

@@ -1,11 +1,11 @@
 # ACP Mode
 
-ACP (Agent Client Protocol) mode is a special operational mode of Gemini CLI
-designed for programmatic control, primarily for IDE and other developer tool
+ACP (Agent Client Protocol) mode is a special operational mode of PLUMB designed
+for programmatic control, primarily for IDE and other developer tool
 integrations. It uses a JSON-RPC protocol over stdio to communicate between
-Gemini CLI agent and a client.
+PLUMB agent and a client.
 
-To start Gemini CLI in ACP mode, use the `--acp` flag:
+To start PLUMB in ACP mode, use the `--acp` flag:
 
 ```bash
 gemini --acp
@@ -27,8 +27,8 @@ documentation.
 ### Existing integrations using ACP
 
 The ACP Agent Registry simplifies the distribution and management of
-ACP-compatible agents across various IDEs. Gemini CLI is an ACP-compatible agent
-and can be found in this registry.
+ACP-compatible agents across various IDEs. PLUMB is an ACP-compatible agent and
+can be found in this registry.
 
 For more general information about the registry, and how to use it with specific
 IDEs like JetBrains and Zed, refer to the
@@ -40,14 +40,14 @@ You can also find more information on the official
 ## Architecture and protocol basics
 
 ACP mode establishes a client-server relationship between your tool (the client)
-and Gemini CLI (the server).
+and PLUMB (the server).
 
 - **Communication:** The entire communication happens over standard input/output
   (stdio) using the JSON-RPC 2.0 protocol.
 - **Client's role:** The client is responsible for sending requests (for
-  example, prompts) and handling responses and notifications from Gemini CLI.
-- **Gemini CLI's role:** In ACP mode, Gemini CLI listens for incoming JSON-RPC
-  requests, processes them, and sends back responses.
+  example, prompts) and handling responses and notifications from PLUMB.
+- **PLUMB's role:** In ACP mode, PLUMB listens for incoming JSON-RPC requests,
+  processes them, and sends back responses.
 
 The core of the ACP implementation can be found in
 `packages/cli/src/acp/acpClient.ts`.
@@ -61,10 +61,10 @@ use.
 1.  The client implements an **MCP server** that advertises its tools.
 2.  During the ACP `initialize` handshake, the client provides the connection
     details for its MCP server.
-3.  Gemini CLI connects to the MCP server, discovers the available tools, and
-    makes them available to the AI model.
-4.  When the model decides to use one of these tools, Gemini CLI sends a tool
-    call request to the MCP server.
+3.  PLUMB connects to the MCP server, discovers the available tools, and makes
+    them available to the AI model.
+4.  When the model decides to use one of these tools, PLUMB sends a tool call
+    request to the MCP server.
 
 This mechanism lets for a powerful, two-way integration where the agent can
 leverage the IDE's capabilities to perform tasks. The MCP client logic is in
@@ -73,7 +73,7 @@ leverage the IDE's capabilities to perform tasks. The MCP client logic is in
 ## Capabilities and supported methods
 
 The ACP protocol exposes a number of methods for ACP clients (for example IDEs)
-to control Gemini CLI.
+to control PLUMB.
 
 ### Core methods
 
@@ -105,7 +105,7 @@ debugging logs and telemetry.
 
 ### Debugging logs
 
-To enable general debugging logs, start Gemini CLI with the `--debug` flag:
+To enable general debugging logs, start PLUMB with the `--debug` flag:
 
 ```bash
 gemini --acp --debug

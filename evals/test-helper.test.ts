@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,10 +7,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { internalEvalTest } from './test-helper.js';
-import { TestRig } from '@google/gemini-cli-test-utils';
+import { TestRig } from '@plumb/test-utils';
 
 // Mock TestRig to control API success/failure
-vi.mock('@google/gemini-cli-test-utils', () => {
+vi.mock('@plumb/test-utils', () => {
   return {
     TestRig: vi.fn().mockImplementation(() => ({
       setup: vi.fn(),

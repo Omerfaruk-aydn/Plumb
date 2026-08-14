@@ -1,10 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider-neutral OpenAI Responses transport. Route policy remains on the
- * resolved PlumbModel; this module owns only the native Responses wire shape.
  */
 
 import type {

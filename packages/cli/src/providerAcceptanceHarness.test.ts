@@ -1,30 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
- */
-
-/**
- * Regression tests for the provider acceptance harness.
- *
- * Proves (Phase 9 list):
- *  1. startup output bypasses the report collector
- *  2. startup output is visible before provider.login resolves
- *  3. URL/code output is visible before token polling
- *  4. heartbeat writes newline-terminated visible output
- *  5. heartbeat is stopped before final output
- *  6. no heartbeat write occurs after cancellation
- *  7. trace is not buffered until cleanup
- *  8. normal mode contains no trace.stage output
- *  9. safe trace mode streams stages immediately
- * 10. final report is emitted once
- * 11. final report cannot be concatenated with heartbeat text
- * 12. cancellation handlers are detached
- * 13. terminal restoration occurs once
- * 14. Windows ConPTY receives output before Ctrl+C (integration test file)
- * 15. API/NVIDIA/local/custom routes remain unchanged
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -165,7 +141,7 @@ const GATEWAY_PROVIDER_FIXTURES: Record<
 const CUSTOM_PROVIDER_ID = 'custom:123e4567-e89b-42d3-a456-426614174000';
 
 // Mock the provider module
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   installBunGlobal: vi.fn(),
   resolveProviderAlias: (id: string) => id,
   isCustomProviderId: (id: string) => id.startsWith('custom:'),

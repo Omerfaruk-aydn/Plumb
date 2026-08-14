@@ -1,32 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OMP-derived provider catalog (THIN OMP → PLUMB projection facade).
- *
- * The authoritative provider inventory — which providers exist, their names,
- * availability, default models, env vars, OAuth capability, and
- * allow-unauthenticated state — comes from the imported OMP runtime:
- *   - `PROVIDER_REGISTRY` (omp-ai/registry/registry.ts): per-provider auth
- *     wiring (id, name, available, login/refresh flows, env keys, callback
- *     port, paste-code flag).
- *   - `CATALOG_PROVIDERS` (omp-catalog/provider-models/descriptors.ts):
- *     per-provider model-catalog metadata (default model, env vars,
- *     allow-unauthenticated, dynamic-models-authoritative).
- *
- * This module is NOT an independent provider inventory. It only:
- *   1. resolves PLUMB ids to their OMP backing (aliases + PLUMB-only
- *      synthetics are declared explicitly);
- *   2. projects OMP fields onto the PLUMB `PlumbProvider` shape;
- *   3. overlays PLUMB-only presentation (category, group, order,
- *      description, auth-method UX labels) that have no OMP counterpart.
- *
- * Upstream source: https://github.com/can1357/oh-my-pi.git
- * Upstream SHA: 4df68d60438423b384b2b47fb3d6835641624757
- * Upstream source: packages/ai/src/registry/registry.ts
- * Upstream source: packages/catalog/src/provider-models/descriptors.ts
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
  */
 
 import type { PlumbProvider, PlumbProviderId } from '../types.js';
@@ -34,9 +8,9 @@ import { PlumbProviderCategory, type PlumbAuthMethod } from '../types.js';
 import {
   PROVIDER_REGISTRY,
   getProviderDefinition,
-} from '../omp-ai/registry/registry.js';
-import type { ProviderDefinition } from '../omp-ai/registry/types.js';
-import { getCatalogProviderEntry } from '../omp-catalog/provider-models/descriptors.js';
+} from '../vendor-ai/registry/registry.js';
+import type { ProviderDefinition } from '../vendor-ai/registry/types.js';
+import { getCatalogProviderEntry } from '../vendor-catalog/provider-models/descriptors.js';
 import {
   customDefinitionToProvider,
   getCustomProviderDefinition,
@@ -114,7 +88,7 @@ const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
  * an upstream *policy* block — the flow works technically but its continued
  * use would violate Anthropic's Consumer Terms of Service.
  *
- * `anthropic`: OMP's registry OAuth flow (omp-ai/registry/anthropic.ts,
+ * `anthropic`: OMP's registry OAuth flow (vendor-ai/registry/anthropic.ts,
  * port 54545 paste-code) authenticates using Claude Code's own OAuth client
  * id and then uses the resulting subscription-scoped token as a generic
  * chat credential — not the Agent SDK. Per Anthropic's official policy
@@ -610,7 +584,7 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     order: 23,
     description: 'AWS Bedrock managed inference',
     // Real credential is the standard AWS credential chain (see
-    // omp-ai/providers/aws-credentials.ts): AWS_ACCESS_KEY_ID +
+    // vendor-ai/providers/aws-credentials.ts): AWS_ACCESS_KEY_ID +
     // AWS_SECRET_ACCESS_KEY (or AWS_PROFILE, or AWS_BEARER_TOKEN_BEDROCK),
     // plus AWS_REGION for region routing. There is no PLUMB-collected API
     // key -- these are ambient environment variables the user sets outside

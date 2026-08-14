@@ -1,18 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview This script downloads pre-built ripgrep binaries for all supported
- * architectures and platforms. These binaries are checked into the repository
- * under packages/core/vendor/ripgrep.
- *
- * Maintainers should periodically run this script to upgrade the version
- * of ripgrep being distributed.
- *
- * Usage: npx tsx scripts/download-ripgrep-binaries.ts
  */
 
 import fs from 'node:fs';

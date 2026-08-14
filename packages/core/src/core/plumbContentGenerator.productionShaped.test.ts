@@ -1,22 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression for the normal-chat/live-probe Antigravity
- * envelope divergence: unlike plumbContentGenerator.test.ts (which mocks
- * `@google/gemini-cli-provider` entirely), this exercises the REAL provider
- * package — real catalog lookup, real buildRequest, real
- * googleCloudCodeAssistStream — through the same object lifecycle normal
- * chat uses:
- *
- *   PlumbContentGenerator#doStream -> plumbModelStream ->
- *   googleCloudCodeAssistStream -> fetch
- *
- * Only two things are stubbed, both unavoidably (no real OAuth store /
- * network in unit tests): credential resolution and global fetch. Nothing
- * about PlumbContentGenerator, the model registry/catalog, or the
- * Antigravity request builder is mocked.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -32,7 +16,7 @@ const validOAuthCredential = {
   projectId: 'my-real-gcp-project',
 };
 
-vi.mock('@google/gemini-cli-provider/dist/auth/credential-resolver.js', () => ({
+vi.mock('@plumb/provider/dist/auth/credential-resolver.js', () => ({
   resolveUsablePlumbCredential: vi.fn(async () => ({
     classification: 'VALID_CREDENTIAL',
     credential: validOAuthCredential,
@@ -446,7 +430,7 @@ describe('PlumbContentGenerator — production-shaped Antigravity normal-chat en
       expect(inner.contents).toHaveLength(1);
       // The Cloud Code Assist Stream endpoint does not support top-level
       // request.tools for Claude models on Antigravity (see
-      // buildRequest in omp-ai/providers/google-gemini-cli.ts -- sending it
+      // buildRequest in vendor-ai/providers/plumbGoogleGeminiCli.ts -- sending it
       // produced a real HTTP 400). Tool availability is instead signaled
       // only through toolConfig.functionCallingConfig.mode: 'VALIDATED'.
       expect(inner.tools).toBeUndefined();

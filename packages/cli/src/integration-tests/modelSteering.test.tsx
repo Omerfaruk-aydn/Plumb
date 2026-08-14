@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { describe, it, afterEach } from 'vitest';
 import { AppRig } from '../test-utils/AppRig.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PolicyDecision } from '@google/gemini-cli-core';
+import { PolicyDecision } from '@plumb/core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

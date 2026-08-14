@@ -1,6 +1,6 @@
-# Gemini 3 Pro and Gemini 3 Flash on Gemini CLI
+# Gemini 3 Pro and Gemini 3 Flash on PLUMB
 
-Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on Gemini CLI.
+Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on PLUMB.
 
 <!-- prettier-ignore -->
 > [!NOTE]
@@ -19,12 +19,12 @@ Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on Gemini CLI.
 > Learn more about [models](../cli/model.md) and
 > [model routing](../cli/model-routing.md).
 
-## How to get started with Gemini 3 on Gemini CLI
+## How to get started with Gemini 3 on PLUMB
 
-Get started by upgrading Gemini CLI to the latest version:
+Get started by upgrading PLUMB to the latest version:
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g plumb-cli@latest
 ```
 
 If your version is 0.21.1 or later:
@@ -32,14 +32,14 @@ If your version is 0.21.1 or later:
 1. Run `/model`.
 2. Select **Auto (Gemini 3)**.
 
-For more information, see [Gemini CLI model selection](../cli/model.md).
+For more information, see [PLUMB model selection](../cli/model.md).
 
 ### Usage limits and fallback
 
-Gemini CLI will tell you when you reach your Gemini 3 Pro daily usage limit.
-When you encounter that limit, you’ll be given the option to switch to Gemini
-2.5 Pro, upgrade for higher limits, or stop. You’ll also be told when your usage
-limit resets and Gemini 3 Pro can be used again.
+PLUMB will tell you when you reach your Gemini 3 Pro daily usage limit. When you
+encounter that limit, you’ll be given the option to switch to Gemini 2.5 Pro,
+upgrade for higher limits, or stop. You’ll also be told when your usage limit
+resets and Gemini 3 Pro can be used again.
 
 <!-- prettier-ignore -->
 > [!TIP]
@@ -53,8 +53,8 @@ a message prompting fallback to Gemini 2.5 Flash.
 ### Capacity errors
 
 There may be times when the Gemini 3 Pro model is overloaded. When that happens,
-Gemini CLI will ask you to decide whether you want to keep trying Gemini 3 Pro
-or fallback to Gemini 2.5 Pro.
+PLUMB will ask you to decide whether you want to keep trying Gemini 3 Pro or
+fallback to Gemini 2.5 Pro.
 
 <!-- prettier-ignore -->
 > [!NOTE]
@@ -65,8 +65,8 @@ or fallback to Gemini 2.5 Pro.
 
 ### Model selection and routing types
 
-When using Gemini CLI, you may want to control how your requests are routed
-between models. By default, Gemini CLI uses **Auto** routing.
+When using PLUMB, you may want to control how your requests are routed between
+models. By default, PLUMB uses **Auto** routing.
 
 When using Gemini 3 Pro, you may want to use Auto routing or Pro routing to
 manage your usage limits:
@@ -76,17 +76,17 @@ manage your usage limits:
   Gemini 2.5 Flash. For complex prompts, if Gemini 3 Pro is enabled, it will use
   Gemini 3 Pro; otherwise, it will use Gemini 2.5 Pro.
 - **Pro routing:** If you want to ensure your task is processed by the most
-  capable model, use `/model` and select **Pro**. Gemini CLI will prioritize the
-  most capable model available, including Gemini 3 Pro if it has been enabled.
+  capable model, use `/model` and select **Pro**. PLUMB will prioritize the most
+  capable model available, including Gemini 3 Pro if it has been enabled.
 
 To learn more about selecting a model and routing, refer to
-[Gemini CLI Model Selection](../cli/model.md).
+[PLUMB Model Selection](../cli/model.md).
 
-## How to enable Gemini 3 with Gemini CLI on Gemini Code Assist
+## How to enable Gemini 3 with PLUMB on Gemini Code Assist
 
 If you're using Gemini Code Assist Standard or Gemini Code Assist Enterprise,
-enabling Gemini 3 Pro on Gemini CLI requires configuring your release channels.
-Using Gemini 3 Pro will require two steps: administrative enablement and user
+enabling Gemini 3 Pro on PLUMB requires configuring your release channels. Using
+Gemini 3 Pro will require two steps: administrative enablement and user
 enablement.
 
 To learn more about these settings, refer to
@@ -97,8 +97,7 @@ To learn more about these settings, refer to
 An administrator with **Google Cloud Settings Admin** permissions must follow
 these directions:
 
-- Navigate to the Google Cloud Project you're using with Gemini CLI for Code
-  Assist.
+- Navigate to the Google Cloud Project you're using with PLUMB for Code Assist.
 - Go to **Admin for Gemini** > **Settings**.
 - Under **Release channels for Gemini Code Assist in local IDEs** select
   **Preview**.
@@ -109,11 +108,11 @@ these directions:
 Wait for two to three minutes after your administrator has enabled **Preview**,
 then:
 
-- Open Gemini CLI.
+- Open PLUMB.
 - Use the `/settings` command.
 - Set **Preview Features** to `true`.
 
-Restart Gemini CLI and you should have access to Gemini 3.
+Restart PLUMB and you should have access to Gemini 3.
 
 ## Next steps
 

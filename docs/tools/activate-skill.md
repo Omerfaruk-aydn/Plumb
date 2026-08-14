@@ -1,14 +1,14 @@
 # Activate skill tool (`activate_skill`)
 
-The `activate_skill` tool lets Gemini CLI load specialized procedural expertise
-and resources when they are relevant to your request.
+The `activate_skill` tool lets PLUMB load specialized procedural expertise and
+resources when they are relevant to your request.
 
 ## Description
 
 Skills are packages of instructions and tools designed for specific engineering
-tasks, such as reviewing code or creating pull requests. Gemini CLI uses this
-tool to "activate" a skill, which provides it with detailed guidelines and
-specialized tools tailored to that task.
+tasks, such as reviewing code or creating pull requests. PLUMB uses this tool to
+"activate" a skill, which provides it with detailed guidelines and specialized
+tools tailored to that task.
 
 ### Arguments
 

@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F14 (PLUMB-UI-DEVRIM-PROMPT.md): terminal graphics protocol detection
- * and encoding. Pure, side-effect-free functions -- the component that
- * actually emits these sequences (InlineImage.tsx) is where the real,
- * genuinely hard-to-verify-from-here risk lives (see its doc comment).
- * This file only decides "can we, and what bytes would we send."
  */
 
 export type ImageProtocol = 'kitty' | 'iterm2' | 'none';

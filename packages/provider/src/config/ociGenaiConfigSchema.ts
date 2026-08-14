@@ -1,19 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI Generative AI provider configuration domain schema: the typed field
- * definitions, conditional visibility, and canonical validation for
- * PLUMB's in-app OCI setup UX. This is intentionally the ONLY place OCI's
- * configuration rules live -- the Ink UI (packages/cli) renders these
- * field definitions and displays validation results; it must never
- * reimplement "if provider === 'oci' && authMode === ..." logic itself,
- * or the UI and this module can drift.
- *
- * Reference implementation for the other four cloud providers' schemas
- * (Bedrock/Azure/Vertex/watsonx), which follow the same
- * CloudConfigFieldDef/CloudAuthModeDef/CloudProviderConfigSchema shape.
  */
 
 export type {

@@ -1,0 +1,100 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generateCompletion > emits a stable script for bash (snapshot) 1`] = `
+"# PLUMB bash completion
+# Install: eval "$(plumb completions bash)"
+_plumb_completions() {
+  local cur prev
+  cur="\${COMP_WORDS[COMP_CWORD]}"
+  prev="\${COMP_WORDS[COMP_CWORD-1]}"
+
+  local -a plumb_flags=('--model' '--resume' '--yolo' '/help' '/model' '/stats session')
+  local -a plumb_models=('gemini-pro' 'gemini-flash')
+  local -a plumb_sessions=('session-abc123')
+
+  local -a candidates=()
+  case "$prev" in
+    --model)
+      candidates=("\${plumb_models[@]}")
+      ;;
+    --resume)
+      candidates=("\${plumb_sessions[@]}")
+      ;;
+    *)
+      candidates=("\${plumb_flags[@]}")
+      ;;
+  esac
+
+  COMPREPLY=()
+  local item
+  for item in "\${candidates[@]}"; do
+    if [[ "$item" == "$cur"* ]]; then
+      COMPREPLY+=("$item")
+    fi
+  done
+}
+complete -F _plumb_completions plumb
+"
+`;
+
+exports[`generateCompletion > emits a stable script for fish (snapshot) 1`] = `
+"# PLUMB fish completion
+# Install: plumb completions fish | source
+complete -c plumb -f -a '--model' '--resume' '--yolo' '/help' '/model' '/stats session'
+complete -c plumb -n '__fish_seen_argument -l model' -f -a 'gemini-pro' 'gemini-flash'
+complete -c plumb -n '__fish_seen_argument -l resume' -f -a 'session-abc123'
+"
+`;
+
+exports[`generateCompletion > emits a stable script for powershell (snapshot) 1`] = `
+"# PLUMB PowerShell completion
+# Install: plumb completions powershell | Out-String | Invoke-Expression
+Register-ArgumentCompleter -Native -CommandName plumb -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition)
+
+    $plumbFlags = @('--model', '--resume', '--yolo', '/help', '/model', '/stats session')
+    $plumbModels = @('gemini-pro', 'gemini-flash')
+    $plumbSessions = @('session-abc123')
+
+    $elements = $commandAst.CommandElements
+    $prev = if ($elements.Count -ge 2) { $elements[$elements.Count - 2].Extent.Text } else { '' }
+
+    $candidates = switch ($prev) {
+        '--model' { $plumbModels }
+        '--resume' { $plumbSessions }
+        default { $plumbFlags }
+    }
+
+    $candidates | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+    }
+}
+"
+`;
+
+exports[`generateCompletion > emits a stable script for zsh (snapshot) 1`] = `
+"#compdef plumb
+# PLUMB zsh completion
+# Install: eval "$(plumb completions zsh)"
+_plumb() {
+  local -a plumb_flags plumb_models plumb_sessions
+  plumb_flags=('--model' '--resume' '--yolo' '/help' '/model' '/stats session')
+  plumb_models=('gemini-pro' 'gemini-flash')
+  plumb_sessions=('session-abc123')
+
+  case "\${words[CURRENT-1]}" in
+    --model)
+      compadd -a plumb_models
+      return
+      ;;
+    --resume)
+      compadd -a plumb_sessions
+      return
+      ;;
+  esac
+
+  compadd -a plumb_flags
+}
+_plumb "$@"
+"
+`;

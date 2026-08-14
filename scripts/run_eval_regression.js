@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Orchestrates the PR evaluation process across multiple models.
- *
- * This script loops through a provided list of models, identifies trustworthy
- * tests for each, executes the frugal regression check, and collects results
- * into a single unified report. It exits with code 1 if any confirmed
- * regressions are detected.
  */
 
 import { execSync } from 'node:child_process';

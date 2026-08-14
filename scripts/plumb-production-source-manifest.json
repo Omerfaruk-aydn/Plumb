@@ -5,7 +5,7 @@
   "metadata": {
     "generated_at": "2026-07-30T21:40:00Z",
     "product": "PLUMB",
-    "architecture_foundation": "Google Gemini CLI full working source tree and Ink/React terminal runtime"
+    "architecture_foundation": "Google PLUMB full working source tree and Ink/React terminal runtime"
   },
   "sources": [
     {
@@ -50,14 +50,8 @@
         "GEMINI_": "PLUMB_"
       },
       "production_consumer": "PLUMB CLI binary and runtime",
-      "upstream_tests": [
-        "npm run test",
-        "npm run test:scripts"
-      ],
-      "local_tests": [
-        "npm run test",
-        "npm run test:scripts"
-      ],
+      "upstream_tests": ["npm run test", "npm run test:scripts"],
+      "local_tests": ["npm run test", "npm run test:scripts"],
       "commit_sha": "dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9",
       "status": "ACTIVE_BASE"
     },
@@ -68,11 +62,7 @@
       "remote_url": "https://github.com/QwenLM/qwen-code.git",
       "full_commit_sha": "584f6a4bec686e641e48e0ba819ef9d308f9dccc",
       "tag": "v0.1.0",
-      "source_paths": [
-        "src/ui/diff",
-        "src/ui/checkpoint",
-        "src/ui/statusline"
-      ],
+      "source_paths": ["src/ui/diff", "src/ui/checkpoint", "src/ui/statusline"],
       "source_hashes": {
         "LICENSE": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD"
       },
@@ -80,10 +70,7 @@
       "license_hash": "58D1E17FFE5109A7AE296CAAFCADFDBE6A7D176F0BC4AB01E12A689B0499D8BD",
       "notice_path": "THIRD_PARTY_NOTICES.md",
       "source_runtime": "Node.js / TypeScript / Ink",
-      "dependency_closure": [
-        "ink",
-        "react"
-      ],
+      "dependency_closure": ["ink", "react"],
       "destination_paths": [
         "packages/core/src/qwen-diff",
         "packages/core/src/qwen-checkpoint"
@@ -93,12 +80,8 @@
         "qwen": "plumb"
       },
       "production_consumer": "PLUMB Diff and Checkpoint UI components",
-      "upstream_tests": [
-        "npm run test"
-      ],
-      "local_tests": [
-        "packages/core/src/qwen-diff/__tests__"
-      ],
+      "upstream_tests": ["npm run test"],
+      "local_tests": ["packages/core/src/qwen-diff/__tests__"],
       "commit_sha": "584f6a4bec686e641e48e0ba819ef9d308f9dccc",
       "status": "PINNED_NOT_IMPORTED"
     },
@@ -123,20 +106,14 @@
       "notice_path": "THIRD_PARTY_NOTICES.md",
       "source_runtime": "TypeScript / Bun / Native C++",
       "dependency_closure": [],
-      "destination_paths": [
-        "packages/core/src/kesit-security"
-      ],
+      "destination_paths": ["packages/core/src/kesit-security"],
       "modifications": "Bridge to Gemini tool approval routes and execution handlers",
       "user_facing_renames": {
         "kesit": "plumb"
       },
       "production_consumer": "PLUMB Security Enforcement Authority",
-      "upstream_tests": [
-        "bun test"
-      ],
-      "local_tests": [
-        "packages/core/src/kesit-security/__tests__"
-      ],
+      "upstream_tests": ["bun test"],
+      "local_tests": ["packages/core/src/kesit-security/__tests__"],
       "commit_sha": "368da051e164341a5322ba4f5dc39fc08c9b578d",
       "status": "APPROVED_PLAN_NOT_IMPORTED"
     }

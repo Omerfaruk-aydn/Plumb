@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { spawnAsync, getAbsoluteGitDir } from '@google/gemini-cli-core';
+import { spawnAsync, getAbsoluteGitDir } from '@plumb/core';
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 

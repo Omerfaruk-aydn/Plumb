@@ -1,44 +1,11 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Azure OpenAI transport — real production dialect (`azure-openai-responses`,
- * see omp-catalog/models.json's `azure` entries), targeting Azure's actual
- * Responses API (`{baseUrl}/responses?api-version=...`), never the generic
- * OpenAI-compatible Chat Completions passthrough.
- *
- * ENDPOINT/DEPLOYMENT: resolved through PLUMB's canonical config precedence
- * (`resolveProviderConfigValue`: PLUMB-saved > env > default), matching the
- * real upstream OMP Azure provider's own resolution order
- * (`omp-ai/providers/azure-openai-responses.ts`'s `resolveAzureConfig` /
- * `resolveDeploymentName`) --
- *   baseUrl:     AZURE_OPENAI_BASE_URL, else `https://{resourceName}.openai.azure.com/openai/v1`
- *   deployment:  AZURE_OPENAI_DEPLOYMENT_NAME_MAP ("model=deployment,...",
- *                parsed by the shared, reused `parseAzureDeploymentNameMap`),
- *                falling back to the model id itself.
- *
- * CREDENTIAL: `api-key` header (never `Authorization: Bearer` -- Azure
- * rejects that for the Responses API; this exactly mirrors the real
- * `AzureOpenAI` SDK client's request shape, see azure-openai-responses.ts's
- * own comment on this).
- *
- * SCOPE: text + streaming + system prompt + multi-turn history + usage +
- * cancellation + tool/function calling via the Responses API's native
- * `function_call`/`function_call_output` input items. Tool EXECUTION is
- * never performed here -- this transport only translates
- * `response.function_call_arguments.done` into PLUMB's generic `tool_call`
- * PlumbStreamEvent; the caller's normal CoreToolScheduler-backed agent loop
- * executes the tool and reinjects the result as a `role: 'tool'` message on
- * the next turn.
- *
- * Official docs referenced: Azure OpenAI Responses API
- * (https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/responses).
  */
 
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';
 import { resolveProviderConfigValue } from '../config/providerConfigResolver.js';
-import { parseAzureDeploymentNameMap } from '../omp-ai/providers/openai-shared.js';
+import { parseAzureDeploymentNameMap } from '../vendor-ai/providers/openai-shared.js';
 import {
   resolveEffectiveToolChoice,
   resolveRouteToolPolicy,

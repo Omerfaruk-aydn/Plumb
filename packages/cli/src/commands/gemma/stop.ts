@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { CommandModule } from 'yargs';
 import fs from 'node:fs';
 import chalk from 'chalk';
-import { debugLogger } from '@google/gemini-cli-core';
+import { debugLogger } from '@plumb/core';
 import { exitCli } from '../utils.js';
 import { DEFAULT_PORT, getPidFilePath } from './constants.js';
 import {

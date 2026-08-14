@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import { Text } from 'ink';
 import { type UIState } from '../contexts/UIStateContext.js';
 import { type QuotaState } from '../contexts/QuotaContext.js';
 import { type RestartReason } from '../hooks/useIdeTrustListener.js';
-import { type IdeInfo } from '@google/gemini-cli-core';
+import { type IdeInfo } from '@plumb/core';
 
 // Mock child components
 vi.mock('../IdeIntegrationNudge.js', () => ({

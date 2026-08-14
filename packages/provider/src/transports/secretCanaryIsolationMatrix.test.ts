@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Task 9 Secret Canary Matrix:
- * Proves secret canaries do not bleed across boundaries and are sanitized in
- * logs, traces, errors, and diagnostic outputs.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,7 +11,7 @@ import { PlumbModelRegistry } from '../registry/model-registry.js';
 import { plumbModelStream } from './streaming.js';
 import { writeSafeTraceEvent } from './antigravityTrace.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import { registerPlumbCredentialStoreFactory } from '../auth/credential-store.js';
 import type { PlumbStreamEvent, PlumbModel } from '../types.js';
@@ -43,7 +39,7 @@ describe('Task 9 — Secret Canary & Trace Sanitization Matrix', () => {
   const CANARY_ANTHROPIC_SECRET = 'CANARY_SECRET_ANTHROPIC_888888888';
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     registry = new PlumbModelRegistry();
     calls.length = 0;

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -80,7 +79,7 @@ export async function readPathFromWorkspace(
     );
     const filteredFiles = fileService.filterFiles(relativeFiles, {
       respectGitIgnore: config.getFileFilteringRespectGitIgnore(),
-      respectGeminiIgnore: config.getFileFilteringRespectGeminiIgnore(),
+      respectPlumbIgnore: config.getFileFilteringRespectGeminiIgnore(),
     });
     const finalFiles = filteredFiles.map((p) =>
       path.resolve(config.getTargetDir(), p),
@@ -114,7 +113,7 @@ export async function readPathFromWorkspace(
     const relativePath = path.relative(config.getTargetDir(), absolutePath);
     const filtered = fileService.filterFiles([relativePath], {
       respectGitIgnore: config.getFileFilteringRespectGitIgnore(),
-      respectGeminiIgnore: config.getFileFilteringRespectGeminiIgnore(),
+      respectPlumbIgnore: config.getFileFilteringRespectGeminiIgnore(),
     });
 
     if (filtered.length === 0) {

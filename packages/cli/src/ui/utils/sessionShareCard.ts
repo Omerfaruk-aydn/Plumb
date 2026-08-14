@@ -1,24 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F16 (PLUMB-UI-DEVRIM-PROMPT.md) "session share card", scoped down from
- * a QR-coded shareable link: there is no QR encoder anywhere in this
- * repo's dependency tree, and PLUMB has no hosting/backend to put a link
- * to in the first place -- there is nothing a QR code could point at
- * that would actually work. What "share" can honestly mean here is a
- * local summary file, generated the same way /export-session already
- * generates a local JSON file (see exportSessionCommand.ts), just
- * human-readable instead of a raw session dump. The short ID is a
- * display label for talking about a session out loud, not a real
- * shareable/resolvable identifier.
  */
+
 import {
   type ConversationRecord,
   getFileDiffFromResultDisplay,
   computeModelAddedAndRemovedLines,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 export interface SessionShareSummary {
   shortId: string;

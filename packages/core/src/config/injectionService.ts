@@ -1,13 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Source of an injection into the model conversation.
- * - `user_steering`: Interactive guidance from the user (gated on model steering).
- * - `background_completion`: Output from a backgrounded execution that has finished.
  */
 
 import { debugLogger } from '../utils/debugLogger.js';

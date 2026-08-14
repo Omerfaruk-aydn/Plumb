@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -186,7 +185,7 @@ function processDirEntries(
     if (
       options.fileService?.shouldIgnoreFile(fullPath, {
         respectGitIgnore: options.fileFilteringOptions?.respectGitIgnore,
-        respectGeminiIgnore: options.fileFilteringOptions?.respectGeminiIgnore,
+        respectPlumbIgnore: options.fileFilteringOptions?.respectPlumbIgnore,
       })
     ) {
       continue;

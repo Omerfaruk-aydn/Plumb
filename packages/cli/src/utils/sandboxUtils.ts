@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,11 +7,11 @@ import os from 'node:os';
 import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { quote } from 'shell-quote';
-import { debugLogger, GEMINI_DIR } from '@google/gemini-cli-core';
+import { debugLogger, PLUMB_DIR } from '@plumb/core';
 
-export const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'gemini-cli-sandbox';
-export const SANDBOX_NETWORK_NAME = 'gemini-cli-sandbox';
-export const SANDBOX_PROXY_NAME = 'gemini-cli-sandbox-proxy';
+export const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'plumb-sandbox';
+export const SANDBOX_NETWORK_NAME = 'plumb-sandbox';
+export const SANDBOX_PROXY_NAME = 'plumb-sandbox-proxy';
 export const BUILTIN_SEATBELT_PROFILES = [
   'permissive-open',
   'permissive-proxied',
@@ -135,7 +134,7 @@ export function entrypoint(workdir: string, cliArgs: string[]): string[] {
     shellCmds.push(`export PYTHONPATH="$PYTHONPATH${pythonPathSuffix}";`);
   }
 
-  const projectSandboxBashrc = `${GEMINI_DIR}/sandbox.bashrc`;
+  const projectSandboxBashrc = `${PLUMB_DIR}/sandbox.bashrc`;
   if (fs.existsSync(projectSandboxBashrc)) {
     shellCmds.push(`source ${getContainerPath(projectSandboxBashrc)};`);
   }

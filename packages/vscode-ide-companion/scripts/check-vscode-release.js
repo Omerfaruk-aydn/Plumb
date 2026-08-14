@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ function checkRelease() {
     );
     const files = gcloudOutput.trim().split('\n');
     const vsixFiles = files.filter((file) =>
-      /signed-gemini-cli-vscode-ide-companion-\d+\.\d+\.\d+-[a-f0-9]{7}\.vsix$/.test(
+      /signed-plumb-vscode-ide-companion-\d+\.\d+\.\d+-[a-f0-9]{7}\.vsix$/.test(
         file,
       ),
     );
@@ -30,7 +29,7 @@ function checkRelease() {
     const latestFile = vsixFiles[vsixFiles.length - 1];
     const fileName = latestFile.split('/').pop();
     const match =
-      /signed-gemini-cli-vscode-ide-companion-(\d+\.\d+\.\d+)-([a-f0-9]{7})\.vsix$/.exec(
+      /signed-plumb-vscode-ide-companion-(\d+\.\d+\.\d+)-([a-f0-9]{7})\.vsix$/.exec(
         fileName,
       );
 

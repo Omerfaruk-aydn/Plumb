@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,11 +7,7 @@ import type React from 'react';
 import { useMemo, useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
-import {
-  type Config,
-  UserAccountManager,
-  AuthType,
-} from '@google/gemini-cli-core';
+import { type Config, UserAccountManager, AuthType } from '@plumb/core';
 import { isUltraTier } from '../../utils/tierUtils.js';
 
 interface UserIdentityProps {

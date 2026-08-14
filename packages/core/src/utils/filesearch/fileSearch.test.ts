@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,9 +7,9 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { FileSearchFactory, AbortError, filter } from './fileSearch.js';
-import { createTmpDir, cleanupTmpDir } from '@google/gemini-cli-test-utils';
+import { createTmpDir, cleanupTmpDir } from '@plumb/test-utils';
 import * as crawler from './crawler.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../../config/constants.js';
 import { FileDiscoveryService } from '../../services/fileDiscoveryService.js';
 import { escapePath } from '../paths.js';
 
@@ -25,7 +24,7 @@ describe('FileSearch', () => {
 
   it('should use .geminiignore rules', async () => {
     tmpDir = await createTmpDir({
-      [GEMINI_IGNORE_FILE_NAME]: 'dist/',
+      [PLUMB_IGNORE_FILE_NAME]: 'dist/',
       dist: ['ignored.js'],
       src: ['not-ignored.js'],
     });
@@ -34,7 +33,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       }),
       ignoreDirs: [],
       cache: false,
@@ -48,7 +47,7 @@ describe('FileSearch', () => {
 
     expect(results).toEqual([
       'src/',
-      GEMINI_IGNORE_FILE_NAME,
+      PLUMB_IGNORE_FILE_NAME,
       'src/not-ignored.js',
     ]);
   });
@@ -57,7 +56,7 @@ describe('FileSearch', () => {
     tmpDir = await createTmpDir({
       '.git': {},
       '.gitignore': 'dist/',
-      [GEMINI_IGNORE_FILE_NAME]: 'build/',
+      [PLUMB_IGNORE_FILE_NAME]: 'build/',
       dist: ['ignored-by-git.js'],
       build: ['ignored-by-gemini.js'],
       src: ['not-ignored.js'],
@@ -67,7 +66,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       }),
       ignoreDirs: [],
       cache: false,
@@ -81,7 +80,7 @@ describe('FileSearch', () => {
 
     expect(results).toEqual([
       'src/',
-      GEMINI_IGNORE_FILE_NAME,
+      PLUMB_IGNORE_FILE_NAME,
       '.gitignore',
       'src/not-ignored.js',
     ]);
@@ -97,7 +96,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: ['logs'],
       cache: false,
@@ -129,7 +128,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -160,7 +159,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -188,7 +187,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -228,7 +227,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -255,7 +254,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -293,7 +292,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -326,7 +325,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -358,7 +357,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
       }),
       ignoreDirs: [],
       cache: false,
@@ -387,7 +386,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -415,7 +414,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -443,7 +442,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -471,7 +470,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -508,7 +507,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -538,7 +537,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -571,7 +570,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -596,7 +595,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: true,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -621,7 +620,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false, // Explicitly disable .gitignore to isolate this rule
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -647,7 +646,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -676,7 +675,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -715,7 +714,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: true, // Enable caching for this test
@@ -757,7 +756,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -803,7 +802,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: true, // Ensure caching is enabled
@@ -843,7 +842,7 @@ describe('FileSearch', () => {
       projectRoot: tmpDir,
       fileDiscoveryService: new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       }),
       ignoreDirs: [],
       cache: false,
@@ -876,7 +875,7 @@ describe('FileSearch', () => {
         projectRoot: tmpDir,
         fileDiscoveryService: new FileDiscoveryService(tmpDir, {
           respectGitIgnore: false,
-          respectGeminiIgnore: false,
+          respectPlumbIgnore: false,
         }),
         ignoreDirs: [],
         cache: false,
@@ -903,7 +902,7 @@ describe('FileSearch', () => {
         projectRoot: tmpDir,
         fileDiscoveryService: new FileDiscoveryService(tmpDir, {
           respectGitIgnore: false,
-          respectGeminiIgnore: false,
+          respectPlumbIgnore: false,
         }),
         ignoreDirs: [],
         cache: false,
@@ -930,7 +929,7 @@ describe('FileSearch', () => {
         projectRoot: tmpDir,
         fileDiscoveryService: new FileDiscoveryService(tmpDir, {
           respectGitIgnore: false,
-          respectGeminiIgnore: false,
+          respectPlumbIgnore: false,
         }),
         ignoreDirs: [],
         cache: false,
@@ -956,7 +955,7 @@ describe('FileSearch', () => {
         projectRoot: tmpDir,
         fileDiscoveryService: new FileDiscoveryService(tmpDir, {
           respectGitIgnore: true,
-          respectGeminiIgnore: false,
+          respectPlumbIgnore: false,
         }),
         ignoreDirs: [],
         cache: false,

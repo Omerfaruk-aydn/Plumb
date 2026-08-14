@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,6 +12,7 @@ import { theme as semanticTheme } from '../../semantic-colors.js';
 import type { Theme } from '../../themes/theme.js';
 import { useSettings } from '../../contexts/SettingsContext.js';
 import { getFileExtension } from '../../utils/fileUtils.js';
+import { cpLen, cpSlice, getCachedStringWidth } from '../../utils/textUtils.js';
 
 export interface DiffLine {
   type: 'add' | 'del' | 'context' | 'hunk' | 'other';
@@ -95,6 +95,22 @@ interface DiffRendererProps {
 
 const DEFAULT_TAB_WIDTH = 4; // Spaces per tab for normalization
 
+/** F20 (PLUMB-UI-DEVRIM-PROMPT.md): 'auto' picks split at this width or wider. */
+export const SPLIT_VIEW_MIN_WIDTH = 120;
+
+export function resolveDiffLayout(
+  diffStyle: 'auto' | 'stacked' | 'split' | undefined,
+  terminalWidth: number,
+  screenReaderEnabled: boolean,
+): 'stacked' | 'split' {
+  // A screen reader always gets the linear, one-line-at-a-time layout --
+  // two side-by-side columns have no sensible reading order.
+  if (screenReaderEnabled) return 'stacked';
+  if (diffStyle === 'split') return 'split';
+  if (diffStyle === 'stacked') return 'stacked';
+  return terminalWidth >= SPLIT_VIEW_MIN_WIDTH ? 'split' : 'stacked';
+}
+
 export const DiffRenderer: React.FC<DiffRendererProps> = ({
   diffContent,
   filename,
@@ -117,6 +133,13 @@ export const DiffRenderer: React.FC<DiffRendererProps> = ({
   }, [diffContent]);
 
   const isNewFileResult = useMemo(() => isNewFile(parsedLines), [parsedLines]);
+
+  const diffStyleSetting = settings.merged.ui?.diffStyle;
+  const layout = resolveDiffLayout(
+    diffStyleSetting,
+    terminalWidth,
+    screenReaderEnabled,
+  );
 
   const renderedOutput = useMemo(() => {
     if (!diffContent || typeof diffContent !== 'string') {
@@ -173,13 +196,21 @@ export const DiffRenderer: React.FC<DiffRendererProps> = ({
           maxWidth={terminalWidth}
           key={key}
         >
-          {renderDiffLines({
-            parsedLines,
-            filename,
-            tabWidth,
-            terminalWidth,
-            disableColor,
-          })}
+          {layout === 'split'
+            ? renderSplitDiffLines({
+                parsedLines,
+                filename,
+                tabWidth,
+                terminalWidth,
+                disableColor,
+              })
+            : renderDiffLines({
+                parsedLines,
+                filename,
+                tabWidth,
+                terminalWidth,
+                disableColor,
+              })}
         </MaxSizedBox>
       );
     }
@@ -188,6 +219,7 @@ export const DiffRenderer: React.FC<DiffRendererProps> = ({
     parsedLines,
     screenReaderEnabled,
     isNewFileResult,
+    layout,
     filename,
     availableTerminalHeight,
     terminalWidth,
@@ -396,6 +428,217 @@ export const renderDiffLines = ({
   );
 
   return content;
+};
+
+interface SplitSide {
+  lineNumber?: number;
+  content: string;
+  type: 'add' | 'del' | 'context';
+}
+
+interface SplitRow {
+  left?: SplitSide;
+  right?: SplitSide;
+}
+
+/**
+ * Pairs up a linear del-then-add diff stream into left(old)/right(new) rows.
+ * Consecutive deletions are matched against the consecutive additions that
+ * follow them, row by row (the same pairing a two-column diff view like
+ * GitHub's split mode uses); context lines mirror onto both sides unchanged.
+ */
+export function buildSplitRows(displayableLines: DiffLine[]): SplitRow[] {
+  const rows: SplitRow[] = [];
+  let i = 0;
+  while (i < displayableLines.length) {
+    const line = displayableLines[i];
+    if (line.type === 'context') {
+      rows.push({
+        left: {
+          lineNumber: line.oldLine,
+          content: line.content,
+          type: 'context',
+        },
+        right: {
+          lineNumber: line.newLine,
+          content: line.content,
+          type: 'context',
+        },
+      });
+      i++;
+      continue;
+    }
+
+    const dels: DiffLine[] = [];
+    while (i < displayableLines.length && displayableLines[i].type === 'del') {
+      dels.push(displayableLines[i]);
+      i++;
+    }
+    const adds: DiffLine[] = [];
+    while (i < displayableLines.length && displayableLines[i].type === 'add') {
+      adds.push(displayableLines[i]);
+      i++;
+    }
+
+    const pairCount = Math.max(dels.length, adds.length);
+    for (let j = 0; j < pairCount; j++) {
+      const del = dels[j];
+      const add = adds[j];
+      rows.push({
+        left: del
+          ? { lineNumber: del.oldLine, content: del.content, type: 'del' }
+          : undefined,
+        right: add
+          ? { lineNumber: add.newLine, content: add.content, type: 'add' }
+          : undefined,
+      });
+    }
+
+    // Neither a context line nor a del/add run: skip to avoid looping forever
+    // on an unexpected line type (already filtered out by the caller, but a
+    // defensive guard costs nothing).
+    if (dels.length === 0 && adds.length === 0) {
+      i++;
+    }
+  }
+  return rows;
+}
+
+/** Truncates to a terminal-column width (not a codepoint count), appending an ellipsis. */
+export function truncateToWidth(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (getCachedStringWidth(text) <= maxWidth) return text;
+  if (maxWidth === 1) return '…';
+
+  let sliced = text;
+  let length = cpLen(sliced);
+  while (length > 0 && getCachedStringWidth(sliced) + 1 > maxWidth) {
+    length--;
+    sliced = cpSlice(text, 0, length);
+  }
+  return sliced + '…';
+}
+
+export interface RenderSplitDiffLinesOptions {
+  parsedLines: DiffLine[];
+  filename?: string;
+  tabWidth?: number;
+  terminalWidth: number;
+  disableColor?: boolean;
+}
+
+export const renderSplitDiffLines = ({
+  parsedLines,
+  filename,
+  tabWidth = DEFAULT_TAB_WIDTH,
+  terminalWidth,
+  disableColor = false,
+}: RenderSplitDiffLinesOptions): React.ReactNode[] => {
+  const normalizedLines = parsedLines.map((line) => ({
+    ...line,
+    content: line.content.replace(/\t/g, ' '.repeat(tabWidth)),
+  }));
+  const displayableLines = normalizedLines.filter(
+    (l) => l.type !== 'hunk' && l.type !== 'other',
+  );
+
+  if (displayableLines.length === 0) {
+    return [
+      <Box key="no-changes" padding={1}>
+        <Text dimColor>No changes detected.</Text>
+      </Box>,
+    ];
+  }
+
+  const rows = buildSplitRows(displayableLines);
+
+  const maxOldLine = Math.max(
+    0,
+    ...displayableLines.map((l) => l.oldLine ?? 0),
+  );
+  const maxNewLine = Math.max(
+    0,
+    ...displayableLines.map((l) => l.newLine ?? 0),
+  );
+  const oldGutterWidth = Math.max(1, maxOldLine.toString().length);
+  const newGutterWidth = Math.max(1, maxNewLine.toString().length);
+
+  const fileExtension = getFileExtension(filename);
+  const language = fileExtension
+    ? getLanguageFromExtension(fileExtension)
+    : null;
+
+  // 1 column for the "│" separator between the two halves.
+  const columnWidth = Math.max(4, Math.floor((terminalWidth - 1) / 2));
+
+  const renderSide = (
+    side: SplitSide | undefined,
+    gutterWidth: number,
+    columnKey: string,
+  ) => {
+    const contentWidth = Math.max(1, columnWidth - gutterWidth - 3);
+    if (!side) {
+      return (
+        <Box key={columnKey} width={columnWidth} flexShrink={0}>
+          <Text> </Text>
+        </Box>
+      );
+    }
+
+    const backgroundColor = disableColor
+      ? undefined
+      : side.type === 'add'
+        ? semanticTheme.background.diff.added
+        : side.type === 'del'
+          ? semanticTheme.background.diff.removed
+          : undefined;
+    const symbolColor = disableColor
+      ? undefined
+      : side.type === 'add'
+        ? semanticTheme.status.success
+        : side.type === 'del'
+          ? semanticTheme.status.error
+          : undefined;
+    const prefixSymbol =
+      side.type === 'add' ? '+' : side.type === 'del' ? '-' : ' ';
+    const truncatedContent = truncateToWidth(side.content, contentWidth);
+
+    return (
+      <Box
+        key={columnKey}
+        width={columnWidth}
+        flexShrink={0}
+        flexDirection="row"
+        backgroundColor={backgroundColor}
+      >
+        <Box
+          width={gutterWidth + 1}
+          paddingRight={1}
+          flexShrink={0}
+          justifyContent="flex-end"
+        >
+          <Text color={disableColor ? undefined : semanticTheme.text.secondary}>
+            {(side.lineNumber ?? '').toString()}
+          </Text>
+        </Box>
+        <Text color={symbolColor}>{prefixSymbol}</Text>
+        <Text> </Text>
+        <Text wrap="truncate-end">
+          {colorizeLine(truncatedContent, language, undefined, disableColor)}
+        </Text>
+      </Box>
+    );
+  };
+
+  return rows.map((row, index) => (
+    <Box key={`split-row-${index}`} flexDirection="row">
+      {renderSide(row.left, oldGutterWidth, `left-${index}`)}
+      <Text color={disableColor ? undefined : semanticTheme.text.secondary}>
+        │
+      </Text>
+      {renderSide(row.right, newGutterWidth, `right-${index}`)}
+    </Box>
+  ));
 };
 
 const getLanguageFromExtension = (extension: string): string | null => {

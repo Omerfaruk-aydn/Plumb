@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,7 +17,7 @@ import { vi, beforeEach, afterEach } from 'vitest';
 // Ensure 30s timeout for all Ink component render tests on Windows
 vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 import { format } from 'node:util';
-import { coreEvents, debugLogger } from '@google/gemini-cli-core';
+import { coreEvents, debugLogger } from '@plumb/core';
 import { themeManager } from './src/ui/themes/theme-manager.js';
 import { mockInkSpinner } from './src/test-utils/mockSpinner.js';
 

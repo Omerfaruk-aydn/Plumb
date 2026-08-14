@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +13,7 @@ import {
   WEB_FETCH_DISPLAY_NAME,
   WRITE_FILE_DISPLAY_NAME,
   READ_MANY_FILES_DISPLAY_NAME,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { CoreToolCallStatus } from '../types.js';
 import type { IndividualToolCallDisplay } from '../types.js';
 import { isShellTool } from '../components/messages/ToolShared.js';

@@ -1,34 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F14 (PLUMB-UI-DEVRIM-PROMPT.md). This is the one place in the whole
- * F1-F17 pass that genuinely cannot be verified from here: Kitty/iTerm2
- * graphics-protocol bytes are multi-kilobyte binary-ish payloads, and
- * Ink's <Text> does its own line-wrapping/measurement of its string
- * children -- there is real risk it would reflow or truncate a raw
- * escape sequence like ordinary text and corrupt it. AnsiOutput.tsx
- * (the codebase's only other raw-terminal-content renderer) sidesteps
- * this by having the *server* pre-parse ANSI into styled tokens and
- * letting Ink apply its own color props, never embedding raw escape
- * bytes as text content -- there is no existing precedent here for
- * "trust Ink to pass this through unmodified."
- *
- * So this writes the encoded sequence directly to the real stdout
- * stream (via Ink's own useStdout, so it still goes through whatever
- * stream Ink itself is bound to, including in tests) instead of
- * returning it as JSX content, and reserves a fixed-height placeholder
- * Box so Ink's own layout still accounts for the space the image will
- * occupy. That keeps Ink's virtual text layer out of the raw bytes
- * entirely, at the cost of a real risk this session cannot rule out:
- * writing outside Ink's render cycle can in principle desync Ink's own
- * frame diffing on the next re-render. Off by default
- * (ui.enableInlineImages) for exactly this reason -- this needs a live
- * check in a real Kitty/iTerm2-compatible terminal before anyone should
- * trust it, which is why it stays opt-in rather than becoming the
- * default tool-output rendering for images.
  */
+
 import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { Box, Text, useStdout, useIsScreenReaderEnabled } from 'ink';

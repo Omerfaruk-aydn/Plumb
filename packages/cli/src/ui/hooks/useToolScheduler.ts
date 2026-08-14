@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import {
   type SubagentActivityItem,
   type SubagentActivityMessage,
   AGENT_TOOL_NAME,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 
 // Re-exporting types compatible with hook expectations

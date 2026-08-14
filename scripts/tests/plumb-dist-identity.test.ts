@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Runtime identity contract for the production CLI route:
- *   node packages/cli/dist/index.js  ==  global plumb
- *
- * Covers: direct dist identity, global linked identity, entry SHA equality,
- * embedded-HEAD vs repository-HEAD equality, and rejection of a stale
- * embedded HEAD (the linked global command must fail --runtime-identity
- * when the embedded HEAD does not equal the source HEAD).
  */
 
 import { describe, it, expect, afterEach } from 'vitest';
@@ -79,7 +70,10 @@ const EMBEDDED_IDENTITY = path.join(
 const IS_WINDOWS = process.platform === 'win32';
 
 function sha256File(file: string): string {
-  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(fs.readFileSync(file))
+    .digest('hex');
 }
 
 function gitHead(): string {
@@ -129,66 +123,100 @@ function runDirectDist(flag: string): Promise<ProcessResult> {
 }
 
 describe('plumb production runtime identity', () => {
-  it('runs --runtime-identity on the direct local dist entry', { timeout: 180_000 }, async () => {
-    expect(fs.existsSync(DIST_ENTRY), 'dist entry missing — run npm run link:plumb first').toBe(true);
-    const result = await runDirectDist('--runtime-identity');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('PLUMB runtime identity');
-    expect(result.stdout).toContain('product.name: PLUMB');
-    expect(result.stdout).toContain('package.name: plumb-cli');
-    expect(result.stdout).toContain('freshness: current');
-    expect(result.stdout).not.toContain('Usage: gemini');
-    expect(result.stderr).not.toContain('Unknown argument');
-  });
+  it(
+    'runs --runtime-identity on the direct local dist entry',
+    { timeout: 180_000 },
+    async () => {
+      expect(
+        fs.existsSync(DIST_ENTRY),
+        'dist entry missing — run npm run link:plumb first',
+      ).toBe(true);
+      const result = await runDirectDist('--runtime-identity');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('PLUMB runtime identity');
+      expect(result.stdout).toContain('product.name: PLUMB');
+      expect(result.stdout).toContain('package.name: plumb-cli');
+      expect(result.stdout).toContain('freshness: current');
+      expect(result.stdout).not.toContain('Usage: gemini');
+      expect(result.stderr).not.toContain('Unknown argument');
+    },
+  );
 
-  it('runs --diagnose-logo on the direct local dist entry', { timeout: 180_000 }, async () => {
-    const result = await runDirectDist('--diagnose-logo');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('PLUMB logo diagnostics');
-    expect(result.stdout).toContain('rendering.mode:');
-    expect(result.stdout).toContain('component.wordmark.dist:');
-    expect(result.stdout).not.toContain('Usage: gemini');
-  });
+  it(
+    'runs --diagnose-logo on the direct local dist entry',
+    { timeout: 180_000 },
+    async () => {
+      const result = await runDirectDist('--diagnose-logo');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('PLUMB logo diagnostics');
+      expect(result.stdout).toContain('rendering.mode:');
+      expect(result.stdout).toContain('component.wordmark.dist:');
+      expect(result.stdout).not.toContain('Usage: gemini');
+    },
+  );
 
-  it('runs --runtime-identity on the global linked plumb command', { timeout: 180_000 }, async () => {
-    const result = await runGlobalPlumb('--runtime-identity');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('PLUMB runtime identity');
-    expect(result.stdout).not.toContain('Usage: gemini');
-  });
+  it(
+    'runs --runtime-identity on the global linked plumb command',
+    { timeout: 180_000 },
+    async () => {
+      const result = await runGlobalPlumb('--runtime-identity');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('PLUMB runtime identity');
+      expect(result.stdout).not.toContain('Usage: gemini');
+    },
+  );
 
-  it('runs --diagnose-logo on the global linked plumb command', { timeout: 180_000 }, async () => {
-    const result = await runGlobalPlumb('--diagnose-logo');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('PLUMB logo diagnostics');
-    expect(result.stdout).not.toContain('Usage: gemini');
-  });
+  it(
+    'runs --diagnose-logo on the global linked plumb command',
+    { timeout: 180_000 },
+    async () => {
+      const result = await runGlobalPlumb('--diagnose-logo');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('PLUMB logo diagnostics');
+      expect(result.stdout).not.toContain('Usage: gemini');
+    },
+  );
 
-  it('keeps the direct and global entry byte-identical', { timeout: 180_000 }, () => {
-    const globalEntry = path.join(
-      npmRootGlobal(),
-      'plumb-cli',
-      'dist',
-      'index.js',
-    );
-    expect(fs.existsSync(globalEntry), `global entry missing: ${globalEntry}`).toBe(true);
-    expect(sha256File(fs.realpathSync(globalEntry))).toBe(
-      sha256File(fs.realpathSync(DIST_ENTRY)),
-    );
-  });
+  it(
+    'keeps the direct and global entry byte-identical',
+    { timeout: 180_000 },
+    () => {
+      const globalEntry = path.join(
+        npmRootGlobal(),
+        'plumb-cli',
+        'dist',
+        'index.js',
+      );
+      expect(
+        fs.existsSync(globalEntry),
+        `global entry missing: ${globalEntry}`,
+      ).toBe(true);
+      expect(sha256File(fs.realpathSync(globalEntry))).toBe(
+        sha256File(fs.realpathSync(DIST_ENTRY)),
+      );
+    },
+  );
 
-  it('embeds the current repository HEAD in the built identity', { timeout: 180_000 }, () => {
-    const content = fs.readFileSync(EMBEDDED_IDENTITY, 'utf-8');
-    const match = content.match(/gitHead:\s*'([0-9a-f]{40})'/);
-    expect(match, 'embedded identity lacks a full Git HEAD').not.toBeNull();
-    expect(match![1]).toBe(gitHead());
-  });
+  it(
+    'embeds the current repository HEAD in the built identity',
+    { timeout: 180_000 },
+    () => {
+      const content = fs.readFileSync(EMBEDDED_IDENTITY, 'utf-8');
+      const match = content.match(/gitHead:\s*'([0-9a-f]{40})'/);
+      expect(match, 'embedded identity lacks a full Git HEAD').not.toBeNull();
+      expect(match![1]).toBe(gitHead());
+    },
+  );
 
-  it('reports the embedded HEAD through the global command', { timeout: 180_000 }, async () => {
-    const result = await runGlobalPlumb('--runtime-identity');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain(`build.embeddedHead: ${gitHead()}`);
-  });
+  it(
+    'reports the embedded HEAD through the global command',
+    { timeout: 180_000 },
+    async () => {
+      const result = await runGlobalPlumb('--runtime-identity');
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(`build.embeddedHead: ${gitHead()}`);
+    },
+  );
 });
 
 describe('stale embedded HEAD rejection', () => {
@@ -201,28 +229,32 @@ describe('stale embedded HEAD rejection', () => {
     }
   });
 
-  it('fails --runtime-identity when the embedded HEAD differs from the source HEAD', { timeout: 180_000 }, async () => {
-    expect(fs.existsSync(EMBEDDED_IDENTITY)).toBe(true);
-    originalIdentity = fs.readFileSync(EMBEDDED_IDENTITY, 'utf-8');
+  it(
+    'fails --runtime-identity when the embedded HEAD differs from the source HEAD',
+    { timeout: 180_000 },
+    async () => {
+      expect(fs.existsSync(EMBEDDED_IDENTITY)).toBe(true);
+      originalIdentity = fs.readFileSync(EMBEDDED_IDENTITY, 'utf-8');
 
-    const staleHead = '0'.repeat(40);
-    expect(staleHead).not.toBe(gitHead());
-    const tampered = originalIdentity.replace(
-      /gitHead:\s*'[0-9a-f]{40}'/,
-      `gitHead: '${staleHead}'`,
-    );
-    expect(tampered).not.toBe(originalIdentity);
-    fs.writeFileSync(EMBEDDED_IDENTITY, tampered);
+      const staleHead = '0'.repeat(40);
+      expect(staleHead).not.toBe(gitHead());
+      const tampered = originalIdentity.replace(
+        /gitHead:\s*'[0-9a-f]{40}'/,
+        `gitHead: '${staleHead}'`,
+      );
+      expect(tampered).not.toBe(originalIdentity);
+      fs.writeFileSync(EMBEDDED_IDENTITY, tampered);
 
-    try {
-      const result = await runDirectDist('--runtime-identity');
-      expect(result.status).toBe(1);
-      expect(result.stdout).toContain('freshness: STALE');
-      expect(result.stderr).toContain('STALE');
-      expect(result.stderr).toContain(staleHead);
-    } finally {
-      fs.writeFileSync(EMBEDDED_IDENTITY, originalIdentity);
-      originalIdentity = null;
-    }
-  });
+      try {
+        const result = await runDirectDist('--runtime-identity');
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain('freshness: STALE');
+        expect(result.stderr).toContain('STALE');
+        expect(result.stderr).toContain(staleHead);
+      } finally {
+        fs.writeFileSync(EMBEDDED_IDENTITY, originalIdentity);
+        originalIdentity = null;
+      }
+    },
+  );
 });

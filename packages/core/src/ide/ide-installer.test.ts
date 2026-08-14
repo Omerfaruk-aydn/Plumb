@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -130,7 +129,7 @@ describe('ide-installer', () => {
           'code',
           [
             '--install-extension',
-            'google.gemini-cli-vscode-ide-companion',
+            'google.plumb-vscode-ide-companion',
             '--force',
           ],
           { stdio: 'pipe', shell: false },
@@ -147,7 +146,7 @@ describe('ide-installer', () => {
           'C:\\Program Files\\Microsoft VS Code\\bin\\code.cmd',
           [
             '--install-extension',
-            'google.gemini-cli-vscode-ide-companion',
+            'google.plumb-vscode-ide-companion',
             '--force',
           ],
           { stdio: 'pipe', shell: true },
@@ -227,11 +226,7 @@ describe('ide-installer', () => {
       expect(result.success).toBe(true);
       expect(child_process.spawnSync).toHaveBeenCalledWith(
         'positron',
-        [
-          '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
-          '--force',
-        ],
+        ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
         { stdio: 'pipe', shell: false },
       );
     });
@@ -272,11 +267,7 @@ describe('AntigravityInstaller', () => {
     expect(result.success).toBe(true);
     expect(child_process.spawnSync).toHaveBeenCalledWith(
       'agy',
-      [
-        '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
-        '--force',
-      ],
+      ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
       { stdio: 'pipe', shell: false },
     );
   });
@@ -295,11 +286,7 @@ describe('AntigravityInstaller', () => {
     });
     expect(child_process.spawnSync).toHaveBeenCalledWith(
       'agy',
-      [
-        '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
-        '--force',
-      ],
+      ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
       { stdio: 'pipe', shell: false },
     );
   });
@@ -330,11 +317,7 @@ describe('AntigravityInstaller', () => {
     );
     expect(child_process.spawnSync).toHaveBeenCalledWith(
       'antigravity',
-      [
-        '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
-        '--force',
-      ],
+      ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
       { stdio: 'pipe', shell: false },
     );
   });
@@ -365,11 +348,7 @@ describe('AntigravityInstaller', () => {
     );
     expect(child_process.spawnSync).toHaveBeenCalledWith(
       'C:\\Program Files\\Antigravity\\bin\\antigravity.cmd',
-      [
-        '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
-        '--force',
-      ],
+      ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
       { stdio: 'pipe', shell: true },
     );
   });

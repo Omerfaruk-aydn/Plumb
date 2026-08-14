@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import {
@@ -34,7 +31,7 @@ import {
   type PlumbStreamEvent,
   type PlumbToolChoice,
   type ResolvedModelSelection,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import {
   Config,
   CANONICAL_NO_ARGS_SCHEMA,
@@ -48,7 +45,7 @@ import {
   type AgentLoopContext,
   type ToolCallRequestInfo,
   writeToStdout,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
 function line(key: string, value: unknown): void {
   writeToStdout(`${key}: ${String(value)}\n`);

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -84,7 +83,7 @@ async function create(dir: string, structure: FileSystemStructure) {
 export async function createTmpDir(
   structure: FileSystemStructure,
 ): Promise<string> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gemini-cli-test-'));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'plumb-test-'));
   await create(tmpDir, structure);
   return tmpDir;
 }

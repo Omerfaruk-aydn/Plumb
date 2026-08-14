@@ -1,17 +1,15 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { initializeOutputListenersAndFlush } from './gemini.js';
-import { coreEvents, CoreEvent, type Config } from '@google/gemini-cli-core';
+import { initializeOutputListenersAndFlush } from './plumb.js';
+import { coreEvents, CoreEvent, type Config } from '@plumb/core';
 
 // Mock core dependencies
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     writeToStdout: vi.fn(),
@@ -19,7 +17,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
   };
 });
 
-import { writeToStdout, writeToStderr } from '@google/gemini-cli-core';
+import { writeToStdout, writeToStderr } from '@plumb/core';
 
 describe('Output Redirection', () => {
   beforeEach(() => {

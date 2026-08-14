@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { type Part, type PartListUnion } from '@google/genai';
 import { type ConversationRecord } from '../services/chatRecordingService.js';
-export { partListUnionToString } from '../core/geminiRequest.js';
-import { partListUnionToString } from '../core/geminiRequest.js';
+export { partListUnionToString } from '../core/plumbRequest.js';
+import { partListUnionToString } from '../core/plumbRequest.js';
 import { type HistoryTurn } from '../core/agentChatHistory.js';
 import { deriveStableId } from './cryptoUtils.js';
 

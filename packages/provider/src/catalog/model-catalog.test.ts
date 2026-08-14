@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: `claude-subscription` (a PLUMB-only synthetic with no OMP
- * catalog descriptor) must have a static model floor so a cold process
- * restart with a persisted claude-subscription/model selection resolves the
- * correct wire dialect (`claude-agent-sdk`) on the very first chat turn,
- * without depending on a live discovery call having already run.
  */
+
 import { describe, it, expect, afterEach } from 'vitest';
 import { getCatalogModels, getCatalogModel } from './model-catalog.js';
 import { CLAUDE_SUBSCRIPTION_MODELS } from '../transports/claudeSubscription.js';

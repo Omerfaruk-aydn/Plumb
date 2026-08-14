@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Rate limiter to prevent excessive telemetry recording
- * Ensures we don't send metrics more frequently than specified limits
- */
 export class RateLimiter {
   private lastRecordTimes: Map<string, number> = new Map();
   private readonly minIntervalMs: number;

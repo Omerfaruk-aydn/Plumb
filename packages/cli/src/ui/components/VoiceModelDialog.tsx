@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,11 +11,8 @@ import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSel
 import { useSettingsStore } from '../contexts/SettingsContext.js';
 import { SettingScope } from '../../config/settings.js';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
-import { isBinaryAvailable } from '@google/gemini-cli-core';
-import {
-  WhisperModelManager,
-  type WhisperModelProgress,
-} from '@google/gemini-cli-core';
+import { isBinaryAvailable } from '@plumb/core';
+import { WhisperModelManager, type WhisperModelProgress } from '@plumb/core';
 import { CliSpinner } from './CliSpinner.js';
 import { WarningMessage } from './messages/WarningMessage.js';
 import { VoiceModeIndicator } from './VoiceModeIndicator.js';

@@ -1,35 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Global all-model generated invariant test.
- *
- * Table-driven: iterates EVERY model in the real
- * `buildUniversalModelInventory()` snapshot (the same authority the
- * diagnostics, the model picker, and the prompt/wire gate all read
- * from) and asserts the tools-capability invariant that
- * `Config.getEffectiveToolsAdvertisable()` depends on:
- *
- *   toolsSupported === true  => toolsCapabilitySource is a real,
- *                                non-UNKNOWN provenance value.
- *   toolsSupported !== true  => (false or undefined) never carries a
- *                                capability source that could be
- *                                mistaken for authorization to
- *                                advertise tools. The gate itself
- *                                (getEffectiveToolsAdvertisable) only
- *                                ever checks `=== true`, so this test
- *                                additionally re-derives that boolean
- *                                per model and asserts it agrees with
- *                                a plain `toolsSupported === true`
- *                                check -- i.e. nothing about
- *                                toolsCapabilitySource can defeat or
- *                                bypass the gate.
- *
- * Representative supported/unsupported/unknown prompt-gate-level
- * behavior continues to be covered by
- * packages/core/src/core/promptToolCoherence.test.ts -- this test
- * operates one level down, over the full generated inventory.
  */
 
 import { describe, it, expect, vi } from 'vitest';

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +34,7 @@ import { createDefaultPolicy } from '../availability/policyCatalog.js';
 import {
   RetryableQuotaError,
   TerminalQuotaError,
-} from '../utils/googleQuotaErrors.js';
+} from '../utils/plumbGoogleQuotaErrors.js';
 
 // Mock the telemetry logger and event class
 vi.mock('../telemetry/index.js', () => ({

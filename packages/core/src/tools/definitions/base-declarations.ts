@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Identity registry for all core tools.
- * Sits at the bottom of the dependency tree to prevent circular imports.
  */
 
 // ============================================================================

@@ -1,12 +1,12 @@
-# Gemini CLI extension best practices
+# PLUMB extension best practices
 
-This guide covers best practices for developing, securing, and maintaining
-Gemini CLI extensions.
+This guide covers best practices for developing, securing, and maintaining PLUMB
+extensions.
 
 ## Development
 
-Developing extensions for Gemini CLI is a lightweight, iterative process. Use
-these strategies to build robust and efficient extensions.
+Developing extensions for PLUMB is a lightweight, iterative process. Use these
+strategies to build robust and efficient extensions.
 
 ### Structure your extension
 
@@ -44,9 +44,9 @@ gemini extensions link .
 Changes to your code are immediately available in the CLI after you rebuild the
 project and restart the session.
 
-### Use `GEMINI.md` effectively
+### Use `PLUMB.md` effectively
 
-Your `GEMINI.md` file provides essential context to the model.
+Your `PLUMB.md` file provides essential context to the model.
 
 - **Focus on goals:** Explain the high-level purpose of the extension and how to
   interact with its tools.
@@ -165,7 +165,7 @@ If your extension doesn't appear in `/extensions list`:
 - **Verify the name:** The `name` field in the manifest must match the extension
   directory name exactly.
 - **Restart the CLI:** Extensions are loaded at the start of a session. Restart
-  Gemini CLI after making changes to the manifest or linking a new extension.
+  PLUMB after making changes to the manifest or linking a new extension.
 
 ### MCP server failures
 
@@ -174,7 +174,7 @@ If your tools aren't working as expected:
 - **Check the logs:** View the CLI logs to see if the MCP server failed to
   start.
 - **Test the command:** Run the server's `command` and `args` directly in your
-  terminal to ensure it starts correctly outside of Gemini CLI.
+  terminal to ensure it starts correctly outside of PLUMB.
 - **Debug console:** In interactive mode, press **F12** to open the debug
   console and inspect tool calls and responses.
 

@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Identifies "Trustworthy" behavioral evaluations from nightly history.
- *
- * This script analyzes the last 6 days of nightly runs to find tests that meet
- * strict stability criteria (80% aggregate pass rate and 60% daily floor).
- * It outputs a list of files and a Vitest pattern used by the PR regression check
- * to ensure high-signal validation and minimize noise.
  */
 
 import { fetchNightlyHistory, escapeRegex } from './eval_utils.js';

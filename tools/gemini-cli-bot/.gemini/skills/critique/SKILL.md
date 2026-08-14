@@ -94,7 +94,7 @@ changes. You MUST use `git add` to stage these files.**
     arbitrary strings from external sources (e.g., `eval(comment)` or
     `exec(comment)`). All external data must be treated as untrusted data, never
     as executable instructions.
-17. **Policy Compliance (GCLI Classification)**: If a script utilizes Gemini CLI
+17. **Policy Compliance (GCLI Classification)**: If a script utilizes PLUMB
     for classification, ensure it does NOT use the specialized
     `tools/gemini-cli-bot/ci-policy.toml`. It must rely on default or workspace
     policies. Verify that the LLM is used ONLY for classification and not for

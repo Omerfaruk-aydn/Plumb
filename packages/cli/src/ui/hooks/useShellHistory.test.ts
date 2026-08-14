@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import { useShellHistory } from './useShellHistory.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
-import { GEMINI_DIR } from '@google/gemini-cli-core';
+import { PLUMB_DIR } from '@plumb/core';
 
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
@@ -35,21 +34,20 @@ vi.mock('node:fs', async (importOriginal) => {
     mkdirSync: vi.fn(),
   };
 });
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   const path = await import('node:path');
   class Storage {
     static getGlobalSettingsPath(): string {
       return '/test/home/.gemini/settings.json';
     }
     getProjectTempDir(): string {
-      return path.join('/test/home/', actual.GEMINI_DIR, 'tmp', 'mocked_hash');
+      return path.join('/test/home/', actual.PLUMB_DIR, 'tmp', 'mocked_hash');
     }
     getHistoryFilePath(): string {
       return path.join(
         '/test/home/',
-        actual.GEMINI_DIR,
+        actual.PLUMB_DIR,
         'tmp',
         'mocked_hash',
         'shell_history',
@@ -73,7 +71,7 @@ const MOCKED_PROJECT_HASH = 'mocked_hash';
 
 const MOCKED_HISTORY_DIR = path.join(
   MOCKED_HOME_DIR,
-  GEMINI_DIR,
+  PLUMB_DIR,
   'tmp',
   MOCKED_PROJECT_HASH,
 );

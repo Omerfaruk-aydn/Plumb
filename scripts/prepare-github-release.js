@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -33,18 +32,15 @@ if (fs.existsSync(sourceBundleDir)) {
 
 // Overwrite the .npmrc in the core package to point to the GitHub registry.
 const coreNpmrcPath = path.resolve(rootDir, 'packages/core/.npmrc');
-fs.writeFileSync(
-  coreNpmrcPath,
-  '@google-gemini:registry=https://npm.pkg.github.com/',
-);
-console.log('Wrote .npmrc for @google-gemini scope to packages/core/');
+fs.writeFileSync(coreNpmrcPath, '@plumb:registry=https://npm.pkg.github.com/');
+console.log('Wrote .npmrc for @plumb scope to packages/core/');
 
-// Update @google/gemini-cli
+// Update plumb-cli
 updatePackageJson('packages/cli/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli';
+  pkg.name = 'plumb-cli';
   pkg.files = ['bundle/'];
   pkg.bin = {
-    gemini: 'bundle/gemini.js',
+    plumb: 'bundle/gemini.js',
   };
 
   // Remove fields that are not relevant to the bundled package.
@@ -55,14 +51,14 @@ updatePackageJson('packages/cli/package.json', (pkg) => {
   delete pkg.config; // Deletes the sandboxImageUri
 });
 
-// Update @google/gemini-cli-a2a-server
+// Update @plumb/a2a-server
 updatePackageJson('packages/a2a-server/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli-a2a-server';
+  pkg.name = '@plumb/a2a-server';
 });
 
-// Update @google/gemini-cli-core
+// Update @plumb/core
 updatePackageJson('packages/core/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli-core';
+  pkg.name = '@plumb/core';
 });
 
 console.log('Successfully prepared packages for GitHub release.');

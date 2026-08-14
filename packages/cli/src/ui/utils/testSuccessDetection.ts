@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F13 (PLUMB-UI-DEVRIM-PROMPT.md) test-success detection, deliberately
- * conservative: this only recognizes a short allowlist of well-known
- * "all green" summary lines from major test runners, and always backs
- * off if the output also contains a nonzero failure count anywhere.
- * Test-output parsing is inherently heuristic across frameworks/
- * languages -- a broader classifier risks false positives (celebrating
- * a run that actually failed), which is worse than staying silent, so
- * this stays narrow rather than trying to be exhaustive.
  */
 
 const SUCCESS_PATTERNS: RegExp[] = [

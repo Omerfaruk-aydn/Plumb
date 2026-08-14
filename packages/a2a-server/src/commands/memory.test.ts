@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import {
   refreshMemory,
   showMemory,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ListMemoryCommand,
@@ -20,9 +19,8 @@ import {
 import type { CommandContext } from './types.js';
 
 // Mock the core functions
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     showMemory: vi.fn(),

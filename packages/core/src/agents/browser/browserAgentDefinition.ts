@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Browser Agent definition following the LocalAgentDefinition pattern.
- *
- * This agent uses LocalAgentExecutor for its reAct loop, like CodebaseInvestigatorAgent.
- * It is available ONLY via delegate_to_agent, NOT as a direct tool.
- *
- * Tools are configured dynamically at invocation time via browserAgentFactory.
  */
 
 import type { LocalAgentDefinition } from '../types.js';

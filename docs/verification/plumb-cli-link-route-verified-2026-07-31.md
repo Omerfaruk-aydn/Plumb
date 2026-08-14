@@ -1,8 +1,8 @@
 # PLUMB CLI diagnostics + link route verification (2026-07-31)
 
-This document records the post-fix verification of the production route.
-The previous document (`plumb-cli-diagnostics-failure-2026-07-31.md`)
-captured the failures; this one captures the running state.
+This document records the post-fix verification of the production route. The
+previous document (`plumb-cli-diagnostics-failure-2026-07-31.md`) captured the
+failures; this one captures the running state.
 
 ## Commits (focused, in prescribed order)
 
@@ -104,63 +104,60 @@ Exit codes: both `0`. No `Usage: gemini` fallback.
 ```
 
 `gemini` is the documented backwards-compat alias resolving to the same
-PLUMB-owned dist. The global `plumb` shim resolves to `C:\npm-global\plumb`
-→ `node_modules\plumb-cli\dist\index.js` (junction to the workspace).
-A stale `npm install -g @google/gemini-cli` (the upstream package) can no
-longer overwrite the `plumb` shim because it lives under a different
-package name.
+PLUMB-owned dist. The global `plumb` shim resolves to `C:\npm-global\plumb` →
+`node_modules\plumb-cli\dist\index.js` (junction to the workspace). A stale
+`npm install -g plumb-cli` (the upstream package) can no longer overwrite the
+`plumb` shim because it lives under a different package name.
 
 ## Tests (18 contracts)
 
-| # | Contract                                                         | Where it lives |
-| - | ---------------------------------------------------------------- | -------------- |
-| 1 | production parser recognizes `--runtime-identity`                | `packages/cli/src/config/config.test.ts` |
-| 2 | production parser recognizes `--diagnose-logo`                   | `packages/cli/src/config/config.test.ts` |
-| 3 | direct dist identity works                                       | `scripts/tests/plumb-dist-identity.test.ts` |
-| 4 | global linked identity works                                     | `scripts/tests/plumb-dist-identity.test.ts` |
-| 5 | direct and global entry SHA match                                | `scripts/tests/plumb-dist-identity.test.ts` |
-| 6 | embedded HEAD matches source HEAD                                | `scripts/tests/plumb-dist-identity.test.ts` |
-| 7 | stale dist rejected                                              | `scripts/tests/link-plumb.test.ts` + `runtimeDiagnostics` unit |
-| 8 | stale global command rejected                                    | `scripts/tests/link-plumb.test.ts` |
-| 9 | link stops after provider build failure                          | `scripts/tests/link-plumb.test.ts` |
-| 10 | link stops after core build failure                              | `scripts/tests/link-plumb.test.ts` |
-| 11 | link stops after CLI build failure                                | `scripts/tests/link-plumb.test.ts` |
-| 12 | link stops when diagnostic flags are absent                      | `scripts/tests/link-plumb.test.ts` |
-| 13 | no shell syntax dependency                                       | `scripts/tests/link-plumb.test.ts` `--plan` mode |
-| 14 | provider-first startup from empty state                          | `packages/cli/src/ui/auth/useAuth.test.tsx` |
-| 15 | Google-first startup absent                                       | `packages/cli/src/ui/auth/useAuth.test.tsx` + `DialogManager.test.tsx` |
-| 16 | production RGB component mounted                                  | `packages/cli/src/ui/components/AppHeader.rgbMount.test.tsx` |
-| 17 | phase changes ANSI colors                                        | `packages/cli/src/ui/components/PlumbRgbAnsiPhase.test.tsx` |
-| 18 | visible logo geometry remains stable                              | `packages/cli/src/ui/components/PlumbAnimatedWordmark.test.tsx` |
+| #   | Contract                                          | Where it lives                                                         |
+| --- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | production parser recognizes `--runtime-identity` | `packages/cli/src/config/config.test.ts`                               |
+| 2   | production parser recognizes `--diagnose-logo`    | `packages/cli/src/config/config.test.ts`                               |
+| 3   | direct dist identity works                        | `scripts/tests/plumb-dist-identity.test.ts`                            |
+| 4   | global linked identity works                      | `scripts/tests/plumb-dist-identity.test.ts`                            |
+| 5   | direct and global entry SHA match                 | `scripts/tests/plumb-dist-identity.test.ts`                            |
+| 6   | embedded HEAD matches source HEAD                 | `scripts/tests/plumb-dist-identity.test.ts`                            |
+| 7   | stale dist rejected                               | `scripts/tests/link-plumb.test.ts` + `runtimeDiagnostics` unit         |
+| 8   | stale global command rejected                     | `scripts/tests/link-plumb.test.ts`                                     |
+| 9   | link stops after provider build failure           | `scripts/tests/link-plumb.test.ts`                                     |
+| 10  | link stops after core build failure               | `scripts/tests/link-plumb.test.ts`                                     |
+| 11  | link stops after CLI build failure                | `scripts/tests/link-plumb.test.ts`                                     |
+| 12  | link stops when diagnostic flags are absent       | `scripts/tests/link-plumb.test.ts`                                     |
+| 13  | no shell syntax dependency                        | `scripts/tests/link-plumb.test.ts` `--plan` mode                       |
+| 14  | provider-first startup from empty state           | `packages/cli/src/ui/auth/useAuth.test.tsx`                            |
+| 15  | Google-first startup absent                       | `packages/cli/src/ui/auth/useAuth.test.tsx` + `DialogManager.test.tsx` |
+| 16  | production RGB component mounted                  | `packages/cli/src/ui/components/AppHeader.rgbMount.test.tsx`           |
+| 17  | phase changes ANSI colors                         | `packages/cli/src/ui/components/PlumbRgbAnsiPhase.test.tsx`            |
+| 18  | visible logo geometry remains stable              | `packages/cli/src/ui/components/PlumbAnimatedWordmark.test.tsx`        |
 
 Total: scripts tests 152 passing. CLI provider/useAuth/DialogManager/AppHeader
 suite 51 passing for the affected surface.
 
 ## Real Windows Terminal evidence
 
-See `docs/verification/evidence/rgb-wordmark-t0-t1/`. The captures use the
-same ink + ink-gradient stack Windows Terminal hosts (`@jrichman/ink`):
-no TTY → no ink render. So instead of fighting ConPTY without an
-attached console in a non-interactive agent shell, the script mounts the
-production `PlumbAnimatedWordmark` and `PlumbProviderSetupDialog`
-components through the exact ink render pipeline and writes the produced
-ANSI stream to disk.
+See `docs/verification/evidence/rgb-wordmark-t0-t1/`. The captures use the same
+ink + ink-gradient stack Windows Terminal hosts (`@jrichman/ink`): no TTY → no
+ink render. So instead of fighting ConPTY without an attached console in a
+non-interactive agent shell, the script mounts the production
+`PlumbAnimatedWordmark` and `PlumbProviderSetupDialog` components through the
+exact ink render pipeline and writes the produced ANSI stream to disk.
 
 `evidence/rgb-wordmark-t0-t1/summary.json` records:
 
-- `wordmark.rgbVisibleT0 / T1 / T2` — number of `\x1b[38;2;r;g;b` SGR
-  sequences in each frame (≈ 125 per frame).
-- `wordmark.paletteSampleT0 / T1 / T2` — first few SGR triplets to show
-  the gradient rotates (cyan → blue → magenta across phases).
-- `wordmark.paletteRotatesT0T1` / `paletteRotatesT1T2` — true on every
-  captured frame set.
-- `wordmark.geometryStable` — `true`: stripping all ANSI from T0 and T1
-  produces the exact same string, proving visible wordmark characters
-  don't change.
-- `providerFirst.length` / `noGoogleFirst` — the dialog capture contains
-  the production provider-first screen size and never contains
-  `Sign in with Google` / `Vertex AI` / `Gemini API Key` strings.
+- `wordmark.rgbVisibleT0 / T1 / T2` — number of `\x1b[38;2;r;g;b` SGR sequences
+  in each frame (≈ 125 per frame).
+- `wordmark.paletteSampleT0 / T1 / T2` — first few SGR triplets to show the
+  gradient rotates (cyan → blue → magenta across phases).
+- `wordmark.paletteRotatesT0T1` / `paletteRotatesT1T2` — true on every captured
+  frame set.
+- `wordmark.geometryStable` — `true`: stripping all ANSI from T0 and T1 produces
+  the exact same string, proving visible wordmark characters don't change.
+- `providerFirst.length` / `noGoogleFirst` — the dialog capture contains the
+  production provider-first screen size and never contains `Sign in with Google`
+  / `Vertex AI` / `Gemini API Key` strings.
 
 The 125 RGB SGRs per frame are the visible RGB gradient applied to every
-character of the production wordmark geometry — exactly what Windows
-Terminal renders when the welcome screen paints.
+character of the production wordmark geometry — exactly what Windows Terminal
+renders when the welcome screen paints.

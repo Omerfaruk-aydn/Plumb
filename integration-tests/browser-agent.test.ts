@@ -1,18 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Integration tests for the browser agent.
- *
- * These tests verify the complete end-to-end flow from CLI prompt through
- * browser_agent delegation to MCP/Chrome DevTools and back. Unlike the unit
- * tests in packages/core/src/agents/browser/ which mock all MCP components,
- * these tests launch real Chrome instances in headless mode.
- *
- * Tests are skipped on systems without Chrome/Chromium installed.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';

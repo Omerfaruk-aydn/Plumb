@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -48,7 +47,7 @@ describe('tokenLimit', () => {
 });
 
 // Bug 5 regression: packages/core has no build-time dependency on
-// @google/gemini-cli-provider, so it can't resolve a non-Gemini model's
+// @plumb/provider, so it can't resolve a non-Gemini model's
 // real contextWindow itself -- plumbContentGenerator.ts records it here
 // (from the real PLUMB registry lookup) so client-side token-budget
 // bookkeeping (compaction threshold, overflow check, tool-output

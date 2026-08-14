@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Vertex preflight stage instrumentation: a Vertex request that fails BEFORE
- * the network boundary (missing project / missing credential) must be
- * identifiable by its exact failed stage + safe validation classification —
- * never misread as a serializer/wire rejection, and never a credential leak.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -21,11 +15,14 @@ vi.mock('../config/providerConfigResolver.js', () => ({
   resolveProviderSafeConfig: vi.fn(() => ({})),
 }));
 
-vi.mock('../omp-ai/providers/google-auth.js', () => ({
+vi.mock('../vendor-ai/providers/plumbGoogleAuth.js', () => ({
   getVertexAccessToken: mockToken,
 }));
 
-import { prepareVertexModel, type VertexRequestPrep } from './googleVertex.js';
+import {
+  prepareVertexModel,
+  type VertexRequestPrep,
+} from './plumbGoogleVertex.js';
 import {
   enableToolRouteDiag,
   getLastToolRouteDiag,
@@ -128,7 +125,9 @@ describe('Vertex preflight stage instrumentation', () => {
   });
 
   it('resolveVertexProjectAuthority distinguishes configured provider state, environment, and missing', async () => {
-    const { resolveVertexProjectAuthority } = await import('./googleVertex.js');
+    const { resolveVertexProjectAuthority } = await import(
+      './plumbGoogleVertex.js'
+    );
     const auth = resolveVertexProjectAuthority();
     expect(auth).toBeDefined();
     expect(['CONFIGURED_PROVIDER_STATE', 'ENVIRONMENT', 'NONE']).toContain(

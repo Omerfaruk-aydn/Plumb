@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import { bugMemoryCommand } from './bugMemoryCommand.js';
 import { captureHeapSnapshot } from '../utils/memorySnapshot.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { MessageType } from '../types.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@plumb/core';
 
 vi.mock('../utils/memorySnapshot.js', () => ({
   captureHeapSnapshot: vi.fn(),
@@ -25,9 +24,8 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     debugLogger: {

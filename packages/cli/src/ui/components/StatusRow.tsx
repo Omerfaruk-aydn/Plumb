@@ -1,16 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type React from 'react';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { Box, Text, ResizeObserver, type DOMElement } from 'ink';
-import {
-  isUserVisibleHook,
-  type ThoughtSummary,
-} from '@google/gemini-cli-core';
+import { isUserVisibleHook, type ThoughtSummary } from '@plumb/core';
 import stripAnsi from 'strip-ansi';
 import { type ActiveHook } from '../types.js';
 import { useUIState } from '../contexts/UIStateContext.js';
@@ -30,7 +26,7 @@ import { useComposerStatus } from '../hooks/useComposerStatus.js';
 import { useTokenRateHistory } from '../hooks/useTokenRateHistory.js';
 import { StreamingTextAnimation } from './StreamingTextAnimation.js';
 import { MultiAgentStatus } from './MultiAgentStatus.js';
-import { tokenLimit, hasKnownTokenLimit } from '@google/gemini-cli-core';
+import { tokenLimit, hasKnownTokenLimit } from '@plumb/core';
 import { isContextUsageCritical } from '../utils/contextUsage.js';
 
 /**

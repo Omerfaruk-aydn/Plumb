@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped test of the real Antigravity credential refresh path:
- * PlumbSecureCredentialStore + PlumbProviderRegistry + PlumbProviderAuthService
- * + resolveUsablePlumbCredential, through the exact pinned OMP refresh
- * callback (packages/provider/src/omp-ai/registry/google-antigravity.ts).
- * Only the real network token endpoint is mocked — refreshCredential()
- * itself is never mocked, so this exercises the real return-value contract,
- * real persistence, real re-readback, and real registry reload.
  */
 
 import * as fs from 'node:fs';
@@ -30,7 +21,7 @@ import {
   resolveUsablePlumbCredential,
   getPlumbProviderRegistry,
   clearPlumbCredentialResolverInFlight,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 // initializePlumbProviders() is a process-lifetime-idempotent bootstrap by
 // design (see packages/core/src/config/plumbInit.ts) — it is called ONCE
@@ -48,16 +39,16 @@ describe('Antigravity OAuth credential refresh — real store/registry/service p
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-antigravity-refresh-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    previousHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
     await initializePlumbProviders();
   });
 
   afterAll(() => {
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     fs.rmSync(isolatedHome, { recursive: true, force: true });
   });

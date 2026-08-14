@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import { PromptProvider } from './promptProvider.js';
 import type { Config } from '../config/config.js';
 import { makeRelative } from '../utils/paths.js';
 import {
-  getAllGeminiMdFilenames,
+  getAllContextFilenames,
   DEFAULT_CONTEXT_FILENAME,
 } from '../tools/memoryTool.js';
 import {
@@ -29,7 +28,7 @@ vi.mock('../tools/memoryTool.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
-    getAllGeminiMdFilenames: vi.fn(),
+    getAllContextFilenames: vi.fn(),
   };
 });
 
@@ -97,7 +96,7 @@ describe('PromptProvider', () => {
   });
 
   it('should handle multiple context filenames in the system prompt', () => {
-    vi.mocked(getAllGeminiMdFilenames).mockReturnValue([
+    vi.mocked(getAllContextFilenames).mockReturnValue([
       DEFAULT_CONTEXT_FILENAME,
       'CUSTOM.md',
       'ANOTHER.md',
@@ -152,7 +151,7 @@ describe('PromptProvider', () => {
   });
 
   it('should handle multiple context filenames in user memory section', () => {
-    vi.mocked(getAllGeminiMdFilenames).mockReturnValue([
+    vi.mocked(getAllContextFilenames).mockReturnValue([
       DEFAULT_CONTEXT_FILENAME,
       'CUSTOM.md',
     ]);
@@ -177,7 +176,7 @@ describe('PromptProvider', () => {
     } as unknown as MessageBus;
 
     beforeEach(() => {
-      vi.mocked(getAllGeminiMdFilenames).mockReturnValue([
+      vi.mocked(getAllContextFilenames).mockReturnValue([
         DEFAULT_CONTEXT_FILENAME,
       ]);
       (mockConfig.getApprovalMode as ReturnType<typeof vi.fn>).mockReturnValue(

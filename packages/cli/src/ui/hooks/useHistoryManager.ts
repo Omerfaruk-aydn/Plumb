@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useRef, useCallback, useMemo } from 'react';
 import type { HistoryItem } from '../types.js';
-import type { ChatRecordingService } from '@google/gemini-cli-core';
+import type { ChatRecordingService } from '@plumb/core';
 
 // Type for the updater function passed to updateHistoryItem
 type HistoryItemUpdater = (
@@ -119,7 +118,7 @@ export function useHistory({
           case 'user':
           case 'gemini':
           case 'gemini_content':
-            // Core conversation recording handled by GeminiChat.
+            // Core conversation recording handled by PlumbChat.
             break;
           default:
             // Ignore the rest.

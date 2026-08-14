@@ -1,21 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Capability lifecycle regression coverage: cold-start, refresh,
- * account-switch, and provider/model switch-matrix isolation.
- *
- * PlumbContentGenerator.generateContentStream re-derives
- * Config.setActiveModelToolsCapability from the registry's
- * `findModel(provider, modelId)` result on EVERY turn (see
- * plumbContentGenerator.ts: "Keep Config's tool-capability authority ...
- * in sync with what the registry actually resolved for this exact
- * provider+model on every turn -- not just at selection time"). This is
- * a live re-derivation, not an accumulated cache, so it structurally
- * cannot "self-heal on request #2": request #1 already reads the live
- * registry result. These tests pin that contract down across the
- * specific lifecycle scenarios the audit calls out.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -43,7 +28,7 @@ const {
   mockLoadCache: vi.fn(),
 }));
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getPlumbModelRegistry: () => ({
     findModel: mockFindModel,
     loadCache: mockLoadCache,

@@ -1,12 +1,8 @@
 {
-  "name": "@google/gemini-cli-sdk",
+  "name": "@plumb/sdk",
   "version": "0.55.0-nightly.20260729.g3499c84f7",
-  "description": "Gemini CLI SDK",
+  "description": "PLUMB SDK",
   "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git"
-  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +18,7 @@
     "dist"
   ],
   "dependencies": {
-    "@google/gemini-cli-core": "file:../core",
+    "@plumb/core": "file:../core",
     "zod": "3.25.76",
     "zod-to-json-schema": "3.25.1"
   },

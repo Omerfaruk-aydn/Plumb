@@ -1,15 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { homedir } from '@google/gemini-cli-core';
+import { homedir } from '@plumb/core';
 
 const PLUMB_DIR = '.plumb';
 const ACCEPTANCE_FILE = 'provider-acceptance.json';

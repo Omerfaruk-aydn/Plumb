@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * WatsonxDiscovery capability metadata: `toolsSupported` must derive from
- * IBM's real foundation-model `tasks[].id` metadata (genuine
- * PROVIDER_DYNAMIC discovery), never from guessing based on the model
- * name, and must stay `undefined` (unknown) rather than `false` when IBM
- * reports no task metadata for a model.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const mockListFoundationModelSpecs = vi.fn();

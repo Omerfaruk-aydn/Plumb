@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import type React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
-import { renderPlumbBlockWordmark } from '@google/gemini-cli-core';
+import { renderPlumbBlockWordmark } from '@plumb/core';
 import { theme } from '../semantic-colors.js';
 import { ThemedGradient } from './ThemedGradient.js';
 

@@ -1,7 +1,7 @@
-# MCP servers with Gemini CLI
+# MCP servers with PLUMB
 
 This document provides a guide to configuring and using Model Context Protocol
-(MCP) servers with Gemini CLI.
+(MCP) servers with PLUMB.
 
 ## What is an MCP server?
 
@@ -10,7 +10,7 @@ CLI through the Model Context Protocol, allowing it to interact with external
 systems and data sources. MCP servers act as a bridge between the Gemini model
 and your local environment or other services like APIs.
 
-An MCP server enables Gemini CLI to:
+An MCP server enables PLUMB to:
 
 - **Discover tools:** List available tools, their descriptions, and parameters
   through standardized schema definitions.
@@ -19,13 +19,13 @@ An MCP server enables Gemini CLI to:
 - **Access resources:** Read data from specific resources that the server
   exposes (files, API payloads, reports, etc.).
 
-With an MCP server, you can extend Gemini CLI's capabilities to perform actions
+With an MCP server, you can extend PLUMB's capabilities to perform actions
 beyond its built-in features, such as interacting with databases, APIs, custom
 scripts, or specialized workflows.
 
 ## Core integration architecture
 
-Gemini CLI integrates with MCP servers through a sophisticated discovery and
+PLUMB integrates with MCP servers through a sophisticated discovery and
 execution system built into the core package (`packages/core/src/tools/`):
 
 ### Discovery Layer (`mcp-client.ts`)
@@ -54,7 +54,7 @@ Each discovered MCP tool is wrapped in a `DiscoveredMCPTool` instance that:
 
 ### Transport mechanisms
 
-Gemini CLI supports three MCP transport types:
+PLUMB supports three MCP transport types:
 
 - **Stdio Transport:** Spawns a subprocess and communicates via stdin/stdout
 - **SSE Transport:** Connects to Server-Sent Events endpoints
@@ -63,9 +63,9 @@ Gemini CLI supports three MCP transport types:
 ## Working with MCP resources
 
 Some MCP servers expose contextual “resources” in addition to the tools and
-prompts. Gemini CLI discovers these automatically and gives you the possibility
-to reference them in the chat. For more information on the tools used to
-interact with these resources, see [MCP resource tools](mcp-resources.md).
+prompts. PLUMB discovers these automatically and gives you the possibility to
+reference them in the chat. For more information on the tools used to interact
+with these resources, see [MCP resource tools](mcp-resources.md).
 
 ### Discovery and listing
 
@@ -89,9 +89,9 @@ in the conversation.
 
 ## How to set up your MCP server
 
-Gemini CLI uses the `mcpServers` configuration in your `settings.json` file to
-locate and connect to MCP servers. This configuration supports multiple servers
-with different transport mechanisms.
+PLUMB uses the `mcpServers` configuration in your `settings.json` file to locate
+and connect to MCP servers. This configuration supports multiple servers with
+different transport mechanisms.
 
 ### Configure the MCP server in settings.json
 
@@ -189,10 +189,10 @@ Each server configuration supports the following properties:
 
 ### Environment variable expansion
 
-Gemini CLI automatically expands environment variables in the `env` block of
-your MCP server configuration. This lets you securely reference variables
-defined in your shell or environment without hardcoding sensitive information
-directly in your `settings.json` file.
+PLUMB automatically expands environment variables in the `env` block of your MCP
+server configuration. This lets you securely reference variables defined in your
+shell or environment without hardcoding sensitive information directly in your
+`settings.json` file.
 
 The expansion utility supports:
 
@@ -215,7 +215,7 @@ string.
 
 ### Security and environment sanitization
 
-To protect your credentials, Gemini CLI performs environment sanitization when
+To protect your credentials, PLUMB performs environment sanitization when
 spawning MCP server processes.
 
 #### Automatic redaction
@@ -270,8 +270,8 @@ specific data with that server.
 
 ### OAuth support for remote MCP servers
 
-Gemini CLI supports OAuth 2.0 authentication for remote MCP servers using SSE or
-HTTP transports. This enables secure access to MCP servers that require
+PLUMB supports OAuth 2.0 authentication for remote MCP servers using SSE or HTTP
+transports. This enables secure access to MCP servers that require
 authentication.
 
 #### Automatic OAuth discovery
@@ -556,7 +556,7 @@ then be used to authenticate with the MCP server.
 
 ## Discovery process deep dive
 
-When Gemini CLI starts, it performs MCP server discovery through the following
+When PLUMB starts, it performs MCP server discovery through the following
 detailed process:
 
 ### 1. Server iteration and connection
@@ -763,7 +763,7 @@ The MCP integration tracks several states:
 
 If an MCP server is provided by an extension (for example, the
 `google-workspace` extension), you can still override its settings in your local
-`settings.json`. Gemini CLI merges your local configuration with the extension's
+`settings.json`. PLUMB merges your local configuration with the extension's
 defaults:
 
 - **Tool lists:** Tool lists are merged securely to ensure the most restrictive
@@ -879,7 +879,7 @@ defaults:
 - **Access tokens:** Be security-aware when configuring environment variables
   containing API keys or tokens. See
   [Security and environment sanitization](#security-and-environment-sanitization)
-  for details on how Gemini CLI protects your credentials.
+  for details on how PLUMB protects your credentials.
 - **Sandbox compatibility:** When using sandboxing, ensure MCP servers are
   available within the sandbox environment
 - **Private data:** Using broadly scoped personal access tokens can lead to
@@ -906,8 +906,7 @@ defaults:
   through automatic prefixing
 
 This comprehensive integration makes MCP servers a powerful way to extend the
-Gemini CLI's capabilities while maintaining security, reliability, and ease of
-use.
+PLUMB's capabilities while maintaining security, reliability, and ease of use.
 
 ## Returning rich content from tools
 
@@ -926,8 +925,8 @@ To return rich content, your tool's response must adhere to the MCP
 specification for a
 [`CallToolResult`](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#tool-result).
 The `content` field of the result should be an array of `ContentBlock` objects.
-Gemini CLI will correctly process this array, separating text from binary data
-and packaging it for the model.
+PLUMB will correctly process this array, separating text from binary data and
+packaging it for the model.
 
 You can mix and match different content block types in the `content` array. The
 supported block types include:
@@ -963,7 +962,7 @@ text description and an image:
 }
 ```
 
-When Gemini CLI receives this response, it will:
+When PLUMB receives this response, it will:
 
 1.  Extract all the text and combine it into a single `functionResponse` part
     for the model.
@@ -977,7 +976,7 @@ context to the Gemini model.
 ## MCP prompts as slash commands
 
 In addition to tools, MCP servers can expose predefined prompts that can be
-executed as slash commands within Gemini CLI. This lets you create shortcuts for
+executed as slash commands within PLUMB. This lets you create shortcuts for
 common or complex queries that can be easily invoked by name.
 
 ### Defining prompts on the server
@@ -1037,28 +1036,28 @@ Once a prompt is discovered, you can invoke it using its name as a slash
 command. The CLI will automatically handle parsing arguments.
 
 ```bash
-/poem-writer --title="Gemini CLI" --mood="reverent"
+/poem-writer --title="PLUMB" --mood="reverent"
 ```
 
 or, using positional arguments:
 
 ```bash
-/poem-writer "Gemini CLI" reverent
+/poem-writer "PLUMB" reverent
 ```
 
-When you run this command, Gemini CLI executes the `prompts/get` method on the
-MCP server with the provided arguments. The server is responsible for
-substituting the arguments into the prompt template and returning the final
-prompt text. The CLI then sends this prompt to the model for execution. This
-provides a convenient way to automate and share common workflows.
+When you run this command, PLUMB executes the `prompts/get` method on the MCP
+server with the provided arguments. The server is responsible for substituting
+the arguments into the prompt template and returning the final prompt text. The
+CLI then sends this prompt to the model for execution. This provides a
+convenient way to automate and share common workflows.
 
 ## Managing MCP servers with `gemini mcp`
 
 While you can always configure MCP servers by manually editing your
-`settings.json` file, Gemini CLI provides a convenient set of commands to manage
-your server configurations programmatically. These commands streamline the
-process of adding, listing, and removing MCP servers without needing to directly
-edit JSON files.
+`settings.json` file, PLUMB provides a convenient set of commands to manage your
+server configurations programmatically. These commands streamline the process of
+adding, listing, and removing MCP servers without needing to directly edit JSON
+files.
 
 ### Adding a server (`gemini mcp add`)
 
@@ -1228,6 +1227,6 @@ The same commands are available as slash commands during an active session:
 
 ## Instructions
 
-Gemini CLI supports
+PLUMB supports
 [MCP server instructions](https://modelcontextprotocol.io/specification/2025-06-18/schema#initializeresult),
 which will be appended to the system instructions.

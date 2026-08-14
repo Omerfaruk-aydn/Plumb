@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -20,10 +19,7 @@ import * as process from 'node:process';
 import * as path from 'node:path';
 import { relaunchApp } from '../../utils/processUtils.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
-import {
-  ExitCodes,
-  type FolderDiscoveryResults,
-} from '@google/gemini-cli-core';
+import { ExitCodes, type FolderDiscoveryResults } from '@plumb/core';
 import { useUIState } from '../contexts/UIStateContext.js';
 import { useAlternateBuffer } from '../hooks/useAlternateBuffer.js';
 import { OverflowProvider } from '../contexts/OverflowContext.js';

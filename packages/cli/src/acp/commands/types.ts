@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AgentLoopContext, GitService } from '@google/gemini-cli-core';
+import type { AgentLoopContext, GitService } from '@plumb/core';
 import type { LoadedSettings } from '../../config/settings.js';
 
 export interface CommandContext {

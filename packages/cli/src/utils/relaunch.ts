@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,10 +9,7 @@ import {
   getSpawnConfig,
   getScriptArgs,
 } from './processUtils.js';
-import {
-  writeToStderr,
-  type AdminControlsSettings,
-} from '@google/gemini-cli-core';
+import { writeToStderr, type AdminControlsSettings } from '@plumb/core';
 
 export async function relaunchOnExitCode(runner: () => Promise<number>) {
   while (true) {

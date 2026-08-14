@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import open from 'open';
 import path from 'node:path';
 import { bugCommand } from './bugCommand.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
-import { getVersion, type Config } from '@google/gemini-cli-core';
+import { getVersion, type Config } from '@plumb/core';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatBytes } from '../utils/formatters.js';
 import { MessageType } from '../types.js';
@@ -49,9 +48,8 @@ vi.mock('../utils/historyExportUtils.js', async (importOriginal) => {
 });
 import { exportHistoryToFile } from '../utils/historyExportUtils.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     IdeClient: {
@@ -110,13 +108,47 @@ describe('bugCommand', () => {
     vi.useRealTimers();
   });
 
-  it('should generate the default GitHub issue URL', async () => {
+  it('reports that no bug tracker is configured when urlTemplate is absent', async () => {
     const mockContext = createMockCommandContext({
       services: {
         agentContext: {
           config: {
             getModel: () => 'gemini-pro',
             getBugCommand: () => undefined,
+            getIdeMode: () => true,
+            getContentGeneratorConfig: () => ({ authType: 'oauth-personal' }),
+            getSessionId: vi.fn().mockReturnValue('test-session-id'),
+          } as unknown as Config,
+          geminiClient: {
+            getChat: () => ({
+              getHistory: () => [],
+            }),
+          },
+        },
+      },
+    });
+
+    if (!bugCommand.action) throw new Error('Action is not defined');
+    await bugCommand.action(mockContext, 'A test bug');
+
+    expect(open).not.toHaveBeenCalled();
+    const addItemCall = vi.mocked(mockContext.ui.addItem).mock.calls[0];
+    expect(addItemCall[0].type).toBe(MessageType.INFO);
+    expect(addItemCall[0].text).toContain(
+      'No bug tracker is configured for this build.',
+    );
+  });
+
+  it('opens the configured URL template with the report details', async () => {
+    const mockContext = createMockCommandContext({
+      services: {
+        agentContext: {
+          config: {
+            getModel: () => 'gemini-pro',
+            getBugCommand: () => ({
+              urlTemplate:
+                'https://example.com/issues/new?title={title}&info={info}&problem={problem}',
+            }),
             getIdeMode: () => true,
             getContentGeneratorConfig: () => ({ authType: 'oauth-personal' }),
             getSessionId: vi.fn().mockReturnValue('test-session-id'),
@@ -147,7 +179,7 @@ describe('bugCommand', () => {
 * **Kitty Keyboard Protocol:** Supported
 * **IDE Client:** VSCode
 `;
-    const expectedUrl = `https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title=A%20test%20bug&info=${encodeURIComponent(expectedInfo)}&problem=A%20test%20bug`;
+    const expectedUrl = `https://example.com/issues/new?title=A%20test%20bug&info=${encodeURIComponent(expectedInfo)}&problem=A%20test%20bug`;
 
     expect(open).toHaveBeenCalledWith(expectedUrl);
   });
@@ -162,7 +194,10 @@ describe('bugCommand', () => {
         agentContext: {
           config: {
             getModel: () => 'gemini-pro',
-            getBugCommand: () => undefined,
+            getBugCommand: () => ({
+              urlTemplate:
+                'https://example.com/issues/new?title={title}&info={info}&problem={problem}',
+            }),
             getIdeMode: () => true,
             getContentGeneratorConfig: () => ({ authType: 'vertex-ai' }),
             storage: {
@@ -255,7 +290,10 @@ describe('bugCommand', () => {
         agentContext: {
           config: {
             getModel: () => 'gemini-pro',
-            getBugCommand: () => undefined,
+            getBugCommand: () => ({
+              urlTemplate:
+                'https://example.com/issues/new?title={title}&info={info}&problem={problem}',
+            }),
             getIdeMode: () => false,
             getContentGeneratorConfig: () => ({ authType: 'oauth-personal' }),
             storage: tempDir ? { getProjectTempDir: () => tempDir } : undefined,

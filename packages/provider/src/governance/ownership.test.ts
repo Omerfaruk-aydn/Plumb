@@ -1,21 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Governance contract: exactly one active production owner per subsystem.
- *
- * The ownership manifest (docs/architecture/plumb-ownership-manifest.json)
- * records, per subsystem, the single active owner file. These tests enforce
- * the manifest invariants that must hold both before and after OMP runtime
- * activation:
- *  - the manifest is well-formed and every declared file exists on disk;
- *  - current-mode validation reports zero errors (no duplicate active owner,
- *    no missing owner, no owner mismatch);
- *  - the required-result table is encoded: OMP-required subsystems declare
- *    requiredOwner "OMP", the secret store declares "PLUMB_OS";
- *  - target-mode validation never flags the storage layers (secret-store,
- *    cache-backend), which are owned by non-OMP adapters by design.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -180,7 +165,7 @@ describe('ownership manifest', { timeout: 30000 }, () => {
     // The provider-registry authority is the imported OMP registry, not a
     // PLUMB-maintained inventory.
     expect(manifest.subsystems['provider-registry'].activeOwner).toBe(
-      'packages/provider/src/omp-ai/registry/registry.ts',
+      'packages/provider/src/vendor-ai/registry/registry.ts',
     );
     expect(manifest.subsystems['provider-registry'].ownerClassification).toBe(
       'ACTIVE_OMP_SOURCE',
@@ -197,8 +182,7 @@ describe('ownership manifest', { timeout: 30000 }, () => {
       e.includes('hard-coded provider inventory'),
     );
     expect(inventoryErrors).toEqual([]);
-  }, // tree looking for multi-entry provider-id array literals. Fast in // findHardCodedProviderInventories walks the entire UI/config source
-  // isolation; observed to exceed the default 5000ms only under the full
+  }, // isolation; observed to exceed the default 5000ms only under the full // tree looking for multi-entry provider-id array literals. Fast in // findHardCodedProviderInventories walks the entire UI/config source
   // provider suite's parallel worker-thread contention.
   20_000);
 

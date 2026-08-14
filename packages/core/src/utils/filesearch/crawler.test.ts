@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,9 +8,9 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as cache from './crawlCache.js';
 import { crawl } from './crawler.js';
-import { createTmpDir, cleanupTmpDir } from '@google/gemini-cli-test-utils';
+import { createTmpDir, cleanupTmpDir } from '@plumb/test-utils';
 import { loadIgnoreRules, type Ignore } from './ignore.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../../config/constants.js';
 import { FileDiscoveryService } from '../../services/fileDiscoveryService.js';
 
 describe('crawler', () => {
@@ -25,14 +24,14 @@ describe('crawler', () => {
 
   it('should use .geminiignore rules', async () => {
     tmpDir = await createTmpDir({
-      [GEMINI_IGNORE_FILE_NAME]: 'dist/',
+      [PLUMB_IGNORE_FILE_NAME]: 'dist/',
       dist: ['ignored.js'],
       src: ['not-ignored.js'],
     });
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: false,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -48,7 +47,7 @@ describe('crawler', () => {
       expect.arrayContaining([
         '.',
         'src/',
-        GEMINI_IGNORE_FILE_NAME,
+        PLUMB_IGNORE_FILE_NAME,
         'src/not-ignored.js',
       ]),
     );
@@ -58,7 +57,7 @@ describe('crawler', () => {
     tmpDir = await createTmpDir({
       '.git': {},
       '.gitignore': 'dist/',
-      [GEMINI_IGNORE_FILE_NAME]: 'build/',
+      [PLUMB_IGNORE_FILE_NAME]: 'build/',
       dist: ['ignored-by-git.js'],
       build: ['ignored-by-gemini.js'],
       src: ['not-ignored.js'],
@@ -66,7 +65,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -82,7 +81,7 @@ describe('crawler', () => {
       expect.arrayContaining([
         '.',
         'src/',
-        GEMINI_IGNORE_FILE_NAME,
+        PLUMB_IGNORE_FILE_NAME,
         '.gitignore',
         'src/not-ignored.js',
       ]),
@@ -97,7 +96,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: false,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, ['logs']);
 
@@ -129,7 +128,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -164,7 +163,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -202,7 +201,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -236,7 +235,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -267,7 +266,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -292,7 +291,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: true,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -317,7 +316,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: false,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 
@@ -348,7 +347,7 @@ describe('crawler', () => {
       tmpDir = await createTmpDir({ 'file1.js': '' });
       const service = new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       });
       const ignore = loadIgnoreRules(service, []);
       const options = {
@@ -387,7 +386,7 @@ describe('crawler', () => {
         loadIgnoreRules(
           new FileDiscoveryService(tmpDir, {
             respectGitIgnore: true,
-            respectGeminiIgnore: false,
+            respectPlumbIgnore: false,
           }),
           [],
         );
@@ -421,7 +420,7 @@ describe('crawler', () => {
       tmpDir = await createTmpDir({ 'file1.js': '' });
       const service = new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       });
       const ignore = loadIgnoreRules(service, []);
       const options = {
@@ -451,7 +450,7 @@ describe('crawler', () => {
       tmpDir = await createTmpDir({ 'file1.js': '' });
       const service = new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       });
       const ignore = loadIgnoreRules(service, []);
       const getOptions = (maxDepth?: number) => ({
@@ -502,7 +501,7 @@ describe('crawler', () => {
     const getCrawlResults = async (maxDepth?: number) => {
       const service = new FileDiscoveryService(tmpDir, {
         respectGitIgnore: false,
-        respectGeminiIgnore: false,
+        respectPlumbIgnore: false,
       });
       const ignore = loadIgnoreRules(service, []);
       const paths = await crawl({
@@ -577,7 +576,7 @@ describe('crawler', () => {
 
     const service = new FileDiscoveryService(tmpDir, {
       respectGitIgnore: false,
-      respectGeminiIgnore: false,
+      respectPlumbIgnore: false,
     });
     const ignore = loadIgnoreRules(service, []);
 

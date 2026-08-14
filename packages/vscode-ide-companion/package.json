@@ -1,15 +1,9 @@
 {
-  "name": "gemini-cli-vscode-ide-companion",
-  "displayName": "Gemini CLI Companion",
-  "description": "Enable Gemini CLI with direct access to your IDE workspace.",
+  "name": "plumb-vscode-ide-companion",
+  "displayName": "PLUMB Companion",
+  "description": "Enable PLUMB with direct access to your IDE workspace.",
   "version": "0.55.0-nightly.20260729.g3499c84f7",
-  "publisher": "google",
   "icon": "assets/icon.png",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/google-gemini/gemini-cli.git",
-    "directory": "packages/vscode-ide-companion"
-  },
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -19,10 +13,8 @@
     "AI"
   ],
   "keywords": [
-    "gemini-cli",
-    "gemini cli",
-    "gemini",
-    "gemini code",
+    "plumb",
+    "plumb-cli",
     "cli",
     "ide integration",
     "ide companion"
@@ -32,74 +24,74 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "Gemini CLI",
+      "title": "PLUMB",
       "properties": {
-        "gemini-cli.debug.logging.enabled": {
+        "plumb.debug.logging.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Enable detailed logging for debugging the Gemini CLI Companion."
+          "description": "Enable detailed logging for debugging the PLUMB Companion."
         }
       }
     },
     "languages": [
       {
-        "id": "gemini-diff-editable"
+        "id": "plumb-diff-editable"
       }
     ],
     "commands": [
       {
-        "command": "gemini.diff.accept",
-        "title": "Gemini CLI: Accept Diff",
+        "command": "plumb.diff.accept",
+        "title": "PLUMB: Accept Diff",
         "icon": "$(check)"
       },
       {
-        "command": "gemini.diff.cancel",
-        "title": "Gemini CLI: Close Diff Editor",
+        "command": "plumb.diff.cancel",
+        "title": "PLUMB: Close Diff Editor",
         "icon": "$(close)"
       },
       {
-        "command": "gemini-cli.runGeminiCLI",
-        "title": "Gemini CLI: Run"
+        "command": "plumb.runPlumb",
+        "title": "PLUMB: Run"
       },
       {
-        "command": "gemini-cli.showNotices",
-        "title": "Gemini CLI: View Third-Party Notices"
+        "command": "plumb.showNotices",
+        "title": "PLUMB: View Third-Party Notices"
       }
     ],
     "menus": {
       "commandPalette": [
         {
-          "command": "gemini.diff.accept",
-          "when": "gemini.diff.isVisible"
+          "command": "plumb.diff.accept",
+          "when": "plumb.diff.isVisible"
         },
         {
-          "command": "gemini.diff.cancel",
-          "when": "gemini.diff.isVisible"
+          "command": "plumb.diff.cancel",
+          "when": "plumb.diff.isVisible"
         }
       ],
       "editor/title": [
         {
-          "command": "gemini.diff.accept",
-          "when": "gemini.diff.isVisible",
+          "command": "plumb.diff.accept",
+          "when": "plumb.diff.isVisible",
           "group": "navigation"
         },
         {
-          "command": "gemini.diff.cancel",
-          "when": "gemini.diff.isVisible",
+          "command": "plumb.diff.cancel",
+          "when": "plumb.diff.isVisible",
           "group": "navigation"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "gemini.diff.accept",
+        "command": "plumb.diff.accept",
         "key": "ctrl+s",
-        "when": "gemini.diff.isVisible"
+        "when": "plumb.diff.isVisible"
       },
       {
-        "command": "gemini.diff.accept",
+        "command": "plumb.diff.accept",
         "key": "cmd+s",
-        "when": "gemini.diff.isVisible"
+        "when": "plumb.diff.isVisible"
       }
     ]
   },

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -44,7 +43,7 @@ export function isTrustLevel(value: unknown): value is TrustLevel {
  * IDE context, and local configuration file.
  */
 export function checkPathTrust(options: TrustOptions): TrustResult {
-  if (process.env['GEMINI_CLI_TRUST_WORKSPACE'] === 'true') {
+  if (process.env['PLUMB_TRUST_WORKSPACE'] === 'true') {
     return { isTrusted: true, source: 'env' };
   }
 

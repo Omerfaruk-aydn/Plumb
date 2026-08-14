@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 export interface FileFilteringOptions {
   respectGitIgnore: boolean;
-  respectGeminiIgnore: boolean;
+  respectPlumbIgnore: boolean;
   enableFileWatcher?: boolean;
   maxFileCount?: number;
   searchTimeout?: number;
@@ -16,7 +15,7 @@ export interface FileFilteringOptions {
 // For memory files
 export const DEFAULT_MEMORY_FILE_FILTERING_OPTIONS: FileFilteringOptions = {
   respectGitIgnore: false,
-  respectGeminiIgnore: true,
+  respectPlumbIgnore: true,
   enableFileWatcher: false,
   maxFileCount: 20000,
   searchTimeout: 5000,
@@ -26,7 +25,7 @@ export const DEFAULT_MEMORY_FILE_FILTERING_OPTIONS: FileFilteringOptions = {
 // For all other files
 export const DEFAULT_FILE_FILTERING_OPTIONS: FileFilteringOptions = {
   respectGitIgnore: true,
-  respectGeminiIgnore: true,
+  respectPlumbIgnore: true,
   enableFileWatcher: false,
   maxFileCount: 20000,
   searchTimeout: 5000,
@@ -34,10 +33,10 @@ export const DEFAULT_FILE_FILTERING_OPTIONS: FileFilteringOptions = {
 };
 
 // Generic exclusion file name
-export const GEMINI_IGNORE_FILE_NAME = '.geminiignore';
+export const PLUMB_IGNORE_FILE_NAME = '.plumbignore';
 
 // Extension integrity constants
 export const INTEGRITY_FILENAME = 'extension_integrity.json';
 export const INTEGRITY_KEY_FILENAME = 'integrity.key';
-export const KEYCHAIN_SERVICE_NAME = 'gemini-cli-extension-integrity';
+export const KEYCHAIN_SERVICE_NAME = 'plumb-extension-integrity';
 export const SECRET_KEY_ACCOUNT = 'secret-key';

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import * as path from 'node:path';
 import { MCPOAuthTokenStorage } from './oauth-token-storage.js';
 import { FORCE_ENCRYPTED_FILE_ENV_VAR } from './token-storage/index.js';
 import type { OAuthCredentials, OAuthToken } from './token-storage/types.js';
-import { GEMINI_DIR } from '../utils/paths.js';
+import { PLUMB_DIR } from '../utils/paths.js';
 import { Storage } from '../config/storage.js';
 
 // Mock dependencies. Spreads the real fs module in and overrides only
@@ -106,7 +105,7 @@ describe('MCPOAuthTokenStorage', () => {
       // test in this block relies on the token file living under the mock
       // home directory the assertions build via path.join(...) directly.
       vi.mocked(Storage.getMcpOAuthTokensPath).mockReturnValue(
-        path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+        path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
       );
     });
 
@@ -134,7 +133,7 @@ describe('MCPOAuthTokenStorage', () => {
         expect(tokens.size).toBe(1);
         expect(tokens.get('test-server')).toEqual(mockCredentials);
         expect(fs.readFile).toHaveBeenCalledWith(
-          path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+          path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
           'utf-8',
         );
       });
@@ -181,11 +180,11 @@ describe('MCPOAuthTokenStorage', () => {
         );
 
         expect(fs.mkdir).toHaveBeenCalledWith(
-          path.join('/mock/home', GEMINI_DIR),
+          path.join('/mock/home', PLUMB_DIR),
           { recursive: true },
         );
         expect(fs.writeFile).toHaveBeenCalledWith(
-          path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+          path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
           expect.stringContaining('test-server'),
           { mode: 0o600 },
         );
@@ -330,7 +329,7 @@ describe('MCPOAuthTokenStorage', () => {
         await tokenStorage.deleteCredentials('test-server');
 
         expect(fs.unlink).toHaveBeenCalledWith(
-          path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+          path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
         );
         expect(fs.writeFile).not.toHaveBeenCalled();
       });
@@ -414,7 +413,7 @@ describe('MCPOAuthTokenStorage', () => {
         await tokenStorage.clearAll();
 
         expect(fs.unlink).toHaveBeenCalledWith(
-          path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+          path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
         );
       });
 
@@ -452,7 +451,7 @@ describe('MCPOAuthTokenStorage', () => {
       // HybridTokenStorage -- same re-arm requirement as the
       // "encrypted flag false" block above.
       vi.mocked(Storage.getMcpOAuthTokensPath).mockReturnValue(
-        path.join('/mock/home', GEMINI_DIR, 'mcp-oauth-tokens.json'),
+        path.join('/mock/home', PLUMB_DIR, 'mcp-oauth-tokens.json'),
       );
     });
 

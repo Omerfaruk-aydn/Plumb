@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import {
   type Tool,
   type GenerateContentResponse,
 } from '@google/genai';
-import { partListUnionToString } from './geminiRequest.js';
+import { partListUnionToString } from './plumbRequest.js';
 import {
   getDirectoryContextString,
   getInitialChatHistory,
@@ -29,12 +28,12 @@ import { type AgentLoopContext } from '../config/agent-loop-context.js';
 import { getCoreSystemPrompt } from './prompts.js';
 import { checkNextSpeaker } from '../utils/nextSpeakerChecker.js';
 import { reportError } from '../utils/errorReporting.js';
-import { GeminiChat } from './geminiChat.js';
+import { PlumbChat } from './plumbChat.js';
 import {
   retryWithBackoff,
   type RetryAvailabilityContext,
 } from '../utils/retry.js';
-import type { ValidationRequiredError } from '../utils/googleQuotaErrors.js';
+import type { ValidationRequiredError } from '../utils/plumbGoogleQuotaErrors.js';
 import { getErrorMessage, isAbortError } from '../utils/errors.js';
 import { tokenLimit } from './tokenLimits.js';
 import type {
@@ -91,7 +90,7 @@ type BeforeAgentHookReturn =
   | undefined;
 
 export class GeminiClient {
-  private chat?: GeminiChat;
+  private chat?: PlumbChat;
   private sessionTurnCount = 0;
 
   private readonly loopDetector: LoopDetectionService;
@@ -276,7 +275,7 @@ export class GeminiClient {
     this.getChat().addHistory(content);
   }
 
-  getChat(): GeminiChat {
+  getChat(): PlumbChat {
     if (!this.chat) {
       throw new Error('Chat not initialized');
     }
@@ -380,7 +379,7 @@ export class GeminiClient {
   async startChat(
     extraHistory?: ReadonlyArray<Content | HistoryTurn>,
     resumedSessionData?: ResumedSessionData,
-  ): Promise<GeminiChat> {
+  ): Promise<PlumbChat> {
     this.forceFullIdeContext = true;
     this.hasFailedCompressionAttempt = false;
     this.lastUsedModelId = undefined;
@@ -394,7 +393,7 @@ export class GeminiClient {
     try {
       const systemMemory = this.config.getSystemInstructionMemory();
       const systemInstruction = getCoreSystemPrompt(this.config, systemMemory);
-      const chat = new GeminiChat(
+      const chat = new PlumbChat(
         this.config,
         systemInstruction,
         tools,

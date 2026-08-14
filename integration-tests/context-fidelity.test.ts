@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import { TestRig } from './test-helper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { FinishReason, GenerateContentResponse } from '@google/genai';
-import type { FakeResponse, HistoryTurn } from '@google/gemini-cli-core';
+import type { FakeResponse, HistoryTurn } from '@plumb/core';
 
 describe('Context Management Fidelity E2E', () => {
   let rig: TestRig;

@@ -1,4 +1,4 @@
-# Custom CI Policy for Gemini CLI Bot
+# Custom CI Policy for PLUMB Bot
 # This policy guarantees permission for shell commands and file writing in the bot's CI environment.
 
 [[rule]]

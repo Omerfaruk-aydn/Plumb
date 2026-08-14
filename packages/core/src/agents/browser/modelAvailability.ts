@@ -1,14 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Model configuration for browser agent.
- *
- * Provides the default visual agent model and utilities for resolving
- * the configured model.
  */
 
 import type { Config } from '../../config/config.js';

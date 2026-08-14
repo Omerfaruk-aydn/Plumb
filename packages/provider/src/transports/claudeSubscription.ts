@@ -1,47 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Claude Subscription transport — bridges PLUMB to Anthropic's official
- * Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`, pinned to 0.1.77 for
- * zod@3 compatibility — see packages/provider/package.json).
- *
- * This is a DISTINCT provider/credential authority from `anthropic-api`
- * (packages/provider/src/omp-ai/registry/anthropic.ts + providers/anthropic.ts,
- * a direct Anthropic Developer Platform API key). Per Anthropic's official
- * policy (support.claude.com "Use the Claude Agent SDK with your Claude
- * plan", June 15 2026 update — "Claude Agent SDK, `claude -p`, and
- * third-party app usage still draw from your subscription's usage limits"),
- * the Agent SDK is the ONLY currently-sanctioned way for a third-party
- * client to draw on a Claude Pro/Max/Team/Enterprise subscription. PLUMB's
- * previous hand-rolled OAuth flow against Claude Code's own client id
- * (omp-ai/registry/anthropic.ts, port 54545 paste-code) is NOT that
- * mechanism and is blocked from selection — see BLOCKED_CLIENT_REGISTRATIONS
- * in catalog/providers.ts.
- *
- * CREDENTIAL AUTHORITY: the Agent SDK — which wraps the Claude Code CLI —
- * owns login/session state entirely (its own on-disk/keychain storage,
- * outside PLUMB's control). This module never reads Claude Code's private
- * credential files, never inspects OAuth tokens, and never persists
- * anything into PlumbSecureCredentialStore for this provider: doing so
- * would either fail (the SDK doesn't expose raw tokens) or require exactly
- * the kind of private-file scraping the project's terms rule forbids. This
- * is the intentional EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY exception to
- * the single-PLUMB-secret-store rule.
- *
- * TOOL EXECUTION: deliberately disabled in this first pass (`tools: []`).
- * The SDK defaults to Claude Code's full built-in tool set (Bash, Read,
- * Edit, ...) when `tools` is omitted — passing `[]` is the SDK's documented
- * way to disable all built-in tools, which is required here: without it, a
- * user selecting this as a chat model would silently grant an agentic
- * subprocess real filesystem/shell access outside PLUMB's own tool
- * permission model, and PLUMB has no tool-execution-ownership arbitration
- * with the SDK's own agent loop yet (both systems could otherwise try to
- * run the "same" tool call, or the SDK could run one PLUMB never sees).
- * Wiring PLUMB-owned tools through the SDK's `mcpServers`/`canUseTool`
- * hooks is left for a follow-up once that ownership question has a single
- * answer.
  */
 
 import { z } from 'zod';

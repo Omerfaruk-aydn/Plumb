@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -266,7 +265,7 @@ export function normalizeInboxMemoryPatchPath(
  * - `private` is rooted at the project memory directory, then narrowed to
  *   direct memory markdown documents by `isAllowedPrivateMemoryDocumentPath`.
  * - `global` is intentionally a single-file allowlist: the only writeable
- *   global file is the personal `~/.gemini/GEMINI.md`. Other files under
+ *   global file is the personal `~/.gemini/PLUMB.md`. Other files under
  *   `~/.gemini/` (settings, credentials, oauth, keybindings, etc.) are off-limits.
  */
 export function getAllowedMemoryPatchRoots(

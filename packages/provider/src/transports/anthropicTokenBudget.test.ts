@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical Anthropic max_tokens / thinking.budget_tokens invariant
- * resolver — mirrors OMP's `ensureMaxTokensForThinking`
- * (omp-ai/providers/anthropic.ts) for parity. Anthropic requires
- * max_tokens to strictly exceed thinking.budget_tokens whenever extended
- * thinking is enabled; this is the single canonical resolver every
- * Anthropic-family caller (direct Anthropic, GitHub Copilot, Vertex, any
- * Anthropic-compatible gateway) goes through.
  */
+
 import { describe, it, expect } from 'vitest';
 import {
   resolveAnthropicTokenBudget,

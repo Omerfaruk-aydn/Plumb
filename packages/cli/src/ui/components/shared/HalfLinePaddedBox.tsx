@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import { Box, Text, useIsScreenReaderEnabled } from 'ink';
 import { useUIState } from '../../contexts/UIStateContext.js';
 import { theme } from '../../semantic-colors.js';
 import { interpolateColor, resolveColor } from '../../themes/color-utils.js';
-import { supportsTrueColor } from '@google/gemini-cli-core';
+import { supportsTrueColor } from '@plumb/core';
 
 export interface HalfLinePaddedBoxProps {
   /**

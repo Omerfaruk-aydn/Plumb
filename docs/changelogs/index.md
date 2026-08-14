@@ -1,7 +1,7 @@
-# Gemini CLI release notes
+# PLUMB release notes
 
-Gemini CLI has three major release channels: nightly, preview, and stable. For
-most users, we recommend the stable release.
+PLUMB has three major release channels: nightly, preview, and stable. For most
+users, we recommend the stable release.
 
 On this page, you can find information regarding the current releases and
 announcements from each release.
@@ -328,9 +328,8 @@ on GitHub.
 
 ## Announcements: v0.31.0 - 2026-02-27
 
-- **Gemini 3.1 Pro Preview:** Gemini CLI now supports the new Gemini 3.1 Pro
-  Preview model
-  ([#19676](https://github.com/google-gemini/gemini-cli/pull/19676) by
+- **Gemini 3.1 Pro Preview:** PLUMB now supports the new Gemini 3.1 Pro Preview
+  model ([#19676](https://github.com/google-gemini/gemini-cli/pull/19676) by
   @sehoon38).
 - **Experimental Browser Agent:** We've introduced a new experimental browser
   agent to interact with web pages
@@ -390,7 +389,7 @@ on GitHub.
 
 ## Announcements: v0.28.0 - 2026-02-10
 
-- **IDE Support:** Gemini CLI now supports the Positron IDE
+- **IDE Support:** PLUMB now supports the Positron IDE
   ([#15047](https://github.com/google-gemini/gemini-cli/pull/15047) by
   @kapsner).
 - **Customization:** You can now use custom themes in extensions, and we've
@@ -476,7 +475,7 @@ on GitHub.
 - **Agent Skills:** We've introduced significant advancements in Agent Skills.
   This includes initial documentation and tutorials to help you get started,
   alongside enhanced support for remote agents, allowing for more distributed
-  and powerful automation within Gemini CLI.
+  and powerful automation within PLUMB.
   ([#15869](https://github.com/google-gemini/gemini-cli/pull/15869) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)),
   ([#16013](https://github.com/google-gemini/gemini-cli/pull/16013) by
@@ -526,15 +525,15 @@ on GitHub.
 
 ## Announcements: v0.23.0 - 2026-01-07
 
-- 🎉 **Experimental Agent Skills Support in Preview:** Gemini CLI now supports
+- 🎉 **Experimental Agent Skills Support in Preview:** PLUMB now supports
   [Agent Skills](https://agentskills.io/home) in our preview builds. This is an
   early preview where we’re looking for feedback!
-  - Install Preview: `npm install -g @google/gemini-cli@preview`
+  - Install Preview: `npm install -g plumb-cli@preview`
   - Enable in `/settings`
   - Docs:
     [https://geminicli.com/docs/cli/skills/](https://geminicli.com/docs/cli/skills/)
-- **Gemini CLI wrapped:** Run `npx gemini-wrapped` to visualize your usage
-  stats, top models, languages, and more!
+- **PLUMB wrapped:** Run `npx gemini-wrapped` to visualize your usage stats, top
+  models, languages, and more!
 - **Windows clipboard image support:** Windows users can now paste images
   directly from their clipboard into the CLI using `Alt`+`V`.
   ([pr](https://github.com/google-gemini/gemini-cli/pull/13997) by
@@ -553,10 +552,10 @@ on GitHub.
 
 - 🎉**Free Tier + Gemini 3:** Free tier users now all have access to Gemini 3
   Pro & Flash. Enable in `/settings` by toggling "Preview Features" to `true`.
-- 🎉**Gemini CLI + Colab:** Gemini CLI is now pre-installed. Can be used
-  headlessly in notebook cells or interactively in the built-in terminal
+- 🎉**PLUMB + Colab:** PLUMB is now pre-installed. Can be used headlessly in
+  notebook cells or interactively in the built-in terminal
   ([pic](https://imgur.com/a/G0Tn7vi))
-- 🎉**Gemini CLI Extensions:**
+- 🎉**PLUMB Extensions:**
 
   - **Conductor:** Planning++, Gemini works with you to build out a detailed
     plan, pull in extra details as needed, ultimately to give the LLM guardrails
@@ -574,12 +573,12 @@ on GitHub.
 
 ## Announcements: v0.21.0 - 2025-12-15
 
-- **⚡️⚡️⚡️ Gemini 3 Flash + Gemini CLI:** Better, faster and cheaper than 2.5
+- **⚡️⚡️⚡️ Gemini 3 Flash + PLUMB:** Better, faster and cheaper than 2.5
   Pro - and in some scenarios better than 3 Pro! For paid tiers + free tier
   users who were on the wait list enable **Preview Features** in `/settings.`
 - For more information:
-  [Gemini 3 Flash is now available in Gemini CLI](https://developers.googleblog.com/gemini-3-flash-is-now-available-in-gemini-cli/).
-- 🎉 Gemini CLI Extensions:
+  [Gemini 3 Flash is now available in PLUMB](https://developers.googleblog.com/gemini-3-flash-is-now-available-in-gemini-cli/).
+- 🎉 PLUMB Extensions:
   - Rill: Utilize natural language to analyze Rill data, enabling the
     exploration of metrics and trends without the need for manual queries.
     `gemini extensions install https://github.com/rilldata/rill-gemini-extension`
@@ -611,7 +610,7 @@ on GitHub.
 
 - 🎉 **New extensions:**
   - **Eleven Labs:** Create, play, manage your audio play tracks with the Eleven
-    Labs Gemini CLI extension:
+    Labs PLUMB extension:
     `gemini extensions install https://github.com/elevenlabs/elevenlabs-mcp`
 - **Zed integration:** Users can now leverage Gemini 3 within the Zed
   integration after enabling "Preview Features" in their CLI’s `/settings`.
@@ -630,8 +629,8 @@ on GitHub.
 ## Announcements: v0.18.0 - 2025-11-17
 
 - 🎉 **New extensions:**
-  - **Google Workspace**: Integrate Gemini CLI with your Workspace data. Write
-    docs, build slides, chat with others or even get your calc on in sheets:
+  - **Google Workspace**: Integrate PLUMB with your Workspace data. Write docs,
+    build slides, chat with others or even get your calc on in sheets:
     `gemini extensions install https://github.com/gemini-cli-extensions/workspace`
     - Blog:
       [https://allen.hutchison.org/2025/11/19/bringing-the-office-to-the-terminal/](https://allen.hutchison.org/2025/11/19/bringing-the-office-to-the-terminal/)
@@ -641,7 +640,7 @@ on GitHub.
     through commands and natural language:
     `gemini extensions install https://github.com/datagravity-ai/anomalo-gemini-extension`
 - **Experimental permission improvements:** We are now experimenting with a new
-  policy engine in Gemini CLI. This allows users and administrators to create
+  policy engine in PLUMB. This allows users and administrators to create
   fine-grained policy for tool calls. Currently behind a flag. See
   [policy engine documentation](../reference/policy-engine.md) for more
   information.
@@ -666,21 +665,20 @@ on GitHub.
 
 ## Announcements: v0.16.0 - 2025-11-10
 
-- **Gemini 3 + Gemini CLI:** launch 🚀🚀🚀
-- **Data Commons Gemini CLI Extension** - A new Data Commons Gemini CLI
-  extension that lets you query open-source statistical data from
-  datacommons.org. **To get started, you'll need a Data Commons API key and uv
-  installed**. These and other details to get you started with the extension can
-  be found at
+- **Gemini 3 + PLUMB:** launch 🚀🚀🚀
+- **Data Commons PLUMB Extension** - A new Data Commons PLUMB extension that
+  lets you query open-source statistical data from datacommons.org. **To get
+  started, you'll need a Data Commons API key and uv installed**. These and
+  other details to get you started with the extension can be found at
   [https://github.com/gemini-cli-extensions/datacommons](https://github.com/gemini-cli-extensions/datacommons).
 
 ## Announcements: v0.15.0 - 2025-11-03
 
-- **🎉 Seamless scrollable UI and mouse support:** We’ve given Gemini CLI a
-  major facelift to make your terminal experience smoother and much more
-  polished. You now get a flicker-free display with sticky headers that keep
-  important context visible and a stable input prompt that doesn't jump around.
-  We even added mouse support so you can click right where you need to type!
+- **🎉 Seamless scrollable UI and mouse support:** We’ve given PLUMB a major
+  facelift to make your terminal experience smoother and much more polished. You
+  now get a flicker-free display with sticky headers that keep important context
+  visible and a stable input prompt that doesn't jump around. We even added
+  mouse support so you can click right where you need to type!
   ([gif](https://imgur.com/a/O6qc7bx),
   [@jacob314](https://github.com/jacob314)).
   - **Announcement:**
@@ -723,7 +721,7 @@ on GitHub.
 
 ## Announcements: v0.12.0 - 2025-10-27
 
-![Codebase investigator subagent in Gemini CLI.](https://i.imgur.com/4J1njsx.png)
+![Codebase investigator subagent in PLUMB.](https://i.imgur.com/4J1njsx.png)
 
 - **🎉 New partner extensions:**
 
@@ -748,8 +746,8 @@ on GitHub.
   ([pic](https://imgur.com/a/ABFcWWw),
   [pr](https://github.com/google-gemini/gemini-cli/pull/8940) by
   [@abhipatel12](https://github.com/abhipatel12)).
-- **Model routing:** Gemini CLI will now intelligently pick the best model for
-  the task. Simple queries will be sent to Flash while complex analytical or
+- **Model routing:** PLUMB will now intelligently pick the best model for the
+  task. Simple queries will be sent to Flash while complex analytical or
   creative tasks will still use the power of Pro. This ensures your quota will
   last for a longer period of time. You can always opt-out of this via `/model`.
   ([pr](https://github.com/google-gemini/gemini-cli/pull/9262) by
@@ -788,10 +786,10 @@ on GitHub.
 
 ## Announcements: v0.11.0 - 2025-10-20
 
-![Gemini CLI and Jules](https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/Jules_Extension_-_Blog_Header_O346JNt.original.png)
+![PLUMB and Jules](https://storage.googleapis.com/gweb-developer-goog-blog-assets/images/Jules_Extension_-_Blog_Header_O346JNt.original.png)
 
-- 🎉 **Gemini CLI Jules Extension:** Use Gemini CLI to orchestrate Jules. Spawn
-  remote workers, delegate tedious tasks, or check in on running jobs!
+- 🎉 **PLUMB Jules Extension:** Use PLUMB to orchestrate Jules. Spawn remote
+  workers, delegate tedious tasks, or check in on running jobs!
   - Install:
     `gemini extensions install https://github.com/gemini-cli-extensions/jules`
   - Announcement:
@@ -820,8 +818,8 @@ on GitHub.
   ([pr](https://github.com/google-gemini/gemini-cli/pull/10194) by
   [@capachino](https://github.com/capachino))
 - **Removal of deprecated flags:** We’ve finally removed a number of deprecated
-  flags to cleanup Gemini CLI’s invocation profile:
-  - `--all-files` / `-a` in favor of `@` from within Gemini CLI.
+  flags to cleanup PLUMB’s invocation profile:
+  - `--all-files` / `-a` in favor of `@` from within PLUMB.
     ([pr](https://github.com/google-gemini/gemini-cli/pull/11228) by
     [@allenhutchison](https://github.com/allenhutchison))
   - `--telemetry-*` flags in favor of
@@ -833,10 +831,9 @@ on GitHub.
 
 - **Polish:** The team has been heads down bug fixing and investing heavily into
   polishing existing flows, tools, and interactions.
-- **Interactive Shell Tool calling:** Gemini CLI can now also execute
-  interactive tools if needed
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/11225) by
-  [@galz10](https://github.com/galz10)).
+- **Interactive Shell Tool calling:** PLUMB can now also execute interactive
+  tools if needed ([pr](https://github.com/google-gemini/gemini-cli/pull/11225)
+  by [@galz10](https://github.com/galz10)).
 - **Alt+Key support:** Enables broader support for Alt+Key keyboard shortcuts
   across different terminals.
   ([pr](https://github.com/google-gemini/gemini-cli/pull/10767) by
@@ -849,7 +846,7 @@ on GitHub.
 ## Announcements: v0.9.0 - 2025-10-06
 
 - 🎉 **Interactive Shell:** Run interactive commands like `vim`, `rebase -i`, or
-  even `gemini` 😎 directly in Gemini CLI:
+  even `gemini` 😎 directly in PLUMB:
   - Blog:
     [https://developers.googleblog.com/en/say-hello-to-a-new-level-of-interactivity-in-gemini-cli/](https://developers.googleblog.com/en/say-hello-to-a-new-level-of-interactivity-in-gemini-cli/)
 - **Install pre-release extensions:** Install the latest `--pre-release`
@@ -873,9 +870,9 @@ on GitHub.
 
 ## Announcements: v0.8.0 - 2025-09-29
 
-- 🎉 **Announcing Gemini CLI Extensions** 🎉
-  - Completely customize your Gemini CLI experience to fit your workflow.
-  - Build and share your own Gemini CLI extensions with the world.
+- 🎉 **Announcing PLUMB Extensions** 🎉
+  - Completely customize your PLUMB experience to fit your workflow.
+  - Build and share your own PLUMB extensions with the world.
   - Launching with a growing catalog of community, partner, and Google-built
     extensions.
     - Check extensions from
@@ -888,7 +885,7 @@ on GitHub.
     - `gemini extensions list|update|new`
   - Or use commands while running with `/extensions list|update`.
   - Everything you need to know:
-    [Now open for building: Introducing Gemini CLI extensions](https://blog.google/technology/developers/gemini-cli-extensions/).
+    [Now open for building: Introducing PLUMB extensions](https://blog.google/technology/developers/gemini-cli-extensions/).
 - 🎉 **Our New Home Page & Better Documentation** 🎉
   - Check out our new home page for better getting started material, reference
     documentation, extensions and more!
@@ -912,16 +909,16 @@ on GitHub.
 
 ## Announcements: v0.7.0 - 2025-09-22
 
-- 🎉**Build your own Gemini CLI IDE plugin:** We've published a spec for
-  creating IDE plugins to enable rich context-aware experiences and native
-  in-editor diffing in your IDE of choice.
+- 🎉**Build your own PLUMB IDE plugin:** We've published a spec for creating IDE
+  plugins to enable rich context-aware experiences and native in-editor diffing
+  in your IDE of choice.
   ([pr](https://github.com/google-gemini/gemini-cli/pull/8479) by
   [@skeshive](https://github.com/skeshive))
-- 🎉 **Gemini CLI extensions**
+- 🎉 **PLUMB extensions**
   - **Flutter:** An early version to help you create, build, test, and run
-    Flutter apps with Gemini CLI
+    Flutter apps with PLUMB
     ([extension](https://github.com/gemini-cli-extensions/flutter))
-  - **nanobanana:** Integrate nanobanana into Gemini CLI
+  - **nanobanana:** Integrate nanobanana into PLUMB
     ([extension](https://github.com/gemini-cli-extensions/nanobanana))
 - **Telemetry config via environment:** Manage telemetry settings using
   environment variables for a more flexible setup.
@@ -952,11 +949,11 @@ on GitHub.
 
 - 🎉 **Higher limits for Google AI Pro and Ultra subscribers:** We’re psyched to
   finally announce that Google AI Pro and AI Ultra subscribers now get access to
-  significantly higher 2.5 quota limits for Gemini CLI!
+  significantly higher 2.5 quota limits for PLUMB!
   - **Announcement:**
     [https://blog.google/technology/developers/gemini-cli-code-assist-higher-limits/](https://blog.google/technology/developers/gemini-cli-code-assist-higher-limits/)
-- 🎉**Gemini CLI Databases and BigQuery Extensions:** Connect Gemini CLI to all
-  of your cloud data with Gemini CLI.
+- 🎉**PLUMB Databases and BigQuery Extensions:** Connect PLUMB to all of your
+  cloud data with PLUMB.
   - Announcement and how to get started with each of the below extensions:
     [https://cloud.google.com/blog/products/databases/gemini-cli-extensions-for-google-data-cloud?e=48754805](https://cloud.google.com/blog/products/databases/gemini-cli-extensions-for-google-data-cloud?e=48754805)
   - **AlloyDB:** Interact, manage and observe AlloyDB for PostgreSQL databases
@@ -990,11 +987,10 @@ on GitHub.
   - **MCP Toolbox:** Configure and load custom tools for more than 30+ data
     sources
     ([extension](https://github.com/gemini-cli-extensions/mcp-toolbox#configuration))
-- **JSON output mode:** Have Gemini CLI output JSON with `--output-format json`
-  when invoked headlessly for easy parsing and post-processing. Includes
-  response, stats and errors.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8119) by
-  [@jerop](https://github.com/jerop))
+- **JSON output mode:** Have PLUMB output JSON with `--output-format json` when
+  invoked headlessly for easy parsing and post-processing. Includes response,
+  stats and errors. ([pr](https://github.com/google-gemini/gemini-cli/pull/8119)
+  by [@jerop](https://github.com/jerop))
 - **Keybinding triggered approvals:** When you use shortcuts (`shift+y` or
   `shift+tab`) to activate YOLO/auto-edit modes any pending confirmation dialogs
   will now approve. ([pr](https://github.com/google-gemini/gemini-cli/pull/6665)
@@ -1031,14 +1027,14 @@ on GitHub.
 
 ## Announcements: v0.5.0 - 2025-09-08
 
-- 🎉**FastMCP + Gemini CLI**🎉: Quickly install and manage your Gemini CLI MCP
-  servers with FastMCP ([video](https://imgur.com/a/m8QdCPh),
+- 🎉**FastMCP + PLUMB**🎉: Quickly install and manage your PLUMB MCP servers
+  with FastMCP ([video](https://imgur.com/a/m8QdCPh),
   [pr](https://github.com/jlowin/fastmcp/pull/1709) by
   [@jackwotherspoon](https://github.com/jackwotherspoon)**)**
   - Getting started:
     [https://gofastmcp.com/integrations/gemini-cli](https://gofastmcp.com/integrations/gemini-cli)
-- **Positional Prompt for Non-Interactive:** Seamlessly invoke Gemini CLI
-  headlessly via `gemini "Hello"`. Synonymous with passing `-p`.
+- **Positional Prompt for Non-Interactive:** Seamlessly invoke PLUMB headlessly
+  via `gemini "Hello"`. Synonymous with passing `-p`.
   ([gif](https://imgur.com/a/hcBznpB),
   [pr](https://github.com/google-gemini/gemini-cli/pull/7668) by
   [@allenhutchison](https://github.com/allenhutchison))
@@ -1046,9 +1042,9 @@ on GitHub.
   and saving full output to a file by setting
   `"enableToolOutputTruncation": true `([pr](https://github.com/google-gemini/gemini-cli/pull/8039)
   by [@SandyTao520](https://github.com/SandyTao520))
-- **Edit Tool improvements:** Gemini CLI’s ability to edit files should now be
-  far more capable. ([pr](https://github.com/google-gemini/gemini-cli/pull/7679)
-  by [@silviojr](https://github.com/silviojr))
+- **Edit Tool improvements:** PLUMB’s ability to edit files should now be far
+  more capable. ([pr](https://github.com/google-gemini/gemini-cli/pull/7679) by
+  [@silviojr](https://github.com/silviojr))
 - **Custom witty messages:** The feature you’ve all been waiting for…
   Personalized witty loading messages via
   `"ui": { "customWittyPhrases": ["YOLO"]}` in `settings.json`.
@@ -1076,8 +1072,8 @@ on GitHub.
 
 ## Announcements: v0.4.0 - 2025-09-01
 
-- 🎉**Gemini CLI CloudRun and Security Integrations**🎉: Automate app deployment
-  and security analysis with CloudRun and Security extension integrations. Once
+- 🎉**PLUMB CloudRun and Security Integrations**🎉: Automate app deployment and
+  security analysis with CloudRun and Security extension integrations. Once
   installed deploy your app to the cloud with `/deploy` and find and fix
   security vulnerabilities with `/security:analyze`.
   - Announcement and how to get started:
@@ -1089,7 +1085,7 @@ on GitHub.
     [pr](https://github.com/google-gemini/gemini-cli/pull/6823) by
     [@silviojr](https://github.com/silviojr))
   - **Model talking to itself fix:** We’ve removed a model workaround that would
-    encourage Gemini CLI to continue conversations on your behalf. This may be
+    encourage PLUMB to continue conversations on your behalf. This may be
     disruptive and can be disabled via `"skipNextSpeakerCheck": false` in your
     `settings.json`
     ([feedback](https://github.com/google-gemini/gemini-cli/discussions/6666),
@@ -1124,7 +1120,7 @@ on GitHub.
   [pr](https://github.com/google-gemini/gemini-cli/pull/6716) by
   [@abhipatel12](https://github.com/abhipatel12))
 - **2.5 Flash Lite support:** You can now use the `gemini-2.5-flash-lite` model
-  for Gemini CLI via `gemini -m …`.
+  for PLUMB via `gemini -m …`.
   ([gif](https://miro.medium.com/v2/resize:fit:2000/format:webp/1*P4SKwnrsyBuULoHrFqsFKQ.gif),
   [pr](https://github.com/google-gemini/gemini-cli/pull/4652) by
   [@psinha40898](https://github.com/psinha40898))

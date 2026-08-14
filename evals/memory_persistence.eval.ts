@@ -1,16 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  loadConversationRecord,
-  SESSION_FILE_PREFIX,
-} from '@google/gemini-cli-core';
+import { loadConversationRecord, SESSION_FILE_PREFIX } from '@plumb/core';
 import { evalTest, assertModelHasOutput } from './test-helper.js';
 
 function findDir(base: string, name: string): string | null {
@@ -141,8 +137,8 @@ describe('memory persistence', () => {
       // Jest for testing in all my projects" — that matches the new
       // cross-project cue phrase ("across all my projects"), so under the
       // 4-tier model the correct destination is the global personal memory
-      // file (~/.gemini/GEMINI.md). It must NOT land in a committed project
-      // GEMINI.md (that tier is for team conventions) or the per-project
+      // file (~/.gemini/PLUMB.md). It must NOT land in a committed project
+      // PLUMB.md (that tier is for team conventions) or the per-project
       // private memory folder (that tier is for project-specific personal
       // notes). The chat history mixes this durable preference with
       // transient debugging chatter, so the eval also verifies the agent
@@ -164,7 +160,7 @@ describe('memory persistence', () => {
       });
       expect(
         wroteVitestToGlobal,
-        'Expected the cross-project Vitest preference to be written to the global personal memory file (~/.gemini/GEMINI.md) via write_file or replace',
+        'Expected the cross-project Vitest preference to be written to the global personal memory file (~/.gemini/PLUMB.md) via write_file or replace',
       ).toBe(true);
 
       const leakedToCommittedProject = writeCalls.some((log) => {
@@ -177,7 +173,7 @@ describe('memory persistence', () => {
       });
       expect(
         leakedToCommittedProject,
-        'Cross-project Vitest preference must NOT be mirrored into a committed project ./GEMINI.md (that tier is for team-shared conventions only)',
+        'Cross-project Vitest preference must NOT be mirrored into a committed project ./PLUMB.md (that tier is for team-shared conventions only)',
       ).toBe(false);
 
       const leakedToPrivateProject = writeCalls.some((log) => {
@@ -196,7 +192,7 @@ describe('memory persistence', () => {
   });
 
   const memoryRoutesTeamConventionsToProjectGemini =
-    'Agent routes team-shared project conventions to ./GEMINI.md';
+    'Agent routes team-shared project conventions to ./PLUMB.md';
   evalTest('USUALLY_PASSES', {
     suiteName: 'default',
     suiteType: 'behavioral',
@@ -243,10 +239,10 @@ describe('memory persistence', () => {
     assert: async (rig, result) => {
       // The prompt enforces an explicit one-tier-per-fact rule: team-shared
       // project conventions (the team's test command, project-wide
-      // indentation rules) belong in the committed project-root ./GEMINI.md
+      // indentation rules) belong in the committed project-root ./PLUMB.md
       // and must NOT be mirrored or cross-referenced into the private project
       // memory folder
-      // (~/.gemini/tmp/<hash>/memory/). The global ~/.gemini/GEMINI.md must
+      // (~/.gemini/tmp/<hash>/memory/). The global ~/.gemini/PLUMB.md must
       // never be touched in this mode either.
       await rig.waitForToolCall('write_file').catch(() => {});
       const writeCalls = rig
@@ -267,12 +263,12 @@ describe('memory persistence', () => {
 
       expect(
         wroteToProjectRoot(/npm run test/i),
-        'Expected the team test-command convention to be written to the project-root ./GEMINI.md',
+        'Expected the team test-command convention to be written to the project-root ./PLUMB.md',
       ).toBe(true);
 
       expect(
         wroteToProjectRoot(/2[- ]space/i),
-        'Expected the project-wide "2-space indentation" convention to be written to the project-root ./GEMINI.md',
+        'Expected the project-wide "2-space indentation" convention to be written to the project-root ./PLUMB.md',
       ).toBe(true);
 
       const leakedToPrivateMemory = writeCalls.some((log) => {
@@ -296,7 +292,7 @@ describe('memory persistence', () => {
       });
       expect(
         leakedToGlobal,
-        'Project preferences must NOT be written to the global ~/.gemini/GEMINI.md',
+        'Project preferences must NOT be written to the global ~/.gemini/PLUMB.md',
       ).toBe(false);
 
       assertModelHasOutput(result);
@@ -425,7 +421,7 @@ Quirks to remember:
       // ~/.gemini/tmp/<hash>/memory/. The detailed note should be written to a
       // sibling markdown file, with
       // MEMORY.md updated as the index. It must NOT go to committed
-      // ./GEMINI.md or the global ~/.gemini/GEMINI.md.
+      // ./PLUMB.md or the global ~/.gemini/PLUMB.md.
       await rig.waitForToolCall('write_file').catch(() => {});
       const writeCalls = rig
         .readToolLogs()
@@ -455,7 +451,7 @@ Quirks to remember:
       ).toBe(true);
 
       // Defensive: should NOT have written this private note to the
-      // committed project GEMINI.md or the global GEMINI.md.
+      // committed project PLUMB.md or the global PLUMB.md.
       const leakedToCommittedProject = writeCalls.some((log) => {
         const args = log.toolRequest.args;
         return (
@@ -466,7 +462,7 @@ Quirks to remember:
       });
       expect(
         leakedToCommittedProject,
-        'Personal-to-user note must NOT be written to the committed project GEMINI.md',
+        'Personal-to-user note must NOT be written to the committed project PLUMB.md',
       ).toBe(false);
 
       const leakedToGlobal = writeCalls.some((log) => {
@@ -479,7 +475,7 @@ Quirks to remember:
       });
       expect(
         leakedToGlobal,
-        'Personal-to-user project note must NOT be written to the global ~/.gemini/GEMINI.md',
+        'Personal-to-user project note must NOT be written to the global ~/.gemini/PLUMB.md',
       ).toBe(false);
 
       assertModelHasOutput(result);
@@ -487,7 +483,7 @@ Quirks to remember:
   });
 
   const memoryRoutesCrossProjectToGlobal =
-    'Agent routes cross-project personal preferences to ~/.gemini/GEMINI.md';
+    'Agent routes cross-project personal preferences to ~/.gemini/PLUMB.md';
   evalTest('USUALLY_PASSES', {
     suiteName: 'default',
     suiteType: 'behavioral',
@@ -497,9 +493,9 @@ Quirks to remember:
     assert: async (rig, result) => {
       // With the Global Personal Memory tier surfaced in the prompt, a fact
       // that explicitly applies to the user "across all my projects" / "in
-      // every workspace" must land in the global ~/.gemini/GEMINI.md (the
+      // every workspace" must land in the global ~/.gemini/PLUMB.md (the
       // cross-project tier). It must
-      // NOT be mirrored into a committed project-root ./GEMINI.md (that
+      // NOT be mirrored into a committed project-root ./PLUMB.md (that
       // tier is for team-shared conventions) or into the per-project
       // private memory folder (that tier is for project-specific personal
       // notes). Each fact lives in exactly one tier across all four tiers.
@@ -522,12 +518,12 @@ Quirks to remember:
 
       expect(
         wroteToGlobal(/Prettier/i),
-        'Expected the cross-project Prettier preference to be written to the global personal memory file (~/.gemini/GEMINI.md)',
+        'Expected the cross-project Prettier preference to be written to the global personal memory file (~/.gemini/PLUMB.md)',
       ).toBe(true);
 
       expect(
         wroteToGlobal(/tabs/i),
-        'Expected the cross-project "tabs over spaces" preference to be written to the global personal memory file (~/.gemini/GEMINI.md)',
+        'Expected the cross-project "tabs over spaces" preference to be written to the global personal memory file (~/.gemini/PLUMB.md)',
       ).toBe(true);
 
       const leakedToCommittedProject = writeCalls.some((log) => {
@@ -540,7 +536,7 @@ Quirks to remember:
       });
       expect(
         leakedToCommittedProject,
-        'Cross-project personal preferences must NOT be mirrored into a committed project ./GEMINI.md (that tier is for team-shared conventions only)',
+        'Cross-project personal preferences must NOT be mirrored into a committed project ./PLUMB.md (that tier is for team-shared conventions only)',
       ).toBe(false);
 
       const leakedToPrivateProject = writeCalls.some((log) => {

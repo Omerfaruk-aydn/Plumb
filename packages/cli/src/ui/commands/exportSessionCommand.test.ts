@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { SessionSelector } from '../../utils/sessionUtils.js';
 import type { CommandContext } from './types.js';
-import { Storage, type ConversationRecord } from '@google/gemini-cli-core';
+import { Storage, type ConversationRecord } from '@plumb/core';
 
 vi.mock('node:fs/promises');
 vi.mock('../../utils/sessionUtils.js');

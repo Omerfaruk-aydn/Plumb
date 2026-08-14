@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,7 +17,7 @@ import {
   isSubagentProgress,
   isStructuredToolResult,
   isImageResultDisplay,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { InlineImage } from '../InlineImage.js';
 import { useUIState } from '../../contexts/UIStateContext.js';
 import { useSettings } from '../../contexts/SettingsContext.js';

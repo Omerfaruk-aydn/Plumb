@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +22,7 @@ import {
   AuthType,
   ToolConfirmationOutcome,
   getAutoModelDescription,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type * as acp from '@agentclientprotocol/sdk';
 import { z } from 'zod';
 import type { LoadedSettings } from '../config/settings.js';

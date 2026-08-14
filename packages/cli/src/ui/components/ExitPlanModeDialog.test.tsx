@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +16,7 @@ import {
   validatePlanContent,
   processSingleFileContent,
   type FileSystemService,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import * as fs from 'node:fs';
 import { useKeyMatchers } from '../hooks/useKeyMatchers.js';
 
@@ -25,9 +24,8 @@ vi.mock('../utils/editorUtils.js', () => ({
   openFileInEditor: vi.fn(),
 }));
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     validatePlanPath: vi.fn(async () => null),
@@ -169,7 +167,7 @@ Implement a comprehensive authentication system with multiple providers.
           }),
           getUseAlternateBuffer: () => useAlternateBuffer,
           getUseTerminalBuffer: () => false,
-        } as unknown as import('@google/gemini-cli-core').Config,
+        } as unknown as import('@plumb/core').Config,
         settings: createMockSettings({ ui: { useAlternateBuffer } }),
         inputState: {
           buffer: { text: '' } as never,
@@ -477,7 +475,7 @@ Implement a comprehensive authentication system with multiple providers.
                 }),
                 getUseAlternateBuffer: () => useAlternateBuffer ?? true,
                 getUseTerminalBuffer: () => false,
-              } as unknown as import('@google/gemini-cli-core').Config,
+              } as unknown as import('@plumb/core').Config,
               settings: createMockSettings({
                 ui: { useAlternateBuffer: useAlternateBuffer ?? true },
               }),

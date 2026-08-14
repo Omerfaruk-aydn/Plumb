@@ -1,9 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PlumbModelRegistry — single authority for model discovery, caching, and selection.
- * Integrates: bundled catalog, runtime discovery, cache, custom models.
  */
 
 import type {

@@ -1,14 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Script for commenting back to original PR with patch release results.
- * Used by the patch release workflow (step 3).
  */
 
 import yargs from 'yargs';
@@ -140,7 +134,7 @@ async function main() {
 
 **📝 What's Available:**
 - **GitHub Release**: [View release ${releaseTag}](https://github.com/${repo.owner}/${repo.repo}/releases/tag/${releaseTag})
-- **NPM Package**: \`npm install @google/gemini-cli@${npmTag}\`
+- **NPM Package**: \`npm install plumb-cli@${npmTag}\`
 
 **🔗 Links:**
 - [GitHub Release](https://github.com/${repo.owner}/${repo.repo}/releases/tag/${releaseTag})

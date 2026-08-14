@@ -19,7 +19,7 @@
 │   Failed to sign in. Message:        │
 │   Authentication consent could not   │
 │   be obtained.│
-│   Please run Gemini CLI in an        │
+│   Please run PLUMB in an        │
 │   interactive terminal to│
 │   authenticate, or use│
 │   NO_BROWSER=true for manual│
@@ -28,7 +28,7 @@
 │   (Use Enter to select)│
 ││
 │   Terms of Services and Privacy      │
-│   Notice for Gemini CLI│
+│   Notice for PLUMB│
 ││
 │   https://geminicli.com/docs/resourc │
 │   es/tos-privacy/│
@@ -222,7 +222,7 @@ scover_tools duration: 141.2703999999998
   ▗▟▀ 
  ▝▀    
 
- Gemini CLI v0.55.0-nightly.20260729.g34
+ PLUMB v0.55.0-nightly.20260729.g34
 99c84f7
 
 
@@ -268,7 +268,7 @@ scover_tools duration: 141.2703999999998
   ▗▟▀ 
  ▝▀    
 
- Gemini CLI v0.55.0-nightly.20260729.g34
+ PLUMB v0.55.0-nightly.20260729.g34
 99c84f7
 
 
@@ -316,7 +316,7 @@ ds summary generation
   ▗▟▀ 
  ▝▀    
 
- Gemini CLI v0.55.0-nightly.20260729.g34
+ PLUMB v0.55.0-nightly.20260729.g34
 99c84f7
 
 
@@ -362,7 +362,7 @@ ds summary generation
   ▗▟▀ 
  ▝▀    
 
- Gemini CLI v0.55.0-nightly.20260729.g34
+ PLUMB v0.55.0-nightly.20260729.g34
 99c84f7
 
 
@@ -408,7 +408,7 @@ ds summary generation
   ▗▟▀ 
  ▝▀    
 
- Gemini CLI v0.55.0-nightly.20260729.g34
+ PLUMB v0.55.0-nightly.20260729.g34
 99c84f7
 
 

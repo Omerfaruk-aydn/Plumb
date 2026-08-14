@@ -1,53 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI Generative AI Responses transport (`oci-openai-responses` dialect).
- * Oracle documents the Responses API as its primary OpenAI-compatible
- * interface for new/agentic workloads (Chat Completions remains available
- * separately via the generic `openai-completions` transport + the
- * `openai.gpt-oss-*` static catalog entries' existing wiring). This is a
- * distinct, explicit dialect -- not folded into `openai-completions` --
- * because OCI's Responses calls carry OCI-specific authentication
- * (OCI_GENAI_API_KEY bearer OR OCI_IAM request signing, see
- * ociGenaiIamAuth.ts), project/region/compartment identity, and a
- * different supported-capability surface than a generic OpenAI Responses
- * endpoint.
- *
- * AUTH: resolves `OCI_IAM_AUTH_MODE` first -- if set, the request is signed
- * via ociGenaiIamAuth.ts's real `oci-common`-backed signer (OCI_IAM
- * credential authority); otherwise falls back to the existing
- * `OCI_GENAI_API_KEY` bearer credential (`options.apiKey`). The two modes
- * are mutually exclusive per request: IAM mode never reads `options.apiKey`,
- * API-key mode never touches the OCI IAM signer.
- *
- * SIGNING BOUNDARY: the request (method/url/headers/body) is fully built --
- * including opc-compartment-id/OpenAI-Project headers -- BEFORE signing.
- * Signing is the last mutation before fetch; nothing touches the request
- * afterward.
- *
- * TOOLS: only PLUMB_CLIENT_TOOL (plain `function` tools, PLUMB's own
- * CoreToolScheduler-backed tools) are ever sent. OCI_MANAGED_TOOL types
- * (`file_search`, `code_interpreter`, MCP-backed tools that OCI's Responses
- * API also supports) are deliberately never advertised or requested here --
- * PLUMB has no safe product UX for a server-managed tool result yet, so
- * offering one would silently misrepresent what PLUMB can actually do with
- * the result. Tool EXECUTION never happens in this file: streamed
- * `function_call` items are translated into PLUMB's generic `tool_call`
- * PlumbStreamEvent, exactly like every other OpenAI-family transport --
- * the caller's normal CoreToolScheduler-backed agent loop executes the
- * tool and reinjects the result as a `function_call_output` input item on
- * the next turn (see buildResponsesInput below).
- *
- * CONVERSATION STATE: PLUMB_MANAGED_HISTORY, not OCI's server-side
- * `/conversations` resource -- every call resends the full message history
- * PLUMB already owns (via `buildResponsesInput`), exactly like every other
- * transport in this package. This is a deliberate choice, not an oversight:
- * adopting OCI's stateful conversation resource would create a second,
- * provider-specific conversation authority alongside PLUMB's own, and
- * PLUMB's cross-provider behavior (switching models/providers mid-session)
- * must stay deterministic regardless of which provider is selected.
  */
 
 import type { PlumbStreamEvent, PlumbStreamOptions } from '../types.js';

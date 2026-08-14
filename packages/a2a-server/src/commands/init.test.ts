@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,7 +9,7 @@ import {
   performInit,
   type CommandActionReturn,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { CoderAgentExecutor } from '../agent/executor.js';
@@ -20,9 +19,8 @@ import { createMockConfig } from '../utils/testing_utils.js';
 import type { CommandContext } from './types.js';
 import { logger } from '../utils/logger.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     performInit: vi.fn(),
@@ -89,7 +87,7 @@ describe('InitCommand', () => {
       vi.mocked(performInit).mockReturnValue({
         type: 'message',
         messageType: 'info',
-        content: 'GEMINI.md already exists.',
+        content: 'PLUMB.md already exists.',
       } as CommandActionReturn);
 
       await command.execute(context, []);
@@ -101,7 +99,7 @@ describe('InitCommand', () => {
           status: expect.objectContaining({
             state: 'completed',
             message: expect.objectContaining({
-              parts: [{ kind: 'text', text: 'GEMINI.md already exists.' }],
+              parts: [{ kind: 'text', text: 'PLUMB.md already exists.' }],
             }),
           }),
         }),
@@ -113,7 +111,7 @@ describe('InitCommand', () => {
           status: expect.objectContaining({
             state: 'completed',
             message: expect.objectContaining({
-              parts: [{ kind: 'text', text: 'GEMINI.md already exists.' }],
+              parts: [{ kind: 'text', text: 'PLUMB.md already exists.' }],
             }),
           }),
         }),
@@ -146,7 +144,7 @@ describe('InitCommand', () => {
       beforeEach(() => {
         vi.mocked(performInit).mockReturnValue({
           type: 'submit_prompt',
-          content: 'Create a new GEMINI.md file.',
+          content: 'Create a new PLUMB.md file.',
         } as CommandActionReturn);
       });
 
@@ -154,7 +152,7 @@ describe('InitCommand', () => {
         await command.execute(context, []);
 
         expect(fs.writeFileSync).toHaveBeenCalledWith(
-          path.join(mockWorkspacePath, 'GEMINI.md'),
+          path.join(mockWorkspacePath, 'PLUMB.md'),
           '',
           'utf8',
         );
@@ -169,7 +167,7 @@ describe('InitCommand', () => {
             userMessage: expect.objectContaining({
               parts: expect.arrayContaining([
                 expect.objectContaining({
-                  text: 'Create a new GEMINI.md file.',
+                  text: 'Create a new PLUMB.md file.',
                 }),
               ]),
               metadata: {

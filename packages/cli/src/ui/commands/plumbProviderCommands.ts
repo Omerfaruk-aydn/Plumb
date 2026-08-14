@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
@@ -14,7 +11,7 @@
 // papered over.
 
 import type { SlashCommand, CommandContext } from './types.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@plumb/core';
 
 /**
  * Pre-warm Config's tool-capability authority (see
@@ -36,7 +33,7 @@ async function prewarmToolsCapability(
     return;
   }
   try {
-    const providerPkg = await import('@google/gemini-cli-provider');
+    const providerPkg = await import('@plumb/provider');
     const registry = providerPkg.getPlumbModelRegistry?.();
     const plumbModel = registry?.findModel(providerId, modelId);
     if (plumbModel) {
@@ -266,9 +263,7 @@ export const accountsCommand: SlashCommand = {
   autoExecute: true,
   async action(context: CommandContext) {
     try {
-      const { ensurePlumbCredentialStore } = await import(
-        '@google/gemini-cli-provider'
-      );
+      const { ensurePlumbCredentialStore } = await import('@plumb/provider');
       const store = await ensurePlumbCredentialStore();
       const authenticated = await store.listAuthenticatedProviders();
 
@@ -316,9 +311,7 @@ export const credentialsCommand: SlashCommand = {
 
     if (trimmed === 'clear' || trimmed === 'reset') {
       try {
-        const { ensurePlumbCredentialStore } = await import(
-          '@google/gemini-cli-provider'
-        );
+        const { ensurePlumbCredentialStore } = await import('@plumb/provider');
         const store = await ensurePlumbCredentialStore();
         await store.clearAll();
         context.ui.addItem({
@@ -357,9 +350,7 @@ export const localModelsCommand: SlashCommand = {
   autoExecute: true,
   async action(context: CommandContext) {
     try {
-      const { getPlumbModelRegistry } = await import(
-        '@google/gemini-cli-provider'
-      );
+      const { getPlumbModelRegistry } = await import('@plumb/provider');
       const registry = getPlumbModelRegistry();
       const discovered = await registry.discoverLocalModels();
 

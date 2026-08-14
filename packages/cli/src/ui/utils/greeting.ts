@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F6 (PLUMB-UI-DEVRIM-PROMPT.md), scoped: a time-of-day greeting for the
- * empty-history welcome moment. Pure function -- no clock/interval owned
- * here, the caller reads Date.now() once per render.
  */
 
 export function getTimeBasedGreeting(date: Date): string {

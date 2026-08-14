@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,9 +51,9 @@ async function getMemoryNodeArgs(): Promise<string[]> {
   try {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    // Respect GEMINI_CLI_HOME environment variable, falling back to os.homedir()
+    // Respect PLUMB_CLI_HOME environment variable, falling back to os.homedir()
     const baseDir =
-      process.env['GEMINI_CLI_HOME'] || join(os.homedir(), '.gemini');
+      process.env['PLUMB_CLI_HOME'] || join(os.homedir(), '.gemini');
     const settingsPath = join(baseDir, 'settings.json');
     const rawSettings = readFileSync(settingsPath, 'utf8');
     const settings = JSON.parse(rawSettings);
@@ -147,10 +146,8 @@ async function run() {
   } else {
     // --- Heavy Child Process ---
     // Now we can safely import everything.
-    const { main } = await import('./src/gemini.js');
-    const { FatalError, writeToStderr } = await import(
-      '@google/gemini-cli-core'
-    );
+    const { main } = await import('./src/plumb.js');
+    const { FatalError, writeToStderr } = await import('@plumb/core');
     const { runExitCleanup } = await import('./src/utils/cleanup.js');
 
     main().catch(async (error: unknown) => {

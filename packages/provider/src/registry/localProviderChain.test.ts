@@ -1,19 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped integration test for the full local-provider chain:
- *
- *   server /api/tags or /v1/models
- *   -> discovery adapter
- *   -> PlumbModelRegistry.discoverLocalModels
- *   -> registry.findModel (what PlumbContentGenerator#doStream calls)
- *   -> plumbModelStream (the real production transport)
- *   -> correct host / correct wire model id / no fabricated auth header
- *
- * Covers all five local providers (Ollama, LM Studio, llama.cpp, vLLM,
- * SGLang) and proves zero endpoint/model/auth-header bleed across a
- * representative switch sequence between them.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';

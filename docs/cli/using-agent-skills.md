@@ -1,15 +1,15 @@
 # Managing Agent Skills
 
-Agent Skills provide Gemini CLI with specialized expertise on demand. This guide
+Agent Skills provide PLUMB with specialized expertise on demand. This guide
 covers advanced management techniques, including using slash commands, terminal
 utilities, and understanding discovery tiers.
 
 ## Discovery tiers
 
-Gemini CLI discovers skills from several locations, following a specific order
-of precedence (lowest to highest):
+PLUMB discovers skills from several locations, following a specific order of
+precedence (lowest to highest):
 
-1.  **Built-in Skills**: Included with Gemini CLI and always available.
+1.  **Built-in Skills**: Included with PLUMB and always available.
 2.  **Extension Skills**: Bundled within [extensions](../extensions/index.md).
 3.  **User Skills**: Located in `~/.gemini/skills/` or the `~/.agents/skills/`
     alias. These are available across all your projects.

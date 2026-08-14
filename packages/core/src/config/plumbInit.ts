@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import { debugLogger } from '../utils/debugLogger.js';
@@ -15,7 +12,7 @@ import { getCustomProviderDefinitionStore } from './customProviderDefinitionStor
 // runtime load-order cycle with the dynamic `import()` below — it only
 // gives the dynamically-imported module a real static shape to check
 // against, instead of the `any` it silently had before.
-import type * as GeminiCliProviderModule from '@google/gemini-cli-provider';
+import type * as GeminiCliProviderModule from '@plumb/provider';
 
 let initialized = false;
 
@@ -24,9 +21,7 @@ export async function initializePlumbProviders(): Promise<void> {
   initialized = true;
 
   try {
-    const mod: typeof GeminiCliProviderModule = await import(
-      '@google/gemini-cli-provider'
-    );
+    const mod: typeof GeminiCliProviderModule = await import('@plumb/provider');
 
     // Return type is pinned to the canonical interface here, at the
     // production wiring boundary — if the concrete store class ever stops

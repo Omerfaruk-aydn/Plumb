@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Converts a camelCase string to a Space Case string.
- * e.g., "camelCaseString" -> "Camel Case String"
- */
 function camelToSpace(text: string): string {
   const result = text.replace(/([A-Z])/g, ' $1');
   return result.charAt(0).toUpperCase() + result.slice(1).trim();

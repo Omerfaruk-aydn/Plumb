@@ -1,55 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * IBM watsonx.ai transport — official `@ibm-cloud/watsonx-ai` Node SDK
- * (pinned exact version, see package.json), never a hand-rolled HTTP client
- * or a generic OpenAI-compatible base-URL passthrough.
- *
- * CREDENTIAL AUTHORITY: PLUMB owns the long-lived credential (the IBM Cloud
- * API key, stored via PlumbSecureCredentialStore like every other api_key
- * provider). The SHORT-LIVED IAM bearer token is never PLUMB's concern —
- * `IamAuthenticator` (from `ibm-cloud-sdk-core`, a dependency of the
- * official SDK) exchanges the API key for a bearer token against IBM's
- * real token endpoint (https://iam.cloud.ibm.com/identity/token, grant
- * type `urn:ibm:params:oauth:grant-type:apikey`) and transparently
- * refreshes it before expiry on every SDK call. PLUMB never stores, logs,
- * or exposes that ephemeral token.
- *
- * REGION / PROJECT / SPACE: watsonx.ai has no single global endpoint —
- * requests are regional (`https://{region}.ml.cloud.ibm.com`) and require
- * a project or space context (`WATSONX_PROJECT_ID` / `WATSONX_SPACE_ID`).
- * These are ambient environment-variable configuration, the same pattern
- * already used for Azure OpenAI's resource/deployment names and Amazon
- * Bedrock's AWS_REGION — not credentials, and not overloaded onto the
- * model id or provider id.
- *
- * SCOPE: text + streaming + system prompt + multi-turn history + usage +
- * cancellation + tool/function calling. Tool-call/tool-result message
- * reconstruction reuses streaming.ts's buildOpenAIMessages() directly,
- * since watsonx.ai's TextChatMessages wire format is genuinely
- * OpenAI-Chat-Completions-shaped (see the official SDK's messages.d.ts) —
- * there is exactly one implementation of this logic, never a second,
- * watsonx-specific copy. Tool EXECUTION is never performed here: this
- * transport only translates upstream `tool_calls` deltas into PLUMB's
- * generic `tool_call` PlumbStreamEvent, exactly like every other
- * OpenAI-wire-compatible transport in streaming.ts — the caller's normal
- * agent loop (the same CoreToolScheduler-backed pipeline every other
- * provider uses) executes the tool and reinjects the result as a
- * `role:'tool'` message on the next turn.
- *
- * IBM's own API reference flags `tool_choice_option: auto`/`required` as
- * "not yet supported" (only the default/unset behavior is documented as
- * fully working today) — PLUMB never sets `tool_choice_option`, so the
- * model is free to voluntarily emit `tool_calls` when `tools` are present,
- * which is all PLUMB's tool-calling contract requires.
- *
- * Official docs referenced: IBM Cloud IAM token exchange
- * (https://cloud.ibm.com/docs/account?topic=account-iamtoken_from_apikey),
- * watsonx.ai text chat API (https://cloud.ibm.com/apidocs/watsonx-ai),
- * and the official Node SDK reference
- * (https://ibm.github.io/watsonx-ai-node-sdk/).
  */
 
 import { WatsonXAI } from '@ibm-cloud/watsonx-ai';

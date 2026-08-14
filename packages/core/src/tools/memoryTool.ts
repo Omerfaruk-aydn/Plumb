@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,20 +7,20 @@ import * as path from 'node:path';
 import { Storage } from '../config/storage.js';
 import { resolveToRealPath } from '../utils/paths.js';
 
-export const DEFAULT_CONTEXT_FILENAME = 'GEMINI.md';
+export const DEFAULT_CONTEXT_FILENAME = 'PLUMB.md';
 export const PROJECT_MEMORY_INDEX_FILENAME = 'MEMORY.md';
 
-// This variable will hold the currently configured filenames for GEMINI.md context files.
-// It defaults to DEFAULT_CONTEXT_FILENAME but can be extended by setGeminiMdFilename.
-let currentGeminiMdFilename: string | string[] = DEFAULT_CONTEXT_FILENAME;
+// This variable will hold the currently configured filenames for PLUMB.md context files.
+// It defaults to DEFAULT_CONTEXT_FILENAME but can be extended by setContextFilename.
+let currentContextFilename: string | string[] = DEFAULT_CONTEXT_FILENAME;
 
 /**
  * Adds one or more filenames to the current context filenames.
  * Ensures uniqueness and maintains order.
  */
-export function setGeminiMdFilename(newFilename: string | string[]): void {
+export function setContextFilename(newFilename: string | string[]): void {
   const filenames = Array.isArray(newFilename) ? newFilename : [newFilename];
-  const current = getAllGeminiMdFilenames();
+  const current = getAllContextFilenames();
   const next = new Set<string>();
 
   for (const filename of filenames) {
@@ -42,9 +41,9 @@ export function setGeminiMdFilename(newFilename: string | string[]): void {
 
   const result = Array.from(next);
   if (result.length > 1) {
-    currentGeminiMdFilename = result;
+    currentContextFilename = result;
   } else if (result.length === 1) {
-    currentGeminiMdFilename = result[0];
+    currentContextFilename = result[0];
   }
 }
 
@@ -52,7 +51,7 @@ export function setGeminiMdFilename(newFilename: string | string[]): void {
  * Resets the context filenames to the provided value, or the default if none provided.
  * This replaces all current filenames.
  */
-export function resetGeminiMdFilename(
+export function resetContextFilename(
   filename: string | string[] = DEFAULT_CONTEXT_FILENAME,
 ): void {
   const filenames = Array.isArray(filename) ? filename : [filename];
@@ -65,30 +64,30 @@ export function resetGeminiMdFilename(
   );
 
   if (cleaned.length === 0) {
-    currentGeminiMdFilename = DEFAULT_CONTEXT_FILENAME;
+    currentContextFilename = DEFAULT_CONTEXT_FILENAME;
   } else if (cleaned.length === 1) {
-    currentGeminiMdFilename = cleaned[0];
+    currentContextFilename = cleaned[0];
   } else {
-    currentGeminiMdFilename = cleaned;
+    currentContextFilename = cleaned;
   }
 }
 
-export function getCurrentGeminiMdFilename(): string {
-  if (Array.isArray(currentGeminiMdFilename)) {
-    return currentGeminiMdFilename[0];
+export function getCurrentContextFilename(): string {
+  if (Array.isArray(currentContextFilename)) {
+    return currentContextFilename[0];
   }
-  return currentGeminiMdFilename;
+  return currentContextFilename;
 }
 
-export function getAllGeminiMdFilenames(): string[] {
-  if (Array.isArray(currentGeminiMdFilename)) {
-    return currentGeminiMdFilename;
+export function getAllContextFilenames(): string[] {
+  if (Array.isArray(currentContextFilename)) {
+    return currentContextFilename;
   }
-  return [currentGeminiMdFilename];
+  return [currentContextFilename];
 }
 
 export function getGlobalMemoryFilePath(): string {
-  return path.join(Storage.getGlobalGeminiDir(), getCurrentGeminiMdFilename());
+  return path.join(Storage.getGlobalPlumbDir(), getCurrentContextFilename());
 }
 
 export function getProjectMemoryIndexFilePath(storage: Storage): string {

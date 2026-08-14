@@ -30,7 +30,7 @@ dc859e8 (chore/release: bump version to 0.55.0-nightly.20260729.g3499c84f7)
 
    - Renders small icon (4-row block art) with `ThemedGradient`
    - Optional long compact text logo for logged-out users
-   - Product name: "Gemini CLI"
+   - Product name: "PLUMB"
 
 4. **Header** (legacy, `packages/cli/src/ui/components/Header.tsx`)
    - Uses `ThemedGradient` with full ASCII art logos

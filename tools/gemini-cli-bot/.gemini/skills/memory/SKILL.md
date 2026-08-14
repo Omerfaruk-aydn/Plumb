@@ -7,7 +7,7 @@ description: Expertise in maintaining persistent bot memory, synchronizing with 
 
 ## Goal
 
-Standardize how the Gemini CLI Bot maintains its persistent memory,
+Standardize how the PLUMB Bot maintains its persistent memory,
 synchronizes with previous sessions, and prepares Pull Requests.
 
 ## Memory Structure (`lessons-learned.md`)

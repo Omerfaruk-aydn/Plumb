@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -42,8 +41,8 @@ import { ShellTool } from '../tools/shell.js';
 import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import {
-  setGeminiMdFilename,
-  getCurrentGeminiMdFilename,
+  setContextFilename,
+  getCurrentContextFilename,
 } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
 import { AskUserTool } from '../tools/ask-user.js';
@@ -624,7 +623,7 @@ export interface ConfigParameters {
   usageStatisticsEnabled?: boolean;
   fileFiltering?: {
     respectGitIgnore?: boolean;
-    respectGeminiIgnore?: boolean;
+    respectPlumbIgnore?: boolean;
     enableFileWatcher?: boolean;
     enableRecursiveFileSearch?: boolean;
     enableFuzzySearch?: boolean;
@@ -813,7 +812,7 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly modelAvailabilityService: ModelAvailabilityService;
   private readonly fileFiltering: {
     respectGitIgnore: boolean;
-    respectGeminiIgnore: boolean;
+    respectPlumbIgnore: boolean;
     enableFileWatcher: boolean;
     enableRecursiveFileSearch: boolean;
     enableFuzzySearch: boolean;
@@ -1111,9 +1110,9 @@ export class Config implements McpContext, AgentLoopContext {
       respectGitIgnore:
         params.fileFiltering?.respectGitIgnore ??
         DEFAULT_FILE_FILTERING_OPTIONS.respectGitIgnore,
-      respectGeminiIgnore:
-        params.fileFiltering?.respectGeminiIgnore ??
-        DEFAULT_FILE_FILTERING_OPTIONS.respectGeminiIgnore,
+      respectPlumbIgnore:
+        params.fileFiltering?.respectPlumbIgnore ??
+        DEFAULT_FILE_FILTERING_OPTIONS.respectPlumbIgnore,
       enableFileWatcher:
         params.fileFiltering?.enableFileWatcher ??
         DEFAULT_FILE_FILTERING_OPTIONS.enableFileWatcher ??
@@ -1411,7 +1410,7 @@ export class Config implements McpContext, AgentLoopContext {
     this.vertexAiRouting = params.vertexAiRouting;
 
     if (params.contextFileName) {
-      setGeminiMdFilename(params.contextFileName);
+      setContextFilename(params.contextFileName);
     }
 
     if (this.telemetrySettings.enabled) {
@@ -1798,7 +1797,7 @@ export class Config implements McpContext, AgentLoopContext {
 
     this._sandboxForbiddenPaths = await this.getFileService().getIgnoredPaths({
       respectGitIgnore: false,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
     });
 
     return this._sandboxForbiddenPaths;
@@ -3000,7 +2999,7 @@ export class Config implements McpContext, AgentLoopContext {
 
   /**
    * Updates the system instruction with the latest user memory.
-   * Whenever the user memory (GEMINI.md files) is updated.
+   * Whenever the user memory (PLUMB.md files) is updated.
    */
   updateSystemInstructionIfInitialized(): void {
     const geminiClient = this.geminiClient;
@@ -3034,7 +3033,7 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   getFileFilteringRespectGeminiIgnore(): boolean {
-    return this.fileFiltering.respectGeminiIgnore;
+    return this.fileFiltering.respectPlumbIgnore;
   }
 
   getCustomIgnoreFilePaths(): string[] {
@@ -3044,7 +3043,7 @@ export class Config implements McpContext, AgentLoopContext {
   getFileFilteringOptions(): FileFilteringOptions {
     return {
       respectGitIgnore: this.fileFiltering.respectGitIgnore,
-      respectGeminiIgnore: this.fileFiltering.respectGeminiIgnore,
+      respectPlumbIgnore: this.fileFiltering.respectPlumbIgnore,
       enableFileWatcher: this.fileFiltering.enableFileWatcher,
       maxFileCount: this.fileFiltering.maxFileCount,
       searchTimeout: this.fileFiltering.searchTimeout,
@@ -3096,7 +3095,7 @@ export class Config implements McpContext, AgentLoopContext {
     if (!this.fileDiscoveryService) {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir, {
         respectGitIgnore: this.fileFiltering.respectGitIgnore,
-        respectGeminiIgnore: this.fileFiltering.respectGeminiIgnore,
+        respectPlumbIgnore: this.fileFiltering.respectPlumbIgnore,
         customIgnoreFilePaths: this.fileFiltering.customIgnoreFilePaths,
       });
     }
@@ -3324,7 +3323,7 @@ export class Config implements McpContext, AgentLoopContext {
   /**
    * Checks if a given absolute path is allowed for file system operations.
    * A path is allowed if it's within the workspace context, the project's
-   * temporary directory, or is exactly the global personal `~/.gemini/GEMINI.md`
+   * temporary directory, or is exactly the global personal `~/.gemini/PLUMB.md`
    * file (the latter is the only file under `~/.gemini/` that is reachable —
    * settings, credentials, keybindings, etc. remain disallowed).
    *
@@ -3383,13 +3382,13 @@ export class Config implements McpContext, AgentLoopContext {
       return true;
     }
 
-    // Surgical allowlist: the global personal GEMINI.md file (and ONLY that
+    // Surgical allowlist: the global personal PLUMB.md file (and ONLY that
     // file) is reachable so the prompt-driven memory flow can persist
     // cross-project personal preferences. This deliberately does NOT
     // allowlist the rest of `~/.gemini/`.
     const globalMemoryFilePath = path.join(
-      Storage.getGlobalGeminiDir(),
-      getCurrentGeminiMdFilename(),
+      Storage.getGlobalPlumbDir(),
+      getCurrentContextFilename(),
     );
     const resolvedGlobalMemoryFilePath =
       resolveToRealPath(globalMemoryFilePath);

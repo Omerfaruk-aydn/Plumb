@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import { ExtensionStorage } from './storage.js';
 import type { ExtensionConfig } from '../extension.js';
 
 import prompts from 'prompts';
-import { debugLogger, KeychainTokenStorage } from '@google/gemini-cli-core';
+import { debugLogger, KeychainTokenStorage } from '@plumb/core';
 import { EXTENSION_SETTINGS_FILENAME } from './variables.js';
 
 export enum ExtensionSettingScope {

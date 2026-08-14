@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression tests for the Claude Subscription acceptance test path.
- * Confirms `plumb --test-provider claude-subscription` invokes the SAME
- * production plumbModelStream()/getClaudeSubscriptionStatus() calls normal
- * chat uses -- never a separate acceptance-only fake adapter -- and reports
- * honest results for each real connection state, without leaking secrets.
  */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runProviderAcceptanceTest } from './providerAcceptanceHarness.js';
 import { recordAcceptance } from './providerAcceptance.js';
@@ -18,7 +12,7 @@ const mockPlumbModelStream = vi.fn();
 const mockGetCatalogModels = vi.fn();
 const mockGetPlumbProvider = vi.fn();
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   installBunGlobal: vi.fn(),
   getClaudeSubscriptionStatus: () => mockGetClaudeSubscriptionStatus(),
   plumbModelStream: (opts: unknown) => mockPlumbModelStream(opts),

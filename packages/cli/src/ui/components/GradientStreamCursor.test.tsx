@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * GradientStreamCursor drives a real setInterval via useColorCycle (see
- * that component's own doc comment). Empirically, rendering a live
- * interval-driven component directly under vi.useFakeTimers() hangs this
- * test harness's own waitUntilReady loop -- Ink's async render
- * scheduling and the fake-timer-driven interval end up fighting each
- * other. GeminiSpinner (the other useColorCycle consumer) avoids this by
- * having zero dedicated test files -- it's always mocked away wherever
- * it's rendered. This file does the same: mock useColorCycle itself so
- * only the component's own conditional logic (screen reader branch) is
- * under test, not the live animation.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { GradientStreamCursor } from './GradientStreamCursor.js';

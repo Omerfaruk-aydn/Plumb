@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,6 +16,12 @@ import {
 import { getBoundingBox, type DOMElement } from 'ink';
 import { useMouse, type MouseEvent } from '../hooks/useMouse.js';
 import { terminalCapabilityManager } from '../utils/terminalCapabilityManager.js';
+import { SettingsContext } from './SettingsContext.js';
+import {
+  createScrollMomentumState,
+  resolveScrollSpeedMultiplier,
+  updateScrollMomentum,
+} from '../utils/scrollSpeed.js';
 
 export interface ScrollState {
   scrollTop: number;
@@ -94,6 +99,11 @@ const findScrollableCandidates = (
 export const ScrollProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  // A plain useContext (not useSettings()) so this foundational provider
+  // still works with sensible defaults in tests/contexts that don't wrap a
+  // SettingsProvider -- scroll physics are a nice-to-have setting, not
+  // something ScrollProvider should hard-require.
+  const settings = useContext(SettingsContext);
   const [scrollables, setScrollables] = useState(
     new Map<string, ScrollableEntry>(),
   );
@@ -181,38 +191,22 @@ export const ScrollProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const scrollMomentumRef = useRef({
-    count: 0,
-    lastTime: 0,
-    lastDirection: null as 'up' | 'down' | null,
-  });
+  const scrollMomentumRef = useRef(createScrollMomentumState());
 
   const handleScroll = (direction: 'up' | 'down', mouseEvent: MouseEvent) => {
-    let multiplier = 1;
     const now = Date.now();
+    const rampMultiplier = updateScrollMomentum(
+      scrollMomentumRef.current,
+      direction,
+      now,
+      settings?.merged.ui?.scrollAcceleration ?? false,
+      terminalCapabilityManager.isGhosttyTerminal(),
+    );
+    const scrollSpeed = resolveScrollSpeedMultiplier(
+      settings?.merged.ui?.scrollSpeed,
+    );
 
-    if (!terminalCapabilityManager.isGhosttyTerminal()) {
-      const timeSinceLastScroll = now - scrollMomentumRef.current.lastTime;
-      const isSameDirection =
-        scrollMomentumRef.current.lastDirection === direction;
-
-      // 50ms threshold to consider scrolls consecutive
-      if (timeSinceLastScroll < 50 && isSameDirection) {
-        scrollMomentumRef.current.count += 1;
-        // Accelerate up to 3x, starting after 5 consecutive scrolls.
-        // Each consecutive scroll increases the multiplier by 0.1.
-        multiplier = Math.min(
-          3,
-          1 + Math.max(0, scrollMomentumRef.current.count - 5) * 0.1,
-        );
-      } else {
-        scrollMomentumRef.current.count = 0;
-      }
-    }
-    scrollMomentumRef.current.lastTime = now;
-    scrollMomentumRef.current.lastDirection = direction;
-
-    const delta = (direction === 'up' ? -1 : 1) * multiplier;
+    const delta = (direction === 'up' ? -1 : 1) * rampMultiplier * scrollSpeed;
     const candidates = findScrollableCandidates(
       mouseEvent,
       scrollablesRef.current,

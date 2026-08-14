@@ -95,8 +95,8 @@ PLUMB is a monorepo with the following packages:
 
 ## Source Provenance
 
-PLUMB is derived from Google Gemini CLI (Apache-2.0) and includes adaptations
-from OMP/Oh My Pi (MIT). See `THIRD_PARTY_NOTICES.md` for full attribution.
+PLUMB is derived from Google PLUMB (Apache-2.0) and includes adaptations from
+OMP/Oh My Pi (MIT). See `THIRD_PARTY_NOTICES.md` for full attribution.
 
 ## License
 

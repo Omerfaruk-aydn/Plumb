@@ -1,27 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Terminal setup utility for configuring Shift+Enter and Ctrl+Enter support.
- *
- * This module provides automatic detection and configuration of various terminal
- * emulators to support multiline input through modified Enter keys.
- *
- * Supported terminals:
- * - VS Code: Configures keybindings.json to send \\\r\n
- * - Cursor: Configures keybindings.json to send \\\r\n (VS Code fork)
- * - Windsurf: Configures keybindings.json to send \\\r\n (VS Code fork)
- * - Antigravity: Configures keybindings.json to send \\\r\n (VS Code fork)
- *
- * For VS Code and its forks:
- * - Shift+Enter: Sends \\\r\n (backslash followed by CRLF)
- * - Ctrl+Enter: Sends \\\r\n (backslash followed by CRLF)
- *
- * The module will not modify existing shift+enter or ctrl+enter keybindings
- * to avoid conflicts with user customizations.
  */
 
 import { promises as fs } from 'node:fs';
@@ -31,7 +10,7 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { terminalCapabilityManager } from './terminalCapabilityManager.js';
 
-import { debugLogger, homedir } from '@google/gemini-cli-core';
+import { debugLogger, homedir } from '@plumb/core';
 import { useEffect } from 'react';
 import { persistentState } from '../../utils/persistentState.js';
 import { requestConsentInteractive } from '../../config/extensions/consent.js';

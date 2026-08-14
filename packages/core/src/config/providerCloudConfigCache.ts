@@ -1,29 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Bridges `PlumbSecureCredentialStore`'s async safe cloud-config storage
- * (`packages/core`) to `packages/provider`'s synchronous
- * `providerConfigResolver` seam. `packages/provider`'s catalog/transport
- * functions (getCatalogModels, streamWatsonx, etc.) are called
- * synchronously from many existing call sites across the codebase, so the
- * resolver they consult cannot itself be async -- this module owns the
- * one place that bridges the store's real async I/O into an in-memory
- * snapshot a synchronous resolver can read.
- *
- * Lifecycle: `initializeProviderCloudConfigCache()` must run once during
- * PLUMB startup (before any provider stream/catalog call), and
- * `saveProviderCloudConfig()` must be the only write path once the in-app
- * configuration UX exists, so the cache and the persisted store never
- * drift apart within a running process.
  */
 
 import {
   getPlumbCredentialStore,
   type PlumbSecureCredentialStore,
 } from '../auth/plumbSecureCredentialStore.js';
-import { setProviderConfigResolver } from '@google/gemini-cli-provider';
+import { setProviderConfigResolver } from '@plumb/provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 /**

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -91,7 +90,7 @@ describe('WindowsSandboxManager', () => {
     }
   });
 
-  it('should prepare a GeminiSandbox.exe command', async () => {
+  it('should prepare a PlumbSandbox.exe command', async () => {
     const req: SandboxRequest = {
       command: 'whoami',
       args: ['/groups'],
@@ -104,7 +103,7 @@ describe('WindowsSandboxManager', () => {
 
     const result = await manager.prepareCommand(req);
 
-    expect(result.program).toContain('GeminiSandbox.exe');
+    expect(result.program).toContain('PlumbSandbox.exe');
     expect(result.args).toEqual([
       '0',
       testCwd,

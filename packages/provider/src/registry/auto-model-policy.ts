@@ -1,19 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * "Auto" model-routing policy for the provider-aware /model picker.
- *
- * Minimum-safe policy: only ever consider models belonging to providers the
- * caller has already determined are usable (authenticated / local-available
- * / custom-configured) — this function never sees, and therefore can never
- * select, an unconfigured provider's model. If the currently active provider
- * is among the usable set, Auto stays on that provider (its declared default
- * model, or its first model). Otherwise Auto falls back to the first usable
- * provider in the given list. There is no cross-provider quality ranking —
- * that would require trustworthy comparative model metadata that doesn't
- * exist yet.
  */
 
 import type { PlumbModel, PlumbProvider, PlumbProviderId } from '../types.js';

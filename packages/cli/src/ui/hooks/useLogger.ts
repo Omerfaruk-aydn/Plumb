@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect } from 'react';
-import { Logger, type Config } from '@google/gemini-cli-core';
+import { Logger, type Config } from '@plumb/core';
 
 /**
  * Hook to manage the logger instance.

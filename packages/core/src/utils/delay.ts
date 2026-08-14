@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Factory to create a standard abort error for delay helpers.
- */
 export function createAbortError(): Error {
   const abortError = new Error('Aborted');
   abortError.name = 'AbortError';

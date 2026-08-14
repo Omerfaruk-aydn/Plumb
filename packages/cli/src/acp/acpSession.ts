@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -27,7 +26,7 @@ import {
   isTextPart,
   GeminiEventType,
   type ToolCallRequestInfo,
-  type GeminiChat,
+  type PlumbChat,
   type ToolResult,
   isWithinRoot,
   processSingleFileContent,
@@ -39,7 +38,7 @@ import {
   type ToolConfirmationRequest,
   resolveAtCommandPath,
   type ResolvedAtCommandPath,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import * as acp from '@agentclientprotocol/sdk';
 import type { Part, FunctionCall } from '@google/genai';
 import type { LoadedSettings } from '../config/settings.js';
@@ -74,7 +73,7 @@ export class Session {
 
   constructor(
     private readonly id: string,
-    private readonly chat: GeminiChat,
+    private readonly chat: PlumbChat,
     private readonly context: AgentLoopContext,
     private readonly connection: acp.AgentSideConnection,
     private readonly settings: LoadedSettings,

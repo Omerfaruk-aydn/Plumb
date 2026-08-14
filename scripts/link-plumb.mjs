@@ -1,22 +1,8 @@
 #!/usr/bin/env node
+
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Atomic PLUMB production link route (replaces the broken Windows shell
- * chain that continued to `npm link` after failed commands).
- *
- * Every step runs via child_process.spawnSync with an explicit executable,
- * an explicit argument array, stdio inherited, and shell:false. Any non-zero
- * step aborts the route immediately — no link is ever attempted after a
- * failed build.
- *
- * Debug/test hooks (environment):
- *   PLUMB_LINK_ALLOW_DIRTY=1     permit a dirty worktree (step verifyWorktree)
- *   PLUMB_LINK_CMD_<STEP_ID>     replace the command of a step, whitespace split
- *   PLUMB_LINK_DIST_DIR=<path>   verify an alternate CLI dist directory
- *   PLUMB_LINK_PLAN=1 (or --plan) print the resolved command plan and exit 0
  */
 
 import { spawnSync } from 'node:child_process';
@@ -29,7 +15,7 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(SCRIPT_PATH), '..');
 const CLI_DIR = path.join(ROOT, 'packages', 'cli');
 const CLI_PACKAGE_NAME = 'plumb-cli';
-const LEGACY_GLOBAL_PACKAGE_NAMES = ['@google/gemini-cli'];
+const LEGACY_GLOBAL_PACKAGE_NAMES = ['plumb-cli'];
 const EXPECTED_BINS = ['plumb', 'gemini'];
 const IS_WINDOWS = process.platform === 'win32';
 
@@ -279,11 +265,11 @@ function stepVerifyWorktree() {
 }
 
 function stepBuildProvider(plan) {
-  runStep(plan, 'buildProvider', plan.npm, ['run', 'build', '-w', '@google/gemini-cli-provider']);
+  runStep(plan, 'buildProvider', plan.npm, ['run', 'build', '-w', '@plumb/provider']);
 }
 
 function stepBuildCore(plan) {
-  runStep(plan, 'buildCore', plan.npm, ['run', 'build', '-w', '@google/gemini-cli-core']);
+  runStep(plan, 'buildCore', plan.npm, ['run', 'build', '-w', '@plumb/core']);
 }
 
 function stepTypecheckCli(plan) {
@@ -436,7 +422,7 @@ function stepUnlinkStale(plan) {
 
 function stepLinkWorkspace(plan) {
   runStep(plan, 'linkWorkspace', plan.npm, ['link'], { cwd: CLI_DIR });
-  runStep(plan, 'ensureProviderBuild', plan.npm, ['run', 'build', '-w', '@google/gemini-cli-provider']);
+  runStep(plan, 'ensureProviderBuild', plan.npm, ['run', 'build', '-w', '@plumb/provider']);
 }
 
 function stepResolveGlobal(plan) {

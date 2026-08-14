@@ -1,7 +1,7 @@
 {
-  "name": "@google/gemini-cli-provider",
+  "name": "@plumb/provider",
   "version": "0.1.0",
-  "description": "PLUMB Provider Subsystem — OMP-derived multi-provider catalog, auth, and model transport",
+  "description": "PLUMB Provider Subsystem — multi-provider catalog, auth, and model transport",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

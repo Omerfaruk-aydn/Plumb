@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +13,7 @@ import {
   SESSION_FILE_PREFIX,
   getProjectHash,
   startMemoryService,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { ComponentRig, componentEvalTest } from './component-test-helper.js';
 import {
   average,

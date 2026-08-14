@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -20,6 +19,7 @@ import { DetailedMessagesDisplay } from './DetailedMessagesDisplay.js';
 import { ShortcutsHelp } from './ShortcutsHelp.js';
 import { InputPrompt } from './InputPrompt.js';
 import { Footer } from './Footer.js';
+import { CollabStatusBar } from './CollabStatusBar.js';
 import { StatusRow } from './StatusRow.js';
 import { ShowMoreLines } from './ShowMoreLines.js';
 import { QueuedMessageDisplay } from './QueuedMessageDisplay.js';
@@ -188,6 +188,8 @@ export const Composer = ({ isFocused = true }: { isFocused?: boolean }) => {
           onSuggestionsVisibilityChange={setSuggestionsVisible}
         />
       )}
+
+      {!isScreenReaderEnabled && <CollabStatusBar />}
 
       {showUiDetails &&
         !settings.merged.ui.hideFooter &&

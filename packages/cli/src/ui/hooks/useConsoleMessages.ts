@@ -1,16 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useSyncExternalStore } from 'react';
 import type { ConsoleMessageItem } from '../types.js';
-import {
-  coreEvents,
-  CoreEvent,
-  type ConsoleLogPayload,
-} from '@google/gemini-cli-core';
+import { coreEvents, CoreEvent, type ConsoleLogPayload } from '@plumb/core';
 
 export interface UseErrorCountReturn {
   errorCount: number;

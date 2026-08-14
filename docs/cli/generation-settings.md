@@ -1,9 +1,8 @@
 # Advanced Model Configuration
 
-This guide details the Model Configuration system within Gemini CLI. Designed
-for researchers, AI quality engineers, and advanced users, this system provides
-a rigorous framework for managing generative model hyperparameters and
-behaviors.
+This guide details the Model Configuration system within PLUMB. Designed for
+researchers, AI quality engineers, and advanced users, this system provides a
+rigorous framework for managing generative model hyperparameters and behaviors.
 
 <!-- prettier-ignore -->
 > [!WARNING]

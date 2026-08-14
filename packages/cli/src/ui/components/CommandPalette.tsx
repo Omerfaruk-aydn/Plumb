@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F1 of the PLUMB-UI-DEVRIM-PROMPT.md spec: a fuzzy command palette.
- * Scoped to the "Komutlar" (slash commands) source for this pass -- see
- * the PR/commit message for why the other four sources (sessions, files,
- * agents, settings) are deliberately deferred rather than rushed.
  */
+
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { Box, Text, useIsScreenReaderEnabled } from 'ink';

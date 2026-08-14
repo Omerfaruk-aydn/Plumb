@@ -1,26 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Windows UV_HANDLE_CLOSING reproduction / regression harness.
- *
- * Exercises the REAL production tool-route probe lifecycle (Config,
- * MessageBus, ToolRegistry, Scheduler, PlumbToolProbe, plumbModelStream —
- * the exact same call graph `--test-tool-route` uses) against local
- * loopback HTTP servers, with a fake in-memory credential store — no real
- * credentials, no network, no user settings touched.
- *
- * Not built/compiled: this is a plain .mjs script run directly with
- * `node`, imported by `gemini.exitLifecycle.test.ts` as a child process (so
- * a genuine native crash never takes down the test runner) and also
- * runnable standalone for manual live diagnosis:
- *
- *   node packages/cli/src/lifecycle/uvHandleClosingRepro.harness.mjs [reverse]
- *
- * Requires a prior `npm run build` (imports the built provider/CLI dist,
- * matching what a real user actually runs).
  */
+
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';

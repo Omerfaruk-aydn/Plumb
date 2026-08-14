@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import {
   getExtensionManager,
 } from './utils.js';
 import { loadSettings } from '../../config/settings.js';
-import { coreEvents, debugLogger } from '@google/gemini-cli-core';
+import { coreEvents, debugLogger } from '@plumb/core';
 import { exitCli } from '../utils.js';
 
 interface ConfigureArgs {

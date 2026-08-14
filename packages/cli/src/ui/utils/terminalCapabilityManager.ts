@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,13 +13,17 @@ import {
   enableBracketedPasteMode,
   disableBracketedPasteMode,
   disableMouseEvents,
-} from '@google/gemini-cli-core';
+  resetCursorStyle,
+} from '@plumb/core';
 import { parseColor } from '../themes/color-utils.js';
 
 export type TerminalBackgroundColor = string | undefined;
 
+// Trailing `\x1b[0 q` resets DECSCUSR (F25 cursor style) to the terminal's
+// own default, matching useCursorStyle's unmount cleanup for the abrupt-exit
+// path (Ctrl+C, SIGTERM) where that hook's own cleanup may not run.
 const TERMINAL_CLEANUP_SEQUENCE =
-  '\x1b[<u\x1b[>4;0m\x1b[?2004l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l';
+  '\x1b[<u\x1b[>4;0m\x1b[?2004l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[0 q';
 
 export function cleanupTerminalOnExit() {
   try {
@@ -36,6 +39,7 @@ export function cleanupTerminalOnExit() {
   disableModifyOtherKeys();
   disableBracketedPasteMode();
   disableMouseEvents();
+  resetCursorStyle();
 }
 
 export class TerminalCapabilityManager {

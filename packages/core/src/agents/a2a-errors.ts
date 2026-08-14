@@ -1,19 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * @fileoverview Custom error types for A2A remote agent operations.
- * Provides structured, user-friendly error messages for common failure modes
- * during agent card fetching, authentication, and communication.
- */
-
-/**
- * Base class for all A2A agent errors.
- * Provides a `userMessage` field with a human-readable description.
- */
 export class A2AAgentError extends Error {
   /** A user-friendly message suitable for display in the CLI. */
   readonly userMessage: string;

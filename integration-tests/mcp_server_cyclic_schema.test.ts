@@ -1,24 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * This test verifies we can provide MCP tools with recursive input schemas
- * (in JSON, using the $ref keyword) and both the GenAI SDK and the Gemini
- * API calls succeed. Note that prior to
- * https://github.com/googleapis/js-genai/commit/36f6350705ecafc47eaea3f3eecbcc69512edab7#diff-fdde9372aec859322b7c5a5efe467e0ad25a57210c7229724586ee90ea4f5a30
- * the Gemini API call would fail for such tools because the schema was
- * passed not as a JSON string but using the Gemini API's tool parameter
- * schema object which has stricter typing and recursion restrictions.
- * If this test fails, it's likely because either the GenAI SDK or Gemini API
- * has become more restrictive about the type of tool parameter schemas that
- * are accepted. If this occurs: Gemini CLI previously attempted to detect
- * such tools and proactively remove them from the set of tools provided in
- * the Gemini API call (as FunctionDeclaration objects). It may be appropriate
- * to resurrect that behavior but note that it's difficult to keep the
- * GCLI filters in sync with the Gemini API restrictions and behavior.
  */
 
 import { writeFileSync } from 'node:fs';
@@ -30,8 +12,7 @@ import { TestRig } from './test-helper.js';
 // This implements the MCP protocol directly using Node.js built-ins
 const serverScript = `#!/usr/bin/env node
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 

@@ -203,7 +203,7 @@ jobs:
           working-directory: './release'
 
   build-mac:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "true"
     uses: './.github/workflows/build-unsigned-mac-binaries.yml'
     with:
       ref: '${{ github.event.inputs.ref }}'

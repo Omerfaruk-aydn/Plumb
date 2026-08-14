@@ -1,23 +1,9 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical, evidence-based HTTP-error classification for PLUMB streaming
- * transports (transports/streaming.ts). Maps a raw upstream HTTP response
- * (status + body) onto the plan's normalized error taxonomy — never a
- * guess: every mapping below is backed by either the HTTP status code
- * itself (universally true across providers) or a structured field a
- * provider's own error schema documents (Google's canonical `status`/
- * `reason`, Anthropic's `error.type`, OMP's vetted rate-limit-reason
- * heuristics in omp-ai/error/rate-limit.ts).
- *
- * Deliberately narrow: only classifies the initial (pre-stream) HTTP
- * response. Mid-stream read/parse failures keep their existing
- * STREAM_ERROR code — this module does not touch that path.
  */
 
-import { parseRateLimitReason } from '../omp-ai/error/rate-limit.js';
+import { parseRateLimitReason } from '../vendor-ai/error/rate-limit.js';
 
 /**
  * Minimal shape of the safe-Google-error extraction result this module

@@ -21,7 +21,7 @@ import type {
   PlumbCredential,
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 // OMP credential types — the same shapes stored by SqliteAuthCredentialStore
 // We store the raw JSON as-is so the OMP schema round-trips unchanged.
@@ -217,9 +217,12 @@ export class OmpKeychainAdapter implements IPlumbCredentialStore {
       };
     }
 
-    const ref = makeCredentialRef(provider, credential.type, 
-      this.#metadata.providers[provider].credentialRefs.length);
-    
+    const ref = makeCredentialRef(
+      provider,
+      credential.type,
+      this.#metadata.providers[provider].credentialRefs.length,
+    );
+
     // Store full PLUMB credential shape (converted to OMP-compatible)
     const ompCred = toOmpCredential(credential);
     await this.#keychain.setPassword(ref, JSON.stringify(ompCred));
@@ -272,10 +275,7 @@ export class OmpKeychainAdapter implements IPlumbCredentialStore {
     await this.#flushMetadata();
   }
 
-  async removeCredential(
-    provider: string,
-    type: string,
-  ): Promise<boolean> {
+  async removeCredential(provider: string, type: string): Promise<boolean> {
     await this.#ensureLoaded();
     const meta = this.#metadata.providers[provider];
     if (!meta) return false;
@@ -347,9 +347,7 @@ export class OmpKeychainAdapter implements IPlumbCredentialStore {
     await this.#flushMetadata();
   }
 
-  async getProviderMetadata(
-    provider: string,
-  ): Promise<{
+  async getProviderMetadata(provider: string): Promise<{
     selectedModel?: string;
     smolModel?: string;
     planningModel?: string;

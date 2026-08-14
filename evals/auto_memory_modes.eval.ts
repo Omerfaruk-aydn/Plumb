@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -168,7 +167,7 @@ beforeEach(() => {
         const memoryDir = config.storage.getProjectMemoryTempDir();
         const inboxDir = path.join(memoryDir, '.inbox');
 
-        const homeDir = process.env['GEMINI_CLI_HOME'] ?? os.homedir();
+        const homeDir = process.env['PLUMB_CLI_HOME'] ?? os.homedir();
         const globalGeminiDir = path.join(homeDir, '.gemini');
 
         await fs.mkdir(path.join(inboxDir, 'private'), { recursive: true });
@@ -188,7 +187,7 @@ beforeEach(() => {
           ].join('\n'),
         );
 
-        const globalTarget = path.join(globalGeminiDir, 'GEMINI.md');
+        const globalTarget = path.join(globalGeminiDir, 'PLUMB.md');
         await fs.writeFile(
           path.join(inboxDir, 'global', 'reply-style.patch'),
           [
@@ -247,7 +246,7 @@ async function createFixture(): Promise<Fixture> {
   await fs.mkdir(homeDir, { recursive: true });
   await fs.mkdir(targetDir, { recursive: true });
   await fs.mkdir(path.join(projectTempDir, 'chats'), { recursive: true });
-  vi.stubEnv('GEMINI_CLI_HOME', homeDir);
+  vi.stubEnv('PLUMB_CLI_HOME', homeDir);
 
   const config: MockMemoryConfig = {
     storage: {
@@ -418,7 +417,7 @@ describe('Auto Memory inbox routing', () => {
       const activeGlobalMemoryPath = path.join(
         fixture.homeDir,
         '.gemini',
-        'GEMINI.md',
+        'PLUMB.md',
       );
       const run = await readRun(fixture);
 

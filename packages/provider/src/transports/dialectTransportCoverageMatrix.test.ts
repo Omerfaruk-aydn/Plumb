@@ -1,33 +1,13 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Task 11 Dialect/Transport Coverage Matrix:
- * Exercises every wire dialect / transport in PlumbKnownApi:
- * 1. openai-completions
- * 2. openai-responses
- * 3. anthropic-messages
- * 4. google-generative-ai
- * 5. google-gemini-cli
- * 6. google-vertex
- * 7. ollama-chat
- * 8. openrouter
- * 9. claude-agent-sdk
- * 10. watsonx-chat
- * 11. oci-openai-responses
- * 12. bedrock-converse-stream
- * 13. azure-openai-responses
- * 14. openai-codex-responses
- * 15. cursor-agent
- * 16. devin-agent
- * 17. gitlab-duo-agent
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import { registerPlumbCredentialStoreFactory } from '../auth/credential-store.js';
 import type { PlumbStreamEvent, PlumbModel } from '../types.js';
@@ -128,7 +108,7 @@ describe('Task 11 — Dialect/Transport Coverage Matrix', () => {
   const calls: Array<{ url: string; headers: Record<string, string> }> = [];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     calls.length = 0;
     mockQuery.mockReset();

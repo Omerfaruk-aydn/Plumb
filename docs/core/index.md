@@ -1,8 +1,8 @@
-# Gemini CLI core
+# PLUMB core
 
-Gemini CLI's core package (`packages/core`) is the backend portion of Gemini
-CLI, handling communication with the Gemini API, managing tools, and processing
-requests sent from `packages/cli`. For a general overview of Gemini CLI, see the
+PLUMB's core package (`packages/core`) is the backend portion of Gemini CLI,
+handling communication with the Gemini API, managing tools, and processing
+requests sent from `packages/cli`. For a general overview of PLUMB, see the
 [main documentation page](../index.md).
 
 ## Navigating this section
@@ -12,7 +12,7 @@ requests sent from `packages/cli`. For a general overview of Gemini CLI, see the
 - **[Core tools reference](../reference/tools.md):** Information on how tools
   are defined, registered, and used by the core.
 - **[Memory Import Processor](../reference/memport.md):** Documentation for the
-  modular GEMINI.md import feature using @file.md syntax.
+  modular PLUMB.md import feature using @file.md syntax.
 - **[Policy Engine](../reference/policy-engine.md):** Use the Policy Engine for
   fine-grained control over tool execution.
 - **[Local Model Routing (experimental)](./gemma-setup.md):** Learn how to
@@ -21,14 +21,14 @@ requests sent from `packages/cli`. For a general overview of Gemini CLI, see the
 
 ## Role of the core
 
-While the `packages/cli` portion of Gemini CLI provides the user interface,
+While the `packages/cli` portion of PLUMB provides the user interface,
 `packages/core` is responsible for:
 
 - **Gemini API interaction:** Securely communicating with the Google Gemini API,
   sending user prompts, and receiving model responses.
 - **Prompt engineering:** Constructing effective prompts for the Gemini model,
   potentially incorporating conversation history, tool definitions, and
-  instructional context from `GEMINI.md` files.
+  instructional context from `PLUMB.md` files.
 - **Tool management & orchestration:**
   - Registering available tools (for example, file system tools, shell command
     execution).
@@ -66,8 +66,8 @@ You can find the token limits for each model in the
 
 ## Model fallback
 
-Gemini CLI includes a model fallback mechanism to ensure that you can continue
-to use the CLI even if the default "pro" model is rate-limited.
+PLUMB includes a model fallback mechanism to ensure that you can continue to use
+the CLI even if the default "pro" model is rate-limited.
 
 If you are using the default "pro" model and the CLI detects that you are being
 rate-limited, it automatically switches to the "flash" model for the current
@@ -86,7 +86,7 @@ tools that need to access files.
 ## Memory discovery service
 
 The memory discovery service is responsible for finding and loading the
-`GEMINI.md` files that provide context to the model. It searches for these files
+`PLUMB.md` files that provide context to the model. It searches for these files
 in a hierarchical manner, starting from the current working directory and moving
 up to the project root and the user's home directory. It also searches in
 subdirectories.
@@ -95,7 +95,7 @@ This lets you have global, project-level, and component-level context files,
 which are all combined to provide the model with the most relevant information.
 
 You can use the [`/memory` command](../reference/commands.md) to `show`, `add`,
-and `refresh` the content of loaded `GEMINI.md` files.
+and `refresh` the content of loaded `PLUMB.md` files.
 
 ## Citations
 

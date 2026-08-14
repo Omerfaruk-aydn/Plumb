@@ -1,9 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Model registry integration tests.
- * Verifies single authority, catalog integration, and discovery.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

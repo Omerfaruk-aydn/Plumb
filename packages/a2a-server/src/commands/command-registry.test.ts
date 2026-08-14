@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -120,7 +119,7 @@ describe('CommandRegistry', () => {
   });
 
   it('register() should not enter an infinite loop with a cyclic command', async () => {
-    const { debugLogger } = await import('@google/gemini-cli-core');
+    const { debugLogger } = await import('@plumb/core');
     const warnSpy = vi.spyOn(debugLogger, 'warn').mockImplementation(() => {});
     const mockCommand: Command = {
       name: 'cyclic-command',

@@ -1,11 +1,11 @@
-# PLUMB Gemini CLI Foundation Baseline Report
+# PLUMB PLUMB Foundation Baseline Report
 
 ## Metadata
 
 - **Date**: 2026-07-30
 - **Repository**: `D:\PLUMB-production`
 - **Branch**: `rebuild/plumb-gemini-production`
-- **Foundation Source**: Google Gemini CLI
+- **Foundation Source**: Google PLUMB
   (`https://github.com/google-gemini/gemini-cli.git`)
 - **Pinned Commit SHA**: `dc859e8e48868ef5d1cc3b6708dbbdf3817cb9c9`
 - **Target Remote**: `https://github.com/Omerfaruk-aydn/KES-T.git`
@@ -20,7 +20,7 @@
 | **Workspace Build**      | `npm run build`                | `PASSED` | Core, DevTools, VSCode Companion, and CLI packages built clean                    |
 | **Typecheck**            | `npm run typecheck`            | `PASSED` | 0 TypeScript errors across all workspaces and tests                               |
 | **Baseline Tests**       | `npm run test:scripts`         | `PASSED` | 134 of 134 tests passed cleanly                                                   |
-| **CLI Launch**           | `node scripts/start.js --help` | `PASSED` | Gemini CLI entrypoint verified                                                    |
+| **CLI Launch**           | `node scripts/start.js --help` | `PASSED` | PLUMB entrypoint verified                                                         |
 | **Slash Commands**       | `/help`, `/settings`, `/mcp`   | `PASSED` | Standard slash command infrastructure operational                                 |
 | **Settings / Dialogs**   | Settings schema generation     | `PASSED` | Settings UI and schema generation validated                                       |
 | **Provider / Auth Flow** | Google Auth & Provider SDK     | `PASSED` | Provider interface initialized cleanly                                            |

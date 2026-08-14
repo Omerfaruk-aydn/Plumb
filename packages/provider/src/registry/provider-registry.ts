@@ -1,10 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PlumbProviderRegistry — single authority for provider state and auth.
- * Uses OS-protected credential storage via KeychainService.
  */
 
 import {

@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { renderHook } from '../../../test-utils/render.js';

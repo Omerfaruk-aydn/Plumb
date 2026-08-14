@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,9 +20,8 @@ const mockIsWorkspaceTrusted = vi.hoisted(() =>
   vi.fn().mockReturnValue({ isTrusted: true, source: 'file' }),
 );
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     coreEvents: mockCoreEvents,
@@ -33,7 +31,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         '/mock/home/user/.gemini/settings.json';
       override getWorkspaceSettingsPath = () =>
         '/mock/workspace/.gemini/settings.json';
-      static override getGlobalGeminiDir = () => '/mock/home/user/.gemini';
+      static override getGlobalPlumbDir = () => '/mock/home/user/.gemini';
     },
   };
 });

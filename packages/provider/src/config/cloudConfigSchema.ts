@@ -1,20 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Shared cloud-provider configuration domain types + a generic
- * validate/build engine, extracted from the OCI schema (the reference
- * implementation -- see ociGenaiConfigSchema.ts) so Bedrock/Vertex/watsonx
- * can reuse the same field-definition shape and the same Ink UI without
- * duplicating "if authMode === X" logic per provider.
- *
- * OCI itself keeps its own bespoke validate/build functions
- * (IAM-subtype-conditional visibility, OCID-shape checking) because they
- * are genuinely provider-specific and already frozen/tested; this generic
- * engine covers the providers whose config is a flat field list per auth
- * mode with only "required" / "is the secret field" as validation rules,
- * which is true for Bedrock, Vertex, and watsonx.
  */
 
 export type CloudConfigFieldType =

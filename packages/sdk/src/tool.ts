@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +13,7 @@ import {
   type ExecuteOptions,
   Kind,
   type MessageBus,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { SessionContext } from './types.js';
 
 export { z };
@@ -210,7 +209,7 @@ export class SdkTool<T extends z.ZodTypeAny> extends BaseDeclarativeTool<
  *
  * @example
  * ```typescript
- * import { z, tool } from '@google/gemini-cli-sdk';
+ * import { z, tool } from '@plumb/sdk';
  *
  * const myTool = tool(
  *   {

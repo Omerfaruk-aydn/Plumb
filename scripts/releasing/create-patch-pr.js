@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -31,10 +30,9 @@ async function main() {
       demandOption: true,
     })
     .option('cli-package-name', {
-      description:
-        'fully qualified package name with scope (e.g @google/gemini-cli)',
+      description: 'fully qualified package name with scope (e.g plumb-cli)',
       string: true,
-      default: '@google/gemini-cli',
+      default: 'plumb-cli',
     })
     .option('dry-run', {
       description: 'Whether to run in dry-run mode.',

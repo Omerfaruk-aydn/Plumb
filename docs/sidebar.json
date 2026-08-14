@@ -14,13 +14,13 @@
           },
           { "label": "CLI cheatsheet", "slug": "docs/cli/cli-reference" },
           {
-            "label": "Gemini 3 on Gemini CLI",
+            "label": "Gemini 3 on PLUMB",
             "slug": "docs/get-started/gemini-3"
           }
         ]
       },
       {
-        "label": "Use Gemini CLI",
+        "label": "Use PLUMB",
         "items": [
           {
             "label": "File management",
@@ -194,16 +194,16 @@
             "slug": "docs/cli/enterprise"
           },
           {
-            "label": "Ignore files (.geminiignore)",
-            "slug": "docs/cli/gemini-ignore"
+            "label": "Ignore files (.plumbignore)",
+            "slug": "docs/cli/plumb-ignore"
           },
           {
             "label": "Model configuration",
             "slug": "docs/cli/generation-settings"
           },
           {
-            "label": "Project context (GEMINI.md)",
-            "slug": "docs/cli/gemini-md"
+            "label": "Project context (PLUMB.md)",
+            "slug": "docs/cli/plumb-md"
           },
           { "label": "Settings", "slug": "docs/cli/settings" },
           {

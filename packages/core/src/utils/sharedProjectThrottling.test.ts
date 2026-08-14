@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,8 +7,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import fs from 'node:fs';
 import { retryWithBackoff } from './retry.js';
 import { AuthType } from '../core/contentGenerator.js';
-import { TerminalQuotaError } from './googleQuotaErrors.js';
-import type { GoogleApiError } from './googleErrors.js';
+import { TerminalQuotaError } from './plumbGoogleQuotaErrors.js';
+import type { GoogleApiError } from './plumbGoogleErrors.js';
 
 vi.mock('node:fs');
 

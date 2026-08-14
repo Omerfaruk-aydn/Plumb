@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { UserMessage } from './UserMessage.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@plumb/core';
 
 // Mock the commandUtils to control isSlashCommand behavior
 vi.mock('../../utils/commandUtils.js', () => ({

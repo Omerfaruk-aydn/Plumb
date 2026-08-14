@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -45,7 +44,8 @@ import {
   buildToolVisibilityContext,
   UPDATE_TOPIC_TOOL_NAME,
   UPDATE_TOPIC_DISPLAY_NAME,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
+import { captureTurnSnapshot } from '../utils/undoRedoStack.js';
 import type {
   Config,
   EditorType,
@@ -59,7 +59,7 @@ import type {
   ToolCallResponseInfo,
   GeminiErrorEventValue,
   RetryAttemptPayload,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { type Part, type PartListUnion, FinishReason } from '@google/genai';
 import type {
   HistoryItem,
@@ -1656,6 +1656,12 @@ export const useGeminiStream = (
               }
               startNewPrompt();
               setThought(null); // Reset thought when starting a new prompt
+              // F19 (/undo, /redo): fire-and-forget pre-turn snapshot; never
+              // blocks turn submission on Git availability or I/O.
+              void captureTurnSnapshot(
+                config,
+                geminiClient.getChatRecordingService(),
+              );
             }
 
             setIsResponding(true);

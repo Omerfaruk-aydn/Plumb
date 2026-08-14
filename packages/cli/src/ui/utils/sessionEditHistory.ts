@@ -1,18 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F7 (PLUMB-UI-DEVRIM-PROMPT.md) data source. Reads already-applied edit
- * diffs straight out of the live UI history -- never regenerates a diff.
- * Each completed Edit/WriteFile-style tool call already carries its diff in
- * `resultDisplay` (the same object DenseToolMessage renders); this just
- * collects those across the whole session into a flat, ordered list.
  */
-import {
-  isFileDiff,
-  computeModelAddedAndRemovedLines,
-} from '@google/gemini-cli-core';
+
+import { isFileDiff, computeModelAddedAndRemovedLines } from '@plumb/core';
 import type { HistoryItem } from '../types.js';
 import { CoreToolCallStatus } from '../types.js';
 

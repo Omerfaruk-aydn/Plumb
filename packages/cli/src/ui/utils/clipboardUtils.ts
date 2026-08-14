@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,12 +7,7 @@ import * as fs from 'node:fs/promises';
 import { createWriteStream, existsSync, statSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
 import * as path from 'node:path';
-import {
-  debugLogger,
-  spawnAsync,
-  escapePath,
-  Storage,
-} from '@google/gemini-cli-core';
+import { debugLogger, spawnAsync, escapePath, Storage } from '@plumb/core';
 
 /**
  * Supported image file extensions based on Gemini API.

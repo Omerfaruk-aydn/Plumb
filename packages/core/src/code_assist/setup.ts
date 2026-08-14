@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ import {
 import { CodeAssistServer, type HttpOptions } from './server.js';
 import type { AuthClient } from 'google-auth-library';
 import { ChangeAuthRequestedError } from '../utils/errors.js';
-import { ValidationRequiredError } from '../utils/googleQuotaErrors.js';
+import { ValidationRequiredError } from '../utils/plumbGoogleQuotaErrors.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { createCache, type CacheService } from '../utils/cache.js';
 import type { Config } from '../config/config.js';

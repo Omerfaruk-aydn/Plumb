@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { resolveToRealPath, isSubpath } from '@google/gemini-cli-core';
+import { resolveToRealPath, isSubpath } from '@plumb/core';
 
 /**
  * Validates a workspace path to prevent path traversal attacks.

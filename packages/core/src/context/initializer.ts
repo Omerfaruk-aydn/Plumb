@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { Config } from '../config/config.js';
-import type { GeminiChat } from '../core/geminiChat.js';
+import type { PlumbChat } from '../core/plumbChat.js';
 import { ContextProcessorRegistry } from './config/registry.js';
 import { loadContextManagementConfig } from './config/configLoader.js';
 import { ContextTracer } from './tracer.js';
@@ -29,7 +28,7 @@ import { registerBuiltInBehaviors } from './graph/builtinBehaviors.js';
 
 export async function initializeContextManager(
   config: Config,
-  chat: GeminiChat,
+  chat: PlumbChat,
   lastPromptId: string,
 ): Promise<ContextManager | undefined> {
   const isV1Enabled = config.getContextManagementConfig().enabled;

@@ -9,25 +9,25 @@
   "subsystems": {
     "provider-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/registry/registry.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/registry/registry.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "oauth-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/registry/oauth/index.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/registry/oauth/index.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "auth-storage-semantics": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/auth-storage.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/auth-storage.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "account-state": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/auth-storage.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/auth-storage.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
@@ -39,43 +39,43 @@
     },
     "model-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-catalog/model-manager.ts",
+      "activeOwner": "packages/provider/src/vendor-catalog/model-manager.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "model-resolver": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-catalog/models.ts",
+      "activeOwner": "packages/provider/src/vendor-catalog/models.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "model-cache": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-catalog/model-cache.ts",
+      "activeOwner": "packages/provider/src/vendor-catalog/model-cache.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "cache-backend": {
       "requiredOwner": "NODE_ADAPTATION",
-      "activeOwner": "packages/provider/src/omp-catalog/model-cache.ts",
+      "activeOwner": "packages/provider/src/vendor-catalog/model-cache.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "discovery": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-catalog/discovery/index.ts",
+      "activeOwner": "packages/provider/src/vendor-catalog/discovery/index.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "provider-transport-registry": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/stream.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/stream.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     },
     "stream-normalization": {
       "requiredOwner": "OMP",
-      "activeOwner": "packages/provider/src/omp-ai/utils/event-stream.ts",
+      "activeOwner": "packages/provider/src/vendor-ai/utils/event-stream.ts",
       "ownerClassification": "ACTIVE_OMP_SOURCE",
       "status": "active"
     }
@@ -103,7 +103,7 @@
       "active": true,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/registry.ts",
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/registry.ts",
       "note": "OMP → PLUMB provider projection facade; inventory/availability sourced from OMP registry + catalog descriptors"
     },
     {
@@ -112,7 +112,7 @@
       "active": false,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-catalog/models.ts"
+      "replacementOwner": "packages/provider/src/vendor-catalog/models.ts"
     },
     {
       "path": "packages/provider/src/catalog/models.ts",
@@ -128,7 +128,7 @@
       "active": false,
       "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-registry.test.ts"],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/registry.ts"
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/registry.ts"
     },
     {
       "path": "packages/provider/src/registry/model-registry.ts",
@@ -136,7 +136,7 @@
       "active": false,
       "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-registry.test.ts"],
-      "replacementOwner": "packages/provider/src/omp-catalog/model-manager.ts"
+      "replacementOwner": "packages/provider/src/vendor-catalog/model-manager.ts"
     },
     {
       "path": "packages/provider/src/registry/model-cache.ts",
@@ -144,7 +144,7 @@
       "active": false,
       "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-cache.test.ts"],
-      "replacementOwner": "packages/provider/src/omp-catalog/model-cache.ts"
+      "replacementOwner": "packages/provider/src/vendor-catalog/model-cache.ts"
     },
     {
       "path": "packages/provider/src/registry/model-discovery.ts",
@@ -152,7 +152,7 @@
       "active": false,
       "responsibilities": [],
       "tests": ["packages/provider/src/registry/model-discovery.test.ts"],
-      "replacementOwner": "packages/provider/src/omp-catalog/discovery/"
+      "replacementOwner": "packages/provider/src/vendor-catalog/discovery/"
     },
     {
       "path": "packages/provider/src/auth/credential-store.ts",
@@ -169,7 +169,7 @@
       "active": false,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/stream.ts"
+      "replacementOwner": "packages/provider/src/vendor-ai/stream.ts"
     },
     {
       "path": "packages/provider/src/plans/zhipu-coding-plan.ts",
@@ -177,7 +177,7 @@
       "active": false,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/zhipu-coding-plan.ts"
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/zhipu-coding-plan.ts"
     },
     {
       "path": "packages/provider/src/plans/coding-plans.ts",
@@ -185,10 +185,10 @@
       "active": false,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/"
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/"
     },
     {
-      "path": "packages/provider/src/omp-catalog/models.ts",
+      "path": "packages/provider/src/vendor-catalog/models.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["model-resolver"],
@@ -197,7 +197,7 @@
       "note": "activated: bundled model catalog authority (model-resolver)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/model-manager.ts",
+      "path": "packages/provider/src/vendor-catalog/model-manager.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["model-registry"],
@@ -206,7 +206,7 @@
       "note": "activated: model resolution/registry authority (model-registry)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/model-cache.ts",
+      "path": "packages/provider/src/vendor-catalog/model-cache.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["model-cache", "cache-backend"],
@@ -215,7 +215,7 @@
       "note": "activated: model cache authority incl. JSON backend (model-cache, cache-backend)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/discovery/index.ts",
+      "path": "packages/provider/src/vendor-catalog/discovery/index.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["discovery"],
@@ -224,7 +224,7 @@
       "note": "activated: OpenAI-compatible discovery authority (discovery)"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/registry.ts",
+      "path": "packages/provider/src/vendor-ai/registry/registry.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["provider-registry"],
@@ -233,7 +233,7 @@
       "note": "activated: PROVIDER_REGISTRY provider-definition authority (provider-registry)"
     },
     {
-      "path": "packages/provider/src/omp-ai/stream.ts",
+      "path": "packages/provider/src/vendor-ai/stream.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["provider-transport-registry"],
@@ -242,7 +242,7 @@
       "note": "activated: streaming dispatch authority (provider-transport-registry)"
     },
     {
-      "path": "packages/provider/src/omp-ai/utils/event-stream.ts",
+      "path": "packages/provider/src/vendor-ai/utils/event-stream.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["stream-normalization"],
@@ -251,7 +251,7 @@
       "note": "activated: event normalization authority (stream-normalization)"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/index.ts",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/index.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["oauth-registry"],
@@ -260,7 +260,7 @@
       "note": "activated: OAuth provider listing + flow registry (oauth-registry)"
     },
     {
-      "path": "packages/provider/src/omp-ai/auth-storage.ts",
+      "path": "packages/provider/src/vendor-ai/auth-storage.ts",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": true,
       "responsibilities": ["auth-storage-semantics", "account-state"],
@@ -269,7 +269,7 @@
       "note": "activated: credential storage + account state authority (auth-storage-semantics, account-state). Keychain adapter is Phase 7."
     },
     {
-      "path": "packages/provider/src/omp-ai/**",
+      "path": "packages/provider/src/vendor-ai/**",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": false,
       "responsibilities": [],
@@ -278,7 +278,7 @@
       "note": "imported OMP runtime; activation pending"
     },
     {
-      "path": "packages/provider/src/omp-catalog/**",
+      "path": "packages/provider/src/vendor-catalog/**",
       "classification": "ACTIVE_OMP_SOURCE",
       "active": false,
       "responsibilities": [],
@@ -287,7 +287,7 @@
       "note": "imported OMP model catalog; activation pending"
     },
     {
-      "path": "packages/provider/src/omp-shims/pi-utils.ts",
+      "path": "packages/provider/src/vendor-shims/pi-utils.ts",
       "classification": "MIGRATION_ONLY",
       "active": false,
       "responsibilities": [],
@@ -295,7 +295,7 @@
       "replacementOwner": "D:\\PLUMB-upstreams\\oh-my-pi\\packages\\utils\\src\\ or parity-verified platform adapter"
     },
     {
-      "path": "packages/provider/src/omp-shims/pi-utils-logger.ts",
+      "path": "packages/provider/src/vendor-shims/pi-utils-logger.ts",
       "classification": "MIGRATION_ONLY",
       "active": false,
       "responsibilities": [],
@@ -303,15 +303,15 @@
       "replacementOwner": "D:\\PLUMB-upstreams\\oh-my-pi\\packages\\utils\\src\\logger or parity-verified adapter"
     },
     {
-      "path": "packages/provider/src/omp-shims/bun-types.d.ts",
+      "path": "packages/provider/src/vendor-shims/bun-types.d.ts",
       "classification": "MIGRATION_ONLY",
       "active": false,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-shims/bun-runtime.ts"
+      "replacementOwner": "packages/provider/src/vendor-shims/bun-runtime.ts"
     },
     {
-      "path": "packages/provider/src/omp-shims/bun-runtime.ts",
+      "path": "packages/provider/src/vendor-shims/bun-runtime.ts",
       "classification": "NODE_ADAPTATION",
       "active": false,
       "responsibilities": [],
@@ -320,16 +320,16 @@
       "note": "minimal Bun global (hash/crc32/xxhash/deepEquals/env/sleep/write/file/CryptoHasher/sha/spawn) for imported OMP modules on Node"
     },
     {
-      "path": "packages/provider/src/omp-shims/sqlite-database.ts",
+      "path": "packages/provider/src/vendor-shims/sqlite-database.ts",
       "classification": "NODE_ADAPTATION",
       "active": false,
       "responsibilities": [],
       "tests": [],
       "replacementOwner": null,
-      "note": "bun:sqlite API surface (Database/Statement/transaction/pragma) on node:sqlite DatabaseSync; consumed by omp-ai/auth-storage.ts"
+      "note": "bun:sqlite API surface (Database/Statement/transaction/pragma) on node:sqlite DatabaseSync; consumed by vendor-ai/auth-storage.ts"
     },
     {
-      "path": "packages/provider/src/omp-shims/node-sqlite.d.ts",
+      "path": "packages/provider/src/vendor-shims/node-sqlite.d.ts",
       "classification": "NODE_ADAPTATION",
       "active": false,
       "responsibilities": [],
@@ -344,7 +344,7 @@
       "responsibilities": [],
       "tests": [],
       "replacementOwner": null,
-      "note": "OMP runtime identity (version) read by imported omp-ai modules for User-Agent headers; copied to dist/package.json by scripts/build_package.js"
+      "note": "OMP runtime identity (version) read by imported vendor-ai modules for User-Agent headers; copied to dist/package.json by scripts/build_package.js"
     },
     {
       "path": "packages/core/src/auth/plumbProviderAuthService.ts",
@@ -352,7 +352,7 @@
       "active": false,
       "responsibilities": [],
       "tests": ["packages/core/src/auth/plumbProviderAuthService.test.ts"],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/",
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/oauth/",
       "note": "Still imported by packages/core/src/config/plumbInit.ts, packages/core/src/index.ts, and packages/cli/src/runtimeDiagnostics.ts as PLUMB's OAuth/device-code/API-key login UX entry point, which calls into the OMP oauth-registry (replacementOwner) rather than reimplementing provider OAuth itself. `active:false` reflects the manifest's convention that a THIN_PLUMB_UI_FACADE never counts as a subsystem-owning authority (enforced by ownership.test.ts's zero-legacy-active invariant), not that the file is unused — do not delete without confirming plumbInit.ts/index.ts/runtimeDiagnostics.ts no longer import it."
     },
     {
@@ -370,7 +370,7 @@
       "active": true,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/pkce.ts",
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/oauth/pkce.ts",
       "note": "in use until the imported OMP OAuth runtime activates"
     },
     {
@@ -379,7 +379,7 @@
       "active": true,
       "responsibilities": [],
       "tests": [],
-      "replacementOwner": "packages/provider/src/omp-ai/registry/oauth/callback-server.ts",
+      "replacementOwner": "packages/provider/src/vendor-ai/registry/oauth/callback-server.ts",
       "note": "in use until the imported OMP OAuth runtime activates"
     },
     {
@@ -470,139 +470,139 @@
     }
   ],
   "generatedLocalShims": [
-    "packages/provider/src/omp-ai/error.ts",
-    "packages/provider/src/omp-ai/registry.ts",
-    "packages/provider/src/omp-ai/registry/oauth.ts",
-    "packages/provider/src/omp-ai/utils/schema.ts",
-    "packages/provider/src/omp-catalog/identity.ts",
-    "packages/provider/src/omp-catalog/provider-models.ts",
-    "packages/provider/src/omp-ai/providers/anthropic-copilot-auth.test.ts",
-    "packages/provider/src/omp-ai/registry/oauth/callback-server.test.ts",
-    "packages/provider/src/omp-ai/registry/oauth/response-parser.ts",
-    "packages/provider/src/omp-ai/registry/oauth/response-parser.test.ts",
-    "packages/provider/src/omp-catalog/discovery/vertex.ts",
-    "packages/provider/src/omp-catalog/discovery/vertex.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.sambanova-nebius.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.cohere-ark.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.portkey.test.ts",
-    "packages/provider/src/omp-ai/registry/sglang.ts",
-    "packages/provider/src/omp-ai/registry/kilo.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.openrouter.test.ts",
-    "packages/provider/src/omp-catalog/provider-models/openai-compat.opencode.test.ts"
+    "packages/provider/src/vendor-ai/error.ts",
+    "packages/provider/src/vendor-ai/registry.ts",
+    "packages/provider/src/vendor-ai/registry/oauth.ts",
+    "packages/provider/src/vendor-ai/utils/schema.ts",
+    "packages/provider/src/vendor-catalog/identity.ts",
+    "packages/provider/src/vendor-catalog/provider-models.ts",
+    "packages/provider/src/vendor-ai/providers/anthropic-copilot-auth.test.ts",
+    "packages/provider/src/vendor-ai/registry/oauth/callback-server.test.ts",
+    "packages/provider/src/vendor-ai/registry/oauth/response-parser.ts",
+    "packages/provider/src/vendor-ai/registry/oauth/response-parser.test.ts",
+    "packages/provider/src/vendor-catalog/discovery/vertex.ts",
+    "packages/provider/src/vendor-catalog/discovery/vertex.test.ts",
+    "packages/provider/src/vendor-catalog/provider-models/openai-compat.sambanova-nebius.test.ts",
+    "packages/provider/src/vendor-catalog/provider-models/openai-compat.cohere-ark.test.ts",
+    "packages/provider/src/vendor-catalog/provider-models/openai-compat.portkey.test.ts",
+    "packages/provider/src/vendor-ai/registry/sglang.ts",
+    "packages/provider/src/vendor-ai/registry/kilo.test.ts",
+    "packages/provider/src/vendor-catalog/provider-models/openai-compat.openrouter.test.ts",
+    "packages/provider/src/vendor-catalog/provider-models/openai-compat.opencode.test.ts"
   ],
   "adaptationDiffs": [
     {
-      "path": "packages/provider/src/omp-ai/registry/registry.ts",
+      "path": "packages/provider/src/vendor-ai/registry/registry.ts",
       "upstream": "packages/ai/src/registry/registry.ts",
-      "reason": "PLUMB feature: added sglangProvider (packages/provider/src/omp-ai/registry/sglang.ts, no upstream counterpart -- see generatedLocalShims) to PROVIDER_REGISTRY/ALL, registering SGLang as a real local OpenAI-compatible provider alongside the existing llama.cpp/vLLM entries. No change to registry lookup/activation logic"
+      "reason": "PLUMB feature: added sglangProvider (packages/provider/src/vendor-ai/registry/sglang.ts, no upstream counterpart -- see generatedLocalShims) to PROVIDER_REGISTRY/ALL, registering SGLang as a real local OpenAI-compatible provider alongside the existing llama.cpp/vLLM entries. No change to registry lookup/activation logic"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/azure-openai-responses.ts",
+      "path": "packages/provider/src/vendor-ai/providers/azure-openai-responses.ts",
       "upstream": "packages/ai/src/providers/azure-openai-responses.ts",
       "reason": "PLUMB feature: baseUrl/resourceName/deploymentMap now resolve through resolveProviderConfigValue (PLUMB-saved config > environment variable), matching the PLUMB-config-over-env precedence already established for every other cloud provider, instead of reading AZURE_OPENAI_BASE_URL/AZURE_OPENAI_RESOURCE_NAME/AZURE_OPENAI_DEPLOYMENT_NAME_MAP directly from process.env. The deployment map is parsed by the unchanged parseAzureDeploymentNameMap using the identical 'model=deployment,...' string shape regardless of source, so an environment-only setup behaves exactly as before. No change to apiKey resolution (already credential-store-backed via options.apiKey/getEnvApiKey) or request-building/streaming logic"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/google-gemini-cli.ts",
+      "path": "packages/provider/src/vendor-ai/providers/google-gemini-cli.ts",
       "upstream": "packages/ai/src/providers/google-gemini-cli.ts",
       "reason": "PLUMB fix: exported the previously-private DEFAULT_ENDPOINT constant so packages/provider/src/transports/streaming.ts (the transport PlumbContentGenerator actually calls) can send real google-antigravity/google-gemini-cli requests to the real pinned Cloud Code Assist endpoint/path/Bearer-auth instead of the public Gemini API `?key=` shape it was previously using, which leaked the OAuth access token into the URL query string and 404'd. No change to this file's own request-building/streaming logic"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/oauth.html",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/oauth.html",
       "upstream": "packages/ai/src/registry/oauth/oauth.html",
       "reason": "PLUMB rebrand: OAuth callback success/error page showed upstream 'oh my pi' branding (title, wordmark, logo) to real PLUMB users completing device/browser OAuth logins (e.g. Antigravity). Replaced with PLUMB title/wordmark/messaging; presentation-only, no change to the __OAUTH_STATE__ contract or page routing"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/callback-server.ts",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/callback-server.ts",
       "upstream": "packages/ai/src/registry/oauth/callback-server.ts",
       "reason": "PLUMB fix: the HTML response now serializes a sanitized renderState (ok/error only) instead of the raw resultState, which embedded the OAuth authorization code and state nonce directly into the rendered callback page. No change to the actual code/state values used for token exchange (#callbackResolve/#callbackReject), callback routing, or server lifecycle"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/anthropic.ts",
+      "path": "packages/provider/src/vendor-ai/providers/anthropic.ts",
       "upstream": "packages/ai/src/providers/anthropic.ts",
       "reason": "PLUMB fix: buildAnthropicClientOptions now throws AIError.MissingApiKeyError for github-copilot when apiKey is empty, instead of silently building an empty `Authorization: Bearer ` header that GitHub rejects as badly formatted"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/openai-shared.ts",
+      "path": "packages/provider/src/vendor-ai/providers/openai-shared.ts",
       "upstream": "packages/ai/src/providers/openai-shared.ts",
       "reason": "PLUMB fix: resolveOpenAIRequestSetup now throws AIError.MissingApiKeyError for github-copilot when rawApiKey is empty, instead of silently building an empty `Authorization: Bearer ` header that GitHub rejects as badly formatted"
     },
     {
-      "path": "packages/provider/src/omp-ai/auth-storage.ts",
+      "path": "packages/provider/src/vendor-ai/auth-storage.ts",
       "upstream": "packages/ai/src/auth-storage.ts",
-      "reason": "bun:sqlite import swapped for the PLUMB node:sqlite compat shim (omp-shims/sqlite-database.ts); Bun.sleep/Bun.hash now served by the Bun global prelude"
+      "reason": "bun:sqlite import swapped for the PLUMB node:sqlite compat shim (vendor-shims/sqlite-database.ts); Bun.sleep/Bun.hash now served by the Bun global prelude"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/perplexity.ts",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/perplexity.ts",
       "upstream": "packages/ai/src/registry/oauth/perplexity.ts",
       "reason": "macOS-only `defaults read` extraction re-implemented with node:child_process spawnSync (replaces `import { $ } from bun`)"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/gitlab-duo-workflow.ts",
+      "path": "packages/provider/src/vendor-ai/providers/gitlab-duo-workflow.ts",
       "upstream": "packages/ai/src/providers/gitlab-duo-workflow.ts",
       "reason": "Bun-only import.meta.dir replaced by the Node-standard import.meta.dirname"
     },
     {
-      "path": "packages/provider/src/omp-ai/index.ts",
+      "path": "packages/provider/src/vendor-ai/index.ts",
       "upstream": "packages/ai/src/index.ts",
       "reason": "dead auth-broker type re-export removed (auth-broker dir deleted; no production consumer)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/discovery/cursor.ts",
+      "path": "packages/provider/src/vendor-catalog/discovery/cursor.ts",
       "upstream": "packages/catalog/src/discovery/cursor.ts",
       "reason": "Buffer.concat replaced by manual Uint8Array concat (no Buffer dependency in the compiled dist runtime)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/discovery/devin.ts",
+      "path": "packages/provider/src/vendor-catalog/discovery/devin.ts",
       "upstream": "packages/catalog/src/discovery/devin.ts",
       "reason": "type-level cast for gunzipSync result (Node typings vs bun:sqlite-era typings); runtime behavior unchanged"
     },
     {
-      "path": "packages/provider/src/omp-catalog/model-cache.ts",
+      "path": "packages/provider/src/vendor-catalog/model-cache.ts",
       "upstream": "packages/catalog/src/model-cache.ts",
       "reason": "whole-file adaptation: SQLite cache (bun:sqlite) replaced by a JSON-file cache backend (node:fs) with the same schema versioning and TTL semantics; documented in plumb-runtime-activation-invalidation.md"
     },
     {
-      "path": "packages/provider/src/omp-catalog/provider-models/google.ts",
+      "path": "packages/provider/src/vendor-catalog/provider-models/google.ts",
       "upstream": "packages/catalog/src/provider-models/google.ts",
       "reason": "type-level cast for the optional preconnect member (Node fetch typings); runtime behavior unchanged. PLUMB feature: googleVertexModelManagerOptions now wires fetchDynamicModels (via new discovery/vertex.ts, publishers.models.list) when an apiKey is configured, instead of always returning a static-only options object — upstream has no Vertex dynamic-discovery path at all"
     },
     {
-      "path": "packages/provider/src/omp-catalog/provider-models/ollama.ts",
+      "path": "packages/provider/src/vendor-catalog/provider-models/ollama.ts",
       "upstream": "packages/catalog/src/provider-models/ollama.ts",
       "reason": "undefined discoveryFetch guard spread + type-level cast for the fetchWithRetry options; runtime behavior unchanged"
     },
     {
-      "path": "packages/provider/src/omp-catalog/types.ts",
+      "path": "packages/provider/src/vendor-catalog/types.ts",
       "upstream": "packages/catalog/src/types.ts",
       "reason": "comment rewording for the FetchImpl re-export (pi-utils shim provenance); no code change"
     },
     {
-      "path": "packages/provider/src/omp-catalog/provider-models/openai-compat.ts",
+      "path": "packages/provider/src/vendor-catalog/provider-models/openai-compat.ts",
       "upstream": "packages/catalog/src/provider-models/openai-compat.ts",
       "reason": "PLUMB feature: added sambaNovaModelManagerOptions, nebiusModelManagerOptions, cohereModelManagerOptions, byteplusModelArkModelManagerOptions, volcengineArkModelManagerOptions, and portkeyModelManagerOptions (SambaNova Cloud, Nebius AI Studio, Cohere's OpenAI Compatibility API, BytePlus ModelArk, Volcengine Ark, Portkey AI Gateway — all real OpenAI-compatible providers absent from upstream/the bundled catalog, each verified against official docs before implementation). All reuse the existing createSimpleOpenAICompletionsOptions helper unmodified; the provider id is cast at the call site since getBundledModels(unknownId) safely returns [] and the model list is entirely dynamic-discovery-driven for these six (dynamicModelsAuthoritative: true in descriptors.ts)"
     },
     {
-      "path": "packages/provider/src/omp-catalog/provider-models/descriptors.ts",
+      "path": "packages/provider/src/vendor-catalog/provider-models/descriptors.ts",
       "upstream": "packages/catalog/src/provider-models/descriptors.ts",
       "reason": "PLUMB feature: added CATALOG_PROVIDERS entries for sambanova, nebius, cohere, byteplus-modelark, volcengine-ark, and portkey (see openai-compat.ts adaptationDiffs entry above)"
     },
     {
-      "path": "packages/provider/src/omp-ai/providers/google-shared.ts",
+      "path": "packages/provider/src/vendor-ai/providers/google-shared.ts",
       "upstream": "packages/ai/src/providers/google-shared.ts",
       "reason": "PLUMB fix: consecutive same-role (user/model) content parts are now merged into the last Content entry instead of pushed as a new adjacent-same-role entry, matching CONVERSATION ROLE NORMALIZATION requirements for Google's generateContent wire format (Antigravity/Vertex/Gemini reject or mishandle back-to-back same-role Content turns produced when a multi-part user or tool-result turn spans multiple source messages). No change to per-part transformation logic"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/github-copilot.ts",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/github-copilot.ts",
       "upstream": "packages/ai/src/registry/oauth/github-copilot.ts",
       "reason": "PLUMB fix: fetchJson now parses the auth-exchange response body through the shared parseAuthJsonResponse hardening wrapper (./response-parser.ts) instead of raw response.json(), rejecting malformed/oversized bodies safely instead of throwing an unstructured parse error. No change to the device-flow/token-exchange control logic"
     },
     {
-      "path": "packages/provider/src/omp-ai/registry/oauth/kimi.ts",
+      "path": "packages/provider/src/vendor-ai/registry/oauth/kimi.ts",
       "upstream": "packages/ai/src/registry/oauth/kimi.ts",
       "reason": "PLUMB fix: device-authorization, token-poll, and token-refresh responses now parse through the shared parseAuthJsonResponse hardening wrapper (./response-parser.ts) instead of raw response.json(), rejecting malformed/oversized bodies safely. No change to the device-flow/refresh control logic"
     },
     {
-      "path": "packages/provider/src/omp-catalog/discovery/openai-compatible.ts",
+      "path": "packages/provider/src/vendor-catalog/discovery/openai-compatible.ts",
       "upstream": "packages/catalog/src/discovery/openai-compatible.ts",
       "reason": "PLUMB feature: two additive options on fetchOpenAICompatibleModels's config -- (1) apiKeyHeader lets a caller route the discovery credential through a non-Authorization header (used by openai-compat.ts's Portkey descriptor, which must send x-portkey-api-key rather than Bearer); Authorization keeps its existing 'Bearer ' prefix behavior, any other header receives the raw key unprefixed. (2) onFailure is a safe diagnostic hook (kind: 'transport'|'http'|'protocol', plus HTTP status where applicable) that never receives a URL, header, body, or credential -- consumed by registry/model-discovery.ts's OpenAICompatLocalDiscovery to classify local-server SERVER_UNAVAILABLE vs DISCOVERY_AUTH_FAILED vs DISCOVERY_HTTP_ERROR vs DISCOVERY_PROTOCOL_ERROR instead of collapsing every failure into an empty model list. No change to the success path's request shape or the returned model list."
     }

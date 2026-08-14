@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,11 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import {
-  FatalConfigError,
-  ideContextStore,
-  normalizePath,
-} from '@google/gemini-cli-core';
+import { FatalConfigError, ideContextStore, normalizePath } from '@plumb/core';
 import {
   loadTrustedFolders,
   TrustLevel,
@@ -25,9 +20,8 @@ import { createMockSettings } from '../test-utils/settings.js';
 // We explicitly do NOT mock 'fs' or 'proper-lockfile' here to ensure
 // we are testing the actual behavior on the real file system.
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     homedir: () => '/mock/home/user',
@@ -49,7 +43,7 @@ describe('Trusted Folders', () => {
 
   beforeEach(() => {
     // Create a temporary directory for each test
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-cli-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-test-'));
     trustedFoldersPath = path.join(tempDir, 'trustedFolders.json');
 
     // Set the environment variable to point to the temp file
@@ -58,7 +52,7 @@ describe('Trusted Folders', () => {
     // Reset the internal state
     resetTrustedFoldersForTesting();
     vi.clearAllMocks();
-    delete process.env['GEMINI_CLI_TRUST_WORKSPACE'];
+    delete process.env['PLUMB_TRUST_WORKSPACE'];
   });
 
   afterEach(() => {
@@ -424,7 +418,7 @@ describe('Trusted Folders', () => {
     };
 
     it('should NOT return true when isHeadlessMode is true, ignoring config', async () => {
-      const geminiCore = await import('@google/gemini-cli-core');
+      const geminiCore = await import('@plumb/core');
       vi.spyOn(geminiCore, 'isHeadlessMode').mockReturnValue(true);
 
       expect(isWorkspaceTrusted(mockSettings)).toEqual({
@@ -433,20 +427,20 @@ describe('Trusted Folders', () => {
       });
     });
 
-    it('should return true when GEMINI_CLI_TRUST_WORKSPACE is true', async () => {
-      process.env['GEMINI_CLI_TRUST_WORKSPACE'] = 'true';
+    it('should return true when PLUMB_TRUST_WORKSPACE is true', async () => {
+      process.env['PLUMB_TRUST_WORKSPACE'] = 'true';
       try {
         expect(isWorkspaceTrusted(mockSettings)).toEqual({
           isTrusted: true,
           source: 'env',
         });
       } finally {
-        delete process.env['GEMINI_CLI_TRUST_WORKSPACE'];
+        delete process.env['PLUMB_TRUST_WORKSPACE'];
       }
     });
 
     it('should fall back to config when isHeadlessMode is false', async () => {
-      const geminiCore = await import('@google/gemini-cli-core');
+      const geminiCore = await import('@plumb/core');
       vi.spyOn(geminiCore, 'isHeadlessMode').mockReturnValue(false);
 
       const config = { '/projectA': TrustLevel.DO_NOT_TRUST };
@@ -458,7 +452,7 @@ describe('Trusted Folders', () => {
     });
 
     it('should return undefined for isPathTrusted when isHeadlessMode is true', async () => {
-      const geminiCore = await import('@google/gemini-cli-core');
+      const geminiCore = await import('@plumb/core');
       vi.spyOn(geminiCore, 'isHeadlessMode').mockReturnValue(true);
 
       const folders = loadTrustedFolders();

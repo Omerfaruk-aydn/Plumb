@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical Azure OpenAI configuration save/load orchestration. Mirrors
- * ociCloudConfigActions.ts's atomicity guarantees (validate -> credential
- * store -> safe config, atomic on failure) but works with Azure's
- * deployment-list shape (see azureConfigSchema.ts) instead of a flat field
- * set.
  */
+
 import {
   validateAzureConfig,
   buildAzureSaveOperation,
@@ -17,7 +11,7 @@ import {
   type AzureConfigFormValues,
   type AzureConfigValidationErrors,
   type AzureDeployment,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 const AZURE_PROVIDER_ID = 'azure';
 
@@ -40,9 +34,7 @@ export async function saveAzureConfiguration(
 
   if (credential) {
     try {
-      const { ensurePlumbCredentialStore } = await import(
-        '@google/gemini-cli-provider'
-      );
+      const { ensurePlumbCredentialStore } = await import('@plumb/provider');
       const store = await ensurePlumbCredentialStore();
       await store.storeApiKeyCredential(AZURE_PROVIDER_ID, {
         type: 'api_key',
@@ -58,7 +50,7 @@ export async function saveAzureConfiguration(
   }
 
   try {
-    const { saveProviderCloudConfig } = await import('@google/gemini-cli-core');
+    const { saveProviderCloudConfig } = await import('@plumb/core');
     await saveProviderCloudConfig(AZURE_PROVIDER_ID, safeConfig);
   } catch (err) {
     return {
@@ -78,10 +70,7 @@ export interface AzureExistingConfig {
 
 export async function loadAzureExistingConfig(): Promise<AzureExistingConfig> {
   const [{ getCachedProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-    await Promise.all([
-      import('@google/gemini-cli-core'),
-      import('@google/gemini-cli-provider'),
-    ]);
+    await Promise.all([import('@plumb/core'), import('@plumb/provider')]);
   const safeConfig = getCachedProviderCloudConfig(AZURE_PROVIDER_ID);
   const endpoint = decodeAzureEndpoint(safeConfig as Record<string, string>);
   const deployments = decodeAzureDeploymentMap(safeConfig['deploymentMap']);
@@ -97,10 +86,7 @@ export async function loadAzureExistingConfig(): Promise<AzureExistingConfig> {
 
 export async function removeAzureConfiguration(): Promise<void> {
   const [{ clearProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-    await Promise.all([
-      import('@google/gemini-cli-core'),
-      import('@google/gemini-cli-provider'),
-    ]);
+    await Promise.all([import('@plumb/core'), import('@plumb/provider')]);
   await clearProviderCloudConfig(AZURE_PROVIDER_ID);
   try {
     const store = await ensurePlumbCredentialStore();
@@ -111,8 +97,6 @@ export async function removeAzureConfiguration(): Promise<void> {
 }
 
 export async function refreshAzureModelStatus(): Promise<void> {
-  const { removeOmpModelCacheEntry } = await import(
-    '@google/gemini-cli-provider'
-  );
+  const { removeOmpModelCacheEntry } = await import('@plumb/provider');
   removeOmpModelCacheEntry(AZURE_PROVIDER_ID);
 }

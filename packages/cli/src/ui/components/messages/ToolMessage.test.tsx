@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,13 +13,13 @@ import {
   CoreToolCallStatus,
   Kind,
   makeFakeConfig,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { createMockSettings } from '../../../test-utils/settings.js';
 import { tryParseJSON } from '../../../utils/jsonoutput.js';
 
-vi.mock('../GeminiRespondingSpinner.js', () => ({
-  GeminiRespondingSpinner: () => <Text>MockRespondingSpinner</Text>,
+vi.mock('../PlumbRespondingSpinner.js', () => ({
+  PlumbRespondingSpinner: () => <Text>MockRespondingSpinner</Text>,
 }));
 
 vi.mock('../TerminalOutput.js', () => ({

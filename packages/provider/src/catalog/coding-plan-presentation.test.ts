@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Coding-plan catalog presentation contract.
- *
- * The four broken coding-plan auth flows must be truthfully presented:
- * - github-copilot and kimi-code authenticate via the device-code flow, not a
- *   paste-code browser OAuth exchange;
- * - opencode-go / opencode-zen are API-key paste flows, not OAuth;
- * - antigravity's OAuth callback runs on the OMP-registered port 51121.
  */
 
 import { describe, it, expect } from 'vitest';

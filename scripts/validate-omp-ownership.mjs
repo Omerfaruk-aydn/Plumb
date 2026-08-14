@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB subsystem ownership validator (CLI).
- *
- * Runs the governance rules from packages/provider/src/governance/ownership.ts
- * against docs/architecture/plumb-ownership-manifest.json.
- *
- * Usage:
- *   node scripts/validate-omp-ownership.mjs            # uniqueness + well-formedness
- *   node scripts/validate-omp-ownership.mjs --target   # + required-result table gate
  */
 
 import { fileURLToPath } from "node:url";

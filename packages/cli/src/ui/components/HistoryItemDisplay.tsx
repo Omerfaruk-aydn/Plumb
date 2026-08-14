@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,12 +9,12 @@ import { escapeAnsiCtrlCodes } from '../utils/textUtils.js';
 import type { HistoryItem } from '../types.js';
 import { UserMessage } from './messages/UserMessage.js';
 import { UserShellMessage } from './messages/UserShellMessage.js';
-import { GeminiMessage } from './messages/GeminiMessage.js';
+import { PlumbMessage } from './messages/PlumbMessage.js';
 import { InfoMessage } from './messages/InfoMessage.js';
 import { ErrorMessage } from './messages/ErrorMessage.js';
 import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
 import { ToolGroupDisplay } from './messages/ToolGroupDisplay.js';
-import { GeminiMessageContent } from './messages/GeminiMessageContent.js';
+import { PlumbMessageContent } from './messages/PlumbMessageContent.js';
 import { CompressionMessage } from './messages/CompressionMessage.js';
 import { ExportSessionMessage } from './messages/ExportSessionMessage.js';
 import { WarningMessage } from './messages/WarningMessage.js';
@@ -30,7 +29,7 @@ import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Help } from './Help.js';
 import type { SlashCommand } from '../commands/types.js';
 import { ExtensionsList } from './views/ExtensionsList.js';
-import { getMCPServerStatus } from '@google/gemini-cli-core';
+import { getMCPServerStatus } from '@plumb/core';
 import { ToolsList } from './views/ToolsList.js';
 import { SkillsList } from './views/SkillsList.js';
 import { AgentsStatus } from './views/AgentsStatus.js';
@@ -114,7 +113,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         <UserShellMessage text={itemForDisplay.text} width={terminalWidth} />
       )}
       {itemForDisplay.type === 'gemini' && (
-        <GeminiMessage
+        <PlumbMessage
           text={itemForDisplay.text}
           isPending={isPending}
           availableTerminalHeight={
@@ -124,7 +123,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         />
       )}
       {itemForDisplay.type === 'gemini_content' && (
-        <GeminiMessageContent
+        <PlumbMessageContent
           text={itemForDisplay.text}
           isPending={isPending}
           availableTerminalHeight={

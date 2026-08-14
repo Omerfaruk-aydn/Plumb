@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Storage, type Config } from '@google/gemini-cli-core';
+import { Storage, type Config } from '@plumb/core';
 import { commandsCommand } from './commandsCommand.js';
 import { MessageType } from '../types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
@@ -14,10 +13,9 @@ import { FileCommandLoader } from '../../services/FileCommandLoader.js';
 
 vi.mock('../../services/FileCommandLoader.js');
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual<
-    typeof import('@google/gemini-cli-core')
-  >('@google/gemini-cli-core');
+vi.mock('@plumb/core', async () => {
+  const actual =
+    await vi.importActual<typeof import('@plumb/core')>('@plumb/core');
   return {
     ...actual,
     Storage: class extends actual.Storage {

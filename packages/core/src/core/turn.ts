@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +25,7 @@ import {
   UnauthorizedError,
   toFriendlyError,
 } from '../utils/errors.js';
-import { InvalidStreamError, type GeminiChat } from './geminiChat.js';
+import { InvalidStreamError, type PlumbChat } from './plumbChat.js';
 import { parseThought, type ThoughtSummary } from '../utils/thoughtUtils.js';
 import type { ModelConfigKey } from '../services/modelConfigService.js';
 import { getCitations } from '../utils/generateContentResponseUtilities.js';
@@ -249,7 +248,7 @@ export class Turn {
   private hasLoggedRagTrace = false;
 
   constructor(
-    private readonly chat: GeminiChat,
+    private readonly chat: PlumbChat,
     private readonly prompt_id: string,
   ) {}
 

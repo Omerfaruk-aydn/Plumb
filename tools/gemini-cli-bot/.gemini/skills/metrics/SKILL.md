@@ -39,14 +39,14 @@ When analyzing data and proposing solutions, prioritize the following in order:
 
 ## LLM-Powered Classification
 
-You are explicitly authorized to use the Gemini CLI (`bundle/gemini.js`) within
+You are explicitly authorized to use the PLUMB (`bundle/gemini.js`) within
 your proposed scripts to perform classification tasks (e.g., sentiment analysis,
 advanced triage, or semantic labeling).
 
 - **Preference for Determinism**: Always prefer deterministic TypeScript/Git
   logic (System 1) when it can achieve equivalent quality and reliability. Use
   the LLM only when heuristic or semantic understanding is required.
-- **Strict Role Separation**: Use Gemini CLI ONLY for **classification** (data
+- **Strict Role Separation**: Use PLUMB ONLY for **classification** (data
   labeling). Do not use it for execution or decision-making.
 - **Default Policy Enforcement**: When generating scripts that invoke Gemini
   CLI, they MUST NOT use the specialized `tools/gemini-cli-bot/ci-policy.toml`.

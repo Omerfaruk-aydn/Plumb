@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,7 +17,7 @@ import { useUIState, type UIState } from '../contexts/UIStateContext.js';
 import { useIsScreenReaderEnabled } from 'ink';
 import * as fs from 'node:fs/promises';
 import { act } from 'react';
-import { WarningPriority } from '@google/gemini-cli-core';
+import { WarningPriority } from '@plumb/core';
 
 // Mock dependencies
 vi.mock('../contexts/AppContext.js');
@@ -60,20 +59,19 @@ vi.mock('node:path', async () => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   const MockStorage = vi.fn().mockImplementation(() => ({
     getExtensionsDir: () => '/mock/home/.gemini/extensions',
   }));
   Object.assign(MockStorage, {
     getGlobalTempDir: () => '/mock/temp',
     getGlobalSettingsPath: () => '/mock/home/.gemini/settings.json',
-    getGlobalGeminiDir: () => '/mock/home/.gemini',
+    getGlobalPlumbDir: () => '/mock/home/.gemini',
   });
   return {
     ...actual,
-    GEMINI_DIR: '.gemini',
+    PLUMB_DIR: '.gemini',
     homedir: () => '/mock/home',
     WarningPriority: {
       Low: 'low',

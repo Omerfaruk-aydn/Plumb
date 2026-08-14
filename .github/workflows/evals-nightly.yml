@@ -31,7 +31,7 @@ jobs:
   evals:
     name: 'Evals (USUALLY_PASSING) nightly run'
     runs-on: 'gemini-cli-ubuntu-16-core'
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "true"
     strategy:
       fail-fast: false
       matrix:
@@ -68,7 +68,7 @@ jobs:
         continue-on-error: true
         env:
           GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
-          GEMINI_CLI_TRUST_WORKSPACE: true
+          PLUMB_TRUST_WORKSPACE: true
           GEMINI_MODEL: '${{ matrix.model }}'
           RUN_EVALS: 'true'
           EVAL_SUITE_TYPE: "${{ github.event.inputs.suite_type || 'behavioral' }}"
@@ -102,7 +102,7 @@ jobs:
   aggregate-results:
     name: 'Aggregate Results'
     needs: ['evals']
-    if: "github.repository == 'google-gemini/gemini-cli' && always()"
+    if: "always()"
     runs-on: 'gemini-cli-ubuntu-16-core'
     steps:
       - name: 'Checkout'

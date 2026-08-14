@@ -1,23 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real interaction tests for the OCI Ink configuration screen. Mocks only
- * the persistence boundary (ociCloudConfigActions.js, itself already
- * tested against the real domain schema/credential store elsewhere) --
- * every rendering/navigation/validation-display behavior here is real.
- *
- * Select-kind controls (Authentication, IAM Subtype) render an
- * always-mounted RadioButtonSelect while focused (never a separate
- * "open the select" step), so a single Enter on the default-highlighted
- * option selects it immediately; Down then Enter selects the next option.
- *
- * Editing a text field requires an explicit Enter to enter edit mode
- * (mode returns to 'browse', not auto-edit, after each field is committed)
- * -- every multi-field sequence below presses Enter before typing each
- * field's value.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import type React from 'react';

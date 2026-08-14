@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -83,8 +82,7 @@ describe('streamWatsonx', () => {
       },
     ]);
     expect(mockTextChatStream).not.toHaveBeenCalled();
-  }, // isolation (<50ms); observed to exceed the default 5000ms only under // a cold re-import of the @ibm-cloud/watsonx-ai SDK graph. Fast in // First test in the file to call importFresh() -> vi.resetModules() +
-  // the full provider suite's parallel worker-thread contention, not a
+  }, // the full provider suite's parallel worker-thread contention, not a // isolation (<50ms); observed to exceed the default 5000ms only under // a cold re-import of the @ibm-cloud/watsonx-ai SDK graph. Fast in // First test in the file to call importFresh() -> vi.resetModules() +
   // hang -- isolated runs are fast and correct.
   20_000);
 

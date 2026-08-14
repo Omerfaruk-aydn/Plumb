@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Generic coding plan integration for API-key-based coding plans.
- * All plans using createApiKeyLogin() pattern from OMP upstream.
- *
- * Upstream source: D:\PLUMB-upstreams\oh-my-pi
- *  - packages/ai/src/registry/api-key-login.ts
- *  - packages/ai/src/registry/api-key-validation.ts
- *  - Individual plan files in packages/ai/src/registry/
  */
 
 import type { PlumbProvider, PlumbAuthMethod } from '../types.js';

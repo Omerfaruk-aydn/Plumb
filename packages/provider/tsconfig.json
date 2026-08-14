@@ -23,10 +23,13 @@
     "rootDir": "src",
     "types": ["node"],
     "paths": {
-      "@oh-my-pi/pi-utils": ["./src/omp-shims/pi-utils.ts"],
-      "@oh-my-pi/pi-utils/*": ["./src/omp-shims/pi-utils-*.ts"]
+      "@oh-my-pi/pi-utils": ["./src/vendor-shims/pi-utils.ts"],
+      "@oh-my-pi/pi-utils/*": ["./src/vendor-shims/pi-utils-*.ts"]
     }
   },
   "include": ["src/index.ts", "src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/omp-catalog/discovery/devin-gen/**", "src/omp-catalog/discovery/cursor-gen/**"]
+  "exclude": [
+    "src/vendor-catalog/discovery/devin-gen/**",
+    "src/vendor-catalog/discovery/cursor-gen/**"
+  ]
 }

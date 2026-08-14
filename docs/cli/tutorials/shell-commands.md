@@ -6,7 +6,7 @@ automate complex workflows, and manage background processes safely.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- PLUMB installed and authenticated.
 - Basic familiarity with your system's shell (Bash, Zsh, PowerShell, and so on).
 
 ## How to run commands directly (`!`)
@@ -17,10 +17,10 @@ prefix.
 
 **Example:** `!ls -la`
 
-This executes `ls -la` immediately and prints the output to your terminal.
-Gemini CLI also records the command and its output in the current session
-context, so the model can reference it in follow-up prompts. Very large outputs
-may be truncated.
+This executes `ls -la` immediately and prints the output to your terminal. PLUMB
+also records the command and its output in the current session context, so the
+model can reference it in follow-up prompts. Very large outputs may be
+truncated.
 
 ### Scenario: Entering Shell mode
 
@@ -30,7 +30,7 @@ pressing **Enter**. Now, everything you type is sent to the shell until you exit
 
 ## How to automate complex tasks
 
-You can automate tasks using a combination of Gemini CLI and shell commands.
+You can automate tasks using a combination of PLUMB and shell commands.
 
 ### Scenario: Run tests and fix failures
 
@@ -70,15 +70,15 @@ This opens a dashboard where you can view logs or kill runaway processes.
 
 ## How to handle interactive commands
 
-Gemini CLI attempts to handle interactive commands (like `git add -p` or
-confirmation prompts) by streaming the output to you. However, for highly
-interactive tools (like `vim` or `top`), it's often better to run them yourself
-in a separate terminal window or use the `!` prefix.
+PLUMB attempts to handle interactive commands (like `git add -p` or confirmation
+prompts) by streaming the output to you. However, for highly interactive tools
+(like `vim` or `top`), it's often better to run them yourself in a separate
+terminal window or use the `!` prefix.
 
 ## Safety features
 
-Giving an AI access to your shell is powerful but risky. Gemini CLI includes
-several safety layers.
+Giving an AI access to your shell is powerful but risky. PLUMB includes several
+safety layers.
 
 ### Confirmation prompts
 

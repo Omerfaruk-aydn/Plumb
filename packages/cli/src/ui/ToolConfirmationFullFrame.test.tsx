@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, renderWithProviders } from '../test-utils/render.js';
 import { createMockSettings } from '../test-utils/settings.js';
@@ -12,7 +12,7 @@ import {
   ApprovalMode,
   makeFakeConfig,
   type SerializableConfirmationDetails,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { type UIState } from './contexts/UIStateContext.js';
 import { act } from 'react';
 import { StreamingState } from './types.js';
@@ -25,8 +25,8 @@ vi.mock('ink', async (importOriginal) => {
   };
 });
 
-vi.mock('./components/GeminiSpinner.js', () => ({
-  GeminiSpinner: () => null,
+vi.mock('./components/PlumbSpinner.js', () => ({
+  PlumbSpinner: () => null,
 }));
 
 vi.mock('./components/CliSpinner.js', () => ({

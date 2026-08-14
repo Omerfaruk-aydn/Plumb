@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,10 +23,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     alias: {
-      '@google/gemini-cli-core': path.resolve(
-        __dirname,
-        '../packages/core/index.ts',
-      ),
+      '@plumb/core': path.resolve(__dirname, '../packages/core/index.ts'),
     },
     setupFiles: [path.resolve(__dirname, '../packages/cli/test-setup.ts')],
     server: {

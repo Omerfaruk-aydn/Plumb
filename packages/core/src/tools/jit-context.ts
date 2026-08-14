@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import type { Config } from '../config/config.js';
  * Discovers and returns JIT (Just-In-Time) subdirectory context for a given
  * file or directory path. This is used by "high-intent" tools (read_file,
  * list_directory, write_file, replace, read_many_files) to dynamically load
- * GEMINI.md context files from subdirectories when the agent accesses them.
+ * PLUMB.md context files from subdirectories when the agent accesses them.
  *
  * @param config - The runtime configuration.
  * @param accessedPath - The absolute path being accessed by the tool.

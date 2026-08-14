@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -80,12 +79,12 @@ export function getPortFromEnv(): string | undefined {
 }
 
 export function getStdioConfigFromEnv(): StdioConfig | undefined {
-  const command = process.env['GEMINI_CLI_IDE_SERVER_STDIO_COMMAND'];
+  const command = process.env['PLUMB_IDE_SERVER_STDIO_COMMAND'];
   if (!command) {
     return undefined;
   }
 
-  const argsStr = process.env['GEMINI_CLI_IDE_SERVER_STDIO_ARGS'];
+  const argsStr = process.env['PLUMB_IDE_SERVER_STDIO_ARGS'];
   let args: string[] = [];
   if (argsStr) {
     try {
@@ -96,11 +95,11 @@ export function getStdioConfigFromEnv(): StdioConfig | undefined {
         args = parsedArgs;
       } else {
         logger.error(
-          'GEMINI_CLI_IDE_SERVER_STDIO_ARGS must be a JSON array string.',
+          'PLUMB_IDE_SERVER_STDIO_ARGS must be a JSON array string.',
         );
       }
     } catch (e) {
-      logger.error('Failed to parse GEMINI_CLI_IDE_SERVER_STDIO_ARGS:', e);
+      logger.error('Failed to parse PLUMB_IDE_SERVER_STDIO_ARGS:', e);
     }
   }
 

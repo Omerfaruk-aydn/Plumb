@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -36,7 +35,7 @@ import type {
   SpanMetadata,
   CompletedToolCall,
   ToolCallRequestInfo,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import {
   CoreToolCallStatus,
   ApprovalMode,
@@ -54,7 +53,7 @@ import {
   GeminiCliOperation,
   getPlanModeExitMessage,
   UPDATE_TOPIC_TOOL_NAME,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { Part, PartListUnion } from '@google/genai';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import type {
@@ -151,7 +150,7 @@ const mockRunInDevTraceSpan = vi.hoisted(() =>
   }),
 );
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@plumb/core', async (importOriginal) => {
   const actualCoreModule = (await importOriginal()) as any;
   return {
     ...actualCoreModule,
@@ -395,7 +394,7 @@ describe('useGeminiStream', () => {
     // The GeminiClient constructor itself is mocked at the module level.
     mockStartChat.mockClear().mockResolvedValue({
       sendMessageStream: mockSendMessageStream,
-    } as unknown as any); // GeminiChat -> any
+    } as unknown as any); // PlumbChat -> any
     mockSendMessageStream
       .mockClear()
       .mockReturnValue((async function* () {})());
@@ -2130,7 +2129,7 @@ describe('useGeminiStream', () => {
       });
     });
 
-    it('should record client-initiated tool calls in GeminiChat history', async () => {
+    it('should record client-initiated tool calls in PlumbChat history', async () => {
       const { result, client: mockGeminiClient } = await renderTestHook();
 
       mockHandleSlashCommand.mockResolvedValue({
@@ -2176,7 +2175,7 @@ describe('useGeminiStream', () => {
         }
       });
 
-      // Verify that the tool call and response were added to GeminiChat history
+      // Verify that the tool call and response were added to PlumbChat history
       expect(mockGeminiClient.addHistory).toHaveBeenCalledWith({
         role: 'model',
         parts: [

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,11 +10,8 @@ import type {
   OpenCustomDialogActionReturn,
 } from './types.js';
 import { CommandKind } from './types.js';
-import type {
-  HookRegistryEntry,
-  MessageActionReturn,
-} from '@google/gemini-cli-core';
-import { getErrorMessage } from '@google/gemini-cli-core';
+import type { HookRegistryEntry, MessageActionReturn } from '@plumb/core';
+import { getErrorMessage } from '@plumb/core';
 import { SettingScope, isLoadableSettingScope } from '../../config/settings.js';
 import { enableHook, disableHook } from '../../utils/hookSettings.js';
 import { renderHookActionFeedback } from '../../utils/hookUtils.js';

@@ -1,6 +1,6 @@
 # CLI commands
 
-Gemini CLI supports several built-in commands to help you manage your session,
+PLUMB supports several built-in commands to help you manage your session,
 customize the interface, and control its behavior. These commands are prefixed
 with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
 
@@ -43,10 +43,10 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/bug`
 
-- **Description:** File an issue about Gemini CLI. By default, the issue is
-  filed within the GitHub repository for Gemini CLI. The string you enter after
-  `/bug` will become the headline for the bug being filed. The default `/bug`
-  behavior can be modified using the `advanced.bugCommand` setting in your
+- **Description:** File an issue about PLUMB. By default, the issue is filed
+  within the GitHub repository for PLUMB. The string you enter after `/bug` will
+  become the headline for the bug being filed. The default `/bug` behavior can
+  be modified using the `advanced.bugCommand` setting in your
   `.gemini/settings.json` files.
 
 ### `/chat`
@@ -75,8 +75,8 @@ Slash commands provide meta-level control over the CLI itself.
   - **`resume <tag>`**
     - **Description:** Resumes a conversation from a previous save.
     - **Note:** You can only resume chats that were saved within the current
-      project. To resume a chat from a different project, you must run the
-      Gemini CLI from that project's directory.
+      project. To resume a chat from a different project, you must run the PLUMB
+      from that project's directory.
     - **Equivalent:** `/resume resume <tag>`
   - **`save <tag>`**
     - **Description:** Saves the current conversation history. You must add a
@@ -131,8 +131,8 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/copy`
 
-- **Description:** Copies the last output produced by Gemini CLI to your
-  clipboard, for easy sharing or reuse.
+- **Description:** Copies the last output produced by PLUMB to your clipboard,
+  for easy sharing or reuse.
 - **Behavior:**
   - Local sessions use system clipboard tools (pbcopy/xclip/clip).
   - Remote sessions (SSH/WSL) use OSC 52 and require terminal support.
@@ -161,7 +161,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/docs`
 
-- **Description:** Open Gemini CLI documentation in your browser.
+- **Description:** Open PLUMB documentation in your browser.
 
 ### `/editor`
 
@@ -170,7 +170,7 @@ Slash commands provide meta-level control over the CLI itself.
 ### `/extensions`
 
 - **Description:** Manage extensions. See
-  [Gemini CLI Extensions](../extensions/index.md).
+  [PLUMB Extensions](../extensions/index.md).
 - **Sub-commands:**
   - **`config`**:
     - **Description:** Configure extension settings.
@@ -195,13 +195,13 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/help` (or `/?`)
 
-- **Description:** Display help information about Gemini CLI, including
-  available commands and their usage.
+- **Description:** Display help information about PLUMB, including available
+  commands and their usage.
 
 ### `/hooks`
 
 - **Description:** Manage hooks, which allow you to intercept and customize
-  Gemini CLI behavior at specific lifecycle events.
+  PLUMB behavior at specific lifecycle events.
 - **Sub-commands:**
   - **`disable-all`**:
     - **Description:** Disable all enabled hooks.
@@ -229,7 +229,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/init`
 
-- **Description:** To help users easily create a `GEMINI.md` file, this command
+- **Description:** To help users easily create a `PLUMB.md` file, this command
   analyzes the current directory and generates a tailored context file, making
   it simpler for them to provide project-specific instructions to the Gemini
   agent.
@@ -263,22 +263,22 @@ Slash commands provide meta-level control over the CLI itself.
 ### `/memory`
 
 - **Description:** Manage the AI's instructional context (hierarchical memory
-  loaded from `GEMINI.md` files).
+  loaded from `PLUMB.md` files).
 - **Sub-commands:**
   - **`list`**:
-    - **Description:** Lists the paths of the GEMINI.md files in use for
+    - **Description:** Lists the paths of the PLUMB.md files in use for
       hierarchical memory.
   - **`refresh`**:
     - **Description:** Reload the hierarchical instructional memory from all
-      `GEMINI.md` files found in the configured locations (global,
+      `PLUMB.md` files found in the configured locations (global,
       project/ancestors, and sub-directories). This command updates the model
-      with the latest `GEMINI.md` content.
+      with the latest `PLUMB.md` content.
   - **`show`**:
     - **Description:** Display the full, concatenated content of the current
-      hierarchical memory that has been loaded from all `GEMINI.md` files. This
+      hierarchical memory that has been loaded from all `PLUMB.md` files. This
       lets you inspect the instructional context being provided to the Gemini
       model.
-  - **Note:** For more details on how `GEMINI.md` files contribute to
+  - **Note:** For more details on how `PLUMB.md` files contribute to
     hierarchical memory, see the
     [CLI Configuration documentation](./configuration.md).
 
@@ -324,7 +324,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/quit` (or `/exit`)
 
-- **Description:** Exit Gemini CLI.
+- **Description:** Exit PLUMB.
 - **Flags:**
   - **`--delete`** _(optional)_: Exit and permanently delete the current
     session's history and temporary files (chat recording, tool outputs). Useful
@@ -392,12 +392,11 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/settings`
 
-- **Description:** Open the settings editor to view and modify Gemini CLI
-  settings.
+- **Description:** Open the settings editor to view and modify PLUMB settings.
 - **Details:** This command provides a user-friendly interface for changing
-  settings that control the behavior and appearance of Gemini CLI. It is
-  equivalent to manually editing the `.gemini/settings.json` file, but with
-  validation and guidance to prevent errors. See the
+  settings that control the behavior and appearance of PLUMB. It is equivalent
+  to manually editing the `.gemini/settings.json` file, but with validation and
+  guidance to prevent errors. See the
   [settings documentation](../cli/settings.md) for a full list of available
   settings.
 - **Usage:** Simply run `/settings` and the editor will open. You can then
@@ -435,8 +434,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/stats`
 
-- **Description:** Display detailed statistics for the current Gemini CLI
-  session.
+- **Description:** Display detailed statistics for the current PLUMB session.
 - **Sub-commands:**
   - **`session`**:
     - **Description:** Show session-specific usage statistics, including
@@ -460,7 +458,7 @@ Slash commands provide meta-level control over the CLI itself.
 ### `/tools`
 
 - **Description:** Display a list of tools that are currently available within
-  Gemini CLI.
+  PLUMB.
 - **Usage:** `/tools [desc]`
 - **Sub-commands:**
   - **`desc`** or **`descriptions`**:
@@ -564,7 +562,7 @@ your prompt to Gemini. These commands include git-aware filtering.
 ## Shell mode and passthrough commands (`!`)
 
 The `!` prefix lets you interact with your system's shell directly from within
-Gemini CLI.
+PLUMB.
 
 - **`!<shell_command>`**
 
@@ -573,8 +571,8 @@ Gemini CLI.
     override `ComSpec`). Any output or errors from the command are displayed in
     the terminal.
   - **Examples:**
-    - `!ls -la` (executes `ls -la` and returns to Gemini CLI)
-    - `!git status` (executes `git status` and returns to Gemini CLI)
+    - `!ls -la` (executes `ls -la` and returns to PLUMB)
+    - `!git status` (executes `git status` and returns to PLUMB)
 
 - **`!` (Toggle shell mode)**
 
@@ -594,4 +592,4 @@ Gemini CLI.
 - **Environment variable:** When a command is executed via `!` or in shell mode,
   the `GEMINI_CLI=1` environment variable is set in the subprocess's
   environment. This allows scripts or tools to detect if they are being run from
-  within Gemini CLI.
+  within PLUMB.

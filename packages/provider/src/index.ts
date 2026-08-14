@@ -1,16 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB Provider Subsystem — barrel export.
- * OMP-derived multi-provider catalog, auth, and model transport for PLUMB.
- *
- * Upstream source: https://github.com/can1357/oh-my-pi.git
- * Upstream SHA: 4df68d60438423b384b2b47fb3d6835641624757
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
- *
- * All public API uses PLUMB naming per the integration contract.
  */
 
 // Types
@@ -197,7 +187,7 @@ export type { ModelDiscoveryState } from './toolRouteContract.js';
 export {
   resolveVertexProjectAuthority,
   type VertexProjectAuthorityInfo,
-} from './transports/googleVertex.js';
+} from './transports/plumbGoogleVertex.js';
 
 // Auto-mode model-routing policy
 export {
@@ -354,28 +344,28 @@ export {
   getBundledModels,
   calculateCost,
   modelsAreEqual,
-} from './omp-catalog/models.js';
-export { buildModel, buildCompat } from './omp-catalog/build.js';
+} from './vendor-catalog/models.js';
+export { buildModel, buildCompat } from './vendor-catalog/build.js';
 export {
   createModelManager,
   type ModelManager,
   type ModelManagerOptions,
   type ModelResolutionResult,
   type ModelRefreshStrategy,
-} from './omp-catalog/model-manager.js';
+} from './vendor-catalog/model-manager.js';
 export {
   readModelCache as readOmpModelCache,
   writeModelCache as writeOmpModelCache,
   removeModelCacheEntry as removeOmpModelCacheEntry,
-} from './omp-catalog/model-cache.js';
+} from './vendor-catalog/model-cache.js';
 export {
   CATALOG_PROVIDERS,
   PROVIDER_DESCRIPTORS,
   DEFAULT_MODEL_PER_PROVIDER,
   getCatalogProviderEntry,
-} from './omp-catalog/provider-models/descriptors.js';
-export { resolveModelThinking } from './omp-catalog/model-thinking.js';
-export { Effort, THINKING_EFFORTS } from './omp-catalog/effort.js';
+} from './vendor-catalog/provider-models/descriptors.js';
+export { resolveModelThinking } from './vendor-catalog/model-thinking.js';
+export { Effort, THINKING_EFFORTS } from './vendor-catalog/effort.js';
 export type {
   Model as OmpModel,
   ModelSpec as OmpModelSpec,
@@ -383,20 +373,20 @@ export type {
   KnownApi as OmpKnownApi,
   KnownProvider as OmpKnownProvider,
   Usage as OmpUsage,
-} from './omp-catalog/types.js';
+} from './vendor-catalog/types.js';
 
 // OMP provider registry (directly adapted from upstream)
 export {
   PROVIDER_REGISTRY,
   getProviderDefinition,
-} from './omp-ai/registry/registry.js';
+} from './vendor-ai/registry/registry.js';
 export type {
   ProviderDefinition,
   KeyResolver,
-} from './omp-ai/registry/types.js';
+} from './vendor-ai/registry/types.js';
 
 // OMP runtime adaptations (Node/bun-compat shims)
-export { installBunGlobal } from './omp-shims/bun-runtime.js';
+export { installBunGlobal } from './vendor-shims/bun-runtime.js';
 
 // OMP OAuth (directly adapted from upstream)
 export {
@@ -404,24 +394,24 @@ export {
   getOAuthApiKey,
   getOAuthProviders,
   registerOAuthProvider,
-} from './omp-ai/registry/oauth/index.js';
-export { OAuthCallbackFlow } from './omp-ai/registry/oauth/callback-server.js';
-export { generatePKCE } from './omp-ai/registry/oauth/pkce.js';
+} from './vendor-ai/registry/oauth/index.js';
+export { OAuthCallbackFlow } from './vendor-ai/registry/oauth/callback-server.js';
+export { generatePKCE } from './vendor-ai/registry/oauth/pkce.js';
 
 // Schema normalization (diagnostic/dialect-serialization surface --
-// see omp-ai/utils/schema/CONSTRAINTS.md for the operational contract).
+// see vendor-ai/utils/schema/CONSTRAINTS.md for the operational contract).
 export {
   normalizeSchemaForGoogle,
   normalizeSchemaForCCA,
   normalizeSchemaForMCP,
   tryEnforceStrictSchema,
-} from './omp-ai/utils/schema/index.js';
+} from './vendor-ai/utils/schema/index.js';
 export type {
   OAuthProvider,
   OAuthCredentials,
   OAuthLoginCallbacks,
   OAuthController,
-} from './omp-ai/registry/oauth/types.js';
+} from './vendor-ai/registry/oauth/types.js';
 
 // Streaming transport
 export {

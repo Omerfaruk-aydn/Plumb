@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,12 +14,11 @@ import {
   disableWorkspacePolicies,
   setDisableWorkspacePolicies,
 } from './policy.js';
-import { writeToStderr } from '@google/gemini-cli-core';
+import { writeToStderr } from '@plumb/core';
 
 // Mock debugLogger to avoid noise in test output
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     debugLogger: {
@@ -39,9 +37,9 @@ describe('resolveWorkspacePolicyState', () => {
 
   beforeEach(() => {
     // Create a temporary directory for the test
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-cli-test-'));
-    // Redirect GEMINI_CLI_HOME to the temp directory to isolate integrity storage
-    vi.stubEnv('GEMINI_CLI_HOME', tempDir);
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-test-'));
+    // Redirect PLUMB_CLI_HOME to the temp directory to isolate integrity storage
+    vi.stubEnv('PLUMB_CLI_HOME', tempDir);
 
     workspaceDir = path.join(tempDir, 'workspace');
     fs.mkdirSync(workspaceDir);
@@ -224,10 +222,7 @@ describe('resolveWorkspacePolicyState', () => {
     fs.writeFileSync(path.join(policiesDir, 'policy.toml'), 'rules = []');
 
     // Create a symlink to the home directory
-    const symlinkDir = path.join(
-      os.tmpdir(),
-      `gemini-cli-symlink-${Date.now()}`,
-    );
+    const symlinkDir = path.join(os.tmpdir(), `plumb-symlink-${Date.now()}`);
     fs.symlinkSync(tempDir, symlinkDir, 'dir');
 
     try {

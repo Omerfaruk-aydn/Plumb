@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,10 +17,9 @@ const mocks = vi.hoisted(() => ({
   setCustomProviderDefinitions: vi.fn(),
 }));
 
-vi.mock('@google/gemini-cli-provider', async () => {
-  const actual = await vi.importActual<
-    typeof import('@google/gemini-cli-provider')
-  >('@google/gemini-cli-provider');
+vi.mock('@plumb/provider', async () => {
+  const actual =
+    await vi.importActual<typeof import('@plumb/provider')>('@plumb/provider');
   return {
     ...actual,
     getPlumbProviderRegistry: () => ({
@@ -39,7 +35,7 @@ vi.mock('@google/gemini-cli-provider', async () => {
   };
 });
 
-import { CustomProviderDefinitionStore } from '@google/gemini-cli-core';
+import { CustomProviderDefinitionStore } from '@plumb/core';
 import { createCustomProviderConfigActions } from './customProviderConfigActions.js';
 
 describe('customProviderConfigActions', () => {

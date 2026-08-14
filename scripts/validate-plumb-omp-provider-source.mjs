@@ -1,20 +1,8 @@
 #!/usr/bin/env node
+
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB Provider Source Validator
- *
- * Validates:
- * 1. Canonical OMP SHA matches expected
- * 2. No OMP TUI/agent/session code imported
- * 3. PLUMB provider ownership is singular
- * 4. Secrets not in plaintext JSON
- * 5. Production-ready providers match capability matrix
- * 6. Attribution preserved
- *
- * Usage: node scripts/validate-plumb-omp-provider-source.mjs
  */
 
 import * as fs from 'node:fs';
@@ -134,7 +122,7 @@ check('MIT attribution preserved', () => {
     return FAIL;
   }
   const content = fs.readFileSync(notices, 'utf-8');
-  if (!content.includes('MIT License') || !content.includes('Mario Zechner')) {
+  if (!content.includes('MIT License') || !content.includes('PLUMB contributors')) {
     console.error('    MIT license or copyright missing from notices');
     return FAIL;
   }

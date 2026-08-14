@@ -1,28 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F8 of PLUMB-UI-DEVRIM-PROMPT.md ("Agent Mission Control"), scoped to a
- * read-only, full-screen roster of every subagent run this session --
- * both still-running and finished. Data comes from
- * sessionAgentActivity.ts, which reads the same SubagentProgress /
- * HistoryItemSubagent objects SubagentGroupDisplay and
- * SubagentHistoryMessage already render inline in the chat; nothing here
- * invents new tracking state or a new poller. Because it re-reads
- * `history` on every render, a still-running agent's activity list
- * updates live with no interval/timer of its own.
- *
- * No kill/steer/interrupt actions -- those would need a real control
- * channel into the agent runner, which is a materially different (and
- * risk-bearing) feature than a monitoring view.
  */
+
 import type React from 'react';
 import { useState } from 'react';
 import { Box, Text, useIsScreenReaderEnabled } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { useKeypress } from '../hooks/useKeypress.js';
-import { SubagentState } from '@google/gemini-cli-core';
+import { SubagentState } from '@plumb/core';
 import type { AgentRun } from '../utils/sessionAgentActivity.js';
 
 export interface AgentMissionControlProps {

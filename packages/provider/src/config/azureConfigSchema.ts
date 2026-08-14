@@ -1,20 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Azure OpenAI configuration domain schema. Structurally different from
- * OCI/Bedrock/Vertex/watsonx: Azure needs a first-class *list* of
- * model->deployment mappings (a resource can have many deployments), not a
- * flat field set -- so this is its own bespoke module rather than built on
- * the generic flat-schema engine (see cloudConfigSchema.ts).
- *
- * The persisted deployment map uses the exact same "model=deployment,..."
- * string format `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` already uses (see
- * omp-ai/providers/openai-shared.ts's parseAzureDeploymentNameMap), stored
- * under the safe-config key 'deploymentMap' -- so the transport's existing
- * parser works unchanged regardless of whether the map came from PLUMB
- * config or the environment variable.
  */
 
 export interface AzureDeployment {

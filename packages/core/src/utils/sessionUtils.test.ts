@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { describe, it, expect } from 'vitest';
 import { convertSessionToClientHistory } from './sessionUtils.js';
 import { type ConversationRecord } from '../services/chatRecordingService.js';

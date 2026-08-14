@@ -1,17 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-shaped regression: selecting provider = 'azure' must reach the
- * real Azure OpenAI Responses API (catalog/model-catalog.ts ->
- * transports/streaming.ts's plumbModelStream -> the registered
- * 'azure-openai-responses' transport), with the real resolved endpoint,
- * deployment identity, and `api-key` header -- never the generic
- * `{baseUrl}/chat/completions` OpenAI-compatible passthrough (which, given
- * the catalog's deliberately empty `baseUrl`, would previously have sent a
- * malformed relative-path request).
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';

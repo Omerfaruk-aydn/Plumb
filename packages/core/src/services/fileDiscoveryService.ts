@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import {
   type IgnoreFileFilter,
 } from '../utils/ignoreFileParser.js';
 import { isGitRepository } from '../utils/gitUtils.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../config/constants.js';
 import { isNodeError } from '../utils/errors.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import fs from 'node:fs';
@@ -21,7 +20,7 @@ import * as path from 'node:path';
 
 export interface FilterFilesOptions {
   respectGitIgnore?: boolean;
-  respectGeminiIgnore?: boolean;
+  respectPlumbIgnore?: boolean;
   customIgnoreFilePaths?: string[];
 }
 
@@ -38,7 +37,7 @@ export class FileDiscoveryService {
     null;
   private defaultFilterFileOptions: FilterFilesOptions = {
     respectGitIgnore: true,
-    respectGeminiIgnore: true,
+    respectPlumbIgnore: true,
     customIgnoreFilePaths: [],
   };
   private projectRoot: string;
@@ -51,7 +50,7 @@ export class FileDiscoveryService {
     }
     this.geminiIgnoreFilter = new IgnoreFileParser(
       this.projectRoot,
-      GEMINI_IGNORE_FILE_NAME,
+      PLUMB_IGNORE_FILE_NAME,
     );
     if (this.defaultFilterFileOptions.customIgnoreFilePaths?.length) {
       this.customIgnoreFilter = new IgnoreFileParser(
@@ -145,9 +144,9 @@ export class FileDiscoveryService {
     if (options.respectGitIgnore !== undefined) {
       this.defaultFilterFileOptions.respectGitIgnore = options.respectGitIgnore;
     }
-    if (options.respectGeminiIgnore !== undefined) {
-      this.defaultFilterFileOptions.respectGeminiIgnore =
-        options.respectGeminiIgnore;
+    if (options.respectPlumbIgnore !== undefined) {
+      this.defaultFilterFileOptions.respectPlumbIgnore =
+        options.respectPlumbIgnore;
     }
     if (options.customIgnoreFilePaths) {
       this.defaultFilterFileOptions.customIgnoreFilePaths =
@@ -177,7 +176,7 @@ export class FileDiscoveryService {
     filePaths: string[],
     opts: FilterFilesOptions = {
       respectGitIgnore: true,
-      respectGeminiIgnore: true,
+      respectPlumbIgnore: true,
     },
   ): FilterReport {
     const filteredPaths = this.filterFiles(filePaths, opts);
@@ -219,10 +218,10 @@ export class FileDiscoveryService {
   ): boolean {
     const {
       respectGitIgnore = this.defaultFilterFileOptions.respectGitIgnore,
-      respectGeminiIgnore = this.defaultFilterFileOptions.respectGeminiIgnore,
+      respectPlumbIgnore = this.defaultFilterFileOptions.respectPlumbIgnore,
     } = options;
 
-    if (respectGitIgnore && respectGeminiIgnore && this.combinedIgnoreFilter) {
+    if (respectGitIgnore && respectPlumbIgnore && this.combinedIgnoreFilter) {
       return this.combinedIgnoreFilter.isIgnored(filePath, isDirectory);
     }
 
@@ -238,7 +237,7 @@ export class FileDiscoveryService {
     }
 
     if (
-      respectGeminiIgnore &&
+      respectPlumbIgnore &&
       this.geminiIgnoreFilter?.isIgnored(filePath, isDirectory)
     ) {
       return true;
@@ -254,7 +253,7 @@ export class FileDiscoveryService {
     const paths: string[] = [];
     if (
       this.geminiIgnoreFilter &&
-      this.defaultFilterFileOptions.respectGeminiIgnore
+      this.defaultFilterFileOptions.respectPlumbIgnore
     ) {
       paths.push(...this.geminiIgnoreFilter.getIgnoreFilePaths());
     }

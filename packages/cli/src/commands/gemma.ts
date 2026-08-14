@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import type { CommandModule, Argv } from 'yargs';
-import { initializeOutputListenersAndFlush } from '../gemini.js';
+import { initializeOutputListenersAndFlush } from '../plumb.js';
 import { defer } from '../deferred.js';
 import { setupCommand } from './gemma/setup.js';
 import { startCommand } from './gemma/start.js';

@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { coreEvents, type GeminiCLIExtension } from '@google/gemini-cli-core';
+import { coreEvents, type GeminiCLIExtension } from '@plumb/core';
 import { ExtensionStorage } from './storage.js';
 import { z } from 'zod';
 

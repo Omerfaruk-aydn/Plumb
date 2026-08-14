@@ -19,7 +19,7 @@ jobs:
   check-drift:
     name: 'Check Agent Session Drift'
     runs-on: 'ubuntu-latest'
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "true"
     permissions:
       contents: 'read'
       pull-requests: 'write'

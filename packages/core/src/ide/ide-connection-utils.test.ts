@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -49,8 +48,8 @@ describe('ide-connection-utils', () => {
     // Mock environment variables
     vi.stubEnv('GEMINI_CLI_IDE_WORKSPACE_PATH', '/test/workspace');
     vi.stubEnv('GEMINI_CLI_IDE_SERVER_PORT', '');
-    vi.stubEnv('GEMINI_CLI_IDE_SERVER_STDIO_COMMAND', '');
-    vi.stubEnv('GEMINI_CLI_IDE_SERVER_STDIO_ARGS', '');
+    vi.stubEnv('PLUMB_IDE_SERVER_STDIO_COMMAND', '');
+    vi.stubEnv('PLUMB_IDE_SERVER_STDIO_ARGS', '');
     vi.stubEnv('GEMINI_CLI_IDE_AUTH_TOKEN', '');
 
     vi.spyOn(process, 'cwd').mockReturnValue('/test/workspace/sub-dir');

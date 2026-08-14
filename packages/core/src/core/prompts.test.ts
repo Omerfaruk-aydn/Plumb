@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,7 +14,7 @@ import type { Config } from '../config/config.js';
 import type { AgentDefinition } from '../agents/types.js';
 import { CodebaseInvestigatorAgent } from '../agents/codebase-investigator.js';
 import { AGENT_TOOL_NAME } from '../tools/tool-names.js';
-import { GEMINI_DIR } from '../utils/paths.js';
+import { PLUMB_DIR } from '../utils/paths.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import {
   PREVIEW_GEMINI_MODEL,
@@ -338,7 +337,7 @@ describe('Core System Prompt (prompts.ts)', () => {
     const memory = 'This is custom user memory.\nBe extra polite.';
     const prompt = getCoreSystemPrompt(mockConfig, memory);
 
-    expect(prompt).toContain('# Contextual Instructions (GEMINI.md)');
+    expect(prompt).toContain('# Contextual Instructions (PLUMB.md)');
     expect(prompt).toContain('<loaded_context>');
     expect(prompt).toContain(memory);
     expect(prompt).toContain('You are PLUMB, an interactive CLI agent'); // Ensure base prompt follows
@@ -774,7 +773,7 @@ describe('Core System Prompt (prompts.ts)', () => {
     it.each(['true', '1'])(
       'should read from default path when GEMINI_SYSTEM_MD is "%s"',
       (value) => {
-        const defaultPath = path.resolve(path.join(GEMINI_DIR, 'system.md'));
+        const defaultPath = path.resolve(path.join(PLUMB_DIR, 'system.md'));
         vi.stubEnv('GEMINI_SYSTEM_MD', value);
         vi.mocked(fs.existsSync).mockReturnValue(true);
         vi.mocked(fs.readFileSync).mockReturnValue('custom system prompt');
@@ -827,7 +826,7 @@ describe('Core System Prompt (prompts.ts)', () => {
     it.each(['true', '1'])(
       'should write to default path when GEMINI_WRITE_SYSTEM_MD is "%s"',
       (value) => {
-        const defaultPath = path.resolve(path.join(GEMINI_DIR, 'system.md'));
+        const defaultPath = path.resolve(path.join(PLUMB_DIR, 'system.md'));
         vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', value);
         getCoreSystemPrompt(mockConfig);
         expect(fs.writeFileSync).toHaveBeenCalledWith(

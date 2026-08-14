@@ -1,23 +1,19 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * BedrockDiscovery: real ListFoundationModels control-plane API discovery,
- * reusing the existing AWS credential chain and SigV4 signer -- never a
- * second credential-resolution path, never hand-rolled signing.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const mockResolveAwsCredentials = vi.fn();
 const mockSignRequest = vi.fn();
 
-vi.mock('../omp-ai/providers/aws-credentials.js', () => ({
+vi.mock('../vendor-ai/providers/aws-credentials.js', () => ({
   resolveAwsCredentials: (...args: unknown[]) =>
     mockResolveAwsCredentials(...args),
 }));
 
-vi.mock('../omp-ai/providers/aws-sigv4.js', () => ({
+vi.mock('../vendor-ai/providers/aws-sigv4.js', () => ({
   signRequest: (...args: unknown[]) => mockSignRequest(...args),
 }));
 

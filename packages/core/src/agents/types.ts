@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Defines the core configuration interfaces and types for the agent architecture.
  */
 
 import type { Content, FunctionDeclaration } from '@google/genai';
@@ -16,7 +11,7 @@ import type { AnySchema } from 'ajv';
 import type { AgentCard } from '@a2a-js/sdk';
 import type { A2AAuthConfig } from './auth-provider/types.js';
 import type { MCPServerConfig } from '../config/config.js';
-import type { GeminiChat } from '../core/geminiChat.js';
+import type { PlumbChat } from '../core/plumbChat.js';
 
 /**
  * Describes the possible termination modes for an agent.
@@ -273,13 +268,13 @@ export interface LocalAgentDefinition<
 
   /**
    * Optional hook invoked before each model call. Receives the active
-   * {@link GeminiChat} instance and may modify chat history (e.g., to
+   * {@link PlumbChat} instance and may modify chat history (e.g., to
    * supersede stale tool outputs and reclaim context-window tokens).
    *
    * Runs immediately after chat compression in the agent loop.
    */
   onBeforeTurn?: (
-    chat: GeminiChat,
+    chat: PlumbChat,
     signal?: AbortSignal,
   ) => Promise<void> | void;
 }

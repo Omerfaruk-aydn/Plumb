@@ -18,7 +18,7 @@ commands, take effect only after you restart the CLI session.
 Install an extension by providing its GitHub repository URL or a local file
 path.
 
-Gemini CLI creates a copy of the extension during installation. You must run
+PLUMB creates a copy of the extension during installation. You must run
 `gemini extensions update` to pull changes from the source. To install from
 GitHub, you must have `git` installed on your machine.
 
@@ -93,9 +93,8 @@ gemini extensions new <path> [template]
 
 ### Link a local extension
 
-Create a symbolic link between your development directory and Gemini CLI
-extensions directory. This lets you test changes immediately without
-reinstalling.
+Create a symbolic link between your development directory and PLUMB extensions
+directory. This lets you test changes immediately without reinstalling.
 
 ```bash
 gemini extensions link <path>
@@ -103,8 +102,8 @@ gemini extensions link <path>
 
 ## Extension format
 
-Gemini CLI loads extensions from `<home>/.gemini/extensions`. Each extension
-must have a `gemini-extension.json` file in its root directory.
+PLUMB loads extensions from `<home>/.gemini/extensions`. Each extension must
+have a `gemini-extension.json` file in its root directory.
 
 ### `gemini-extension.json`
 
@@ -122,7 +121,7 @@ The manifest file defines the extension's behavior and configuration.
       "cwd": "${extensionPath}"
     }
   },
-  "contextFileName": "GEMINI.md",
+  "contextFileName": "PLUMB.md",
   "excludeTools": ["run_shell_command"],
   "migratedTo": "https://github.com/new-owner/new-extension-repo",
   "plan": {
@@ -157,7 +156,7 @@ The manifest file defines the extension's behavior and configuration.
     instead of putting them both in `command`.
 - `contextFileName`: The name of the file that contains the context for the
   extension. This will be used to load the context from the extension directory.
-  If this property is not used but a `GEMINI.md` file is present in your
+  If this property is not used but a `PLUMB.md` file is present in your
   extension directory, then that file will be loaded.
 - `excludeTools`: An array of tool names to exclude from the model. You can also
   specify command-specific restrictions for tools that support it, like the
@@ -171,9 +170,8 @@ The manifest file defines the extension's behavior and configuration.
     settings. If not specified by either the extension or the user, the default
     is `~/.gemini/tmp/<project>/<session-id>/plans/`.
 
-When Gemini CLI starts, it loads all the extensions and merges their
-configurations. If there are any conflicts, the workspace configuration takes
-precedence.
+When PLUMB starts, it loads all the extensions and merges their configurations.
+If there are any conflicts, the workspace configuration takes precedence.
 
 ### Extension settings
 
@@ -229,8 +227,8 @@ so the CLI can allowlist them for use within the extension.
 ### Custom commands
 
 Provide [custom commands](../cli/custom-commands.md) by placing TOML files in a
-`commands/` subdirectory. Gemini CLI uses the directory structure to determine
-the command name.
+`commands/` subdirectory. PLUMB uses the directory structure to determine the
+command name.
 
 For an extension named `gcp`:
 
@@ -260,13 +258,13 @@ agent definition files (`.md`) to an `agents/` directory in your extension root.
 
 ### <a id="policy-engine"></a>Policy Engine
 
-Extensions can contribute policy rules and safety checkers to Gemini CLI
+Extensions can contribute policy rules and safety checkers to PLUMB
 [Policy Engine](../reference/policy-engine.md). These rules are defined in
 `.toml` files and take effect when the extension is activated.
 
 To add policies, create a `policies/` directory in your extension's root and
-place your `.toml` policy files inside it. Gemini CLI automatically loads all
-`.toml` files from this directory.
+place your `.toml` policy files inside it. PLUMB automatically loads all `.toml`
+files from this directory.
 
 Rules contributed by extensions run in their own tier (tier 2), alongside
 workspace-defined policies. This tier has higher priority than the default rules
@@ -274,7 +272,7 @@ but lower priority than user or admin policies.
 
 <!-- prettier-ignore -->
 > [!WARNING]
-> For security, Gemini CLI ignores any `allow` decisions or `yolo`
+> For security, PLUMB ignores any `allow` decisions or `yolo`
 > mode configurations in extension policies. This ensures that an extension
 > cannot automatically approve tool calls or bypass security measures without
 > your confirmation.
@@ -351,7 +349,7 @@ the extension name (for example, `/gcp.deploy`) using a dot separator.
 
 ## Variables
 
-Gemini CLI supports variable substitution in `gemini-extension.json` and
+PLUMB supports variable substitution in `gemini-extension.json` and
 `hooks/hooks.json`.
 
 | Variable           | Description                                     |

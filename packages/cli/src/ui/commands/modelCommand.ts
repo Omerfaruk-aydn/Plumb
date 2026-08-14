@@ -1,13 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ModelSlashCommandEvent,
-  logModelSlashCommand,
-} from '@google/gemini-cli-core';
+import { ModelSlashCommandEvent, logModelSlashCommand } from '@plumb/core';
 import {
   type CommandContext,
   CommandKind,

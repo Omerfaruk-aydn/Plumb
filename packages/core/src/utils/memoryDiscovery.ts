@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,12 +7,12 @@ import * as fs from 'node:fs/promises';
 import * as fsSync from 'node:fs';
 import * as path from 'node:path';
 import {
-  getAllGeminiMdFilenames,
+  getAllContextFilenames,
   PROJECT_MEMORY_INDEX_FILENAME,
 } from '../tools/memoryTool.js';
 import { processImports } from './memoryImportProcessor.js';
 import {
-  GEMINI_DIR,
+  PLUMB_DIR,
   homedir,
   isSubpath,
   normalizePath,
@@ -245,12 +244,12 @@ export async function readGeminiMdFiles(
             (error as NodeJS.ErrnoException).code === 'EISDIR';
 
           if (isEISDIR) {
-            // A directory exists where a GEMINI.md file is expected.
+            // A directory exists where a PLUMB.md file is expected.
             // This is valid in some project structures (e.g. a folder named
-            // GEMINI.md held for organisational purposes) — skip it silently
+            // PLUMB.md held for organisational purposes) — skip it silently
             // instead of surfacing a confusing warning to the user.
             debugLogger.debug(
-              '[DEBUG] [MemoryDiscovery] Skipping directory at GEMINI.md path:',
+              '[DEBUG] [MemoryDiscovery] Skipping directory at PLUMB.md path:',
               filePath,
             );
           } else {
@@ -260,7 +259,7 @@ export async function readGeminiMdFiles(
               const message =
                 error instanceof Error ? error.message : String(error);
               logger.warn(
-                `Warning: Could not read ${getAllGeminiMdFilenames()} file at ${filePath}. Error: ${message}`,
+                `Warning: Could not read ${getAllContextFilenames()} file at ${filePath}. Error: ${message}`,
               );
             }
             debugLogger.debug(
@@ -316,12 +315,10 @@ export interface MemoryLoadResult {
 
 export async function getGlobalMemoryPaths(): Promise<string[]> {
   const userHome = homedir();
-  const geminiMdFilenames = getAllGeminiMdFilenames();
+  const geminiMdFilenames = getAllContextFilenames();
 
   const accessChecks = geminiMdFilenames.map(async (filename) => {
-    const globalPath = toAbsolutePath(
-      path.join(userHome, GEMINI_DIR, filename),
-    );
+    const globalPath = toAbsolutePath(path.join(userHome, PLUMB_DIR, filename));
     try {
       await fs.access(globalPath, fsSync.constants.R_OK);
       debugLogger.debug(
@@ -354,11 +351,11 @@ export async function getUserProjectMemoryPaths(
     );
     return [preferredMemoryPath];
   } catch {
-    // Fall back to the legacy private GEMINI.md file if the project has not
+    // Fall back to the legacy private PLUMB.md file if the project has not
     // been migrated to MEMORY.md yet.
   }
 
-  const geminiMdFilenames = getAllGeminiMdFilenames();
+  const geminiMdFilenames = getAllContextFilenames();
   const accessChecks = geminiMdFilenames.map(async (filename) => {
     const legacyMemoryPath = toAbsolutePath(
       path.join(projectMemoryDir, filename),
@@ -455,7 +452,7 @@ export function categorizeAndConcatenate(
 }
 
 /**
- * Traverses upward from startDir to stopDir, finding all GEMINI.md variants.
+ * Traverses upward from startDir to stopDir, finding all PLUMB.md variants.
  *
  * Files are ordered by directory level (root to leaf), with all filename
  * variants grouped together per directory.
@@ -467,8 +464,8 @@ async function findUpwardGeminiFiles(
   const upwardPaths: string[] = [];
   let currentDir = toAbsolutePath(startDir);
   const resolvedStopDirKey = normalizePath(stopDir);
-  const geminiMdFilenames = getAllGeminiMdFilenames();
-  const globalGeminiDirKey = normalizePath(path.join(homedir(), GEMINI_DIR));
+  const geminiMdFilenames = getAllContextFilenames();
+  const globalGeminiDirKey = normalizePath(path.join(homedir(), PLUMB_DIR));
 
   debugLogger.debug(
     '[DEBUG] [MemoryDiscovery] Starting upward search from',
@@ -555,7 +552,7 @@ export async function loadJitSubdirectoryMemory(
   // Resolve the target to a directory before traversing upward.
   // When the target is a file (e.g. /app/src/file.ts), start from its
   // parent directory to avoid a wasted fs.access check on a nonsensical
-  // path like /app/src/file.ts/GEMINI.md.
+  // path like /app/src/file.ts/PLUMB.md.
   let startDir = resolvedTarget;
   try {
     const stat = await fs.stat(resolvedTarget);

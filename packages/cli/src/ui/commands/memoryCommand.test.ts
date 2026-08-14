@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,11 +16,10 @@ import {
   showMemory,
   listMemoryFiles,
   flattenMemory,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...original,
     getErrorMessage: vi.fn((error: unknown) => {
@@ -64,7 +62,7 @@ describe('memoryCommand', () => {
     it('does not include the legacy add subcommand', () => {
       const command = buildMemoryCommand();
       const names = command.subCommands?.map((cmd) => cmd.name) ?? [];
-      expect(names).toEqual(['show', 'reload', 'list', 'inbox']);
+      expect(names).toEqual(['show', 'reload', 'list', 'inbox', 'browse']);
     });
   });
 
@@ -337,9 +335,9 @@ describe('memoryCommand', () => {
         const fileCount = filePaths.length;
         let content;
         if (fileCount > 0) {
-          content = `There are ${fileCount} GEMINI.md file(s) in use:\n\n${filePaths.join('\n')}`;
+          content = `There are ${fileCount} PLUMB.md file(s) in use:\n\n${filePaths.join('\n')}`;
         } else {
-          content = 'No GEMINI.md files in use.';
+          content = 'No PLUMB.md files in use.';
         }
         return {
           type: 'message',
@@ -358,7 +356,7 @@ describe('memoryCommand', () => {
       });
     });
 
-    it('should display a message if no GEMINI.md files are found', async () => {
+    it('should display a message if no PLUMB.md files are found', async () => {
       if (!listCommand.action) throw new Error('Command has no action');
 
       mockGetGeminiMdfilePaths.mockReturnValue([]);
@@ -368,7 +366,7 @@ describe('memoryCommand', () => {
       expect(mockContext.ui.addItem).toHaveBeenCalledWith(
         {
           type: MessageType.INFO,
-          text: 'No GEMINI.md files in use.',
+          text: 'No PLUMB.md files in use.',
         },
         expect.any(Number),
       );
@@ -377,7 +375,7 @@ describe('memoryCommand', () => {
     it('should display the file count and paths if they exist', async () => {
       if (!listCommand.action) throw new Error('Command has no action');
 
-      const filePaths = ['/path/one/GEMINI.md', '/path/two/GEMINI.md'];
+      const filePaths = ['/path/one/PLUMB.md', '/path/two/PLUMB.md'];
       mockGetGeminiMdfilePaths.mockReturnValue(filePaths);
 
       await listCommand.action(mockContext, '');
@@ -385,7 +383,7 @@ describe('memoryCommand', () => {
       expect(mockContext.ui.addItem).toHaveBeenCalledWith(
         {
           type: MessageType.INFO,
-          text: `There are 2 GEMINI.md file(s) in use:\n\n${filePaths.join('\n')}`,
+          text: `There are 2 PLUMB.md file(s) in use:\n\n${filePaths.join('\n')}`,
         },
         expect.any(Number),
       );

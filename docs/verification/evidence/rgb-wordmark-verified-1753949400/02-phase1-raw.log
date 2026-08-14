@@ -14,12 +14,12 @@
 │[m   [38;2;255;255;255m [m [38;2;255;255;255m3.[m [38;2;255;255;255mVertex AI[m[K[38;2;215;255;215m[61C│
 │[m[K[38;2;215;255;215m[78C│
 │[m   [38;2;255;135;175mFailed to sign in. Message: Authentication consent could not be obtained.[m  [38;2;215;255;215m│
-│[m   [38;2;255;135;175mPlease run Gemini CLI in an interactive terminal to authenticate, or use[m   [38;2;215;255;215m│
+│[m   [38;2;255;135;175mPlease run PLUMB in an interactive terminal to authenticate, or use[m   [38;2;215;255;215m│
 │[m   [38;2;255;135;175mNO_BROWSER=true for manual authentication.[m[K[38;2;215;255;215m[33C│
 │[m[K[38;2;215;255;215m[78C│
 │[m   [38;2;175;175;175m(Use Enter to select)[m[K[38;2;215;255;215m[54C│
 │[m[K[38;2;215;255;215m[78C│
-│[m   [38;2;255;255;255mTerms of Services and Privacy Notice for Gemini CLI[m[K[38;2;215;255;215m[24C│
+│[m   [38;2;255;255;255mTerms of Services and Privacy Notice for PLUMB[m[K[38;2;215;255;215m[24C│
 │[m[K[38;2;215;255;215m[78C│
 │[m   [38;2;135;175;255mhttps://geminicli.com/docs/resources/tos-privacy/[m[K[38;2;215;255;215m[26C│[m
 [38;2;215;255;215m│[m[K[38;2;215;255;215m[78C│[m
@@ -33,7 +33,7 @@
  [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
  [38;2;255;255;175m│[m [1m[38;2;255;255;255mDo you trust the files in this folder?[m[37X[38;2;255;255;175m[37C│[m 
  [38;2;255;255;175m│[m[76X[38;2;255;255;175m[76C│[m 
- [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows Gemini CLI to load its local configurations,[m      [38;2;255;255;175m│[m 
+ [38;2;255;255;175m│[m [38;2;255;255;255mTrusting a folder allows PLUMB to load its local configurations,[m      [38;2;255;255;175m│[m 
  [38;2;255;255;175m│[m [38;2;255;255;255mincluding custom commands, hooks, MCP servers, agent skills, and settings.[m [38;2;255;255;175m│[m 
  [38;2;255;255;175m│[m [38;2;255;255;255mThese configurations could execute code on your behalf or change the[m       [38;2;255;255;175m│[m 
  [38;2;255;255;175m│[m [38;2;255;255;255mbehavior of the CLI.[m[55X[38;2;255;255;175m[55C│[m 

@@ -1,16 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { SettingScope } from '../config/settings.js';
 import type { SkillActionResult } from './skillSettings.js';
-import {
-  Storage,
-  loadSkillsFromDir,
-  type SkillDefinition,
-} from '@google/gemini-cli-core';
+import { Storage, loadSkillsFromDir, type SkillDefinition } from '@plumb/core';
 import { cloneFromGit } from '../config/extensions/github.js';
 import extract from 'extract-zip';
 import * as fs from 'node:fs/promises';

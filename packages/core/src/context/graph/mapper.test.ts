@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -52,7 +51,7 @@ describe('ContextGraphMapper (Round-Trip Fidelity)', () => {
           ],
         },
       },
-      // Note: GeminiChat records these as separate sequential user turns initially
+      // Note: PlumbChat records these as separate sequential user turns initially
       {
         id: 'tool_resp_B_id',
         content: {

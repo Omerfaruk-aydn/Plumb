@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import { resolvePathFromEnv as resolvePathFromEnvImpl } from '../prompts/utils.j
 
 /**
  * Resolves a path or switch value from an environment variable.
- * @deprecated Use resolvePathFromEnv from @google/gemini-cli-core/prompts/utils instead.
+ * @deprecated Use resolvePathFromEnv from @plumb/core/prompts/utils instead.
  */
 export function resolvePathFromEnv(envVar?: string) {
   return resolvePathFromEnvImpl(envVar);

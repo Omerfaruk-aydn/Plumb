@@ -1,16 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { ToolConfirmationMessage } from './ToolConfirmationMessage.js';
-import type {
-  SerializableConfirmationDetails,
-  Config,
-} from '@google/gemini-cli-core';
-import { initializeShellParsers } from '@google/gemini-cli-core';
+import type { SerializableConfirmationDetails, Config } from '@plumb/core';
+import { initializeShellParsers } from '@plumb/core';
 import { renderWithProviders } from '../../../test-utils/render.js';
 
 describe('ToolConfirmationMessage Redirection', { timeout: 30000 }, () => {

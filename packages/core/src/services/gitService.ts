@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,7 +21,7 @@ import {
 } from './environmentSanitization.js';
 
 export const SHADOW_REPO_AUTHOR_NAME = 'PLUMB';
-export const SHADOW_REPO_AUTHOR_EMAIL = 'gemini-cli@google.com';
+export const SHADOW_REPO_AUTHOR_EMAIL = 'plumb-cli@localhost';
 
 const SHADOW_REPO_UNSAFE_OPTIONS = {
   allowUnsafeAlias: true,
@@ -215,5 +214,21 @@ export class GitService {
     await repo.raw(['restore', '--source', commitHash, '.']);
     // Removes any untracked files that were introduced post snapshot.
     await repo.clean('f', ['-d']);
+  }
+
+  /**
+   * Counts files that differ between `fromCommitHash` and the current
+   * working tree, including new untracked files (used by /undo (F19) to
+   * report how many files a rewind touched). Plain `git diff <commit>`
+   * ignores untracked files entirely, so this stages the working tree first
+   * (mirroring `createFileSnapshot`) and diffs against the index instead --
+   * safe here because the shadow repo's index is never relied on for
+   * anything else between snapshots.
+   */
+  async getChangedFileCount(fromCommitHash: string): Promise<number> {
+    const repo = this.shadowGitRepository;
+    await repo.add('.');
+    const summary = await repo.diffSummary(['--cached', fromCommitHash]);
+    return summary.files.length;
   }
 }

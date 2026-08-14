@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +25,7 @@ import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Content } from '@google/genai';
 import os from 'node:os';
-import { GEMINI_DIR } from '../utils/paths.js';
+import { PLUMB_DIR } from '../utils/paths.js';
 import { debugLogger } from '../utils/debugLogger.js';
 
 const PROJECT_SLUG = 'project-slug';
@@ -36,7 +35,7 @@ const CHECKPOINT_FILE_NAME = 'checkpoint.json';
 
 const TEST_GEMINI_DIR = path.join(
   os.homedir(),
-  GEMINI_DIR,
+  PLUMB_DIR,
   TMP_DIR_NAME,
   PROJECT_SLUG,
 );

@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Single source of truth for mapping model IDs to tool families.
  */
 
 import { isGemini3Model } from '../../config/models.js';

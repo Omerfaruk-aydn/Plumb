@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LlmRole, type BaseLlmClient } from '@google/gemini-cli-core';
+import { LlmRole, type BaseLlmClient } from '@plumb/core';
 
 export interface JudgeOptions {
   /**

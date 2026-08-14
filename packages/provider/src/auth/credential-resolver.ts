@@ -1,14 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical, single-flight-safe OAuth credential resolver, shared by
- * production request-building code (buildAntigravityRequest et al.) and the
- * `--diagnose-*` / `--test-*` CLI diagnostics — so the two can never
- * silently diverge on how an expired-but-refreshable credential is
- * classified or refreshed. Never performs a new OAuth/login flow; only a
- * silent refresh-token exchange when one is available.
  */
 
 import { ensurePlumbCredentialStore } from './credential-store.js';

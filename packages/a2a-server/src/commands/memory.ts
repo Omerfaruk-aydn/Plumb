@@ -1,14 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  listMemoryFiles,
-  refreshMemory,
-  showMemory,
-} from '@google/gemini-cli-core';
+import { listMemoryFiles, refreshMemory, showMemory } from '@plumb/core';
 import type {
   Command,
   CommandContext,
@@ -62,7 +57,7 @@ export class RefreshMemoryCommand implements Command {
 
 export class ListMemoryCommand implements Command {
   readonly name = 'memory list';
-  readonly description = 'Lists the paths of the GEMINI.md files in use.';
+  readonly description = 'Lists the paths of the PLUMB.md files in use.';
 
   async execute(
     context: CommandContext,

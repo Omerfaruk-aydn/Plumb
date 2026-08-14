@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,8 +9,8 @@ import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 
 // Mock the telemetry service
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual('@google/gemini-cli-core');
+vi.mock('@plumb/core', async () => {
+  const actual = await vi.importActual('@plumb/core');
   return {
     ...actual,
     uiTelemetryService: {
@@ -21,7 +20,7 @@ vi.mock('@google/gemini-cli-core', async () => {
   };
 });
 
-import { uiTelemetryService, type GeminiClient } from '@google/gemini-cli-core';
+import { uiTelemetryService, type GeminiClient } from '@plumb/core';
 
 describe('clearCommand', () => {
   let mockContext: CommandContext;

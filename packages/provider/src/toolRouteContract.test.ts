@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Honest batch tool-route probe classification: mutually-exclusive result
- * classes, sum-invariant breakdown, the universal LIVE_MODEL_UNRESOLVED rule,
- * and local-provider offline classification. AUTH_REQUIRED / MODEL_NOT_AVAILABLE
- * / offline local servers must never be counted as structured-tool failures.
  */
+
 import { describe, it, expect } from 'vitest';
 import {
   classifyBatchResult,

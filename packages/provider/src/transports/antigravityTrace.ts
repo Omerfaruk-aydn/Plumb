@@ -1,10 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Safe Antigravity JSONL trace recorder & structural hash calculator.
- * Strictly non-secret, zero user-content logging.
  */
 
 import fs from 'node:fs';

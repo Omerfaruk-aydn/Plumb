@@ -7,7 +7,7 @@ description: Expertise in managing the Git and GitHub Pull Request lifecycle, in
 
 ## Goal
 
-Standardize how the Gemini CLI Bot stages its changes, generates Pull Request
+Standardize how the PLUMB Bot stages its changes, generates Pull Request
 descriptions, and manages the lifecycle of both new and existing PRs.
 
 ## Staging & Patch Preparation (MANDATORY)

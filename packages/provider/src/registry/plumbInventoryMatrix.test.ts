@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase B — Inventory snapshot test.
- *
- * Verifies the generated inventory snapshot is internally consistent
- * (every reference route is present, every blank-final-classification row
- * is filled with a non-`UNCLASSIFIED` value before the final commit).
- *
- * This is the gating test for the production-matrix report.
  */
 
 import { describe, it, expect } from 'vitest';

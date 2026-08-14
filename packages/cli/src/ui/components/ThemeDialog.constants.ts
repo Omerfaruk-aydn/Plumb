@@ -1,10 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/** The fraction of the dialog width allocated to the selection (left) pane. */
 export const SELECTION_PANE_WIDTH_PERCENTAGE = 0.45;
 
 /** The fraction of the dialog width allocated to the preview (right) pane. */

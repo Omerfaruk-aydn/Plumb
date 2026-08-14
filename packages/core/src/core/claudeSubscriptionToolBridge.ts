@@ -1,38 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Claude Subscription tool-authority bridge.
- *
- * CLAUDE_SUBSCRIPTION_TOOL_AUTHORITY: PLUMB_CORE_TOOL_SCHEDULER
- *
- * `packages/provider` cannot import this package (the dependency runs the
- * other way: core depends on provider), so
- * `transports/claudeSubscription.ts`'s in-process MCP tool adapter can only
- * translate its own SDK-native tool-call shape into the generic
- * `PlumbToolExecutionRequest`/`PlumbToolExecutionResult` types and delegate
- * to a caller-supplied `PlumbToolExecutor`. This module IS that caller: it
- * is the only place a real `PlumbToolExecutor` gets constructed, and it
- * does so by driving the exact same `Scheduler` real tool-execution
- * pipeline every other agent-tool caller in this codebase already uses (see
- * `agents/agent-scheduler.ts`'s `scheduleAgentTools()`) — never a second,
- * Claude-specific execution engine, and never a bypass of the real
- * permission/confirmation pipeline. Unlike `scheduleAgentTools()`, this
- * module keeps ONE `Scheduler` alive for the whole turn (see
- * `createClaudeSubscriptionToolExecutor` below) so the interactive UI can
- * see every tool call the turn makes, not just the most recent one.
- *
- * One call to the returned executor = one `Scheduler.schedule()` call with
- * exactly one request = one real `CoreToolCallStatus` outcome = one
- * translated `PlumbToolExecutionResult`.
  */
+
 import type { Part } from '@google/genai';
 import type {
   PlumbToolExecutionRequest,
   PlumbToolExecutionResult,
   PlumbToolExecutor,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import type { Config } from '../config/config.js';
 import { Scheduler } from '../scheduler/scheduler.js';
 import {

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json",
-  "title": "Gemini CLI Settings",
-  "description": "Configuration file schema for Gemini CLI settings. This schema enables IDE completion for `settings.json`.",
+  "title": "PLUMB Settings",
+  "description": "Configuration file schema for PLUMB settings. This schema enables IDE completion for `settings.json`.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -329,10 +329,64 @@
           "type": "string",
           "enum": ["off", "full"]
         },
+        "diffStyle": {
+          "title": "Diff Style",
+          "description": "Diff layout: auto (split at >=120 columns, stacked below), always stacked, or always split.",
+          "markdownDescription": "Diff layout: auto (split at >=120 columns, stacked below), always stacked, or always split.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `auto`",
+          "default": "auto",
+          "type": "string",
+          "enum": ["auto", "stacked", "split"]
+        },
+        "scrollSpeed": {
+          "title": "Scroll Speed",
+          "description": "Lines scrolled per mouse wheel tick before any acceleration ramp is applied. Default (1) matches PLUMB's existing scroll feel; raise it for a faster base speed.",
+          "markdownDescription": "Lines scrolled per mouse wheel tick before any acceleration ramp is applied. Default (1) matches PLUMB's existing scroll feel; raise it for a faster base speed.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `1`",
+          "default": 1,
+          "type": "number"
+        },
+        "scrollAcceleration": {
+          "title": "Scroll Acceleration",
+          "description": "Exponentially ramp scroll speed on fast consecutive wheel ticks (macOS-style). When off, the ramp matches the fixed curve PLUMB has always used.",
+          "markdownDescription": "Exponentially ramp scroll speed on fast consecutive wheel ticks (macOS-style). When off, the ramp matches the fixed curve PLUMB has always used.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "default": false,
+          "type": "boolean"
+        },
+        "cursor": {
+          "title": "Input Cursor",
+          "description": "Terminal cursor style while the input prompt is focused.",
+          "markdownDescription": "Terminal cursor style while the input prompt is focused.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `{}`",
+          "default": {},
+          "type": "object",
+          "properties": {
+            "style": {
+              "title": "Cursor Style",
+              "description": "Terminal cursor shape: default (leave as the terminal set it), block, underline, or line (bar).",
+              "markdownDescription": "Terminal cursor shape: default (leave as the terminal set it), block, underline, or line (bar).\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `default`",
+              "default": "default",
+              "type": "string",
+              "enum": ["default", "block", "underline", "line"]
+            },
+            "blinking": {
+              "title": "Cursor Blinking",
+              "description": "Whether the cursor blinks (ignored for style: default).",
+              "markdownDescription": "Whether the cursor blinks (ignored for style: default).\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "mouse": {
+          "title": "Mouse Support",
+          "description": "Enable mouse capture (click, drag-scroll) on startup. Turn off if you rely on your terminal’s native text selection instead.",
+          "markdownDescription": "Enable mouse capture (click, drag-scroll) on startup. Turn off if you rely on your terminal’s native text selection instead.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+          "default": true,
+          "type": "boolean"
+        },
         "showStatusInTitle": {
           "title": "Show Thoughts in Title",
-          "description": "Show Gemini CLI model thoughts in the terminal window title during the working phase",
-          "markdownDescription": "Show Gemini CLI model thoughts in the terminal window title during the working phase\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Show PLUMB model thoughts in the terminal window title during the working phase",
+          "markdownDescription": "Show PLUMB model thoughts in the terminal window title during the working phase\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -345,8 +399,8 @@
         },
         "showHomeDirectoryWarning": {
           "title": "Show Home Directory Warning",
-          "description": "Show a warning when running Gemini CLI in the home directory.",
-          "markdownDescription": "Show a warning when running Gemini CLI in the home directory.\n\n- Category: `UI`\n- Requires restart: `yes`\n- Default: `true`",
+          "description": "Show a warning when running PLUMB in the home directory.",
+          "markdownDescription": "Show a warning when running PLUMB in the home directory.\n\n- Category: `UI`\n- Requires restart: `yes`\n- Default: `true`",
           "default": true,
           "type": "boolean"
         },
@@ -385,6 +439,20 @@
           "default": true,
           "type": "boolean"
         },
+        "groupToolSummary": {
+          "title": "Collapse Finished Tool Groups",
+          "description": "Once a batch of tool calls in a turn has finished, collapse it into a single summary line (e.g. \"3 files read, 1 search - 1.2s\") instead of leaving every tool card expanded. Press Ctrl+O to expand/collapse the last turn.",
+          "markdownDescription": "Once a batch of tool calls in a turn has finished, collapse it into a single summary line (e.g. \"3 files read, 1 search - 1.2s\") instead of leaving every tool card expanded. Press Ctrl+O to expand/collapse the last turn.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "default": false,
+          "type": "boolean"
+        },
+        "enableInlineImages": {
+          "title": "Inline Images (Kitty/iTerm2)",
+          "description": "When a tool returns a single image (e.g. a screenshot), render it inline using the Kitty or iTerm2 terminal graphics protocol instead of a text placeholder. Requires a supporting terminal; falls back to text automatically when unsupported. Off by default since this writes raw escape sequences directly to the terminal outside the normal render path.",
+          "markdownDescription": "When a tool returns a single image (e.g. a screenshot), render it inline using the Kitty or iTerm2 terminal graphics protocol instead of a text placeholder. Requires a supporting terminal; falls back to text automatically when unsupported. Off by default since this writes raw escape sequences directly to the terminal outside the normal render path.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "default": false,
+          "type": "boolean"
+        },
         "animatedLogo": {
           "title": "Animated RGB Logo",
           "description": "Enable smooth animated RGB gradient on the welcome screen PLUMB wordmark logo.",
@@ -408,8 +476,8 @@
         },
         "hideContextSummary": {
           "title": "Hide Context Summary",
-          "description": "Hide the context summary (GEMINI.md, MCP servers) above the input.",
-          "markdownDescription": "Hide the context summary (GEMINI.md, MCP servers) above the input.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Hide the context summary (PLUMB.md, MCP servers) above the input.",
+          "markdownDescription": "Hide the context summary (PLUMB.md, MCP servers) above the input.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -604,6 +672,89 @@
               "markdownDescription": "Render output in plain-text to be more screen reader accessible\n\n- Category: `UI`\n- Requires restart: `yes`\n- Default: `false`",
               "default": false,
               "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "attention": {
+          "title": "Attention Sounds",
+          "description": "OS-native attention sounds and desktop notifications for questions, permission requests, errors, and completions.",
+          "markdownDescription": "OS-native attention sounds and desktop notifications for questions, permission requests, errors, and completions.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `{}`",
+          "default": {},
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "title": "Enable Attention Sounds",
+              "description": "Play a short sound on attention-worthy events.",
+              "markdownDescription": "Play a short sound on attention-worthy events.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+              "default": false,
+              "type": "boolean"
+            },
+            "sound": {
+              "title": "Sound",
+              "description": "Play sound (in addition to any desktop notification).",
+              "markdownDescription": "Play sound (in addition to any desktop notification).\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+              "default": true,
+              "type": "boolean"
+            },
+            "volume": {
+              "title": "Volume",
+              "description": "Playback volume from 0 (silent) to 1 (full).",
+              "markdownDescription": "Playback volume from 0 (silent) to 1 (full).\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `0.4`",
+              "default": 0.4,
+              "type": "number"
+            },
+            "pack": {
+              "title": "Sound Pack",
+              "description": "Name of the sound pack to use for attention sounds.",
+              "markdownDescription": "Name of the sound pack to use for attention sounds.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `plumb.default`",
+              "default": "plumb.default",
+              "type": "string"
+            },
+            "overrides": {
+              "title": "Attention Sound Overrides",
+              "description": "Per-event overrides to disable specific attention sounds.",
+              "markdownDescription": "Per-event overrides to disable specific attention sounds.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `{}`",
+              "default": {},
+              "type": "object",
+              "properties": {
+                "error": {
+                  "title": "Error Sound",
+                  "description": "Play a sound when an error occurs.",
+                  "markdownDescription": "Play a sound when an error occurs.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "question": {
+                  "title": "Question Sound",
+                  "description": "Play a sound when the agent asks a question.",
+                  "markdownDescription": "Play a sound when the agent asks a question.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "permission": {
+                  "title": "Permission Sound",
+                  "description": "Play a sound when a tool permission is requested.",
+                  "markdownDescription": "Play a sound when a tool permission is requested.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "done": {
+                  "title": "Done Sound",
+                  "description": "Play a sound when a response completes.",
+                  "markdownDescription": "Play a sound when a response completes.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "subagent_done": {
+                  "title": "Subagent Done Sound",
+                  "description": "Play a sound when a subagent run completes.",
+                  "markdownDescription": "Play a sound when a subagent run completes.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `true`",
+                  "default": true,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -2795,8 +2946,8 @@
         },
         "memoryBoundaryMarkers": {
           "title": "Memory Boundary Markers",
-          "description": "File or directory names that mark the boundary for GEMINI.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.",
-          "markdownDescription": "File or directory names that mark the boundary for GEMINI.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.\n\n- Category: `Context`\n- Requires restart: `yes`\n- Default: `[\n  \".git\"\n]`",
+          "description": "File or directory names that mark the boundary for PLUMB.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.",
+          "markdownDescription": "File or directory names that mark the boundary for PLUMB.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.\n\n- Category: `Context`\n- Requires restart: `yes`\n- Default: `[\n  \".git\"\n]`",
           "default": [".git"],
           "type": "array",
           "items": {
@@ -2815,8 +2966,8 @@
         },
         "loadMemoryFromIncludeDirectories": {
           "title": "Load Memory From Include Directories",
-          "description": "Controls how /memory reload loads GEMINI.md files. When true, include directories are scanned; when false, only the current directory is used.",
-          "markdownDescription": "Controls how /memory reload loads GEMINI.md files. When true, include directories are scanned; when false, only the current directory is used.\n\n- Category: `Context`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Controls how /memory reload loads PLUMB.md files. When true, include directories are scanned; when false, only the current directory is used.",
+          "markdownDescription": "Controls how /memory reload loads PLUMB.md files. When true, include directories are scanned; when false, only the current directory is used.\n\n- Category: `Context`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -2834,7 +2985,7 @@
               "default": true,
               "type": "boolean"
             },
-            "respectGeminiIgnore": {
+            "respectPlumbIgnore": {
               "title": "Respect .geminiignore",
               "description": "Respect .geminiignore files when searching.",
               "markdownDescription": "Respect .geminiignore files when searching.\n\n- Category: `Context`\n- Requires restart: `yes`\n- Default: `true`",
@@ -3476,8 +3627,8 @@
             },
             "autoStartServer": {
               "title": "Auto-start LiteRT Server",
-              "description": "Automatically start the LiteRT-LM server when Gemini CLI starts and the Gemma router is enabled.",
-              "markdownDescription": "Automatically start the LiteRT-LM server when Gemini CLI starts and the Gemma router is enabled.\n\n- Category: `Experimental`\n- Requires restart: `yes`\n- Default: `false`",
+              "description": "Automatically start the LiteRT-LM server when PLUMB starts and the Gemma router is enabled.",
+              "markdownDescription": "Automatically start the LiteRT-LM server when PLUMB starts and the Gemma router is enabled.\n\n- Category: `Experimental`\n- Requires restart: `yes`\n- Default: `false`",
               "default": false,
               "type": "boolean"
             },
@@ -4036,7 +4187,7 @@
         },
         "extension": {
           "type": "object",
-          "description": "Metadata describing the Gemini CLI extension that owns this MCP server.",
+          "description": "Metadata describing the PLUMB extension that owns this MCP server.",
           "additionalProperties": {
             "type": ["string", "boolean", "number"]
           }
@@ -4138,7 +4289,7 @@
     },
     "TelemetrySettings": {
       "type": "object",
-      "description": "Telemetry configuration for Gemini CLI.",
+      "description": "Telemetry configuration for PLUMB.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
@@ -4235,7 +4386,7 @@
     },
     "CustomTheme": {
       "type": "object",
-      "description": "Custom theme definition used for styling Gemini CLI output. Colors are provided as hex strings or named ANSI colors.",
+      "description": "Custom theme definition used for styling PLUMB output. Colors are provided as hex strings or named ANSI colors.",
       "additionalProperties": false,
       "properties": {
         "type": {

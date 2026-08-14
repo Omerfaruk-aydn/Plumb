@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: logout must invalidate the model registry's in-memory
- * discovered-model cache for that provider, not just the on-disk cache —
- * otherwise a currently-running process that logs out and back in as a
- * DIFFERENT account on the same provider keeps serving the previous
- * account's discovered models until restart (a cross-account stale-
- * entitlement leak).
  */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockRemoveCredentials = vi.fn().mockResolvedValue(undefined);

@@ -1,21 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real production Ink configuration screen for the flat-schema cloud
- * providers (Bedrock, Vertex, watsonx) -- schema-driven from a
- * CloudProviderConfigSchema (see packages/provider/src/config/
- * cloudConfigSchema.ts) and a GenericCloudConfigActions instance (see
- * ../utils/genericCloudConfigActions.ts), so it never reimplements a
- * provider's field-visibility/validation rules itself. This is the exact
- * same interaction model as PlumbCloudProviderConfigForm (OCI's screen,
- * which stays separate because its IAM-subtype nested select and OCID
- * validation are genuinely bespoke) -- same navigation, same
- * save/cancel/remove/refresh/change-auth/clear-override semantics, same
- * secret masking -- so every flat-schema cloud provider gets identical UX
- * quality by construction, not by manual parity effort.
  */
+
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box, Text } from 'ink';
@@ -26,7 +13,7 @@ import {
   type CloudConfigFormValues,
   type CloudConfigValidationErrors,
   type CloudConfigFieldDef,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';

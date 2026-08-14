@@ -1,45 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI IAM-based authentication for OCI Generative AI, distinct from the
- * simpler `OCI_GENAI_API_KEY` bearer-token credential (transports/watsonx.ts's
- * sibling module for the API-key path lives in catalog/model-catalog.ts and
- * this file's own Responses/chat transports). Oracle's own docs: "Use API
- * keys for testing and early development. Use IAM-based authentication for
- * production workloads and OCI-managed environments."
- *
- * OFFICIAL SDK, NOT HAND-ROLLED SIGNING: there is no dedicated
- * GenAI-specific TypeScript/JavaScript auth helper published by Oracle
- * (unlike the Python `oci-genai-auth` / Java `oci-genai-auth-java`
- * packages -- confirmed absent from the npm registry as of this writing;
- * only `oci-common` (the general OCI TypeScript/JavaScript SDK's auth +
- * request-signing package) and `oci-generativeai` (the native gRPC-style
- * GenerativeAI service client, NOT the OpenAI-compatible endpoint this
- * transport calls) exist). Per Oracle's own documented pattern for
- * authenticated custom/raw OCI requests, this uses `oci-common`'s
- * `DefaultRequestSigner` bound to one of its real
- * `AuthenticationDetailsProvider` implementations -- never a hand-rolled
- * RSA signing / canonical-signing-string / key-fingerprint implementation.
- *
- * SUPPORT MATRIX (verified against the installed `oci-common` package's own
- * .d.ts sources, not assumed):
- *   CONFIG_PROFILE      -- SUPPORTED (ConfigFileAuthenticationDetailsProvider)
- *   SESSION              -- SUPPORTED (SessionAuthDetailProvider)
- *   INSTANCE_PRINCIPAL   -- SUPPORTED (InstancePrincipalsAuthenticationDetailsProviderBuilder)
- *   RESOURCE_PRINCIPAL   -- SUPPORTED (ResourcePrincipalAuthenticationDetailsProvider)
- * (Oracle's TS SDK also exposes OKE workload identity -- out of the
- * requested scope here, not wired.)
- *
- * CREDENTIAL OWNERSHIP: PLUMB never copies private key PEM material,
- * session token contents, or signed Authorization values into ordinary
- * PLUMB settings. CONFIG_PROFILE/SESSION modes read the identity straight
- * from the user's own `~/.oci/config` (or an explicit override path) --
- * PLUMB stores only the safe profile name / config path reference.
- * INSTANCE_PRINCIPAL/RESOURCE_PRINCIPAL read no local secret at all (OCI
- * compute/function metadata service owns that identity). All four modes
- * are classified as EXTERNAL_OFFICIAL_CREDENTIAL_AUTHORITY.
  */
 
 import {

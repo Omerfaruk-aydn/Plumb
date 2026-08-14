@@ -1,32 +1,6 @@
-﻿/**
- * @license
- * Copyright 2026 PLUMB Authors
+/**
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB Universal Model Inventory — the single canonical aggregation
- * layer that every surface (UI token meter, model picker, compaction,
- * transport, diagnostics) consumes. Replaces the previous
- * architecture that conflated "models the user can pick right now"
- * (i.e. active authenticated/configured providers) with "models
- * PLUMB knows about in total", which made the diagnostics silently
- * omit bundled catalog entries, providers not yet authenticated in
- * this process, and everything reachable through the OMP catalog —
- * exactly the failure the real-user diagnostic output exposed
- * ("active.model.count: 45 but only opencode-go + google-vertex show
- * up; claude-subscription, antigravity, github-copilot, openai, etc.
- * are completely absent").
- *
- * Contract:
- *  1. ONE canonical inventory, no parallel registries.
- *  2. Deterministic snapshot — async work first, render later.
- *  3. Per-field source provenance (identity / context / input /
- *     output / pricing). Identity provenance and limit provenance
- *     are NEVER conflated.
- *  4. Unknown means unknown. No silent fallbacks.
- *  5. No fake limits. The Claude "32k for unknown models" floor
- *     only applies inside the Claude Subscription transport's
- *     outbound `max_tokens` field; it is NEVER reported as a
- *     model's true `maxOutputTokens` in this inventory.
  */
 
 import {
@@ -46,7 +20,7 @@ import {
   customDefinitionToModels,
 } from '../config/customProviderDefinitions.js';
 import { getCatalogModels } from '../catalog/model-catalog.js';
-import { getBundledProviders } from '../omp-catalog/models.js';
+import { getBundledProviders } from '../vendor-catalog/models.js';
 import { PlumbModelRegistry } from './model-registry.js';
 
 // Identity provenance enum

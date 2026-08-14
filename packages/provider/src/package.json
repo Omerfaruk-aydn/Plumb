@@ -2,6 +2,6 @@
   "name": "@oh-my-pi/pi-ai",
   "version": "17.2.1",
   "type": "module",
-  "description": "PLUMB adaptation: OMP runtime identity (version read by imported omp-ai modules for User-Agent headers)",
+  "description": "PLUMB adaptation: OMP runtime identity (version read by imported vendor-ai modules for User-Agent headers)",
   "license": "MIT"
 }

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,10 +7,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '../../../test-utils/render.js';
 import { Text } from 'ink';
 import { McpProgressIndicator, ToolInfo } from './ToolShared.js';
-import { CoreToolCallStatus } from '@google/gemini-cli-core';
+import { CoreToolCallStatus } from '@plumb/core';
 
-vi.mock('../GeminiRespondingSpinner.js', () => ({
-  GeminiRespondingSpinner: () => <Text>MockSpinner</Text>,
+vi.mock('../PlumbRespondingSpinner.js', () => ({
+  PlumbRespondingSpinner: () => <Text>MockSpinner</Text>,
 }));
 
 describe('McpProgressIndicator', () => {

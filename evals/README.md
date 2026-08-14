@@ -6,9 +6,9 @@ for changes to system prompts, tool definitions, and other model-steering
 mechanisms, and as a tool for assessing feature reliability by model, and
 preventing regressions.
 
-> [!TIP] **Agent Automation**: If you are pair-programming with Gemini CLI, you
-> can leverage the **behavioral-evals skill** to automate fixing failing tests
-> or promoting incubation candidates.
+> [!TIP] **Agent Automation**: If you are pair-programming with PLUMB, you can
+> leverage the **behavioral-evals skill** to automate fixing failing tests or
+> promoting incubation candidates.
 
 ## Why Behavioral Evals?
 
@@ -138,7 +138,7 @@ describe('my_feature', () => {
 
 ## Running Evaluations
 
-First, build the bundled Gemini CLI. You must do this after every code change.
+First, build the bundled PLUMB. You must do this after every code change.
 
 ```bash
 npm run build

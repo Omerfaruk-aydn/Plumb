@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,12 +8,12 @@ import {
   supersedeStaleSnapshots,
   SNAPSHOT_SUPERSEDED_PLACEHOLDER,
 } from './snapshotSuperseder.js';
-import type { GeminiChat, HistoryTurn } from '../../core/geminiChat.js';
+import type { PlumbChat, HistoryTurn } from '../../core/plumbChat.js';
 import type { Content } from '@google/genai';
 import { randomUUID } from 'node:crypto';
 
-/** Builds a minimal mock GeminiChat around a mutable history array. */
-function createMockChat(history: Content[]): GeminiChat {
+/** Builds a minimal mock PlumbChat around a mutable history array. */
+function createMockChat(history: Content[]): PlumbChat {
   const getTurns = () => history.map((c) => ({ id: randomUUID(), content: c }));
   return {
     getHistory: vi.fn(() => [...history]),
@@ -25,7 +24,7 @@ function createMockChat(history: Content[]): GeminiChat {
         history.push('content' in item ? item.content : item);
       }
     }),
-  } as unknown as GeminiChat;
+  } as unknown as PlumbChat;
 }
 
 /** Helper: creates a take_snapshot functionResponse part. */
@@ -50,7 +49,7 @@ function otherToolResponse(name: string, output: string) {
 
 describe('supersedeStaleSnapshots', () => {
   let history: Content[];
-  let chat: GeminiChat;
+  let chat: PlumbChat;
 
   beforeEach(() => {
     history = [];

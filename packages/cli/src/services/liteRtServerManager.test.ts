@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GemmaModelRouterSettings } from '@google/gemini-cli-core';
+import type { GemmaModelRouterSettings } from '@plumb/core';
 
 const mockGetBinaryPath = vi.hoisted(() => vi.fn());
 const mockIsServerRunning = vi.hoisted(() => vi.fn());

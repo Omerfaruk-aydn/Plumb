@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import {
   createTransport,
   debugLogger,
   type AdminControlsSettings,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { ExtensionStorage } from '../../config/extensions/storage.js';
 import { ExtensionManager } from '../../config/extension-manager.js';
@@ -40,9 +39,8 @@ vi.mock('../../config/extensions/storage.js', () => ({
   },
 }));
 vi.mock('../../config/extension-manager.js');
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...original,
     createTransport: vi.fn(),
@@ -62,10 +60,10 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
       })),
       {
         getGlobalSettingsPath: () => '/tmp/gemini/settings.json',
-        getGlobalGeminiDir: () => '/tmp/gemini',
+        getGlobalPlumbDir: () => '/tmp/gemini',
       },
     ),
-    GEMINI_DIR: '.gemini',
+    PLUMB_DIR: '.gemini',
     getErrorMessage: (e: unknown) =>
       e instanceof Error ? e.message : String(e),
   };

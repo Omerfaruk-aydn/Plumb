@@ -1,18 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import {
-  debugLogger,
-  spawnAsync,
-  LlmRole,
-  type Config,
-} from '@google/gemini-cli-core';
+import { debugLogger, spawnAsync, LlmRole, type Config } from '@plumb/core';
 import { useKeypress } from '../../hooks/useKeypress.js';
 import { Command } from '../../key/keyMatchers.js';
 import { TextInput } from '../shared/TextInput.js';

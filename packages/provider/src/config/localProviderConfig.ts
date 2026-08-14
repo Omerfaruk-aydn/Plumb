@@ -1,13 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical endpoint metadata for PLUMB's five local runtimes.
- *
- * The values here are OpenAI-compatible API base URLs (including `/v1`).
- * Ollama is the one exception during discovery: its authoritative local model
- * inventory is the native `/api/tags` endpoint, so discovery derives the
- * native server root while production chat continues to use `/v1`.
  */
 
 import type { PlumbKnownApi } from '../types.js';

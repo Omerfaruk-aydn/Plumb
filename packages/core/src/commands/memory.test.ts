@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +27,7 @@ import {
 vi.mock('../config/storage.js', () => ({
   Storage: {
     getUserSkillsDir: vi.fn(),
-    getGlobalGeminiDir: vi.fn(),
+    getGlobalPlumbDir: vi.fn(),
   },
 }));
 
@@ -127,7 +126,7 @@ describe('memory commands', () => {
 
   describe('listMemoryFiles', () => {
     it('should list the memory files in use', () => {
-      const filePaths = ['/path/to/GEMINI.md', '/other/path/GEMINI.md'];
+      const filePaths = ['/path/to/PLUMB.md', '/other/path/PLUMB.md'];
       vi.mocked(mockConfig.getGeminiMdFilePaths).mockReturnValue(filePaths);
 
       const result = listMemoryFiles(mockConfig);
@@ -136,7 +135,7 @@ describe('memory commands', () => {
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
         expect(result.content).toContain(
-          'There are 2 GEMINI.md file(s) in use:',
+          'There are 2 PLUMB.md file(s) in use:',
         );
         expect(result.content).toContain(filePaths.join('\n'));
       }
@@ -150,7 +149,7 @@ describe('memory commands', () => {
       expect(result.type).toBe('message');
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
-        expect(result.content).toBe('No GEMINI.md files in use.');
+        expect(result.content).toBe('No PLUMB.md files in use.');
       }
     });
 
@@ -164,7 +163,7 @@ describe('memory commands', () => {
       expect(result.type).toBe('message');
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
-        expect(result.content).toBe('No GEMINI.md files in use.');
+        expect(result.content).toBe('No PLUMB.md files in use.');
       }
     });
   });
@@ -348,7 +347,7 @@ describe('memory commands', () => {
         },
         isTrustedFolder: () => true,
       } as unknown as Config;
-      vi.mocked(Storage.getGlobalGeminiDir).mockReturnValue(globalMemoryDir);
+      vi.mocked(Storage.getGlobalPlumbDir).mockReturnValue(globalMemoryDir);
     });
 
     afterEach(async () => {
@@ -404,7 +403,7 @@ describe('memory commands', () => {
       await fs.mkdir(patchDir, { recursive: true });
       await fs.writeFile(
         path.join(patchDir, 'escape.patch'),
-        buildCreationPatch(path.join(projectRoot, 'GEMINI.md'), 'Hi.\n'),
+        buildCreationPatch(path.join(projectRoot, 'PLUMB.md'), 'Hi.\n'),
       );
 
       const patches = await listInboxMemoryPatches(patchConfig);
@@ -464,7 +463,7 @@ describe('memory commands', () => {
     });
 
     it('omits global patches with disallowed targets from the listing', async () => {
-      // Same defense for the global tier: only ~/.gemini/GEMINI.md is allowed.
+      // Same defense for the global tier: only ~/.gemini/PLUMB.md is allowed.
       // memory.md (legacy lowercase), sibling .md files, and settings.json all
       // get filtered out of the listing instead of confusing the user.
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -490,7 +489,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'nested.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md', 'nested.md'),
+          path.join(globalMemoryDir, 'PLUMB.md', 'nested.md'),
           'rejected\n',
         ),
       );
@@ -699,8 +698,8 @@ describe('memory commands', () => {
       );
     });
 
-    it('applies a global creation patch to ~/.gemini/GEMINI.md', async () => {
-      const target = path.join(globalMemoryDir, 'GEMINI.md');
+    it('applies a global creation patch to ~/.gemini/PLUMB.md', async () => {
+      const target = path.join(globalMemoryDir, 'PLUMB.md');
       // Sanity check: target does not exist before apply.
       await expect(fs.access(target)).rejects.toThrow();
 
@@ -726,8 +725,8 @@ describe('memory commands', () => {
       ).rejects.toThrow();
     });
 
-    it('applies a global update patch to ~/.gemini/GEMINI.md', async () => {
-      const target = path.join(globalMemoryDir, 'GEMINI.md');
+    it('applies a global update patch to ~/.gemini/PLUMB.md', async () => {
+      const target = path.join(globalMemoryDir, 'PLUMB.md');
       await fs.writeFile(target, '- prefer X\n');
 
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -753,7 +752,7 @@ describe('memory commands', () => {
     it.runIf(isCaseInsensitivePathPlatform)(
       'accepts global memory patch targets with different path casing',
       async () => {
-        const target = path.join(globalMemoryDir, 'GEMINI.md');
+        const target = path.join(globalMemoryDir, 'PLUMB.md');
         await fs.writeFile(target, '- prefer X\n');
 
         const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -789,7 +788,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'GEMINI.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md'),
+          path.join(globalMemoryDir, 'PLUMB.md'),
           'Prefer concise.\n',
         ),
       );
@@ -910,7 +909,7 @@ describe('memory commands', () => {
       await expect(fs.access(path.join(patchDir, 'b.patch'))).rejects.toThrow();
     });
 
-    it('rejects global patches that target anything other than ~/.gemini/GEMINI.md', async () => {
+    it('rejects global patches that target anything other than ~/.gemini/PLUMB.md', async () => {
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
       await fs.mkdir(patchDir, { recursive: true });
 
@@ -945,7 +944,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'nested.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md', 'nested.md'),
+          path.join(globalMemoryDir, 'PLUMB.md', 'nested.md'),
           'Should be rejected.\n',
         ),
       );
@@ -972,7 +971,7 @@ describe('memory commands', () => {
         ).rejects.toThrow();
       }
       await expect(
-        fs.access(path.join(globalMemoryDir, 'GEMINI.md', 'nested.md')),
+        fs.access(path.join(globalMemoryDir, 'PLUMB.md', 'nested.md')),
       ).rejects.toThrow();
     });
 

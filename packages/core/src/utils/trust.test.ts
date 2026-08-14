@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -45,7 +44,7 @@ describe('Trust Utility (Core)', () => {
     vi.mocked(headless.isHeadlessMode).mockReturnValue(false);
     ideContextStore.clear();
     resetTrustedFoldersForTesting();
-    delete process.env['GEMINI_CLI_TRUST_WORKSPACE'];
+    delete process.env['PLUMB_TRUST_WORKSPACE'];
   });
 
   afterEach(() => {

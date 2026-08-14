@@ -1,26 +1,13 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Phase 4 provider-switch matrix: exercises the real production dispatch
- * chain (catalog/model-catalog.ts -> transports/streaming.ts's
- * plumbModelStream -> the real per-provider transport) across all five
- * Phase 4 cloud providers in sequence, proving zero credential/config/
- * transport/signer bleed between consecutive requests to DIFFERENT
- * providers -- the exact failure mode the Bedrock/Azure/Vertex generic-
- * fallback bugs exposed (a wrong/missing transport registration silently
- * sending one provider's request shape/auth to another provider's
- * endpoint).
- *
- * Chain: amazon-bedrock -> azure -> google-vertex -> watsonx -> oci-genai
- * -> amazon-bedrock (closing the loop back to the first provider).
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCatalogModels } from '../catalog/model-catalog.js';
 import { plumbModelStream } from './streaming.js';
 import { setProviderConfigResolver } from '../config/providerConfigResolver.js';
-import { __resetVertexTokenCache } from '../omp-ai/providers/google-auth.js';
+import { __resetVertexTokenCache } from '../vendor-ai/providers/plumbGoogleAuth.js';
 import { __resetWatsonxClientCacheForTests } from './watsonx.js';
 import type { PlumbStreamEvent } from '../types.js';
 
@@ -75,7 +62,7 @@ describe('Phase 4 cloud provider-switch matrix (zero cross-provider bleed)', () 
   }> = [];
 
   beforeEach(async () => {
-    const { installBunGlobal } = await import('../omp-shims/bun-runtime.js');
+    const { installBunGlobal } = await import('../vendor-shims/bun-runtime.js');
     installBunGlobal();
     calls.length = 0;
     mockTextChatStream.mockReset();

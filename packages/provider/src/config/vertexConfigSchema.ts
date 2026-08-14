@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Google Vertex AI configuration domain schema. Mirrors the two auth paths
- * the real transport (packages/provider/src/omp-ai/registry/google-vertex.ts)
- * already supports: a simple API key, or Application Default Credentials
- * (the official Google credential authority -- gcloud ADC file or
- * GOOGLE_APPLICATION_CREDENTIALS), which additionally require project +
- * location since Vertex has no single global endpoint.
  */
+
 import type { CloudProviderConfigSchema } from './cloudConfigSchema.js';
 import {
   getVisibleCloudFields,

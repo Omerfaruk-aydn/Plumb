@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical OCI configuration save/load orchestration -- the ONLY place
- * that persists OCI safe config/credentials or reads them back for edit
- * mode. React (PlumbCloudProviderConfigForm) calls these; it never
- * constructs raw credential-store/cache calls itself.
  */
+
 import {
   validateOciConfig,
   buildOciSaveOperation,
@@ -15,7 +10,7 @@ import {
   resolveProviderConfigValue,
   type OciConfigFormValues,
   type OciConfigValidationErrors,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 const OCI_PROVIDER_ID = 'oci-genai';
 const OCI_DEFAULT_REGION = 'us-chicago-1';
@@ -77,9 +72,7 @@ export async function saveOciConfiguration(
 
   if (credential) {
     try {
-      const { ensurePlumbCredentialStore } = await import(
-        '@google/gemini-cli-provider'
-      );
+      const { ensurePlumbCredentialStore } = await import('@plumb/provider');
       const store = await ensurePlumbCredentialStore();
       await store.storeApiKeyCredential(OCI_PROVIDER_ID, {
         type: 'api_key',
@@ -95,7 +88,7 @@ export async function saveOciConfiguration(
   }
 
   try {
-    const { saveProviderCloudConfig } = await import('@google/gemini-cli-core');
+    const { saveProviderCloudConfig } = await import('@plumb/core');
     await saveProviderCloudConfig(OCI_PROVIDER_ID, safeConfig);
   } catch (err) {
     return {
@@ -125,10 +118,7 @@ export interface OciExistingConfig {
  */
 export async function loadOciExistingConfig(): Promise<OciExistingConfig> {
   const [{ getCachedProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-    await Promise.all([
-      import('@google/gemini-cli-core'),
-      import('@google/gemini-cli-provider'),
-    ]);
+    await Promise.all([import('@plumb/core'), import('@plumb/provider')]);
   const safeConfig = { ...getCachedProviderCloudConfig(OCI_PROVIDER_ID) };
   const effectiveRegion = resolveProviderConfigValue(
     OCI_PROVIDER_ID,
@@ -163,10 +153,7 @@ export async function loadOciExistingConfig(): Promise<OciExistingConfig> {
 /** Removes PLUMB-owned OCI configuration + credential. Never touches external OCI config files/profiles/principal state. */
 export async function removeOciConfiguration(): Promise<void> {
   const [{ clearProviderCloudConfig }, { ensurePlumbCredentialStore }] =
-    await Promise.all([
-      import('@google/gemini-cli-core'),
-      import('@google/gemini-cli-provider'),
-    ]);
+    await Promise.all([import('@plumb/core'), import('@plumb/provider')]);
   await clearProviderCloudConfig(OCI_PROVIDER_ID);
   try {
     const store = await ensurePlumbCredentialStore();
@@ -186,7 +173,7 @@ export async function removeOciConfiguration(): Promise<void> {
  */
 export async function clearOciConfigOverrides(): Promise<void> {
   const [{ getCachedProviderCloudConfig, saveProviderCloudConfig }] =
-    await Promise.all([import('@google/gemini-cli-core')]);
+    await Promise.all([import('@plumb/core')]);
   const current = { ...getCachedProviderCloudConfig(OCI_PROVIDER_ID) };
   for (const field of Object.keys(OVERRIDABLE_FIELD_ENV_VARS)) {
     delete current[field];
@@ -201,8 +188,6 @@ export async function clearOciConfigOverrides(): Promise<void> {
  * An explicit user action only -- never triggered by mere navigation.
  */
 export async function refreshOciModelStatus(): Promise<void> {
-  const { removeOmpModelCacheEntry } = await import(
-    '@google/gemini-cli-provider'
-  );
+  const { removeOmpModelCacheEntry } = await import('@plumb/provider');
   removeOmpModelCacheEntry(OCI_PROVIDER_ID);
 }

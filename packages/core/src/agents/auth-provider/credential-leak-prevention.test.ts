@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { GoogleCredentialsAuthProvider } from './google-credentials-provider.js';
+import { GoogleCredentialsAuthProvider } from './plumbGoogleCredentialsProvider.js';
 import type { GoogleCredentialsAuthConfig } from './types.js';
 import { GoogleAuth } from 'google-auth-library';
 

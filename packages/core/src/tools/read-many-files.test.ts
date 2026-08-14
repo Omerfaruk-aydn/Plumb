@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +29,7 @@ import {
 } from '../utils/ignorePatterns.js';
 import * as glob from 'glob';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../config/constants.js';
 import type { ReadManyFilesResult } from './tools.js';
 
 vi.mock('glob', { spy: true });
@@ -89,7 +88,7 @@ describe('ReadManyFilesTool', () => {
     tempDirOutsideRoot = fs.realpathSync(
       fs.mkdtempSync(path.join(os.tmpdir(), 'read-many-files-external-')),
     );
-    fs.writeFileSync(path.join(tempRootDir, GEMINI_IGNORE_FILE_NAME), 'foo.*');
+    fs.writeFileSync(path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME), 'foo.*');
     const fileService = new FileDiscoveryService(tempRootDir);
     const mockConfig = {
       getFileService: () => fileService,
@@ -97,7 +96,7 @@ describe('ReadManyFilesTool', () => {
 
       getFileFilteringOptions: () => ({
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
         customIgnoreFilePaths: [],
       }),
       getTargetDir: () => tempRootDir,
@@ -566,7 +565,7 @@ describe('ReadManyFilesTool', () => {
         getFileSystemService: () => new StandardFileSystemService(),
         getFileFilteringOptions: () => ({
           respectGitIgnore: true,
-          respectGeminiIgnore: true,
+          respectPlumbIgnore: true,
           customIgnoreFilePaths: [],
         }),
         getWorkspaceContext: () => new WorkspaceContext(tempDir1, [tempDir2]),
@@ -916,7 +915,7 @@ Content of file[1]
     it('should discover JIT context sequentially to avoid duplicate shared parent context', async () => {
       const { discoverJitContext } = await import('./jit-context.js');
 
-      // Simulate two subdirectories sharing a parent GEMINI.md.
+      // Simulate two subdirectories sharing a parent PLUMB.md.
       // Sequential execution means the second call sees the parent already
       // loaded, so it only returns its own leaf context.
       const callOrder: string[] = [];

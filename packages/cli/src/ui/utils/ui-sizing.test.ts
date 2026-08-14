@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect } from 'vitest';
 import { calculateMainAreaWidth } from './ui-sizing.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@plumb/core';
 
 describe('ui-sizing', () => {
   describe('calculateMainAreaWidth', () => {

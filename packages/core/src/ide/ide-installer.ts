@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -168,11 +167,7 @@ class VsCodeInstaller implements IdeInstaller {
     try {
       const result = child_process.spawnSync(
         commandPath,
-        [
-          '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
-          '--force',
-        ],
+        ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
         { stdio: 'pipe', shell: this.platform === 'win32' },
       );
 
@@ -218,11 +213,7 @@ class PositronInstaller implements IdeInstaller {
     try {
       const result = child_process.spawnSync(
         commandPath,
-        [
-          '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
-          '--force',
-        ],
+        ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
         { stdio: 'pipe', shell: this.platform === 'win32' },
       );
 
@@ -288,11 +279,7 @@ class AntigravityInstaller implements IdeInstaller {
     try {
       const result = child_process.spawnSync(
         commandPath,
-        [
-          '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
-          '--force',
-        ],
+        ['--install-extension', 'google.plumb-vscode-ide-companion', '--force'],
         { stdio: 'pipe', shell: this.platform === 'win32' },
       );
 

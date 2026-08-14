@@ -60,7 +60,7 @@ evaluation.
       - **Verification**: As part of simplification, you MUST identify and run
         any behavioral eval tests that might be affected by the changes to
         ensure no regressions are introduced.
-    - Test fixes should not "cheat" by changing a test's `GEMINI.md` file or by
+    - Test fixes should not "cheat" by changing a test's `PLUMB.md` file or by
       updating the test's prompt to instruct it to not repro the bug.
     - **Warning**: Prompts have multiple configurations; ensure your fix targets
       the correct config for the model in question.

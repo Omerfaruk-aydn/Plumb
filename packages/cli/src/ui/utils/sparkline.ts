@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F5 (PLUMB-UI-DEVRIM-PROMPT.md) sparkline rendering. Pure function over
- * whatever samples the caller already collected -- no timer, no
- * animation; it just draws whatever numbers it's given.
  */
 
 const SPARK_BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -30,7 +29,7 @@ describe('Tracker Tools Integration', () => {
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tracker-tools-test-'));
-    vi.stubEnv('GEMINI_CLI_HOME', tempDir);
+    vi.stubEnv('PLUMB_CLI_HOME', tempDir);
     config = new Config({
       sessionId: `test-session-${Math.random().toString(36).substring(7)}`,
       targetDir: tempDir,

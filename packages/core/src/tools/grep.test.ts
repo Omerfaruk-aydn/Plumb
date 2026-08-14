@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -55,7 +54,7 @@ describe('GrepTool', () => {
       }),
       getFileFilteringOptions: () => ({
         respectGitIgnore: true,
-        respectGeminiIgnore: true,
+        respectPlumbIgnore: true,
         maxFileCount: 1000,
         searchTimeout: 30000,
         customIgnoreFilePaths: [],
@@ -384,7 +383,7 @@ describe('GrepTool', () => {
         }),
         getFileFilteringOptions: () => ({
           respectGitIgnore: true,
-          respectGeminiIgnore: true,
+          respectPlumbIgnore: true,
           maxFileCount: 1000,
           searchTimeout: 30000,
           customIgnoreFilePaths: [],
@@ -468,7 +467,7 @@ describe('GrepTool', () => {
         }),
         getFileFilteringOptions: () => ({
           respectGitIgnore: true,
-          respectGeminiIgnore: true,
+          respectPlumbIgnore: true,
           maxFileCount: 1000,
           searchTimeout: 30000,
           customIgnoreFilePaths: [],
@@ -683,7 +682,7 @@ describe('GrepTool', () => {
         }),
         getFileFilteringOptions: () => ({
           respectGitIgnore: true,
-          respectGeminiIgnore: true,
+          respectPlumbIgnore: true,
           maxFileCount: 1000,
           searchTimeout: 30000,
           customIgnoreFilePaths: [],

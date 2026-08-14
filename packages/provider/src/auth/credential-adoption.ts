@@ -1,31 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Canonical adoption of an already-completed OMP login result into the
- * single PLUMB credential authority: the factory-registered secure
- * credential store plus the PlumbProviderRegistry.
- *
- * This module performs NO login of its own and never starts an OAuth flow.
- * It exists because there are exactly two callers that drive the OMP
- * registry `login` function to completion:
- *
- *   1. `/login <provider>` — PlumbProviderAuthService.#ompLoginFlow
- *      (packages/core), which persists the result immediately; and
- *   2. `plumb --test-provider <coding-plan>` — the live acceptance harness
- *      (packages/cli), which drives the same OMP login interactively.
- *
- * Caller 2 previously kept the credential in runtime memory only, so
- * store-resolving production transports (the google-gemini-cli /
- * google-antigravity dialect: buildAntigravityRequest ->
- * resolveUsablePlumbCredential) could not see the credential the user had
- * just authenticated with — the immediate production stream failed with
- * NO_CREDENTIAL right after "Authentication successful." (live-observed
- * against a real Antigravity account). Routing both callers through this
- * one function keeps a single canonical credential write path: same store,
- * same PLUMB presentation-id scope (never the OMP catalog id), same
- * registry notification — no duplicate scopes, no parallel stores.
  */
 
 import { ensurePlumbCredentialStore } from './credential-store.js';
@@ -35,7 +10,7 @@ import type {
   PlumbOAuthCredential,
   PlumbProviderId,
 } from '../types.js';
-import type { OAuthCredentials } from '../omp-ai/registry/oauth/types.js';
+import type { OAuthCredentials } from '../vendor-ai/registry/oauth/types.js';
 
 export type AdoptedPlumbLoginCredential =
   | { kind: 'oauth'; credential: PlumbOAuthCredential }

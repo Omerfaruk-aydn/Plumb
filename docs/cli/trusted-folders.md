@@ -1,9 +1,9 @@
 # Trusted Folders
 
 The Trusted Folders feature is a security setting that gives you control over
-which projects can use the full capabilities of Gemini CLI. It prevents
-potentially malicious code from running by asking you to approve a folder before
-the CLI loads any project-specific configurations from it.
+which projects can use the full capabilities of PLUMB. It prevents potentially
+malicious code from running by asking you to approve a folder before the CLI
+loads any project-specific configurations from it.
 
 ## Enabling the feature
 
@@ -24,7 +24,7 @@ Add the following to your user `settings.json` file:
 
 ## How it works: The trust dialog
 
-Once the feature is enabled, the first time you run Gemini CLI from a folder, a
+Once the feature is enabled, the first time you run PLUMB from a folder, a
 dialog will automatically appear, prompting you to make a choice:
 
 - **Trust folder**: Grants full trust to the current folder (for example,
@@ -40,7 +40,7 @@ will only be asked once per folder.
 
 ## Understanding folder contents: The discovery phase
 
-Before you make a choice, Gemini CLI performs a **discovery phase** to scan the
+Before you make a choice, PLUMB performs a **discovery phase** to scan the
 folder for potential configurations. This information is displayed in the trust
 dialog to help you make an informed decision.
 
@@ -71,7 +71,7 @@ that you know are safe.
 
 ## Why trust matters: The impact of an untrusted workspace
 
-When a folder is **untrusted**, Gemini CLI runs in a restricted "safe mode" to
+When a folder is **untrusted**, PLUMB runs in a restricted "safe mode" to
 protect you. In this mode, the following features are disabled:
 
 1.  **Workspace settings are ignored**: The CLI will **not** load the
@@ -97,13 +97,13 @@ protect you. In this mode, the following features are disabled:
     commands from .toml files, including both project-specific and global user
     commands.
 
-Granting trust to a folder unlocks the full functionality of Gemini CLI for that
+Granting trust to a folder unlocks the full functionality of PLUMB for that
 workspace.
 
 ## Headless and automated environments
 
-When running Gemini CLI in a headless environment (for example, a CI/CD
-pipeline) where interactive prompts are not possible, the trust dialog cannot be
+When running PLUMB in a headless environment (for example, a CI/CD pipeline)
+where interactive prompts are not possible, the trust dialog cannot be
 displayed. If the folder is untrusted and the Folder Trust feature is enabled,
 the CLI will throw a `FatalUntrustedWorkspaceError` and exit.
 
@@ -111,15 +111,15 @@ To proceed in these environments, you can bypass the trust check using one of
 the following methods:
 
 - **Command-line flag:** Run the CLI with the `--skip-trust` flag.
-- **Environment variable:** Set the `GEMINI_CLI_TRUST_WORKSPACE=true`
-  environment variable.
+- **Environment variable:** Set the `PLUMB_TRUST_WORKSPACE=true` environment
+  variable.
 
 These methods will trust the current workspace for the duration of the session
 without prompting.
 
 For detailed instructions on managing folder trust within CI/CD workflows,
 review the
-[Gemini CLI trust guidance for GitHub Actions](https://github.com/google-github-actions/run-gemini-cli/blob/main/docs/trust-guidance.md).
+[PLUMB trust guidance for GitHub Actions](https://github.com/google-github-actions/run-gemini-cli/blob/main/docs/trust-guidance.md).
 
 ## Overriding the trust file location
 

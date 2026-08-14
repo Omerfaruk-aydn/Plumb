@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OpenAI Responses fixture matrix. Every Responses-family route must be
- * validated independently for: tools serialization, auto selector, required
- * selector, named selector (Responses shape `{type:'function', name}` — NEVER
- * the Chat-Completions double-wrapper), and route capability. A shared dialect
- * implementation is allowed; a shared route-capability assumption is not.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   isResponsesApiFamily,

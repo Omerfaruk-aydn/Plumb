@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import type {
   IPlumbCredentialStore,
   PlumbOAuthCredential,
   PlumbApiKeyCredential,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 describe('PlumbSecureCredentialStore', () => {
   let store: PlumbSecureCredentialStore;
@@ -21,14 +20,14 @@ describe('PlumbSecureCredentialStore', () => {
   let previousHome: string | undefined;
 
   beforeEach(async () => {
-    // Isolate GEMINI_CLI_HOME per test run so this suite's real-file writes
+    // Isolate PLUMB_CLI_HOME per test run so this suite's real-file writes
     // (~/.plumb/providers.json) never race other suites (e.g.
     // omp-keychain-adapter.test.ts) that touch the same real path.
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-secure-store-test-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    previousHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
 
     store = new PlumbSecureCredentialStore();
     await store.clearAll();
@@ -37,9 +36,9 @@ describe('PlumbSecureCredentialStore', () => {
   afterEach(async () => {
     await store.clearAll();
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     fs.rmSync(isolatedHome, { recursive: true, force: true });
   });

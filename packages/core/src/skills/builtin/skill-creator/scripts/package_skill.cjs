@@ -1,16 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Skill Packager - Creates a distributable .skill file of a skill folder
- *
- * Usage:
- *     node package_skill.js <path/to/skill-folder> [output-directory]
  */
 
 const path = require('node:path');

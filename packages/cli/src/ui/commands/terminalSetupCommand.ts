@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { CommandKind, type SlashCommand } from './types.js';
 import { terminalSetup } from '../utils/terminalSetup.js';
-import { type MessageActionReturn } from '@google/gemini-cli-core';
+import { type MessageActionReturn } from '@plumb/core';
 
 /**
  * Command to configure terminal keybindings for multiline input support.

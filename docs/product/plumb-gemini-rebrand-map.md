@@ -2,11 +2,10 @@
 
 ## 1. Executive Summary
 
-This document defines the controlled migration map for rebranding the Gemini CLI
-base into PLUMB. Global string search-and-replace is strictly forbidden; all
-renames are mapped to specific scopes to preserve protocol compatibility where
-needed (e.g. MCP / A2A) while ensuring 100% PLUMB identity for user-facing
-surfaces.
+This document defines the controlled migration map for rebranding the PLUMB base
+into PLUMB. Global string search-and-replace is strictly forbidden; all renames
+are mapped to specific scopes to preserve protocol compatibility where needed
+(e.g. MCP / A2A) while ensuring 100% PLUMB identity for user-facing surfaces.
 
 ---
 

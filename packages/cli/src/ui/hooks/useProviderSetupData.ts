@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import type { PlumbProvider, PlumbModel } from '@google/gemini-cli-provider';
+import type { PlumbProvider, PlumbModel } from '@plumb/provider';
 
 export interface ProviderSetupModelEntry {
   id: string;
@@ -65,7 +64,7 @@ export function useProviderSetupData(isOpen: boolean): ProviderSetupData {
     let cancelled = false;
     void (async () => {
       try {
-        const providerPackage = await import('@google/gemini-cli-provider');
+        const providerPackage = await import('@plumb/provider');
         const registry = providerPackage.getPlumbModelRegistry();
         const fullModels = registry.getAllAvailableModels();
         const models = fullModels.map((model) => ({

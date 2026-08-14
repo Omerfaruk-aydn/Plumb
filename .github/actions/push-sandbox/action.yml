@@ -78,7 +78,7 @@ runs:
         STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG: '${{ steps.image_tag.outputs.FINAL_TAG }}'
       run: |-
         npm run build:sandbox -- \
-          --image "google/gemini-cli-sandbox:${STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG}" \
+          --image "google/plumb-sandbox:${STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG}" \
           --output-file final_image_uri.txt
         echo "uri=$(cat final_image_uri.txt)" >> $GITHUB_OUTPUT
     - name: 'verify'
@@ -86,7 +86,7 @@ runs:
       run: |-
         docker run --rm --entrypoint sh "${{ steps.docker_build.outputs.uri }}" -lc '
           set -e
-          node -e "const fs=require(\"node:fs\"); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@google/gemini-cli/package.json\",\"utf8\")); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@google/gemini-cli-core/package.json\",\"utf8\"));"
+          node -e "const fs=require(\"node:fs\"); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/plumb-cli/package.json\",\"utf8\")); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@plumb/core/package.json\",\"utf8\"));"
           /usr/local/share/npm-global/bin/gemini --version >/dev/null
         '
     - name: 'publish'
@@ -99,7 +99,7 @@ runs:
         STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG: '${{ steps.image_tag.outputs.FINAL_TAG }}'
       run: |-
         npm run build:sandbox -- \
-          --image "google/gemini-cli-sandbox:${STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG}"
+          --image "google/plumb-sandbox:${STEPS_IMAGE_TAG_OUTPUTS_FINAL_TAG}"
     - name: 'Create issue on failure'
       if: |-
         ${{ failure() }}

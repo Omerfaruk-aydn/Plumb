@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F17 (PLUMB-UI-DEVRIM-PROMPT.md): a retro green-phosphor CRT terminal
- * look, built the same way every other builtin theme in this directory
- * is (a ColorsTheme + hljs class-name -> color mappings) -- no new
- * infrastructure, just a new theme entry.
  */
+
 import { type ColorsTheme, Theme } from '../../theme.js';
 import { interpolateColor } from '../../color-utils.js';
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Compiles the GeminiSandbox C# helper on Windows.
+ * Compiles the PlumbSandbox C# helper on Windows.
  * This is used to provide native restricted token sandboxing.
  */
 function compileWindowsSandbox() {
@@ -26,15 +25,15 @@ function compileWindowsSandbox() {
 
   const srcHelperPath = path.resolve(
     __dirname,
-    '../src/sandbox/windows/GeminiSandbox.exe',
+    '../src/sandbox/windows/PlumbSandbox.exe',
   );
   const distHelperPath = path.resolve(
     __dirname,
-    '../dist/src/sandbox/windows/GeminiSandbox.exe',
+    '../dist/src/sandbox/windows/PlumbSandbox.exe',
   );
   const sourcePath = path.resolve(
     __dirname,
-    '../src/sandbox/windows/GeminiSandbox.cs',
+    '../src/sandbox/windows/PlumbSandbox.cs',
   );
 
   if (!fs.existsSync(sourcePath)) {
@@ -102,7 +101,7 @@ function compileWindowsSandbox() {
   );
 
   if (result.status === 0) {
-    console.log('Successfully compiled GeminiSandbox.exe to src');
+    console.log('Successfully compiled PlumbSandbox.exe to src');
     // Copy to dist if dist exists
     const distDir = path.resolve(__dirname, '../dist');
     if (fs.existsSync(distDir)) {
@@ -111,7 +110,7 @@ function compileWindowsSandbox() {
         fs.mkdirSync(distScriptsDir, { recursive: true });
       }
       fs.copyFileSync(srcHelperPath, distHelperPath);
-      console.log('Successfully copied GeminiSandbox.exe to dist');
+      console.log('Successfully copied PlumbSandbox.exe to dist');
     }
   } else {
     console.error('Failed to compile Windows sandbox helper.');

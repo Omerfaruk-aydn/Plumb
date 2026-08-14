@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { performInit } from '@google/gemini-cli-core';
+import { performInit } from '@plumb/core';
 import type {
   Command,
   CommandContext,
@@ -15,7 +14,7 @@ import type {
 
 export class InitCommand implements Command {
   name = 'init';
-  description = 'Analyzes the project and creates a tailored GEMINI.md file';
+  description = 'Analyzes the project and creates a tailored PLUMB.md file';
   requiresWorkspace = true;
 
   async execute(
@@ -27,8 +26,8 @@ export class InitCommand implements Command {
       throw new Error('Command requires a workspace.');
     }
 
-    const geminiMdPath = path.join(targetDir, 'GEMINI.md');
-    const result = performInit(fs.existsSync(geminiMdPath));
+    const plumbMdPath = path.join(targetDir, 'PLUMB.md');
+    const result = performInit(fs.existsSync(plumbMdPath));
 
     switch (result.type) {
       case 'message':
@@ -37,7 +36,7 @@ export class InitCommand implements Command {
           data: result,
         };
       case 'submit_prompt':
-        fs.writeFileSync(geminiMdPath, '', 'utf8');
+        fs.writeFileSync(plumbMdPath, '', 'utf8');
 
         if (typeof result.content !== 'string') {
           throw new Error('Init command content must be a string.');
@@ -45,13 +44,13 @@ export class InitCommand implements Command {
 
         // Inform the user since we can't trigger the UI-based interactive agent loop here directly.
         // We output the prompt text they can use to re-trigger the generation manually,
-        // or just seed the GEMINI.md file as we've done above.
+        // or just seed the PLUMB.md file as we've done above.
         return {
           name: this.name,
           data: {
             type: 'message',
             messageType: 'info',
-            content: `A template GEMINI.md has been created at ${geminiMdPath}.\n\nTo populate it with project context, you can run the following prompt in a new chat:\n\n${result.content}`,
+            content: `A template PLUMB.md has been created at ${plumbMdPath}.\n\nTo populate it with project context, you can run the following prompt in a new chat:\n\n${result.content}`,
           },
         };
 

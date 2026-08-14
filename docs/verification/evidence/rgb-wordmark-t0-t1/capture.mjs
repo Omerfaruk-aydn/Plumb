@@ -1,23 +1,8 @@
 #!/usr/bin/env node
+
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PLUMB production route terminal evidence.
- *
- * Renders the production components (the same ink + ink-gradient stack
- * Windows Terminal hosts) and writes the rendered bytes to disk. Three
- * frames are captured:
- *   - frame-T0-first-paint.log         RGB wordmark at phase 0
- *   - frame-T1-after-phase-tick.log   RGB wordmark after the phase timer
- *                                     advances (Phase 60) — palette
- *                                     rotates while geometry stays
- *                                     stable.
- *   - frame-provider-first-empty-state.log
- *                                     The mounted PlumbProviderSetupDialog
- *                                     — the provider-first empty-state
- *                                     screen.
  */
 
 import * as fs from 'node:fs';

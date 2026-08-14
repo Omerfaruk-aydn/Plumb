@@ -1,17 +1,17 @@
-# Gemini CLI companion plugin: Interface specification
+# PLUMB companion plugin: Interface specification
 
 > Last Updated: September 15, 2025
 
 This document defines the contract for building a companion plugin to enable
-Gemini CLI's IDE mode. For VS Code, these features (native diffing, context
+PLUMB's IDE mode. For VS Code, these features (native diffing, context
 awareness) are provided by the official extension
-([marketplace](https://marketplace.visualstudio.com/items?itemName=Google.gemini-cli-vscode-ide-companion)).
+([marketplace](https://marketplace.visualstudio.com/items?itemName=Google.plumb-vscode-ide-companion)).
 This specification is for contributors who wish to bring similar functionality
 to other editors like JetBrains IDEs, Sublime Text, etc.
 
 ## I. The communication interface
 
-Gemini CLI and the IDE plugin communicate through a local communication channel.
+PLUMB and the IDE plugin communicate through a local communication channel.
 
 ### 1. Transport layer: MCP over HTTP
 
@@ -27,8 +27,8 @@ Protocol (MCP)**.
 
 ### 2. Discovery mechanism: The port file
 
-For Gemini CLI to connect, it needs to discover which IDE instance it's running
-in and what port your server is using. The plugin **MUST** facilitate this by
+For PLUMB to connect, it needs to discover which IDE instance it's running in
+and what port your server is using. The plugin **MUST** facilitate this by
 creating a "discovery file."
 
 - **How the CLI finds the file:** The CLI determines the Process ID (PID) of the

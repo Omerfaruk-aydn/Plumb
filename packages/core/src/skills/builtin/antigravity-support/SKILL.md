@@ -46,7 +46,7 @@ This command starts the Antigravity CLI. The first time you launch it, the inter
 
 ## How to Migrate to Antigravity CLI
 
-If you are transitioning or migrating from another tool (such as Gemini CLI) to Antigravity CLI, follow these steps:
+If you are transitioning or migrating from another tool (such as PLUMB) to Antigravity CLI, follow these steps:
 1. **Check Requirements:** Ensure your local environment meets standard requirements (e.g., node, git, shell access) and is running a compatible operating system (macOS, Linux, or Windows).
 2. **Install Antigravity:** Run the installation script above to make the `agy` command globally available.
 3. **Verify Installation:** Test the installation by running `agy --version` or launching `agy` in an empty or sample directory.

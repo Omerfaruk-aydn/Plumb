@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider catalog projection contract: every selectable provider must be
- * backed by an imported OMP descriptor (registry definition or catalog
- * entry), and the provider inventory must be OMP-derived (no hard-coded
- * independent array in the facade).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,8 +9,8 @@ import {
   PLUMB_PROVIDERS,
   PRODUCTION_READY_PROVIDER_IDS,
 } from './providers.js';
-import { getProviderDefinition } from '../omp-ai/registry/registry.js';
-import { getCatalogProviderEntry } from '../omp-catalog/provider-models/descriptors.js';
+import { getProviderDefinition } from '../vendor-ai/registry/registry.js';
+import { getCatalogProviderEntry } from '../vendor-catalog/provider-models/descriptors.js';
 import { PlumbProviderCategory } from '../types.js';
 
 // PLUMB ids that legitimately have no OMP descriptor (PLUMB-only surfaces).
@@ -118,7 +112,7 @@ describe('provider catalog projection', () => {
     // same dead-end class of bug fixed for claude-subscription). Bedrock's
     // real credential is the standard AWS credential chain
     // (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, or AWS_PROFILE, or
-    // AWS_BEARER_TOKEN_BEDROCK -- see omp-ai/providers/aws-credentials.ts),
+    // AWS_BEARER_TOKEN_BEDROCK -- see vendor-ai/providers/aws-credentials.ts),
     // which must be surfaced as a real 'env' auth method.
     const bedrock = PLUMB_PROVIDERS.find((p) => p.id === 'amazon-bedrock');
     expect(bedrock).toBeDefined();

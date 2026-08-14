@@ -1,11 +1,11 @@
 # Local development guide
 
 This guide provides instructions for setting up and using local development
-features for Gemini CLI.
+features for PLUMB.
 
 ## Tracing
 
-Gemini CLI uses OpenTelemetry (OTel) to record traces that help you debug agent
+PLUMB uses OpenTelemetry (OTel) to record traces that help you debug agent
 behavior. Traces instrument key events like model calls, tool scheduler
 operations, and tool calls.
 
@@ -31,9 +31,9 @@ Genkit provides a web-based UI for viewing traces and other telemetry data.
     The script will output the URL for the Genkit Developer UI. For example:
     `Genkit Developer UI: http://localhost:4000`
 
-2.  **Run Gemini CLI:**
+2.  **Run PLUMB:**
 
-    In a separate terminal, run your Gemini CLI command:
+    In a separate terminal, run your PLUMB command:
 
     ```bash
     gemini
@@ -62,9 +62,9 @@ You can view traces in the Jaeger UI for local development.
 
     - **Collector logs:** `~/.gemini/tmp/<projectHash>/otel/collector.log`
 
-2.  **Run Gemini CLI:**
+2.  **Run PLUMB:**
 
-    In a separate terminal, run your Gemini CLI command:
+    In a separate terminal, run your PLUMB command:
 
     ```bash
     gemini
@@ -112,9 +112,9 @@ Trace for custom processing or routing.
 
     - **Collector logs:** `~/.gemini/tmp/<projectHash>/otel/collector-gcp.log`
 
-3.  **Run Gemini CLI:**
+3.  **Run PLUMB:**
 
-    In a separate terminal, run your Gemini CLI command:
+    In a separate terminal, run your PLUMB command:
 
     ```bash
     gemini
@@ -139,8 +139,8 @@ Adding traces helps you debug and understand the flow of execution. Use the
 Here is a basic example:
 
 ```typescript
-import { runInDevTraceSpan } from '@google/gemini-cli-core';
-import { GeminiCliOperation } from '@google/gemini-cli-core/lib/telemetry/constants.js';
+import { runInDevTraceSpan } from '@plumb/core';
+import { GeminiCliOperation } from '@plumb/core/lib/telemetry/constants.js';
 
 await runInDevTraceSpan(
   {

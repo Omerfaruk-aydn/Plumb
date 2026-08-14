@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,7 +24,7 @@ export interface UseColorCycleOptions {
  * Pauses automatically when a screen reader is active (colors carry no
  * meaning for it and the extra re-renders only add noise).
  *
- * Drives GeminiSpinner's gradient today. Reach for it again for any other
+ * Drives PlumbSpinner's gradient today. Reach for it again for any other
  * "actively happening right now" indicator, but be deliberate about where:
  * this runs a real `setInterval`, so only use it on components that are
  * either mocked out in tests or rendered sparingly (never on something like

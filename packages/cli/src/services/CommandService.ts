@@ -1,10 +1,9 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, coreEvents } from '@google/gemini-cli-core';
+import { debugLogger, coreEvents } from '@plumb/core';
 import type { SlashCommand } from '../ui/commands/types.js';
 import type { ICommandLoader, CommandConflict } from './types.js';
 import { SlashCommandResolver } from './SlashCommandResolver.js';

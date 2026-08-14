@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,7 +20,7 @@ import {
   type ContentGenerator,
   type ContentGeneratorConfig,
 } from './contentGenerator.js';
-import { GeminiChat } from './geminiChat.js';
+import { PlumbChat } from './plumbChat.js';
 import type { Config } from '../config/config.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
 import {
@@ -350,7 +349,7 @@ describe('Gemini Client (client.ts)', () => {
       const mockChat = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
       client['chat'] = mockChat;
 
       const newContent = {
@@ -467,7 +466,7 @@ describe('Gemini Client (client.ts)', () => {
         setHistory: vi.fn(),
         setTools: vi.fn(),
         getLastPromptTokenCount: vi.fn(),
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
     });
 
     function setup({
@@ -479,7 +478,7 @@ describe('Gemini Client (client.ts)', () => {
       newTokenCount = 500,
       compressionStatus = CompressionStatus.COMPRESSED,
     } = {}) {
-      const mockOriginalChat: Partial<GeminiChat> = {
+      const mockOriginalChat: Partial<PlumbChat> = {
         getHistory: vi.fn((_curated?: boolean) => chatHistory),
         setHistory: vi.fn(),
         getLastPromptTokenCount: vi.fn().mockReturnValue(originalTokenCount),
@@ -488,7 +487,7 @@ describe('Gemini Client (client.ts)', () => {
           getConversationFilePath: vi.fn().mockReturnValue(null),
         }),
       };
-      client['chat'] = mockOriginalChat as GeminiChat;
+      client['chat'] = mockOriginalChat as PlumbChat;
 
       vi.mocked(uiTelemetryService.getLastPromptTokenCount).mockReturnValue(
         originalTokenCount,
@@ -511,15 +510,13 @@ describe('Gemini Client (client.ts)', () => {
         },
       });
 
-      const mockNewChat: Partial<GeminiChat> = {
+      const mockNewChat: Partial<PlumbChat> = {
         getHistory: vi.fn().mockReturnValue(newHistory),
         setHistory: vi.fn(),
         getLastPromptTokenCount: vi.fn().mockReturnValue(newTokenCount),
       };
 
-      client['startChat'] = vi
-        .fn()
-        .mockResolvedValue(mockNewChat as GeminiChat);
+      client['startChat'] = vi.fn().mockResolvedValue(mockNewChat as PlumbChat);
 
       return {
         client,
@@ -939,7 +936,7 @@ describe('Gemini Client (client.ts)', () => {
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
       client['chat'] = mockChat;
 
       const initialRequest: Part[] = [{ text: 'Hi' }];
@@ -998,13 +995,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       const initialRequest = [{ text: 'Hi' }];
 
@@ -1057,13 +1054,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       const initialRequest = [{ text: 'Hi' }];
 
@@ -1135,13 +1132,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       const initialRequest = [{ text: 'Hi' }];
 
@@ -1253,13 +1250,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Mock loop detector to return count > 1 on the first event (loop detected)
       vi.spyOn(client['loopDetector'], 'addAndCheck').mockReturnValue({
@@ -1296,13 +1293,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Act
       const stream = client.sendMessageStream(
@@ -1342,13 +1339,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Use a signal that never gets aborted
       const abortController = new AbortController();
@@ -1408,13 +1405,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Act & Assert
       // Run up to the limit
@@ -1466,13 +1463,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Use a signal that never gets aborted
       const abortController = new AbortController();
@@ -1527,12 +1524,12 @@ ${JSON.stringify(
 
       // Set last prompt token count
       const lastPromptTokenCount = 900;
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         getLastPromptTokenCount: vi.fn().mockReturnValue(lastPromptTokenCount),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Remaining = 100.
       // We need a request > 100 tokens.
@@ -1588,12 +1585,12 @@ ${JSON.stringify(
 
       // Set token count
       const lastPromptTokenCount = 900;
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         getLastPromptTokenCount: vi.fn().mockReturnValue(lastPromptTokenCount),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Remaining (sticky) = 100.
       // We need a request > 100 tokens.
@@ -1642,7 +1639,7 @@ ${JSON.stringify(
       const longText = 'a'.repeat(240); // 240 / 4 = 60 tokens
       const request: Part[] = [{ text: longText }];
 
-      // Use the real GeminiChat to manage state and token counts more realistically
+      // Use the real PlumbChat to manage state and token counts more realistically
       const mockChatCompressed = {
         getLastPromptTokenCount: vi.fn().mockReturnValue(400),
         getHistory: vi
@@ -1654,7 +1651,7 @@ ${JSON.stringify(
           getConversation: vi.fn(),
           getConversationFilePath: vi.fn(),
         }),
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
 
       const mockChatInitial = {
         getLastPromptTokenCount: vi.fn().mockReturnValue(initialTokenCount),
@@ -1667,7 +1664,7 @@ ${JSON.stringify(
           getConversation: vi.fn(),
           getConversationFilePath: vi.fn(),
         }),
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
 
       client['chat'] = mockChatInitial;
 
@@ -1748,7 +1745,7 @@ ${JSON.stringify(
         },
       ];
 
-      const realChat = new GeminiChat(mockConfig, '', [], history);
+      const realChat = new PlumbChat(mockConfig, '', [], history);
       client['chat'] = realChat;
 
       // Use a realistic mock for compression that simulates the 40k truncation effect.
@@ -1798,12 +1795,12 @@ ${JSON.stringify(
       vi.mocked(tokenLimit).mockReturnValue(MOCKED_TOKEN_LIMIT);
 
       const lastPromptTokenCount = 10000;
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         getLastPromptTokenCount: vi.fn().mockReturnValue(lastPromptTokenCount),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Simulate a PDF file with large base64 data (11MB when encoded)
       // In the old implementation, this would incorrectly estimate ~2.7M tokens
@@ -1872,13 +1869,13 @@ ${JSON.stringify(
           })(),
         );
 
-        const mockChat: Partial<GeminiChat> = {
+        const mockChat: Partial<PlumbChat> = {
           addHistory: vi.fn(),
           setTools: vi.fn(),
           getHistory: vi.fn().mockReturnValue([]),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
       });
 
       it('should use the model router service to select a model on the first turn', async () => {
@@ -2091,13 +2088,13 @@ ${JSON.stringify(
 
       mockTurnRunFn.mockReturnValueOnce(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       const initialRequest = [{ text: 'Hi' }];
       const promptId = 'prompt-id-invalid-stream';
@@ -2132,7 +2129,7 @@ ${JSON.stringify(
         vi.spyOn(client['config'], 'getIdeMode').mockReturnValue(true);
         mockTurnRunFn.mockReturnValue(mockStream);
 
-        const mockChat: Partial<GeminiChat> = {
+        const mockChat: Partial<PlumbChat> = {
           addHistory: vi.fn(),
           setHistory: vi.fn(),
           setTools: vi.fn(),
@@ -2144,7 +2141,7 @@ ${JSON.stringify(
             ]),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
       });
 
       const testCases = [
@@ -2497,7 +2494,7 @@ ${JSON.stringify(
     });
 
     describe('IDE context with pending tool calls', () => {
-      let mockChat: Partial<GeminiChat>;
+      let mockChat: Partial<PlumbChat>;
 
       beforeEach(() => {
         vi.spyOn(client, 'tryCompressChat').mockResolvedValue({
@@ -2518,7 +2515,7 @@ ${JSON.stringify(
           setTools: vi.fn(),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
 
         vi.spyOn(client['config'], 'getIdeMode').mockReturnValue(true);
         vi.mocked(ideContextStore.get).mockReturnValue({
@@ -2854,13 +2851,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Act
       const stream = client.sendMessageStream(
@@ -2892,13 +2889,13 @@ ${JSON.stringify(
       })();
       mockTurnRunFn.mockReturnValue(mockStream);
 
-      const mockChat: Partial<GeminiChat> = {
+      const mockChat: Partial<PlumbChat> = {
         addHistory: vi.fn(),
         setTools: vi.fn(),
         getHistory: vi.fn().mockReturnValue([]),
         getLastPromptTokenCount: vi.fn(),
       };
-      client['chat'] = mockChat as GeminiChat;
+      client['chat'] = mockChat as PlumbChat;
 
       // Act
       const stream = client.sendMessageStream(
@@ -2916,13 +2913,13 @@ ${JSON.stringify(
 
     describe('Loop Recovery (Two-Strike)', () => {
       beforeEach(() => {
-        const mockChat: Partial<GeminiChat> = {
+        const mockChat: Partial<PlumbChat> = {
           addHistory: vi.fn(),
           setTools: vi.fn(),
           getHistory: vi.fn().mockReturnValue([]),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
         vi.spyOn(client['loopDetector'], 'clearDetection');
         vi.spyOn(client['loopDetector'], 'reset');
       });
@@ -3362,13 +3359,13 @@ ${JSON.stringify(
           systemMessage: undefined,
         });
 
-        const mockChat: Partial<GeminiChat> = {
+        const mockChat: Partial<PlumbChat> = {
           addHistory: vi.fn(),
           setTools: vi.fn(),
           getHistory: vi.fn().mockReturnValue([]),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
 
         const request = [{ text: 'Hello' }];
         const stream = client.sendMessageStream(
@@ -3397,13 +3394,13 @@ ${JSON.stringify(
           systemMessage: undefined,
         });
 
-        const mockChat: Partial<GeminiChat> = {
+        const mockChat: Partial<PlumbChat> = {
           addHistory: vi.fn(),
           setTools: vi.fn(),
           getHistory: vi.fn().mockReturnValue([]),
           getLastPromptTokenCount: vi.fn(),
         };
-        client['chat'] = mockChat as GeminiChat;
+        client['chat'] = mockChat as PlumbChat;
 
         const request = [{ text: 'Hello' }];
         const stream = client.sendMessageStream(

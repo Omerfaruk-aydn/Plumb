@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +10,7 @@ import { disableCommand } from './skills/disable.js';
 import { installCommand } from './skills/install.js';
 import { linkCommand } from './skills/link.js';
 import { uninstallCommand } from './skills/uninstall.js';
-import { initializeOutputListenersAndFlush } from '../gemini.js';
+import { initializeOutputListenersAndFlush } from '../plumb.js';
 import { defer } from '../deferred.js';
 
 export const skillsCommand: CommandModule = {

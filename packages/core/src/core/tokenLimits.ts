@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +25,7 @@ export const GEMMA_4_TOKEN_LIMIT = 256_000;
  * models can never bleed one model's limit onto another.
  *
  * packages/core deliberately has no build-time dependency on
- * @google/gemini-cli-provider (no PlumbModel import, no hard package.json
+ * @plumb/provider (no PlumbModel import, no hard package.json
  * dependency — see plumbContentGenerator.ts's dynamic `import()`), so this
  * function stays synchronous and dependency-free: callers that already know
  * a model's real contextWindow (plumbContentGenerator.ts resolves it from

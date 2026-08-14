@@ -1,25 +1,15 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Complete model catalog loader (THIN PLUMB UI FACADE over the OMP authority).
- *
- * The bundled model data, provider set, and per-provider lookups are the
- * responsibility of the imported OMP runtime (`omp-catalog/models.ts`); this
- * module only projects the OMP `Model` records onto the PLUMB `PlumbModel`
- * shape the UI consumes.
- *
- * OMP source: packages/catalog/src/models.ts
- * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
-import type { Model, Api, KnownProvider } from '../omp-catalog/types.js';
-import type { GeneratedProvider } from '../omp-catalog/models.js';
+import type { Model, Api, KnownProvider } from '../vendor-catalog/types.js';
+import type { GeneratedProvider } from '../vendor-catalog/models.js';
 import {
   getBundledModels,
   getBundledModel,
   getBundledProviders,
-} from '../omp-catalog/models.js';
+} from '../vendor-catalog/models.js';
 import type {
   PlumbModel,
   PlumbProviderId,

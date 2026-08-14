@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -337,7 +336,7 @@ describe('eval-analysis', () => {
 
     it('extracts tool from imported constant', () => {
       const analysis = analyzeEvalSource(`
-        import { TRACKER_CREATE_TASK_TOOL_NAME } from '@google/gemini-cli-core';
+        import { TRACKER_CREATE_TASK_TOOL_NAME } from '@plumb/core';
         import { evalTest } from './test-helper.js';
         evalTest('USUALLY_PASSES', {
           name: 'tracker test',
@@ -452,7 +451,7 @@ describe('eval-analysis', () => {
 
     it('handles aliased constant imports', () => {
       const analysis = analyzeEvalSource(`
-        import { TRACKER_CREATE_TASK_TOOL_NAME as CREATE_TOOL } from '@google/gemini-cli-core';
+        import { TRACKER_CREATE_TASK_TOOL_NAME as CREATE_TOOL } from '@plumb/core';
         import { evalTest } from './test-helper.js';
         evalTest('USUALLY_PASSES', {
           name: 'alias test',

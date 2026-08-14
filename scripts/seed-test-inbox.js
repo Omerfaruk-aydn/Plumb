@@ -1,31 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Seeds the auto-memory inbox with REALISTIC patches for manual end-to-end
- * testing of `/memory inbox`. Mirrors what one extraction-agent run would
- * produce in practice: a single canonical `extraction.patch` per kind,
- * containing multiple hunks (MEMORY.md update + sibling creation, etc.).
- *
- * Run AFTER `npm run build` from the project root:
- *   node scripts/seed-test-inbox.js
- *
- * The script will:
- *   1. Initialize Storage for the current working directory.
- *   2. Compute <projectMemoryDir> = ~/.gemini/tmp/<projectId>/memory/.
- *   3. Seed `MEMORY.md` and TWO canonical inbox patches:
- *        - .inbox/private/extraction.patch  (multi-hunk: update MEMORY.md
- *          + create verify-workflow.md + add MEMORY.md pointer to it)
- *        - .inbox/global/extraction.patch   (creates ~/.gemini/GEMINI.md)
- *   4. Print a verification checklist + the launch command.
- *
- * To clean up later, delete `<projectMemoryDir>/.inbox/` and the seeded
- * MEMORY.md / GEMINI.md files.
  */
 
 import * as fs from 'node:fs/promises';
@@ -56,7 +33,7 @@ const memoryDir = storage.getProjectMemoryTempDir();
 const inboxPrivate = path.join(memoryDir, '.inbox', 'private');
 const inboxGlobal = path.join(memoryDir, '.inbox', 'global');
 const homeDir = os.homedir();
-const globalGeminiMd = path.join(homeDir, '.gemini', 'GEMINI.md');
+const globalGeminiMd = path.join(homeDir, '.gemini', 'PLUMB.md');
 
 console.log(`\n🔧 Seeding inbox for cwd: ${cwd}`);
 console.log(`   memoryDir = ${memoryDir}\n`);
@@ -104,7 +81,7 @@ await seed(
     `+# Verify Workflow`,
     `+`,
     `+- Run \`npm run typecheck\` after editing any *.ts file.`,
-    `+- Run \`npm run build --workspace @google/gemini-cli-core\` before testing CLI changes.`,
+    `+- Run \`npm run build --workspace @plumb/core\` before testing CLI changes.`,
     `+- Inbox patches are guarded by /memory inbox.`,
     ``,
   ].join('\n'),
@@ -112,7 +89,7 @@ await seed(
 );
 
 // --- 3. Canonical GLOBAL extraction.patch ---
-//     Creates ~/.gemini/GEMINI.md. Backs up any existing one first.
+//     Creates ~/.gemini/PLUMB.md. Backs up any existing one first.
 let existingGlobalGemini = null;
 try {
   existingGlobalGemini = await fs.readFile(globalGeminiMd, 'utf-8');
@@ -139,7 +116,7 @@ await seed(
     `+- Prefer concise architecture summaries.`,
     ``,
   ].join('\n'),
-  'canonical GLOBAL extraction.patch (creates ~/.gemini/GEMINI.md)',
+  'canonical GLOBAL extraction.patch (creates ~/.gemini/PLUMB.md)',
 );
 
 // --- Summary ---
@@ -206,7 +183,7 @@ console.log(`
    │                  │          │ MEMORY.md updated; verify-workflow.md │
    │                  │          │ created.                              │
    │ Global memory    │ Apply    │ "Applied all 1 global memory patch."  │
-   │                  │          │ ~/.gemini/GEMINI.md created.          │
+   │                  │          │ ~/.gemini/PLUMB.md created.          │
    └──────────────────┴──────────┴───────────────────────────────────────┘
 
 7. Verify final state on disk:

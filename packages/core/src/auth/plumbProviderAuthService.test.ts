@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -13,7 +10,7 @@ import {
   PlumbProviderCategory,
   registerPlumbCredentialStoreFactory,
   resetPlumbCredentialStore,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { OmpAuthSchemaKeychainAdapter } from './omp-credential-adapter.js';
 
 describe('coding-plan auth routing', () => {
@@ -23,9 +20,7 @@ describe('coding-plan auth routing', () => {
     registerPlumbCredentialStoreFactory(() =>
       Promise.resolve(new OmpAuthSchemaKeychainAdapter()),
     );
-    const { getPlumbProviderRegistry } = await import(
-      '@google/gemini-cli-provider'
-    );
+    const { getPlumbProviderRegistry } = await import('@plumb/provider');
     await getPlumbProviderRegistry().initialize();
   });
 
@@ -48,7 +43,7 @@ describe('coding-plan auth routing', () => {
 
   it('no longer reports "No auth flow configured" for coding plans (OMP login present)', async () => {
     const { getProviderDefinition, resolveProviderAlias } = await import(
-      '@google/gemini-cli-provider'
+      '@plumb/provider'
     );
     for (const id of ['github-copilot', 'kimi-code', 'antigravity']) {
       const ompId = resolveProviderAlias(id);

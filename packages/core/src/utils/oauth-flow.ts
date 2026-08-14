@@ -1,14 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Shared OAuth 2.0 Authorization Code flow primitives with PKCE support.
- *
- * These utilities are protocol-agnostic and can be used by both MCP OAuth
- * and A2A OAuth authentication providers.
  */
 
 import * as http from 'node:http';

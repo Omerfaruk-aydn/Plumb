@@ -1,16 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { waitFor } from '../../../test-utils/async.js';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { SubagentGroupDisplay } from './SubagentGroupDisplay.js';
-import {
-  Kind,
-  CoreToolCallStatus,
-  SubagentState,
-} from '@google/gemini-cli-core';
+import { Kind, CoreToolCallStatus, SubagentState } from '@plumb/core';
 import type { IndividualToolCallDisplay } from '../../types.js';
 import { describe, it, expect, vi } from 'vitest';
 import { Text } from 'ink';

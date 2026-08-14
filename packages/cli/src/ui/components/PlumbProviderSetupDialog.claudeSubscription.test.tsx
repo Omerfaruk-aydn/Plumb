@@ -1,25 +1,17 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: claude-subscription (Agent SDK-backed, PLUMB-only synthetic)
- * has no PLUMB-initiated login flow — the generic AuthStep (which only
- * understands oauth/api_key/device_code/env) previously rendered an empty
- * box with a misleading "Type API key and press Enter" footer, and
- * handleProviderSelect always routed it to the broken generic authenticate
- * step regardless of its real connection state. This exercises the real
- * bespoke probe-and-route path added to fix that.
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
-import { PlumbProviderCategory } from '@google/gemini-cli-provider';
+import { PlumbProviderCategory } from '@plumb/provider';
 import type {
   PlumbProvider,
   ClaudeSubscriptionStatusResult,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 const ENTER = String.fromCharCode(13);
 const DOWN_ARROW = String.fromCharCode(27) + '[B';
@@ -41,9 +33,8 @@ const { mockGetClaudeSubscriptionStatus, mockRunClaudeSubscriptionReauth } =
     >(),
   }));
 
-vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-provider')>();
+vi.mock('@plumb/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/provider')>();
   return {
     ...actual,
     getClaudeSubscriptionStatus: mockGetClaudeSubscriptionStatus,

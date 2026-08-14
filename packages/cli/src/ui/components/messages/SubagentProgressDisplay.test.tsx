@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { render, cleanup } from '../../../test-utils/render.js';
 import { SubagentProgressDisplay } from './SubagentProgressDisplay.js';
-import { type SubagentProgress, SubagentState } from '@google/gemini-cli-core';
+import { type SubagentProgress, SubagentState } from '@plumb/core';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 describe('<SubagentProgressDisplay />', () => {

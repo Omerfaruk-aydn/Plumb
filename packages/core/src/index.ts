@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -39,12 +38,12 @@ export * from './core/client.js';
 export * from './core/contentGenerator.js';
 export * from './core/fakeContentGenerator.js';
 export * from './core/loggingContentGenerator.js';
-export * from './core/geminiChat.js';
+export * from './core/plumbChat.js';
 export * from './core/logger.js';
 export * from './core/prompts.js';
 export * from './core/tokenLimits.js';
 export * from './core/turn.js';
-export * from './core/geminiRequest.js';
+export * from './core/plumbRequest.js';
 export * from './scheduler/scheduler.js';
 export * from './scheduler/types.js';
 export * from './scheduler/tool-executor.js';
@@ -130,8 +129,8 @@ export * from './utils/editor.js';
 export * from './utils/quotaErrorDetection.js';
 export * from './utils/userAccountManager.js';
 export * from './utils/authConsent.js';
-export * from './utils/googleQuotaErrors.js';
-export * from './utils/googleErrors.js';
+export * from './utils/plumbGoogleQuotaErrors.js';
+export * from './utils/plumbGoogleErrors.js';
 export * from './utils/fileUtils.js';
 export * from './utils/sessionOperations.js';
 export * from './utils/planUtils.js';
@@ -361,7 +360,7 @@ export * from './utils/trust.js';
 // Export voice utilities
 export * from './voice/audioRecorder.js';
 export * from './voice/transcriptionProvider.js';
-export * from './voice/geminiLiveTranscriptionProvider.js';
+export * from './voice/plumbLiveTranscriptionProvider.js';
 export * from './voice/whisperTranscriptionProvider.js';
 export * from './voice/transcriptionFactory.js';
 export * from './voice/whisperModelManager.js';

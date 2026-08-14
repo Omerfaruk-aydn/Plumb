@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Unit tests for the canonical OCI configuration orchestration -- the
- * domain schema (validateOciConfig/buildOciSaveOperation) is tested
- * separately against real logic; here only the persistence boundary
- * (credential store / cloud-config cache) is mocked, so these tests verify
- * this module's own sequencing/atomicity/precedence.
  */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockStoreApiKeyCredential = vi.fn();
@@ -23,7 +17,7 @@ const mockSaveProviderCloudConfig = vi.fn();
 const mockGetCachedProviderCloudConfig = vi.fn();
 const mockClearProviderCloudConfig = vi.fn();
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   validateOciConfig: (
     values: Record<string, unknown>,
   ): Record<string, string> => {
@@ -50,7 +44,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
     mockRemoveOmpModelCacheEntry(...args),
 }));
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   saveProviderCloudConfig: (...args: unknown[]) =>
     mockSaveProviderCloudConfig(...args),
   getCachedProviderCloudConfig: (...args: unknown[]) =>

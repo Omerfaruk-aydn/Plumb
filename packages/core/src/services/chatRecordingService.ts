@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +22,7 @@ import type {
 import { debugLogger } from '../utils/debugLogger.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
 import type { HistoryTurn } from '../core/agentChatHistory.js';
-import { partListUnionToString } from '../core/geminiRequest.js';
+import { partListUnionToString } from '../core/plumbRequest.js';
 import { isIgnoredUserContent } from '../utils/sessionUtils.js';
 import {
   SESSION_FILE_PREFIX,
@@ -872,6 +871,18 @@ export class ChatRecordingService {
     );
     this.appendRecord({ $rewindTo: messageId });
     return this.cachedConversation;
+  }
+
+  /**
+   * Replaces the in-memory message list wholesale. Used by /redo (F19) to
+   * put back messages a prior rewindTo() sliced away. Scoped to the current
+   * process only -- unlike rewindTo, this does not append a persisted marker,
+   * so a CLI restart loses redo state (the undo/redo stack living in memory
+   * is documented as session-scoped).
+   */
+  restoreMessages(messages: MessageRecord[]): void {
+    if (!this.conversationFile || !this.cachedConversation) return;
+    this.cachedConversation.messages = messages.slice();
   }
 
   updateMessagesFromHistory(history: readonly HistoryTurn[]): void {

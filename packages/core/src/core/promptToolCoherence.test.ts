@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PROMPT_TOOL_COHERENCE regression coverage.
- *
- * Proves the invariant from the UNIVERSAL_TOOL_CAPABILITY_AUDIT: a
- * PLUMB-routed model whose resolved tool capability is not exactly
- * `toolsSupported === true` (i.e. UNSUPPORTED or UNKNOWN) must never receive
- * tool-use instructions in its system prompt — mirroring the identical gate
- * `resolveAdvertisedTools` already applies to wire tool declarations in
- * packages/provider/src/transports/streaming.ts. Native Gemini (no PLUMB
- * provider active) must be completely unaffected.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -71,8 +70,8 @@ describe('MemoryContextManager', () => {
 
   describe('refresh', () => {
     it('should load and format global and environment memory', async () => {
-      const globalPaths = ['/home/user/.gemini/GEMINI.md'];
-      const envPaths = ['/app/GEMINI.md'];
+      const globalPaths = ['/home/user/.gemini/PLUMB.md'];
+      const envPaths = ['/app/PLUMB.md'];
 
       vi.mocked(memoryDiscovery.getGlobalMemoryPaths).mockResolvedValue(
         globalPaths,
@@ -115,14 +114,14 @@ describe('MemoryContextManager', () => {
 
     it('should emit MemoryChanged event when memory is refreshed', async () => {
       vi.mocked(memoryDiscovery.getGlobalMemoryPaths).mockResolvedValue([
-        '/app/GEMINI.md',
+        '/app/PLUMB.md',
       ]);
       vi.mocked(memoryDiscovery.getEnvironmentMemoryPaths).mockResolvedValue([
-        '/app/src/GEMINI.md',
+        '/app/src/PLUMB.md',
       ]);
       vi.mocked(memoryDiscovery.readGeminiMdFiles).mockResolvedValue([
-        { filePath: '/app/GEMINI.md', content: 'content' },
-        { filePath: '/app/src/GEMINI.md', content: 'env content' },
+        { filePath: '/app/PLUMB.md', content: 'content' },
+        { filePath: '/app/src/PLUMB.md', content: 'env content' },
       ]);
 
       await memoryContextManager.refresh();
@@ -135,10 +134,10 @@ describe('MemoryContextManager', () => {
     it('should not load environment memory if folder is not trusted', async () => {
       vi.mocked(mockConfig.isTrustedFolder).mockReturnValue(false);
       vi.mocked(memoryDiscovery.getGlobalMemoryPaths).mockResolvedValue([
-        '/home/user/.gemini/GEMINI.md',
+        '/home/user/.gemini/PLUMB.md',
       ]);
       vi.mocked(memoryDiscovery.readGeminiMdFiles).mockResolvedValue([
-        { filePath: '/home/user/.gemini/GEMINI.md', content: 'Global Content' },
+        { filePath: '/home/user/.gemini/PLUMB.md', content: 'Global Content' },
       ]);
 
       await memoryContextManager.refresh();
@@ -151,8 +150,8 @@ describe('MemoryContextManager', () => {
     });
 
     it('should deduplicate files by file identity in case-insensitive filesystems', async () => {
-      const globalPaths = ['/home/user/.gemini/GEMINI.md'];
-      const envPaths = ['/app/gemini.md', '/app/GEMINI.md'];
+      const globalPaths = ['/home/user/.gemini/PLUMB.md'];
+      const envPaths = ['/app/gemini.md', '/app/PLUMB.md'];
 
       vi.mocked(memoryDiscovery.getGlobalMemoryPaths).mockResolvedValue(
         globalPaths,
@@ -165,12 +164,12 @@ describe('MemoryContextManager', () => {
       vi.mocked(
         memoryDiscovery.deduplicatePathsByFileIdentity,
       ).mockResolvedValue({
-        paths: ['/home/user/.gemini/GEMINI.md', '/app/gemini.md'],
+        paths: ['/home/user/.gemini/PLUMB.md', '/app/gemini.md'],
         identityMap: new Map<string, string>(),
       });
 
       vi.mocked(memoryDiscovery.readGeminiMdFiles).mockResolvedValue([
-        { filePath: '/home/user/.gemini/GEMINI.md', content: 'Global Content' },
+        { filePath: '/home/user/.gemini/PLUMB.md', content: 'Global Content' },
         { filePath: '/app/gemini.md', content: 'Project Content' },
       ]);
 
@@ -180,13 +179,13 @@ describe('MemoryContextManager', () => {
         memoryDiscovery.deduplicatePathsByFileIdentity,
       ).toHaveBeenCalledWith(
         expect.arrayContaining([
-          '/home/user/.gemini/GEMINI.md',
+          '/home/user/.gemini/PLUMB.md',
           '/app/gemini.md',
-          '/app/GEMINI.md',
+          '/app/PLUMB.md',
         ]),
       );
       expect(memoryDiscovery.readGeminiMdFiles).toHaveBeenCalledWith(
-        ['/home/user/.gemini/GEMINI.md', '/app/gemini.md'],
+        ['/home/user/.gemini/PLUMB.md', '/app/gemini.md'],
         'tree',
         ['.git'],
       );
@@ -199,7 +198,7 @@ describe('MemoryContextManager', () => {
   describe('discoverContext', () => {
     it('should discover and load new context', async () => {
       const mockResult: memoryDiscovery.MemoryLoadResult = {
-        files: [{ path: '/app/src/GEMINI.md', content: 'Src Content' }],
+        files: [{ path: '/app/src/PLUMB.md', content: 'Src Content' }],
       };
       vi.mocked(memoryDiscovery.loadJitSubdirectoryMemory).mockResolvedValue(
         mockResult,
@@ -220,7 +219,7 @@ describe('MemoryContextManager', () => {
       expect(result).toMatch(/--- Context from: \/app\/src\/GEMINI\.md ---/);
       expect(result).toContain('Src Content');
       expect(memoryContextManager.getLoadedPaths()).toContain(
-        '/app/src/GEMINI.md',
+        '/app/src/PLUMB.md',
       );
     });
 

@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { TestRig } from './test-helper.js';
 import { join } from 'node:path';
-import { ExitCodes } from '@google/gemini-cli-core/src/index.js';
+import { ExitCodes } from '@plumb/core/src/index.js';
 
 describe('JSON output', () => {
   let rig: TestRig;

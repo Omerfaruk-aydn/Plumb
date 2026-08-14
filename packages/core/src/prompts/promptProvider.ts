@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import type { HierarchicalMemory } from '../config/memory.js';
-import { GEMINI_DIR, makeRelative } from '../utils/paths.js';
+import { PLUMB_DIR, makeRelative } from '../utils/paths.js';
 import { ApprovalMode } from '../policy/types.js';
 import * as snippets from './snippets.js';
 import * as legacySnippets from './snippets.legacy.js';
@@ -31,7 +30,7 @@ import {
 import { resolveModel, supportsModernFeatures } from '../config/models.js';
 import { DiscoveredMCPTool } from '../tools/mcp-tool.js';
 import {
-  getAllGeminiMdFilenames,
+  getAllContextFilenames,
   getGlobalMemoryFilePath,
   getProjectMemoryIndexFilePath,
 } from '../tools/memoryTool.js';
@@ -89,7 +88,7 @@ export class PromptProvider {
     );
     const isModernModel = supportsModernFeatures(desiredModel);
     const activeSnippets = isModernModel ? snippets : legacySnippets;
-    const contextFilenames = getAllGeminiMdFilenames();
+    const contextFilenames = getAllContextFilenames();
 
     let trackerDir = context.config.isTrackerEnabled()
       ? context.config.storage.getProjectTempTrackerDir()
@@ -118,7 +117,7 @@ export class PromptProvider {
 
     // --- Template File Override ---
     if (systemMdResolution.value && !systemMdResolution.isDisabled) {
-      let systemMdPath = path.resolve(path.join(GEMINI_DIR, 'system.md'));
+      let systemMdPath = path.resolve(path.join(PLUMB_DIR, 'system.md'));
       if (!systemMdResolution.isSwitch) {
         systemMdPath = systemMdResolution.value;
       }
@@ -300,7 +299,7 @@ export class PromptProvider {
     this.maybeWriteSystemMd(
       sanitizedPrompt,
       systemMdResolution,
-      path.resolve(path.join(GEMINI_DIR, 'system.md')),
+      path.resolve(path.join(PLUMB_DIR, 'system.md')),
     );
 
     return sanitizedPrompt;

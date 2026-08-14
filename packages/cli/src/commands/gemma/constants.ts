@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import path from 'node:path';
-import { Storage } from '@google/gemini-cli-core';
+import { Storage } from '@plumb/core';
 
 export const LITERT_RELEASE_VERSION = 'v0.9.0-alpha03';
 export const LITERT_RELEASE_BASE_URL =
@@ -33,7 +32,7 @@ export const PLATFORM_BINARY_SHA256: Record<string, string> = {
 };
 
 export function getLiteRtBinDir(): string {
-  return path.join(Storage.getGlobalGeminiDir(), 'bin', 'litert');
+  return path.join(Storage.getGlobalPlumbDir(), 'bin', 'litert');
 }
 
 export function getPidFilePath(): string {

@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OMP supportsTools contract proof + sparse-default boundary test.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -44,7 +41,7 @@ vi.mock('../transports/claudeSubscription.js', () => ({
 describe('OMP supportsTools contract proof', () => {
   it('models.json: 3908 models, 89 true, 27 false, 3792 absent', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const models = require('../omp-catalog/models.json') as Record<
+    const models = require('../vendor-catalog/models.json') as Record<
       string,
       Record<string, { supportsTools?: boolean }>
     >;

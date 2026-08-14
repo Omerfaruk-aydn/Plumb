@@ -1,29 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * F7 of PLUMB-UI-DEVRIM-PROMPT.md ("Level 2's flagship feature"), scoped
- * down from the full spec after weighing effort against real risk:
- *
- * The spec's full design is a hunk-level accept/reject/undo review tool.
- * But the edits it would review are, by construction, historical --
- * already applied to disk by completed tool calls (see
- * sessionEditHistory.ts, which reads them straight out of `history`, never
- * regenerating a diff). "Rejecting a hunk" here would mean partially
- * reverting an already-applied file edit, which is a real file-mutation
- * feature (its own conflict/merge logic, its own risk of corrupting the
- * user's working tree) and a materially different, much larger piece of
- * work than a review UI. Building that without live end-to-end validation
- * against a real editing session is exactly the kind of "half-finished
- * implementation" this project's own conventions warn against.
- *
- * What's implemented instead: a real, navigable, read-only review of every
- * file this session touched -- a left-hand file list (with a +/- stat
- * line) and a right-hand diff panel reusing the same DiffRenderer every
- * other tool-call diff in this app already uses. That is still a genuinely
- * useful, testable, safe feature on its own.
  */
+
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { Box, Text, useIsScreenReaderEnabled } from 'ink';

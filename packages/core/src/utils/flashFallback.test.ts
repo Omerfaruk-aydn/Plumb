@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -18,9 +17,9 @@ import { retryWithBackoff } from './retry.js';
 import { AuthType } from '../core/contentGenerator.js';
 // Import the new types (Assuming this test file is in packages/core/src/utils/)
 import type { FallbackModelHandler } from '../fallback/types.js';
-import type { GoogleApiError } from './googleErrors.js';
+import type { GoogleApiError } from './plumbGoogleErrors.js';
 import { type HttpError } from './httpErrors.js';
-import { TerminalQuotaError } from './googleQuotaErrors.js';
+import { TerminalQuotaError } from './plumbGoogleQuotaErrors.js';
 
 vi.mock('node:fs');
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -22,7 +21,7 @@ import { Storage } from '../config/storage.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
-import { GEMINI_DIR, homedir as pathsHomedir } from '../utils/paths.js';
+import { PLUMB_DIR, homedir as pathsHomedir } from '../utils/paths.js';
 import { spawnAsync } from '../utils/shell-utils.js';
 
 const PROJECT_SLUG = 'project-slug';
@@ -39,6 +38,7 @@ const hoistedMockRaw = vi.hoisted(() => vi.fn());
 const hoistedMockAdd = vi.hoisted(() => vi.fn());
 const hoistedMockCommit = vi.hoisted(() => vi.fn());
 const hoistedMockStatus = vi.hoisted(() => vi.fn());
+const hoistedMockDiffSummary = vi.hoisted(() => vi.fn());
 vi.mock('simple-git', () => ({
   simpleGit: hoistedMockSimpleGit.mockImplementation(() => ({
     checkIsRepo: hoistedMockCheckIsRepo,
@@ -47,6 +47,7 @@ vi.mock('simple-git', () => ({
     add: hoistedMockAdd,
     commit: hoistedMockCommit,
     status: hoistedMockStatus,
+    diffSummary: hoistedMockDiffSummary,
     env: hoistedMockEnv,
   })),
   CheckRepoActions: { IS_REPO_ROOT: 'is-repo-root' },
@@ -113,6 +114,7 @@ describe('GitService', () => {
       add: hoistedMockAdd,
       commit: hoistedMockCommit,
       status: hoistedMockStatus,
+      diffSummary: hoistedMockDiffSummary,
     }));
     hoistedMockSimpleGit.mockImplementation(() => ({
       checkIsRepo: hoistedMockCheckIsRepo,
@@ -121,6 +123,7 @@ describe('GitService', () => {
       add: hoistedMockAdd,
       commit: hoistedMockCommit,
       status: hoistedMockStatus,
+      diffSummary: hoistedMockDiffSummary,
       env: hoistedMockEnv,
     }));
     hoistedMockCheckIsRepo.mockResolvedValue(false);
@@ -181,7 +184,7 @@ describe('GitService', () => {
     let gitConfigPath: string;
 
     beforeEach(async () => {
-      repoDir = path.join(homedir, GEMINI_DIR, 'history', PROJECT_SLUG);
+      repoDir = path.join(homedir, PLUMB_DIR, 'history', PROJECT_SLUG);
       gitConfigPath = path.join(repoDir, '.gitconfig');
     });
 
@@ -483,6 +486,30 @@ describe('GitService', () => {
       expect(hoistedMockCommit).not.toHaveBeenCalled();
       expect(hoistedMockRaw).toHaveBeenCalledWith('rev-parse', 'HEAD');
       expect(commitHash).toBe('current-head-hash');
+    });
+  });
+
+  describe('getChangedFileCount', () => {
+    it('stages the working tree and diffs it (--cached) against the given commit, so untracked new files are counted too', async () => {
+      hoistedMockDiffSummary.mockResolvedValue({
+        files: [{ file: 'a.txt' }, { file: 'b.txt' }],
+      });
+      const service = new GitService(projectRoot, storage);
+      const count = await service.getChangedFileCount('abc123');
+
+      expect(hoistedMockAdd).toHaveBeenCalledWith('.');
+      expect(hoistedMockDiffSummary).toHaveBeenCalledWith([
+        '--cached',
+        'abc123',
+      ]);
+      expect(count).toBe(2);
+    });
+
+    it('returns 0 when nothing changed since the given commit', async () => {
+      hoistedMockDiffSummary.mockResolvedValue({ files: [] });
+      const service = new GitService(projectRoot, storage);
+      const count = await service.getChangedFileCount('abc123');
+      expect(count).toBe(0);
     });
   });
 });

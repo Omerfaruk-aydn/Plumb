@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, expect } from 'vitest';
-import { ApprovalMode } from '@google/gemini-cli-core';
+import { ApprovalMode } from '@plumb/core';
 import { evalTest } from './test-helper.js';
 import {
   assertModelHasOutput,

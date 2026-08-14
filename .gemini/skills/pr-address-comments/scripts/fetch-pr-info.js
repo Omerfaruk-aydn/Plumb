@@ -1,7 +1,7 @@
 #!/usr/bin/env node
+
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +26,7 @@ async function run(cmd) {
 }
 
 const IGNORE_MESSAGES = [
-  'thank you so much for your contribution to Gemini CLI!',
+  'thank you so much for your contribution to PLUMB!',
   "I'm currently reviewing this pull request and will post my feedback shortly.",
   'This pull request is being closed because it is not currently linked to an issue.',
 ];

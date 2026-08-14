@@ -13,7 +13,7 @@ the `rebuild/plumb-gemini-production` branch and the global command shimmed at
    ```
    Unknown arguments: runtime-identity, runtimeIdentity
    Usage: gemini [options] [command]
-   Gemini CLI - Defaults to interactive mode...
+   PLUMB - Defaults to interactive mode...
    ```
    Exit code: 1.
 3. The direct local entry rejects `--diagnose-logo` in the same way.
@@ -64,7 +64,7 @@ direct local entry.
   `child_process.spawnSync()` (explicit executable, explicit args, no shell) and
   abort on the first failing step — never reaching `npm link`.
 - The CLI workspace package must carry a deliberate PLUMB identity so that a
-  stale `@google/gemini-cli` installation cannot shadow `plumb`.
+  stale `plumb-cli` installation cannot shadow `plumb`.
 
 ## Follow-up evidence
 

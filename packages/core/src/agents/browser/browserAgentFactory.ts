@@ -1,18 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Factory for creating browser agent definitions with configured tools.
- *
- * This factory is called when the browser agent is invoked via delegate_to_agent.
- * It creates a BrowserManager, connects the isolated MCP client, wraps tools,
- * and returns a fully configured LocalAgentDefinition.
- *
- * IMPORTANT: The MCP tools are ONLY available to the browser agent's isolated
- * registry. They are NOT registered in the main agent's ToolRegistry.
  */
 
 import type { Config } from '../../config/config.js';

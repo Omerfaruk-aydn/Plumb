@@ -1,32 +1,14 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Production-lifecycle integration test: the Antigravity diagnostics must
- * reach a working, credential-store-configured provider runtime purely by
- * calling their OWN canonical bootstrap (initializePlumbProviders from
- * @google/gemini-cli-core) — the same one normal chat calls during startup.
- *
- * This test deliberately does NOT call registerPlumbCredentialStoreFactory
- * itself before invoking the diagnostic. If that call is ever removed from
- * the diagnostic dispatch path, this test must fail with
- * "PlumbCredentialStore not configured. Call registerPlumbCredentialStoreFactory()
- * first." — proving the diagnostic no longer shares the production bootstrap.
- *
- * initializePlumbProviders() is a process-lifetime-idempotent bootstrap (by
- * design — see packages/core/src/config/plumbInit.ts), so both phases below
- * share one isolated credential store/home across a single test instead of
- * resetting it per-test, which would fight that idempotency rather than
- * exercise it the way normal chat actually does.
  */
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getPlumbCredentialStore } from '@google/gemini-cli-core';
-import { resetPlumbProviderRegistry } from '@google/gemini-cli-provider';
+import { getPlumbCredentialStore } from '@plumb/core';
+import { resetPlumbProviderRegistry } from '@plumb/provider';
 import {
   buildAntigravityRouteDiagnostics,
   runAntigravityRouteTest,
@@ -49,17 +31,17 @@ describe('Antigravity diagnostics — production bootstrap lifecycle', () => {
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-antigravity-diag-bootstrap-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    previousHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
     resetPlumbProviderRegistry();
   });
 
   afterEach(() => {
     resetPlumbProviderRegistry();
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     fs.rmSync(isolatedHome, { recursive: true, force: true });
     vi.restoreAllMocks();

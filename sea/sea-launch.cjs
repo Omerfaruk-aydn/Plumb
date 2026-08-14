@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 const { getAsset } = require('node:sea');
 const process = require('node:process');
 const nodeModule = require('node:module');

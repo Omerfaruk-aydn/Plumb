@@ -1,23 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
- */
-
-/**
- * Generated coding-plan governance matrix.
- *
- * Iterates all 23 PLUMB coding-plan ids and verifies, for each selectable
- * plan, that:
- *   - an auth route exists (OMP login or API-key path);
- *   - the registration classification is valid;
- *   - a model source exists (bundled models > 0);
- *   - a transport exists (authMethods non-empty);
- *   - UI instructions match the auth mechanism (no generic browser prompt
- *     for API-key plans, no raw parser errors, no infinite spinner);
- *   - the plan is not PRODUCTION_READY without live verification.
  */
 
 import { describe, it, expect } from 'vitest';

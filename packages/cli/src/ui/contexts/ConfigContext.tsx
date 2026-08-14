@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React, { useContext } from 'react';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@plumb/core';
 
 export const ConfigContext = React.createContext<Config | undefined>(undefined);
 

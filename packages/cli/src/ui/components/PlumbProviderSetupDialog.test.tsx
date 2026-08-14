@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,12 +13,12 @@ import {
   resetPlumbProviderRegistry,
   registerPlumbCredentialStoreFactory,
   resetPlumbCredentialStore,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import type {
   PlumbProvider,
   PlumbCredential,
   IPlumbCredentialStore,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 
 // Only the "Manage custom providers…" wiring test below touches this --
 // the CRUD screen's own behavior (list/save/remove/hasCredential) is

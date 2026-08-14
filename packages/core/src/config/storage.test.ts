@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -24,7 +23,7 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 import { Storage } from './storage.js';
-import { GEMINI_DIR, homedir, resolveToRealPath } from '../utils/paths.js';
+import { PLUMB_DIR, homedir, resolveToRealPath } from '../utils/paths.js';
 import { ProjectRegistry } from './projectRegistry.js';
 import { StorageMigration } from './storageMigration.js';
 
@@ -52,7 +51,7 @@ describe('Storage – initialize', () => {
   it('sets up the registry and performs migration if `getProjectTempDir` is called', async () => {
     await storage.initialize();
     expect(storage.getProjectTempDir()).toBe(
-      path.join(os.homedir(), GEMINI_DIR, 'tmp', PROJECT_SLUG),
+      path.join(os.homedir(), PLUMB_DIR, 'tmp', PROJECT_SLUG),
     );
 
     // Verify registry initialization
@@ -81,7 +80,7 @@ vi.mock('../utils/paths.js', async (importOriginal) => {
 
 describe('Storage – getGlobalSettingsPath', () => {
   it('returns path to ~/.gemini/settings.json', () => {
-    const expected = path.join(os.homedir(), GEMINI_DIR, 'settings.json');
+    const expected = path.join(os.homedir(), PLUMB_DIR, 'settings.json');
     expect(Storage.getGlobalSettingsPath()).toBe(expected);
   });
 });
@@ -91,9 +90,7 @@ describe('Storage - Security', () => {
     vi.mocked(homedir).mockReturnValue('');
 
     // .gemini falls back for backward compatibility
-    expect(Storage.getGlobalGeminiDir()).toBe(
-      path.join(os.tmpdir(), GEMINI_DIR),
-    );
+    expect(Storage.getGlobalPlumbDir()).toBe(path.join(os.tmpdir(), PLUMB_DIR));
 
     // .agents returns empty to avoid insecure fallback WITHOUT throwing error
     expect(Storage.getGlobalAgentsDir()).toBe('');
@@ -113,37 +110,37 @@ describe('Storage – additional helpers', () => {
   });
 
   it('getWorkspaceSettingsPath returns project/.gemini/settings.json', () => {
-    const expected = path.join(projectRoot, GEMINI_DIR, 'settings.json');
+    const expected = path.join(projectRoot, PLUMB_DIR, 'settings.json');
     expect(storage.getWorkspaceSettingsPath()).toBe(expected);
   });
 
   it('getUserCommandsDir returns ~/.gemini/commands', () => {
-    const expected = path.join(os.homedir(), GEMINI_DIR, 'commands');
+    const expected = path.join(os.homedir(), PLUMB_DIR, 'commands');
     expect(Storage.getUserCommandsDir()).toBe(expected);
   });
 
   it('getProjectCommandsDir returns project/.gemini/commands', () => {
-    const expected = path.join(projectRoot, GEMINI_DIR, 'commands');
+    const expected = path.join(projectRoot, PLUMB_DIR, 'commands');
     expect(storage.getProjectCommandsDir()).toBe(expected);
   });
 
   it('getUserSkillsDir returns ~/.gemini/skills', () => {
-    const expected = path.join(os.homedir(), GEMINI_DIR, 'skills');
+    const expected = path.join(os.homedir(), PLUMB_DIR, 'skills');
     expect(Storage.getUserSkillsDir()).toBe(expected);
   });
 
   it('getProjectSkillsDir returns project/.gemini/skills', () => {
-    const expected = path.join(projectRoot, GEMINI_DIR, 'skills');
+    const expected = path.join(projectRoot, PLUMB_DIR, 'skills');
     expect(storage.getProjectSkillsDir()).toBe(expected);
   });
 
   it('getUserAgentsDir returns ~/.gemini/agents', () => {
-    const expected = path.join(os.homedir(), GEMINI_DIR, 'agents');
+    const expected = path.join(os.homedir(), PLUMB_DIR, 'agents');
     expect(Storage.getUserAgentsDir()).toBe(expected);
   });
 
   it('getProjectAgentsDir returns project/.gemini/agents', () => {
-    const expected = path.join(projectRoot, GEMINI_DIR, 'agents');
+    const expected = path.join(projectRoot, PLUMB_DIR, 'agents');
     expect(storage.getProjectAgentsDir()).toBe(expected);
   });
 
@@ -151,7 +148,7 @@ describe('Storage – additional helpers', () => {
     await storage.initialize();
     const expected = path.join(
       os.homedir(),
-      GEMINI_DIR,
+      PLUMB_DIR,
       'tmp',
       PROJECT_SLUG,
       'memory',
@@ -162,14 +159,14 @@ describe('Storage – additional helpers', () => {
   it('getMcpOAuthTokensPath returns ~/.gemini/mcp-oauth-tokens.json', () => {
     const expected = path.join(
       os.homedir(),
-      GEMINI_DIR,
+      PLUMB_DIR,
       'mcp-oauth-tokens.json',
     );
     expect(Storage.getMcpOAuthTokensPath()).toBe(expected);
   });
 
   it('getGlobalBinDir returns ~/.gemini/tmp/bin', () => {
-    const expected = path.join(os.homedir(), GEMINI_DIR, 'tmp', 'bin');
+    const expected = path.join(os.homedir(), PLUMB_DIR, 'tmp', 'bin');
     expect(Storage.getGlobalBinDir()).toBe(expected);
   });
 
@@ -406,18 +403,18 @@ describe('Storage – additional helpers', () => {
 });
 
 describe('Storage - System Paths', () => {
-  const originalEnv = process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'];
+  const originalEnv = process.env['PLUMB_SYSTEM_SETTINGS_PATH'];
 
   afterEach(() => {
     if (originalEnv !== undefined) {
-      process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] = originalEnv;
+      process.env['PLUMB_SYSTEM_SETTINGS_PATH'] = originalEnv;
     } else {
-      delete process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'];
+      delete process.env['PLUMB_SYSTEM_SETTINGS_PATH'];
     }
   });
 
   it('getSystemSettingsPath returns correct path based on platform (default)', () => {
-    delete process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'];
+    delete process.env['PLUMB_SYSTEM_SETTINGS_PATH'];
 
     const platform = os.platform();
     const result = Storage.getSystemSettingsPath();
@@ -433,15 +430,14 @@ describe('Storage - System Paths', () => {
     }
   });
 
-  it('getSystemSettingsPath follows GEMINI_CLI_SYSTEM_SETTINGS_PATH if set', () => {
+  it('getSystemSettingsPath follows PLUMB_SYSTEM_SETTINGS_PATH if set', () => {
     const customPath = '/custom/path/settings.json';
-    process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] = customPath;
+    process.env['PLUMB_SYSTEM_SETTINGS_PATH'] = customPath;
     expect(Storage.getSystemSettingsPath()).toBe(customPath);
   });
 
   it('getSystemPoliciesDir returns correct path based on platform and ignores env var', () => {
-    process.env['GEMINI_CLI_SYSTEM_SETTINGS_PATH'] =
-      '/custom/path/settings.json';
+    process.env['PLUMB_SYSTEM_SETTINGS_PATH'] = '/custom/path/settings.json';
     const platform = os.platform();
     const result = Storage.getSystemPoliciesDir();
 

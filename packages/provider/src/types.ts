@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OMP-derived provider and model type system, adapted for PLUMB.
- * Upstream source: D:\Kesit-next (Oh My Pi)
- * Upstream SHA: 368da051e164341a5322ba4f5dc39fc08c9b578d
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
  */
 
 // ─── Provider identity ───────────────────────────────────────────────

@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Determines if we should attempt to launch a browser for authentication
- * based on the user's environment.
- *
- * This is an adaptation of the logic from the Google Cloud SDK.
- * @returns True if the tool should attempt to launch a browser.
- */
 export function shouldAttemptBrowserLaunch(): boolean {
   // A list of browser names that indicate we should not attempt to open a
   // web browser for the user.

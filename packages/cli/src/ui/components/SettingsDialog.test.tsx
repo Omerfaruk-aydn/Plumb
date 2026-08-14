@@ -1,23 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- *
- *
- * This test suite covers:
- * - Initial rendering and display state
- * - Keyboard navigation (arrows, vim keys, Tab)
- * - Settings toggling (Enter, Space)
- * - Focus section switching between settings and scope selector
- * - Scope selection and settings persistence across scopes
- * - Restart-required vs immediate settings behavior
- * - Complex user interaction workflows
- * - Error handling and edge cases
- * - Display values for inherited and overridden settings
- *
  */
 
 import { renderWithProviders } from '../../test-utils/render.js';
@@ -29,7 +12,7 @@ import {
   createMockSettings,
   type MockSettingsFile,
 } from '../../test-utils/settings.js';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@plumb/core';
 import { act } from 'react';
 import { TEST_ONLY } from '../../utils/settingsUtils.js';
 import {
@@ -1752,7 +1735,7 @@ describe('SettingsDialog', { timeout: 30000 }, () => {
             loadMemoryFromIncludeDirectories: true,
             fileFiltering: {
               respectGitIgnore: true,
-              respectGeminiIgnore: true,
+              respectPlumbIgnore: true,
               enableRecursiveFileSearch: true,
               enableFuzzySearch: true,
             },
@@ -1837,7 +1820,7 @@ describe('SettingsDialog', { timeout: 30000 }, () => {
           context: {
             fileFiltering: {
               respectGitIgnore: false,
-              respectGeminiIgnore: true,
+              respectPlumbIgnore: true,
               enableRecursiveFileSearch: false,
               enableFuzzySearch: false,
             },
@@ -1897,7 +1880,7 @@ describe('SettingsDialog', { timeout: 30000 }, () => {
             loadMemoryFromIncludeDirectories: false,
             fileFiltering: {
               respectGitIgnore: false,
-              respectGeminiIgnore: false,
+              respectPlumbIgnore: false,
               enableRecursiveFileSearch: false,
               enableFuzzySearch: true,
             },

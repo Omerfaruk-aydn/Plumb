@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "@google/gemini-cli-core": ["../packages/core/index.ts"],
+      "@plumb/core": ["../packages/core/index.ts"],
       "plumb-cli": ["../packages/cli/index.ts"]
     }
   },

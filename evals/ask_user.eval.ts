@@ -1,11 +1,10 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, expect } from 'vitest';
-import { ApprovalMode, isRecord } from '@google/gemini-cli-core';
+import { ApprovalMode, isRecord } from '@plumb/core';
 import { appEvalTest, type AppEvalCase } from './app-test-helper.js';
 import { type EvalPolicy } from './test-helper.js';
 
@@ -76,9 +75,9 @@ describe('ask_user', () => {
       'packages/core/src/index.ts': '// index\nexport const version = "1.0.0";',
       'packages/core/src/util.ts': '// util\nexport function help() {}',
       'packages/core/package.json': JSON.stringify({
-        name: '@google/gemini-cli-core',
+        name: '@plumb/core',
       }),
-      'README.md': '# Gemini CLI',
+      'README.md': '# PLUMB',
     },
     prompt: `I want to completely rewrite the core package to support the upcoming V2 architecture, but I haven't decided what that looks like yet. We need to figure out the requirements first. Can you ask me some questions to help nail down the design?`,
     setup: async (rig) => {

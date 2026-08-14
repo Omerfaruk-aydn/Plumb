@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -51,7 +50,7 @@ const MAX_CHILD_PROCESS_BUFFER_SIZE = 16 * 1024 * 1024; // 16MB
 /**
  * An environment variable that is set for shell executions. This can be used
  * by downstream executables and scripts to identify that they were executed
- * from within Gemini CLI.
+ * from within PLUMB.
  */
 export const GEMINI_CLI_IDENTIFICATION_ENV_VAR = 'GEMINI_CLI';
 

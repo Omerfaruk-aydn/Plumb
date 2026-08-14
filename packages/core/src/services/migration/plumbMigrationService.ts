@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -31,7 +30,9 @@ export class PlumbMigrationService {
    * Non-destructive migration from .gemini to .plumb
    */
   static migrateConfig(options: MigrationOptions = {}): MigrationResult {
-    const home = options.sourceDir ? path.dirname(options.sourceDir) : homedir();
+    const home = options.sourceDir
+      ? path.dirname(options.sourceDir)
+      : homedir();
     const sourceDir = options.sourceDir || path.join(home, '.gemini');
     const targetDir = options.targetDir || path.join(home, '.plumb');
 

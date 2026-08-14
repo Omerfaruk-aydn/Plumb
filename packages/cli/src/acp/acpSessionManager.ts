@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +11,7 @@ import {
   startupProfiler,
   convertSessionToClientHistory,
   createPolicyUpdater,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import * as acp from '@agentclientprotocol/sdk';
 import { randomUUID } from 'node:crypto';
 import { loadSettings, type LoadedSettings } from '../config/settings.js';

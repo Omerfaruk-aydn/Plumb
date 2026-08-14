@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -64,8 +63,8 @@ describe('IdeClient', () => {
     // Mock environment variables
     process.env['GEMINI_CLI_IDE_WORKSPACE_PATH'] = '/test/workspace';
     delete process.env['GEMINI_CLI_IDE_SERVER_PORT'];
-    delete process.env['GEMINI_CLI_IDE_SERVER_STDIO_COMMAND'];
-    delete process.env['GEMINI_CLI_IDE_SERVER_STDIO_ARGS'];
+    delete process.env['PLUMB_IDE_SERVER_STDIO_COMMAND'];
+    delete process.env['PLUMB_IDE_SERVER_STDIO_ARGS'];
     delete process.env['GEMINI_CLI_IDE_AUTH_TOKEN'];
 
     // Mock dependencies

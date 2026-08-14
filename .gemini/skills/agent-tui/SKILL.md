@@ -7,7 +7,7 @@ description: >
   Also use when: user asks "what is agent-tui", "what does agent-tui do", "demo agent-tui", "show me agent-tui", "how does agent-tui work", or wants to see it in action.
 ---
 
-## 🚨 CRITICAL: macOS Daemon Workaround & Gemini CLI Usage 🚨
+## 🚨 CRITICAL: macOS Daemon Workaround & PLUMB Usage 🚨
 
 When using `agent-tui` in this macOS environment, the default background daemonization process crashes, causing `Connection refused (os error 61)` errors. 
 
@@ -32,13 +32,13 @@ When `agent-tui run` returns JSON, it includes both a `session_id` and a `pid`. 
 
 If the daemon crashes (`os error 61`), the pseudo-terminal is destroyed. Even if the child `pid` survives as an orphan, you cannot reconnect to it. You must restart the daemon using the workaround above and start a completely new session.
 
-### Testing the Gemini CLI
+### Testing the PLUMB
 
-When testing the Gemini CLI with `agent-tui`, there are several strict requirements to ensure deterministic and accurate behavior:
+When testing the PLUMB with `agent-tui`, there are several strict requirements to ensure deterministic and accurate behavior:
 
 1. **Build Before Running**: `agent-tui` runs the built JS files, not TypeScript. You **MUST** run `npm run build` or `npm run build:all` after making code changes and before launching the CLI with `agent-tui`.
-2. **Bypass Trust Modals**: Always pass `GEMINI_CLI_TRUST_WORKSPACE=true` in the environment. If you don't, any new project-level agents or extensions will trigger a full-screen "Acknowledge and Enable" modal. This modal steals focus, swallows automation keystrokes, and causes `agent-tui wait` commands to time out.
-3. **Isolated Environments**: If you need to test without real user credentials or existing agents interfering, isolate the global settings using `GEMINI_CLI_HOME=<some-test-dir>`.
+2. **Bypass Trust Modals**: Always pass `PLUMB_TRUST_WORKSPACE=true` in the environment. If you don't, any new project-level agents or extensions will trigger a full-screen "Acknowledge and Enable" modal. This modal steals focus, swallows automation keystrokes, and causes `agent-tui wait` commands to time out.
+3. **Isolated Environments**: If you need to test without real user credentials or existing agents interfering, isolate the global settings using `PLUMB_CLI_HOME=<some-test-dir>`.
 4. **Testing State Deltas (e.g., Reloads)**: If you are testing features that report deltas (e.g., `/agents reload` outputting "1 new local subagent"), you **MUST**:
    - Start the CLI *first* so it establishes its baseline registry.
    - Use a separate shell command (outside of `agent-tui`) to write the new agent `.md`/`.toml` file.
@@ -47,7 +47,7 @@ When testing the Gemini CLI with `agent-tui`, there are several strict requireme
 
 ```bash
 # Example: Standard isolated run (sandboxed config + bypass trust modals)
-env GEMINI_CLI_TRUST_WORKSPACE=true GEMINI_CLI_HOME=test-gemini-home agent-tui run -d "$(pwd)" node packages/cli/dist/index.js
+env PLUMB_TRUST_WORKSPACE=true PLUMB_CLI_HOME=test-gemini-home agent-tui run -d "$(pwd)" node packages/cli/dist/index.js
 ```
 
 # Terminal Automation Mastery

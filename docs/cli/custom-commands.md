@@ -1,13 +1,13 @@
 # Custom commands
 
 Custom commands let you save and reuse your favorite or most frequently used
-prompts as personal shortcuts within Gemini CLI. You can create commands that
-are specific to a single project or commands that are available globally across
-all your projects, streamlining your workflow and ensuring consistency.
+prompts as personal shortcuts within PLUMB. You can create commands that are
+specific to a single project or commands that are available globally across all
+your projects, streamlining your workflow and ensuring consistency.
 
 ## File locations and precedence
 
-Gemini CLI discovers commands from two locations, loaded in a specific order:
+PLUMB discovers commands from two locations, loaded in a specific order:
 
 1.  **User commands (global):** Located in `~/.gemini/commands/`. These commands
     are available in any project you are working on.
@@ -169,9 +169,9 @@ your `prompt` and injecting their output. This is ideal for gathering context
 from your local environment, like reading file content or checking the status of
 Git.
 
-When a custom command attempts to execute a shell command, Gemini CLI will now
-prompt you for confirmation before proceeding. This is a security measure to
-ensure that only intended commands can be run.
+When a custom command attempts to execute a shell command, PLUMB will now prompt
+you for confirmation before proceeding. This is a security measure to ensure
+that only intended commands can be run.
 
 **How it works:**
 
@@ -328,4 +328,4 @@ to the context, and then invoke your command:
 > /refactor:pure
 ```
 
-Gemini CLI will then execute the multi-line prompt defined in your TOML file.
+PLUMB will then execute the multi-line prompt defined in your TOML file.

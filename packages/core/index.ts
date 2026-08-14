@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -44,8 +43,8 @@ export * from './src/utils/pathReader.js';
 export { ClearcutLogger } from './src/telemetry/clearcut-logger/clearcut-logger.js';
 export { logModelSlashCommand } from './src/telemetry/loggers.js';
 export { KeychainTokenStorage } from './src/mcp/token-storage/keychain-token-storage.js';
-export * from './src/utils/googleQuotaErrors.js';
-export type { GoogleApiError } from './src/utils/googleErrors.js';
+export * from './src/utils/plumbGoogleQuotaErrors.js';
+export type { GoogleApiError } from './src/utils/plumbGoogleErrors.js';
 export { getCodeAssistServer } from './src/code_assist/codeAssist.js';
 export { getExperiments } from './src/code_assist/experiments/experiments.js';
 export { ExperimentFlags } from './src/code_assist/experiments/flagNames.js';

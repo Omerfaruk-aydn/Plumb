@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,11 +13,7 @@ import { ExtensionStorage } from './storage.js';
 
 vi.mock('./storage.js');
 
-import {
-  coreEvents,
-  GEMINI_DIR,
-  type GeminiCLIExtension,
-} from '@google/gemini-cli-core';
+import { coreEvents, PLUMB_DIR, type GeminiCLIExtension } from '@plumb/core';
 
 vi.mock('node:os', () => ({
   homedir: vi.fn().mockReturnValue('/virtual-home'),
@@ -90,7 +85,7 @@ describe('ExtensionEnablementManager', () => {
 
     testDir = createTestDir();
     vi.mocked(ExtensionStorage.getUserExtensionsDir).mockReturnValue(
-      path.join(testDir.path, GEMINI_DIR),
+      path.join(testDir.path, PLUMB_DIR),
     );
     manager = new ExtensionEnablementManager();
   });
@@ -178,7 +173,7 @@ describe('ExtensionEnablementManager', () => {
     it('should return an empty object if the config file is corrupted', () => {
       const configPath = path.join(
         testDir.path,
-        GEMINI_DIR,
+        PLUMB_DIR,
         'extension-enablement.json',
       );
       fs.mkdirSync(path.dirname(configPath), { recursive: true });

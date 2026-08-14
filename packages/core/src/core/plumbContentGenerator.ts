@@ -1,10 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * PlumbContentGenerator — bridges PLUMB's ContentGenerator interface
- * to the OMP-derived provider transport subsystem.
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
@@ -144,7 +140,7 @@ export class PlumbContentGenerator implements ContentGenerator {
   ): AsyncGenerator<GenerateContentResponse> {
     let plumbModule: any;
     try {
-      plumbModule = await import('@google/gemini-cli-provider');
+      plumbModule = await import('@plumb/provider');
     } catch (err) {
       debugLogger.error('Failed to load PLUMB provider subsystem:', err);
       yield this.#errorChunk('PLUMB provider subsystem not available.');

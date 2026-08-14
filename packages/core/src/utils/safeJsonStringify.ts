@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Safely stringifies an object to JSON, handling circular references by replacing them with [Circular].
- *
- * @param obj - The object to stringify
- * @param space - Optional space parameter for formatting (defaults to no formatting)
- * @returns JSON string with circular references replaced by [Circular]
- */
 import type { Config } from '../config/config.js';
 
 export function safeJsonStringify(

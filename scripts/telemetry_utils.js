@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -13,7 +12,7 @@ import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
-import { GEMINI_DIR } from '@google/gemini-cli-core';
+import { PLUMB_DIR } from '@plumb/core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,13 +23,13 @@ const projectHash = crypto
   .update(projectRoot)
   .digest('hex');
 
-// Returns the home directory, respecting GEMINI_CLI_HOME
-const homedir = () => process.env['GEMINI_CLI_HOME'] || os.homedir();
+// Returns the home directory, respecting PLUMB_CLI_HOME
+const homedir = () => process.env['PLUMB_CLI_HOME'] || os.homedir();
 
 // User-level .gemini directory in home
-const USER_GEMINI_DIR = path.join(homedir(), GEMINI_DIR);
+const USER_GEMINI_DIR = path.join(homedir(), PLUMB_DIR);
 // Project-level .gemini directory in the workspace
-const WORKSPACE_GEMINI_DIR = path.join(projectRoot, GEMINI_DIR);
+const WORKSPACE_GEMINI_DIR = path.join(projectRoot, PLUMB_DIR);
 
 // Telemetry artifacts are stored in a hashed directory under the user's ~/.gemini/tmp
 export const OTEL_DIR = path.join(USER_GEMINI_DIR, 'tmp', projectHash, 'otel');

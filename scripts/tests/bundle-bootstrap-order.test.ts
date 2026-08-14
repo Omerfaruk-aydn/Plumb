@@ -1,17 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression for a real `npm ci` bootstrap failure: `esbuild.config.js`
- * resolves `@google/gemini-cli-provider` and `@google/gemini-cli-core`
- * through their package.json `main` field (`dist/index.js`), which does not
- * exist until each workspace has been built. `npm run prepare` (which `npm
- * ci` runs automatically) invokes `npm run bundle` directly -- if `bundle`
- * ever stops building those two workspaces before invoking esbuild, a
- * fresh clone/install fails with "Could not resolve
- * @google/gemini-cli-provider" even though every other command works fine
- * once a stale `dist/` happens to exist from a previous manual build.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -30,21 +19,17 @@ describe('bundle bootstrap ordering', () => {
     const bundleScript = pkg.scripts['bundle'];
     expect(bundleScript).toBeTruthy();
 
-    const providerBuildIndex = bundleScript.indexOf(
-      'build -w @google/gemini-cli-provider',
-    );
-    const coreBuildIndex = bundleScript.indexOf(
-      'build -w @google/gemini-cli-core',
-    );
+    const providerBuildIndex = bundleScript.indexOf('build -w @plumb/provider');
+    const coreBuildIndex = bundleScript.indexOf('build -w @plumb/core');
     const esbuildIndex = bundleScript.indexOf('esbuild.config.js');
 
     expect(
       providerBuildIndex,
-      'bundle must build @google/gemini-cli-provider (esbuild resolves it via dist/index.js)',
+      'bundle must build @plumb/provider (esbuild resolves it via dist/index.js)',
     ).toBeGreaterThanOrEqual(0);
     expect(
       coreBuildIndex,
-      'bundle must build @google/gemini-cli-core (esbuild resolves it via dist/index.js)',
+      'bundle must build @plumb/core (esbuild resolves it via dist/index.js)',
     ).toBeGreaterThanOrEqual(0);
     expect(esbuildIndex).toBeGreaterThanOrEqual(0);
 
@@ -78,6 +63,6 @@ describe('bundle bootstrap ordering', () => {
     // resolved-and-bundled, this ordering fix (and this guard) should be
     // revisited together -- externalizing removes the load-bearing need for
     // dist/index.js to exist before esbuild runs.
-    expect(esbuildConfigSource).not.toContain('@google/gemini-cli-provider');
+    expect(esbuildConfigSource).not.toContain('@plumb/provider');
   });
 });

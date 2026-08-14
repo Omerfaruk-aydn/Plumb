@@ -1,17 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Provider-scoped model cache (THIN PLUMB UI FACADE over the OMP authority).
- *
- * The storage format, freshness/TTL semantics, and cross-process access are
- * the responsibility of the imported OMP runtime (`omp-catalog/model-cache.ts`).
- * This module only adapts the PLUMB `PlumbModel` shape and keeps the legacy
- * `readModelCache`/`writeModelCache`/`invalidateModelCache`/`invalidateAllModelCache`
- * function signatures the model registry and barrel export.
- *
- * OMP source: packages/catalog/src/model-cache.ts
- * OMP SHA: 4df68d60438423b384b2b47fb3d6835641624757
  */
 
 import type { PlumbModel, PlumbProviderId } from '../types.js';
@@ -20,8 +9,8 @@ import {
   writeModelCache as writeOmpModelCache,
   removeModelCacheEntry,
   clearModelCache,
-} from '../omp-catalog/model-cache.js';
-import type { Api, Model } from '../omp-catalog/types.js';
+} from '../vendor-catalog/model-cache.js';
+import type { Api, Model } from '../vendor-catalog/types.js';
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,17 +14,12 @@ import { persistentState } from '../../utils/persistentState.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { KeypressPriority } from '../contexts/KeypressContext.js';
 
-import {
-  GEMINI_DIR,
-  Storage,
-  homedir,
-  WarningPriority,
-} from '@google/gemini-cli-core';
+import { PLUMB_DIR, Storage, homedir, WarningPriority } from '@plumb/core';
 
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 
-const settingsPath = path.join(homedir(), GEMINI_DIR, 'settings.json');
+const settingsPath = path.join(homedir(), PLUMB_DIR, 'settings.json');
 
 const screenReaderNudgeFilePath = path.join(
   Storage.getGlobalTempDir(),

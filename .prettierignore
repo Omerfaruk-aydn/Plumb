@@ -28,5 +28,5 @@ packages/vscode-ide-companion/NOTICES.txt
 # docs/architecture/plumb-ownership-manifest.json) — must stay byte-close to
 # the pinned upstream to keep adaptationDiffs review-able and avoid stale
 # false positives in the ownership governance suite.
-packages/provider/src/omp-ai/
-packages/provider/src/omp-catalog/
+packages/provider/src/vendor-ai/
+packages/provider/src/vendor-catalog/

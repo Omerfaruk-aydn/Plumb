@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -59,7 +58,7 @@ const __dirname = path.dirname(__filename);
  * Uses a native C# helper to bypass PowerShell restrictions.
  */
 export class WindowsSandboxManager implements SandboxManager {
-  static readonly HELPER_EXE = 'GeminiSandbox.exe';
+  static readonly HELPER_EXE = 'PlumbSandbox.exe';
 
   private readonly helperPath: string;
   private readonly denialCache: SandboxDenialCache = createSandboxDenialCache();
@@ -228,7 +227,7 @@ export class WindowsSandboxManager implements SandboxManager {
     const command = req.command;
     const args = req.args;
 
-    // Native commands __read and __write are passed directly to GeminiSandbox.exe
+    // Native commands __read and __write are passed directly to PlumbSandbox.exe
 
     const isYolo = this.options.modeConfig?.yolo ?? false;
 
@@ -418,7 +417,7 @@ export class WindowsSandboxManager implements SandboxManager {
 
     // 5. Generate Manifests
     const tempDir = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'gemini-cli-sandbox-'),
+      path.join(os.tmpdir(), 'plumb-sandbox-'),
     );
 
     const forbiddenManifestPath = path.join(tempDir, 'forbidden.txt');

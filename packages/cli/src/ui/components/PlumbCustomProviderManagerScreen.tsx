@@ -1,17 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real, production-facing Ink CRUD screen for user-defined custom providers
- * (OpenAI-/Anthropic-/Gemini-compatible endpoints). Unlike every other
- * provider config screen in this package, a custom provider is one of many
- * entries -- so this screen is two views: a list (browse/add/edit/delete)
- * and a field-by-field form, both driven only through
- * `CustomProviderConfigActions` (../utils/customProviderConfigActions.ts),
- * which is the sole place that touches the definition store, the
- * credential store, and registry hydration. No screen-local persistence.
  */
+
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Text } from 'ink';
@@ -20,7 +11,7 @@ import type {
   CustomProviderDialect,
   CustomCredentialPlacement,
   CustomProviderValidationErrors,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';

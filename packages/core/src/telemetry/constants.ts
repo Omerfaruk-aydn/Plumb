@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ export const SERVICE_NAME = 'plumb';
 export const SERVICE_DESCRIPTION =
   'PLUMB is an open-source AI agent that brings the power of Gemini directly into your terminal. It is designed to be a terminal-first, extensible, and powerful tool for developers, engineers, SREs, and beyond.';
 
-// Gemini CLI specific semantic conventions
+// PLUMB specific semantic conventions
 // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#genai-attributes
 export const GEN_AI_OPERATION_NAME = 'gen_ai.operation.name';
 export const GEN_AI_AGENT_NAME = 'gen_ai.agent.name';
@@ -27,7 +26,7 @@ export const GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions';
 export const GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions';
 export const GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id';
 
-// Gemini CLI specific operations
+// PLUMB specific operations
 export enum GeminiCliOperation {
   ToolCall = 'tool_call',
   LLMCall = 'llm_call',

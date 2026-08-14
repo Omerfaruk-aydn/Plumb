@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 202 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 

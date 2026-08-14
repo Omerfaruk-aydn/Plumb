@@ -13,7 +13,7 @@ topics on:
 - **Error:
   `You must be a named user on your organization's Gemini Code Assist Standard edition subscription to use this service. Please contact your administrator to request an entitlement to Gemini Code Assist Standard edition.`**
 
-  - **Cause:** This error might occur if Gemini CLI detects the
+  - **Cause:** This error might occur if PLUMB detects the
     `GOOGLE_CLOUD_PROJECT` or `GOOGLE_CLOUD_PROJECT_ID` environment variable is
     defined. Setting these variables forces an organization subscription check.
     This might be an issue if you are using an individual Google account not
@@ -33,8 +33,8 @@ topics on:
 - **Error:
   `Failed to sign in. Message: Your current account is not eligible... because it is not currently available in your location.`**
 
-  - **Cause:** Gemini CLI does not currently support your location. For a full
-    list of supported locations, see the following pages:
+  - **Cause:** PLUMB does not currently support your location. For a full list
+    of supported locations, see the following pages:
     - Gemini Code Assist for individuals:
       [Available locations](https://developers.google.com/gemini-code-assist/resources/available-locations#americas)
 
@@ -76,19 +76,18 @@ topics on:
   - **Solution:** Either stop the other process that is using the port or
     configure the MCP server to use a different port.
 
-- **Error: Command not found (when attempting to run Gemini CLI with
-  `gemini`).**
+- **Error: Command not found (when attempting to run PLUMB with `gemini`).**
 
-  - **Cause:** Gemini CLI is not correctly installed or it is not in your
-    system's `PATH`.
-  - **Solution:** The update depends on how you installed Gemini CLI:
+  - **Cause:** PLUMB is not correctly installed or it is not in your system's
+    `PATH`.
+  - **Solution:** The update depends on how you installed PLUMB:
     - If you installed `gemini` globally, check that your `npm` global binary
-      directory is in your `PATH`. You can update Gemini CLI using the command
-      `npm install -g @google/gemini-cli@latest`.
+      directory is in your `PATH`. You can update PLUMB using the command
+      `npm install -g plumb-cli@latest`.
     - If you are running `gemini` from source, ensure you are using the correct
       command to invoke it (for example, `node packages/cli/dist/index.js ...`).
-      To update Gemini CLI, pull the latest changes from the repository, and
-      then rebuild using the command `npm run build`.
+      To update PLUMB, pull the latest changes from the repository, and then
+      rebuild using the command `npm run build`.
 
 - **Error: `MODULE_NOT_FOUND` or import errors.**
 
@@ -101,25 +100,23 @@ topics on:
 
 - **Error: "Operation not permitted", "Permission denied", or similar.**
 
-  - **Cause:** When sandboxing is enabled, Gemini CLI may attempt operations
-    that are restricted by your sandbox configuration, such as writing outside
-    the project directory or system temp directory.
+  - **Cause:** When sandboxing is enabled, PLUMB may attempt operations that are
+    restricted by your sandbox configuration, such as writing outside the
+    project directory or system temp directory.
   - **Solution:** Refer to the [Configuration: Sandboxing](../cli/sandbox.md)
     documentation for more information, including how to customize your sandbox
     configuration.
 
-- **Gemini CLI is not running in interactive mode in "CI" environments**
+- **PLUMB is not running in interactive mode in "CI" environments**
 
-  - **Issue:** Gemini CLI does not enter interactive mode (no prompt appears) if
-    an environment variable starting with `CI_` (for example, `CI_TOKEN`) is
-    set. This is because the `is-in-ci` package, used by the underlying UI
-    framework, detects these variables and assumes a non-interactive CI
-    environment.
+  - **Issue:** PLUMB does not enter interactive mode (no prompt appears) if an
+    environment variable starting with `CI_` (for example, `CI_TOKEN`) is set.
+    This is because the `is-in-ci` package, used by the underlying UI framework,
+    detects these variables and assumes a non-interactive CI environment.
   - **Cause:** The `is-in-ci` package checks for the presence of `CI`,
     `CONTINUOUS_INTEGRATION`, or any environment variable with a `CI_` prefix.
     When any of these are found, it signals that the environment is
-    non-interactive, which prevents Gemini CLI from starting in its interactive
-    mode.
+    non-interactive, which prevents PLUMB from starting in its interactive mode.
   - **Solution:** If the `CI_` prefixed variable is not needed for the CLI to
     function, you can temporarily unset it for the command. For example,
     `env -u CI_TOKEN gemini`
@@ -136,23 +133,23 @@ topics on:
 
 - **Warning: `npm WARN deprecated node-domexception@1.0.0` or
   `npm WARN deprecated glob` during install/update**
-  - **Issue:** When installing or updating Gemini CLI globally via
-    `npm install -g @google/gemini-cli` or `npm update -g @google/gemini-cli`,
-    you might see deprecation warnings regarding `node-domexception` or old
-    versions of `glob`.
+  - **Issue:** When installing or updating PLUMB globally via
+    `npm install -g plumb-cli` or `npm update -g plumb-cli`, you might see
+    deprecation warnings regarding `node-domexception` or old versions of
+    `glob`.
   - **Cause:** These warnings occur because some dependencies (or their
     sub-dependencies, like `google-auth-library`) rely on older package
-    versions. Since Gemini CLI requires Node.js 20 or higher, the platform's
-    native features (like the native `DOMException`) are used, making these
-    warnings purely informational.
+    versions. Since PLUMB requires Node.js 20 or higher, the platform's native
+    features (like the native `DOMException`) are used, making these warnings
+    purely informational.
   - **Solution:** These warnings are harmless and can be safely ignored. Your
     installation or update will complete successfully and function properly
     without any action required.
 
 ## Exit codes
 
-Gemini CLI uses specific exit codes to indicate the reason for termination. This
-is especially useful for scripting and automation.
+PLUMB uses specific exit codes to indicate the reason for termination. This is
+especially useful for scripting and automation.
 
 | Exit Code | Error Type                 | Description                                                                                         |
 | --------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -195,7 +192,7 @@ is especially useful for scripting and automation.
 ## Existing GitHub issues similar to yours or creating new issues
 
 If you encounter an issue that was not covered here in this _Troubleshooting
-guide_, consider searching Gemini CLI
+guide_, consider searching PLUMB
 [Issue tracker on GitHub](https://github.com/google-gemini/gemini-cli/issues).
 If you can't find an issue similar to yours, consider creating a new GitHub
 Issue with a detailed description. Pull requests are also welcome!

@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Bridges PlumbSecureCredentialStore's async safe cloud-config storage to
- * packages/provider's synchronous resolver seam. Proves: startup load
- * populates the cache from the real store, save writes through and updates
- * the cache immediately (same-session effect, no restart needed), clear
- * removes both, and the wired resolver is what packages/provider's own
- * resolveProviderConfigValue actually consults end-to-end.
  */
+
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -22,10 +15,7 @@ import {
   getCachedProviderCloudConfig,
   __resetProviderCloudConfigCacheForTests,
 } from './providerCloudConfigCache.js';
-import {
-  resolveProviderConfigValue,
-  getCatalogModels,
-} from '@google/gemini-cli-provider';
+import { resolveProviderConfigValue, getCatalogModels } from '@plumb/provider';
 
 describe('providerCloudConfigCache', () => {
   let store: PlumbSecureCredentialStore;
@@ -36,8 +26,8 @@ describe('providerCloudConfigCache', () => {
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-cloud-config-cache-test-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    previousHome = process.env['PLUMB_CLI_HOME'];
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
 
     store = new PlumbSecureCredentialStore();
     await store.clearAll();
@@ -48,9 +38,9 @@ describe('providerCloudConfigCache', () => {
     __resetProviderCloudConfigCacheForTests();
     await store.clearAll();
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     fs.rmSync(isolatedHome, { recursive: true, force: true });
   });

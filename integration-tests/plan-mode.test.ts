@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { GEMINI_DIR, TestRig, checkModelOutputContent } from './test-helper.js';
+import { PLUMB_DIR, TestRig, checkModelOutputContent } from './test-helper.js';
 
 describe('Plan Mode', () => {
   let rig: TestRig;
@@ -256,7 +255,7 @@ describe('Plan Mode', () => {
     });
 
     writeFileSync(
-      join(rig.homeDir!, GEMINI_DIR, 'state.json'),
+      join(rig.homeDir!, PLUMB_DIR, 'state.json'),
       JSON.stringify({ terminalSetupPromptShown: true }, null, 2),
     );
 

@@ -1,14 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Atomicity contract tests for scripts/link-plumb.mjs.
- *
- * The retired Windows shell chain continued to `npm link` after failed
- * commands. These tests prove the Node route aborts on the first failing
- * step, never invokes the link steps after a failure, and never modifies the
- * existing global command on a failed run.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -150,7 +142,9 @@ describe('link-plumb atomic failure route', () => {
 
   it('stops after a CLI build failure without calling npm link', () => {
     // The pre-build dist wipe must not touch the real production dist.
-    const scratchDist = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-buildfail-dist-'));
+    const scratchDist = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-buildfail-dist-'),
+    );
     try {
       const linkMarker = markerPath('link');
       const run = runLinkScript({
@@ -173,11 +167,16 @@ describe('link-plumb atomic failure route', () => {
   }, 120_000);
 
   it('rejects a dist that lacks the diagnostic flags even when the build succeeds', () => {
-    const fakeDist = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-stale-dist-'));
+    const fakeDist = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-stale-dist-'),
+    );
     try {
       // A syntactically valid but diagnostic-free dist entry, as produced by
       // the retired build route (no --runtime-identity / --diagnose-logo).
-      fs.writeFileSync(path.join(fakeDist, 'index.js'), 'console.log("gemini");\n');
+      fs.writeFileSync(
+        path.join(fakeDist, 'index.js'),
+        'console.log("gemini");\n',
+      );
 
       const linkMarker = markerPath('link');
       const run = runLinkScript({
@@ -242,7 +241,9 @@ describe('verifyDistDiagnostics', () => {
   });
 
   it('rejects a dist tree missing the diagnostic handler modules', () => {
-    const fakeDist = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-verify-dist-'));
+    const fakeDist = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-verify-dist-'),
+    );
     try {
       fs.writeFileSync(path.join(fakeDist, 'index.js'), '// entry\n');
       const problems = linkPlumb.verifyDistDiagnostics(
@@ -261,7 +262,9 @@ describe('verifyDistDiagnostics', () => {
   });
 
   it('rejects a parser module that does not register the flags', () => {
-    const fakeDist = fs.mkdtempSync(path.join(os.tmpdir(), 'plumb-verify-flags-'));
+    const fakeDist = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'plumb-verify-flags-'),
+    );
     try {
       fs.writeFileSync(path.join(fakeDist, 'index.js'), '// entry\n');
       fs.mkdirSync(path.join(fakeDist, 'src', 'config'), { recursive: true });

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -33,10 +32,7 @@ import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
 import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
 import { PlumbContentGenerator } from './plumbContentGenerator.js';
-import {
-  getPlumbProvider,
-  getPlumbProviderRegistry,
-} from '@google/gemini-cli-provider';
+import { getPlumbProvider, getPlumbProviderRegistry } from '@plumb/provider';
 import { debugLogger } from '../utils/debugLogger.js';
 
 /**

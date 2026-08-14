@@ -1,15 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Compares PR evaluation results against historical nightly baselines.
- *
- * This script generates a Markdown report for use in PR comments. It aligns with
- * the 6-day lookback logic to show accurate historical pass rates and filters out
- * pre-existing or noisy failures to ensure only actionable regressions are reported.
  */
 
 import fs from 'node:fs';
@@ -84,7 +75,7 @@ function main() {
         markdown += `### Failure ${i + 1}: ${r.name}\n\n`;
       }
 
-      markdown += '#### 1. Ask Gemini CLI to fix it (Recommended)\n';
+      markdown += '#### 1. Ask PLUMB to fix it (Recommended)\n';
       markdown += 'Copy and paste this prompt to the agent:\n';
       markdown += '```text\n';
       markdown += `The eval "${r.name}" in ${r.file} is failing. Investigate and fix it using the behavioral-evals skill.\n`;

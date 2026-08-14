@@ -1,13 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React from 'react';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { waitFor } from '../../../test-utils/async.js';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@plumb/core';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExtensionRegistryView } from './ExtensionRegistryView.js';
 import { type ExtensionManager } from '../../../config/extension-manager.js';

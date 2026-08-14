@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import {
   isLoadableSettingScope,
   type LoadedSettings,
 } from '../config/settings.js';
-import { getErrorMessage } from '@google/gemini-cli-core';
+import { getErrorMessage } from '@plumb/core';
 import type { ModifiedScope } from './skillSettings.js';
 
 export type HookActionStatus = 'success' | 'no-op' | 'error';

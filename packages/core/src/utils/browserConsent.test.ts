@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ vi.mock('node:fs/promises', () => ({
 // Mock Storage to return a predictable directory
 vi.mock('../config/storage.js', () => ({
   Storage: {
-    getGlobalGeminiDir: vi.fn(),
+    getGlobalPlumbDir: vi.fn(),
   },
 }));
 
@@ -28,7 +27,7 @@ import { getBrowserConsentIfNeeded } from './browserConsent.js';
 describe('browserConsent', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(Storage.getGlobalGeminiDir).mockReturnValue('/mock/.gemini');
+    vi.mocked(Storage.getGlobalPlumbDir).mockReturnValue('/mock/.gemini');
   });
 
   afterEach(() => {

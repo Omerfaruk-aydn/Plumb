@@ -1,26 +1,20 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  initializePlumbProviders,
-  getPlumbCredentialStore,
-} from '@google/gemini-cli-core';
+import { initializePlumbProviders, getPlumbCredentialStore } from '@plumb/core';
 import {
   installBunGlobal,
   resetPlumbProviderRegistry,
   resolveUsablePlumbCredential,
   getProviderDefinition,
   getCatalogModels,
-} from '@google/gemini-cli-provider';
+} from '@plumb/provider';
 import { runCodingPlanLiveAcceptance } from './providerAcceptanceHarness.js';
 
 const ACCESS = 'ya29.live-acceptance-access';
@@ -49,9 +43,10 @@ async function makeProviderModule(
   loginDef: Record<string, unknown>,
   dropAdoption = false,
 ) {
-  const realModule = (await import(
-    '@google/gemini-cli-provider'
-  )) as unknown as Record<string, unknown>;
+  const realModule = (await import('@plumb/provider')) as unknown as Record<
+    string,
+    unknown
+  >;
   const base = dropAdoption
     ? Object.fromEntries(
         Object.entries(realModule).filter(
@@ -75,9 +70,9 @@ describe('antigravity live auth -> production stream credential handoff (product
     isolatedHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'plumb-antigravity-acceptance-'),
     );
-    previousHome = process.env['GEMINI_CLI_HOME'];
+    previousHome = process.env['PLUMB_CLI_HOME'];
     previousForceFileStorage = process.env['GEMINI_FORCE_FILE_STORAGE'];
-    process.env['GEMINI_CLI_HOME'] = isolatedHome;
+    process.env['PLUMB_CLI_HOME'] = isolatedHome;
     // Keep the test hermetic: encrypted file keychain under the isolated
     // home, never the real OS credential manager.
     process.env['GEMINI_FORCE_FILE_STORAGE'] = 'true';
@@ -96,9 +91,9 @@ describe('antigravity live auth -> production stream credential handoff (product
     }
     resetPlumbProviderRegistry();
     if (previousHome === undefined) {
-      delete process.env['GEMINI_CLI_HOME'];
+      delete process.env['PLUMB_CLI_HOME'];
     } else {
-      process.env['GEMINI_CLI_HOME'] = previousHome;
+      process.env['PLUMB_CLI_HOME'] = previousHome;
     }
     if (previousForceFileStorage === undefined) {
       delete process.env['GEMINI_FORCE_FILE_STORAGE'];

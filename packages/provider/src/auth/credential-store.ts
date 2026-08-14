@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Credential store interface for the PLUMB provider subsystem.
- * The production implementation uses OS-protected storage
- * (Windows Credential Manager via @github/keytar).
- * This file is the PURE INTERFACE with no runtime dependencies.
  */
 
 import type {
@@ -47,9 +41,7 @@ export interface IPlumbCredentialStore {
       disabled: boolean;
     }>,
   ): Promise<void>;
-  getProviderMetadata(
-    provider: string,
-  ): Promise<{
+  getProviderMetadata(provider: string): Promise<{
     selectedModel?: string;
     smolModel?: string;
     planningModel?: string;

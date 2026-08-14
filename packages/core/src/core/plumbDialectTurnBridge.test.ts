@@ -1,19 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Cross-dialect regression for the normalized-provider ->
- * PlumbContentGenerator -> Turn boundary. Native wire parsers are covered in
- * packages/provider; this matrix proves every registered dialect's normalized
- * structured event reaches Turn as exactly one ToolCallRequest.
  */
 
 import { describe, expect, it, vi } from 'vitest';
 import type { GenerateContentParameters } from '@google/genai';
-import type { PlumbKnownApi } from '@google/gemini-cli-provider';
+import type { PlumbKnownApi } from '@plumb/provider';
 import { LlmRole } from '../telemetry/llmRole.js';
-import { type GeminiChat, StreamEventType } from './geminiChat.js';
+import { type PlumbChat, StreamEventType } from './plumbChat.js';
 import { GeminiEventType, Turn } from './turn.js';
 
 const { routeState, mockFindModel, mockPlumbModelStream } = vi.hoisted(() => {
@@ -51,7 +45,7 @@ const { routeState, mockFindModel, mockPlumbModelStream } = vi.hoisted(() => {
   };
 });
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getPlumbModelRegistry: () => ({
     findModel: mockFindModel,
     loadCache: vi.fn(),
@@ -74,7 +68,7 @@ const routes: ReadonlyArray<
   ['Anthropic Messages', 'anthropic-api', 'anthropic-messages'],
   ['Bedrock Converse', 'amazon-bedrock', 'bedrock-converse-stream'],
   ['Gemini API', 'google', 'google-generative-ai'],
-  ['Gemini CLI/Antigravity', 'antigravity', 'google-gemini-cli'],
+  ['Antigravity', 'antigravity', 'google-gemini-cli'],
   ['Vertex', 'google-vertex', 'google-vertex'],
   ['Ollama', 'ollama', 'ollama-chat'],
   ['OpenRouter', 'openrouter', 'openrouter'],
@@ -128,7 +122,7 @@ describe('cross-dialect PlumbContentGenerator -> Turn structured-call bridge', (
             }
           })();
         },
-      } as unknown as GeminiChat;
+      } as unknown as PlumbChat;
 
       const calls = [];
       for await (const event of new Turn(chat, 'dialect-bridge').run(

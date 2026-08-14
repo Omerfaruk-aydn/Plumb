@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import type { ContextProfile } from '../config/profiles.js';
 import type { PipelineDef } from '../config/types.js';
 import type { ContextEnvironment } from '../pipeline/environment.js';

@@ -1,20 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Manages browser lifecycle for the Browser Agent.
- *
- * Handles:
- * - Browser management via chrome-devtools-mcp with --isolated mode
- * - CDP connection via raw MCP SDK Client (NOT registered in main registry)
- * - Visual tools via --experimental-vision flag
- *
- * IMPORTANT: The MCP client here is ISOLATED from the main agent's tool registry.
- * Tools discovered from chrome-devtools-mcp are NOT registered in the main registry.
- * They are wrapped as DeclarativeTools and passed directly to the browser agent.
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -659,7 +645,7 @@ export class BrowserManager {
     } else if (sessionMode === 'persistent') {
       // Default persistent profile lives under ~/.gemini/cli-browser-profile
       const defaultProfilePath = path.join(
-        Storage.getGlobalGeminiDir(),
+        Storage.getGlobalPlumbDir(),
         BROWSER_PROFILE_DIR,
       );
       mcpArgs.push('--userDataDir', defaultProfilePath);

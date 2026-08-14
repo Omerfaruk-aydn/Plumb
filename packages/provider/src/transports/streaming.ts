@@ -1,19 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OMP-derived streaming transport adapter for PLUMB (THIN PLUMB UI FACADE).
- *
- * The event-stream normalization lifecycle is the responsibility of the
- * imported OMP runtime (`omp-ai/utils/event-stream.ts`); the per-provider
- * streaming dispatch is governed by `omp-ai/stream.ts`. This module keeps
- * the PLUMB `PlumbStreamEvent` shape and the transport-registry surface.
- * Upstream source: https://github.com/can1357/oh-my-pi.git
- * Upstream SHA: 4df68d60438423b384b2b47fb3d6835641624757
- * Upstream source: packages/ai/src/stream.ts
- * Upstream source: packages/ai/src/utils/event-stream.ts
- * Upstream license: MIT (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük
  */
 
 import {
@@ -30,7 +17,7 @@ import {
   resolveEffectiveToolChoice,
   resolveRouteToolPolicy,
 } from '../tool-policy.js';
-import { EventStream } from '../omp-ai/utils/event-stream.js';
+import { EventStream } from '../vendor-ai/utils/event-stream.js';
 import {
   classifyGenericHttpError,
   classifyAnthropicHttpError,
@@ -46,7 +33,7 @@ import { streamOciGenaiResponses } from './ociGenaiResponses.js';
 import { streamBedrockConverse } from './bedrock.js';
 import { streamAzureResponses } from './azure.js';
 import { streamOpenAIResponses } from './openAIResponses.js';
-import { prepareVertexModel } from './googleVertex.js';
+import { prepareVertexModel } from './plumbGoogleVertex.js';
 import { UNAUTHENTICATED_PROVIDERS } from '../catalog/providers.js';
 import { resolveProviderSafeConfig } from '../config/providerConfigResolver.js';
 import {
@@ -1361,7 +1348,7 @@ async function* openAICompatibleStream(
 // through anthropicMessagesStream, so there is exactly one call site; no
 // transport re-implements this rule.
 //
-// Mirrors OMP's `ensureMaxTokensForThinking` (omp-ai/providers/anthropic.ts)
+// Mirrors OMP's `ensureMaxTokensForThinking` (vendor-ai/providers/anthropic.ts)
 // exactly, for OMP parity: raise max_tokens toward the required floor first
 // (never past `modelMaxTokens`, the model's true max output authority —
 // the ceiling is NEVER exceeded), only shrink the thinking budget if
@@ -1372,7 +1359,7 @@ async function* openAICompatibleStream(
 // default — this resolver does the same; `thinkingBudgetSource` is a
 // diagnostic/reporting field only, never a policy branch.
 
-/** Mirrors OMP's OUTPUT_FALLBACK_BUFFER (omp-ai/stream.ts) — the minimum
+/** Mirrors OMP's OUTPUT_FALLBACK_BUFFER (vendor-ai/stream.ts) — the minimum
  * headroom max_tokens must keep above thinking.budget_tokens. */
 export const ANTHROPIC_OUTPUT_FALLBACK_BUFFER = 4000;
 
@@ -1577,7 +1564,7 @@ async function* anthropicMessagesStream(
   // appending `/v1/messages` like the direct Anthropic API would produce
   // `...:streamRawPredict/v1/messages`, so it is stripped back off here.
   // Mirrors the upstream OMP dispatcher's own proven
-  // `resolveVertexRequest`/`rewriteUrl` fixup (omp-ai/stream.ts).
+  // `resolveVertexRequest`/`rewriteUrl` fixup (vendor-ai/stream.ts).
   const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`.replace(
     ':streamRawPredict/v1/messages',
     ':streamRawPredict',
@@ -1773,7 +1760,7 @@ async function* anthropicMessagesStream(
   // encoded in the URL path (never the body), and `anthropic_version:
   // "vertex-2023-10-16"` is required in the JSON body instead of the
   // `anthropic-version` HTTP header. Mirrors the upstream OMP dispatcher's
-  // own proven `transformVertexAnthropicBody` (omp-ai/stream.ts).
+  // own proven `transformVertexAnthropicBody` (vendor-ai/stream.ts).
   if (isVertex) {
     delete body.model;
     body.anthropic_version = 'vertex-2023-10-16';
@@ -2036,7 +2023,7 @@ async function* anthropicMessagesStream(
 //
 // Real production defect (two rounds): this API family (OAuth-only —
 // google-gemini-cli and google-antigravity share it, per the pinned OMP
-// implementation in omp-ai/providers/google-gemini-cli.ts) was previously
+// implementation in vendor-ai/providers/plumbGoogleGeminiCli.ts) was previously
 // routed through googleGenerativeAiStream below, a public-Gemini-API client
 // (`?key=<token>`), leaking the OAuth token into the URL and 404ing. A first
 // fix pointed the URL/auth at the real endpoint but still built the request
@@ -2182,7 +2169,7 @@ export async function buildAntigravityRequest(
   const accessToken = credential.access;
   const projectId = credential.projectId;
 
-  const gcli = await import('../omp-ai/providers/google-gemini-cli.js');
+  const gcli = await import('../vendor-ai/providers/plumbGoogleGeminiCli.js');
   const isAntigravity = model.provider === 'google-antigravity';
   // Minimal PLUMB -> OMP message/model/tool conversion. Preserve structured
   // assistant tool calls: OMP's native Gemini converter pairs them with the
@@ -2190,7 +2177,7 @@ export async function buildAntigravityRequest(
   // This delegates the final wire shape to OMP instead of duplicating native
   // functionCall/functionResponse serialization in the PLUMB facade.
   const now = Date.now();
-  const ompMessages: import('../omp-ai/types.js').Message[] = [];
+  const ompMessages: import('../vendor-ai/types.js').Message[] = [];
   for (const msg of messages) {
     if (msg.role === 'system') continue;
     const text = contentToText(msg.content);
@@ -2216,7 +2203,7 @@ export async function buildAntigravityRequest(
         provider: model.provider,
         model: model.id,
         timestamp: now,
-      } as unknown as import('../omp-ai/types.js').Message);
+      } as unknown as import('../vendor-ai/types.js').Message);
     } else if (msg.role === 'tool') {
       ompMessages.push({
         role: 'toolResult',
@@ -2225,11 +2212,11 @@ export async function buildAntigravityRequest(
         content: [{ type: 'text', text }],
         isError: false,
         timestamp: now,
-      } as unknown as import('../omp-ai/types.js').Message);
+      } as unknown as import('../vendor-ai/types.js').Message);
     }
   }
 
-  const context: import('../omp-ai/types.js').Context = {
+  const context: import('../vendor-ai/types.js').Context = {
     systemPrompt: systemPrompt ? [systemPrompt] : undefined,
     messages: ompMessages,
     tools: (gatedTools ?? []).map(
@@ -2238,7 +2225,7 @@ export async function buildAntigravityRequest(
           name: t.function.name,
           description: t.function.description ?? '',
           parameters: t.function.parameters,
-        }) as unknown as import('../omp-ai/types.js').Tool,
+        }) as unknown as import('../vendor-ai/types.js').Tool,
     ),
   };
 
@@ -2254,7 +2241,7 @@ export async function buildAntigravityRequest(
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: model.contextWindow,
     maxTokens: model.maxTokens,
-  } as unknown as import('../omp-ai/types.js').Model<'google-gemini-cli'>;
+  } as unknown as import('../vendor-ai/types.js').Model<'google-gemini-cli'>;
 
   const effectiveToolChoice = resolveEffectiveToolChoice(
     resolveRouteToolPolicy(model),

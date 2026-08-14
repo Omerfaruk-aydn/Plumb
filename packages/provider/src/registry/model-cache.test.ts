@@ -1,8 +1,6 @@
 /**
  * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Model cache lifecycle tests.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,12 +10,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { start_sandbox } from './sandbox.js';
-import {
-  FatalSandboxError,
-  homedir,
-  type SandboxConfig,
-} from '@google/gemini-cli-core';
-import { createMockSandboxConfig } from '@google/gemini-cli-test-utils';
+import { FatalSandboxError, homedir, type SandboxConfig } from '@plumb/core';
+import { createMockSandboxConfig } from '@plumb/test-utils';
 import { EventEmitter } from 'node:events';
 
 const { mockedHomedir, mockedGetContainerPath, mockedExecCommands } =
@@ -85,9 +80,8 @@ vi.mock('node:util', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@plumb/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@plumb/core')>();
   return {
     ...actual,
     debugLogger: {
@@ -104,7 +98,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         this.name = 'FatalSandboxError';
       }
     },
-    GEMINI_DIR: '.gemini',
+    PLUMB_DIR: '.gemini',
     homedir: mockedHomedir,
   };
 });
@@ -295,7 +289,7 @@ describe('sandbox', () => {
     it('should handle Docker execution', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
 
       // Mock image check to return true (image exists)
@@ -347,7 +341,7 @@ describe('sandbox', () => {
         expect.objectContaining({ stdio: 'inherit' }),
       );
 
-      const containerName = 'gemini-cli-sandbox-a1b2c3d4e5f6';
+      const containerName = 'plumb-sandbox-a1b2c3d4e5f6';
       expect(randomBytes).toHaveBeenCalledWith(6);
       expect(mockedExecCommands).not.toEqual(
         expect.arrayContaining([expect.stringContaining('ps -a --format')]),
@@ -370,7 +364,7 @@ describe('sandbox', () => {
     it('should preserve the integration-test prefix for random container names', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
       process.env['GEMINI_CLI_INTEGRATION_TEST'] = 'true';
 
@@ -529,7 +523,7 @@ describe('sandbox', () => {
     it('should mount volumes correctly', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
       process.env['SANDBOX_MOUNTS'] = '/host/path:/container/path:ro';
       vi.mocked(fs.existsSync).mockReturnValue(true); // For mount path check
@@ -586,7 +580,7 @@ describe('sandbox', () => {
     it('should handle allowedPaths in Docker', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
         allowedPaths: ['/extra/path'],
       });
       vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -628,7 +622,7 @@ describe('sandbox', () => {
     it('should handle networkAccess: false in Docker', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
         networkAccess: false,
       });
 
@@ -660,12 +654,12 @@ describe('sandbox', () => {
       await start_sandbox(config);
 
       expect(execSync).toHaveBeenCalledWith(
-        expect.stringContaining('network create --internal gemini-cli-sandbox'),
+        expect.stringContaining('network create --internal plumb-sandbox'),
         expect.any(Object),
       );
       expect(spawn).toHaveBeenCalledWith(
         'docker',
-        expect.arrayContaining(['--network', 'gemini-cli-sandbox']),
+        expect.arrayContaining(['--network', 'plumb-sandbox']),
         expect.any(Object),
       );
     });
@@ -705,7 +699,7 @@ describe('sandbox', () => {
     it('should pass through GOOGLE_GEMINI_BASE_URL and GOOGLE_VERTEX_BASE_URL', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
       process.env['GOOGLE_GEMINI_BASE_URL'] = 'http://gemini.proxy';
       process.env['GOOGLE_VERTEX_BASE_URL'] = 'http://vertex.proxy';
@@ -752,7 +746,7 @@ describe('sandbox', () => {
     it('should handle user creation on Linux if needed', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
       process.env['SANDBOX_SET_UID_GID'] = 'true';
       vi.mocked(os.platform).mockReturnValue('linux');
@@ -813,7 +807,7 @@ describe('sandbox', () => {
     it('should correctly escape home directory with spaces and special characters', async () => {
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
       process.env['SANDBOX_SET_UID_GID'] = 'true';
       vi.mocked(os.platform).mockReturnValue('linux');
@@ -861,7 +855,7 @@ describe('sandbox', () => {
       vi.stubEnv('GEMINI_SANDBOX_PROXY_COMMAND', 'some-proxy-cmd');
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'docker',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
 
       const onSpy = vi.spyOn(process, 'on');
@@ -889,7 +883,7 @@ describe('sandbox', () => {
           >;
           mockSpawnProcess.on = vi.fn().mockImplementation((event, cb) => {
             if (event === 'close') {
-              if (a.includes('gemini-cli-sandbox-proxy')) {
+              if (a.includes('plumb-sandbox-proxy')) {
                 // Proxy container shouldn't exit during the test
               } else {
                 setTimeout(() => cb(0), 10);
@@ -1001,7 +995,7 @@ describe('sandbox', () => {
       vi.mocked(os.platform).mockReturnValue('linux');
       const config: SandboxConfig = createMockSandboxConfig({
         command: 'runsc',
-        image: 'gemini-cli-sandbox',
+        image: 'plumb-sandbox',
       });
 
       // Mock image check
@@ -1036,7 +1030,7 @@ describe('sandbox', () => {
       expect(spawn).toHaveBeenNthCalledWith(
         1,
         'docker',
-        expect.arrayContaining(['images', '-q', 'gemini-cli-sandbox']),
+        expect.arrayContaining(['images', '-q', 'plumb-sandbox']),
       );
 
       // Verify docker run includes --runtime=runsc

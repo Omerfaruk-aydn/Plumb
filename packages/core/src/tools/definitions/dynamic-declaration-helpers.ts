@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Reusable logic for generating tool declarations that depend on runtime state
- * (OS, platforms, or dynamic schema values like available skills).
  */
 
 import { type FunctionDeclaration } from '@google/genai';

@@ -1,12 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Proves the `--diagnose-antigravity-route` / `--test-antigravity-route`
- * diagnostics call the exact same production request-builder normal chat
- * uses (buildAntigravityRequest, exported from @google/gemini-cli-provider),
- * and that neither diagnostic ever prints a secret.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -17,7 +11,7 @@ const mockBuildAntigravityRequest = vi.fn();
 const mockInitialize = vi.fn().mockResolvedValue(undefined);
 const mockResolveUsablePlumbCredential = vi.fn();
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   installBunGlobal: vi.fn(),
   registerPlumbCredentialStoreFactory: vi.fn(),
   initBundledModels: vi.fn(),
@@ -48,7 +42,7 @@ vi.mock('@google/gemini-cli-provider', () => ({
   formatSafeGoogleErrorSummary: (_details: unknown) => [],
 }));
 
-vi.mock('@google/gemini-cli-provider/dist/auth/credential-resolver.js', () => ({
+vi.mock('@plumb/provider/dist/auth/credential-resolver.js', () => ({
   resolveUsablePlumbCredential: (scope: string) =>
     mockResolveUsablePlumbCredential(scope),
 }));
@@ -57,7 +51,7 @@ const mockStoreGetCredentials = vi.fn();
 const mockStoreGetProviderMetadata = vi.fn();
 const mockRefreshCredential = vi.fn();
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@plumb/core', () => ({
   initializePlumbProviders: vi.fn().mockResolvedValue(undefined),
   getPlumbCredentialStore: () => ({
     getCredentials: mockStoreGetCredentials,

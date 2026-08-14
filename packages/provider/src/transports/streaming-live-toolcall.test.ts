@@ -1,22 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Live structured tool-call route regression test.
- *
- * Proves the full end-to-end chain for OpenAI-compatible providers
- * (opencode-zen, openai, openrouter, etc.) when the upstream SSE
- * stream contains structured tool_call deltas:
- *
- *   PlumbContentGenerator#doStream
- *   -> plumbModelStream
- *   -> openAICompatibleStream
- *   -> SSE parser (delta.tool_calls accumulation)
- *   -> PlumbStreamEvent { type: 'tool_call' }
- *   -> GenerateContentResponse { functionCall: { id, name, args } }
- *   -> Turn.run extracts resp.functionCalls
- *   -> ToolCallRequest event
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';

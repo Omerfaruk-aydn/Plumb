@@ -1,16 +1,13 @@
-﻿/**
- * @license
- * Copyright 2026 Google LLC
+/**
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * @license
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import * as fs from 'node:fs';
 import * as readline from 'node:readline';
-import { installBunGlobal } from '@google/gemini-cli-provider';
-import { writeToStderr, writeToStdout } from '@google/gemini-cli-core';
+import { installBunGlobal } from '@plumb/provider';
+import { writeToStderr, writeToStdout } from '@plumb/core';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
 import { recordAcceptance, getAllAcceptances } from './providerAcceptance.js';
 
@@ -1559,7 +1556,7 @@ async function runClaudeSubscriptionAcceptanceTest(
   line('sdk.present', sdkPresent);
   line('sdk.version', sdkVersion);
 
-  const providerModule = await import('@google/gemini-cli-provider');
+  const providerModule = await import('@plumb/provider');
 
   // Never reachable: raw Claude Code OAuth ('anthropic' provider id) is
   // hard-blocked from selection (BLOCKED_UPSTREAM_POLICY,
@@ -1756,7 +1753,7 @@ export async function runProviderAcceptanceTest(
   }
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
 
     const canonicalId = providerModule.resolveProviderAlias
       ? providerModule.resolveProviderAlias(providerId)
@@ -2015,7 +2012,7 @@ export async function printProviderTestList(): Promise<number> {
   const report = finalReportWriteLine;
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
     const acceptances = await getAllAcceptances();
 
     const selectable = providerModule.SELECTABLE_PROVIDERS as unknown as Array<{
@@ -2107,7 +2104,7 @@ export async function printProviderTestNext(): Promise<number> {
   const report = finalReportWriteLine;
 
   try {
-    const providerModule = await import('@google/gemini-cli-provider');
+    const providerModule = await import('@plumb/provider');
     const acceptances = await getAllAcceptances();
 
     const selectable = providerModule.SELECTABLE_PROVIDERS as unknown as Array<{

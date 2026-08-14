@@ -1,25 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Regression: createClaudeSubscriptionToolExecutor must route every call
- * through the REAL Scheduler pipeline — the same one every other agent-tool
- * caller in this codebase uses — never a second, Claude-specific execution
- * path. Only the Scheduler class itself is mocked (the true
- * execution/network/UI boundary); the executor's own request-building and
- * scheduler-lifecycle logic runs for real.
- *
- * Also covers the interactive-UI visibility regression this bridge used to
- * cause: a fresh, uniquely-IDed Scheduler per tool call made every call look
- * like a brand-new, unrelated "subagent" scheduler to the CLI's
- * useToolScheduler hook, which hides non-root schedulers unless they need
- * approval — so ordinary auto-approved reads/searches during a Claude
- * Subscription turn never appeared in the terminal UI at all, even though
- * they executed for real. The fix is to reuse ONE Scheduler per turn under
- * the shared `PROVIDER_INTERNAL_SCHEDULER_ID`, so the UI can recognize and
- * always show them (see useToolScheduler.test.ts for the UI-side half).
  */
+
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { createClaudeSubscriptionToolExecutor } from './claudeSubscriptionToolBridge.js';
 import { Scheduler } from '../scheduler/scheduler.js';

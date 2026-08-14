@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import type { ConcreteNode } from './types.js';
 import { ContextGraphBuilder } from './toGraph.js';
 import type { HistoryTurn } from '../../core/agentChatHistory.js';

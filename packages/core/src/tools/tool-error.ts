@@ -1,16 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * A type-safe enum for tool-related errors.
- *
- * Error types are categorized as:
- * - Recoverable: LLM can self-correct (e.g., invalid params, file not found)
- * - Fatal: System-level issues that prevent continued execution (e.g., disk full, critical I/O errors)
- */
 export enum ToolErrorType {
   POLICY_VIOLATION = 'policy_violation',
   /**

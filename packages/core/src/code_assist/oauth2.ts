@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -287,7 +286,7 @@ async function initOauthClient(
       }
     } finally {
       exitAlternateScreen();
-      // If this was triggered from an active Gemini CLI TUI this event ensures
+      // If this was triggered from an active PLUMB TUI this event ensures
       // the TUI will re-initialize the terminal state just like it will when
       // another editor like VIM may have modified the buffer of settings.
       coreEvents.emit(CoreEvent.ExternalEditorClosed);

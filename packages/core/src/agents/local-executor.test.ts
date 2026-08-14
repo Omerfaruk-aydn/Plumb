@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -63,10 +62,10 @@ import {
   READ_FILE_TOOL_NAME,
 } from '../tools/tool-names.js';
 import {
-  GeminiChat,
+  PlumbChat,
   StreamEventType,
   type StreamEvent,
-} from '../core/geminiChat.js';
+} from '../core/plumbChat.js';
 import {
   type FunctionCall,
   type Part,
@@ -138,11 +137,11 @@ vi.mock('../context/chatCompressionService.js', () => ({
   })),
 }));
 
-vi.mock('../core/geminiChat.js', () => ({
+vi.mock('../core/plumbChat.js', () => ({
   StreamEventType: {
     CHUNK: 'chunk',
   },
-  GeminiChat: vi.fn().mockImplementation(() => ({
+  PlumbChat: vi.fn().mockImplementation(() => ({
     initialize: vi.fn(),
     sendMessageStream: mockSendMessageStream,
     getHistory: vi.fn((_curated?: boolean) => [...mockChatHistory]),
@@ -237,7 +236,7 @@ const mockedRunWithScopedAutoMemoryExtractionWriteAccess = vi.mocked(
   runWithScopedAutoMemoryExtractionWriteAccess,
 );
 
-const MockedGeminiChat = vi.mocked(GeminiChat);
+const MockedGeminiChat = vi.mocked(PlumbChat);
 const mockedGetDirectoryContextString = vi.mocked(getDirectoryContextString);
 const mockedPromptIdContext = vi.mocked(promptIdContext);
 const mockedLogAgentStart = vi.mocked(logAgentStart);
@@ -463,7 +462,7 @@ describe('LocalAgentExecutor', () => {
           getChatRecordingService: vi.fn().mockReturnValue({
             saveSummary: mockSaveSummary,
           }),
-        }) as unknown as GeminiChat,
+        }) as unknown as PlumbChat,
     );
 
     vi.useFakeTimers();
@@ -1936,7 +1935,7 @@ describe('LocalAgentExecutor', () => {
       expect(output.terminate_reason).toBe(AgentTerminateMode.GOAL);
     });
 
-    it('should throw and log if GeminiChat creation fails', async () => {
+    it('should throw and log if PlumbChat creation fails', async () => {
       const definition = createTestDefinition();
       const initError = new Error('Chat creation failed');
       MockedGeminiChat.mockImplementationOnce(() => {
@@ -3846,7 +3845,7 @@ describe('LocalAgentExecutor', () => {
     };
 
     /**
-     * Helper to extract the functionDeclarations sent to GeminiChat.
+     * Helper to extract the functionDeclarations sent to PlumbChat.
      */
     const getSentFunctionDeclarations = () => {
       const chatCtorArgs = MockedGeminiChat.mock.calls[0];

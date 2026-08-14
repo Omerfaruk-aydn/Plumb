@@ -1,15 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real interaction tests for the generic flat-schema cloud config screen,
- * exercised against Bedrock's schema (the simplest -- no secret field at
- * all) and Vertex's schema (has a secret field, so SECRET_MASKING/
- * SECRET_PRESERVE_ON_EDIT are covered too). Only the actions boundary is
- * mocked; every rendering/navigation/validation-display behavior is real,
- * driven by the real BEDROCK_CONFIG_SCHEMA/VERTEX_CONFIG_SCHEMA.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act } from 'react';
 import type React from 'react';
@@ -19,10 +12,7 @@ import {
 } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
 import { PlumbGenericCloudConfigForm } from './PlumbGenericCloudConfigForm.js';
-import {
-  BEDROCK_CONFIG_SCHEMA,
-  VERTEX_CONFIG_SCHEMA,
-} from '@google/gemini-cli-provider';
+import { BEDROCK_CONFIG_SCHEMA, VERTEX_CONFIG_SCHEMA } from '@plumb/provider';
 import type { GenericCloudConfigActions } from '../utils/genericCloudConfigActions.js';
 
 async function renderReady(

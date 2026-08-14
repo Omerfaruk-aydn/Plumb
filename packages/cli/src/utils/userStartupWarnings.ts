@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -14,7 +13,7 @@ import {
   type StartupWarning,
   isHeadlessMode,
   FatalUntrustedWorkspaceError,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { Settings } from '../config/settingsSchema.js';
 import {
   isFolderTrustEnabled,
@@ -97,7 +96,7 @@ const folderTrustCheck: WarningCheck = {
     if (isHeadlessMode()) {
       throw new FatalUntrustedWorkspaceError(
         'PLUMB is not running in a trusted directory. To proceed, either use `--skip-trust`, ' +
-          'set the `GEMINI_CLI_TRUST_WORKSPACE=true` environment variable, or trust this directory in interactive mode. ' +
+          'set the `PLUMB_TRUST_WORKSPACE=true` environment variable, or trust this directory in interactive mode. ' +
           'For more details, see https://geminicli.com/docs/cli/trusted-folders/#headless-and-automated-environments',
       );
     }

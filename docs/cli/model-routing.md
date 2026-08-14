@@ -1,8 +1,8 @@
 # Model routing
 
-Gemini CLI includes a model routing feature that automatically switches to a
-fallback model in case of a model failure. This feature is enabled by default
-and provides resilience when the primary model is unavailable.
+PLUMB includes a model routing feature that automatically switches to a fallback
+model in case of a model failure. This feature is enabled by default and
+provides resilience when the primary model is unavailable.
 
 ## How it works
 
@@ -28,11 +28,11 @@ policies.
 
 ### Local Model Routing (Experimental)
 
-Gemini CLI supports using a local model for routing decisions. When configured,
-Gemini CLI will use a locally-running **Gemma** model to make routing decisions
-(instead of sending routing decisions to a hosted model). This feature can help
-reduce costs associated with hosted model usage while offering similar routing
-decision latency and quality.
+PLUMB supports using a local model for routing decisions. When configured, PLUMB
+will use a locally-running **Gemma** model to make routing decisions (instead of
+sending routing decisions to a hosted model). This feature can help reduce costs
+associated with hosted model usage while offering similar routing decision
+latency and quality.
 
 The easiest way to set this up is using the automated `gemini gemma setup`
 command.
@@ -42,7 +42,7 @@ For more details on how to configure local model routing, see
 
 ### Model selection precedence
 
-The model used by Gemini CLI is determined by the following order of precedence:
+The model used by PLUMB is determined by the following order of precedence:
 
 1.  **`--model` command-line flag:** A model specified with the `--model` flag
     when launching the CLI will always be used.

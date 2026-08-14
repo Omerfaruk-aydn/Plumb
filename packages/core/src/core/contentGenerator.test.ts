@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +42,7 @@ const { mockGetApiKey, mockGetPlumbProvider } = vi.hoisted(() => ({
     }
   >(() => ({ authMethods: [] })),
 }));
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getPlumbProvider: mockGetPlumbProvider,
   getPlumbProviderRegistry: () => ({
     getApiKey: mockGetApiKey,

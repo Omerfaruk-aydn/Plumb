@@ -1,14 +1,8 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * OCI IAM auth-provider resolution: each of the four supported modes must
- * construct the correct real `oci-common` provider type (never a
- * hand-rolled signer), read only safe config references from env (never a
- * private key/session token value), cache correctly, and invalidate the
- * cache when mode/config path/profile changes.
  */
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const mockConfigFileCtor = vi.fn();

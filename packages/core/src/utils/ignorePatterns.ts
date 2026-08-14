@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import path from 'node:path';
 import type { Config } from '../config/config.js';
-import { getCurrentGeminiMdFilename } from '../tools/memoryTool.js';
+import { getCurrentContextFilename } from '../tools/memoryTool.js';
 
 /**
  * Common ignore patterns used across multiple tools for basic exclusions.
@@ -162,7 +161,7 @@ export class FileExclusions {
 
     // Add dynamic patterns (like current Gemini MD filename)
     if (includeDynamicPatterns) {
-      patterns.push(`**/${getCurrentGeminiMdFilename()}`);
+      patterns.push(`**/${getCurrentContextFilename()}`);
     }
 
     // Add custom patterns from configuration

@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * A utility that manages a timeout and an AbortController, allowing the
- * timeout to be paused, resumed, and dynamically extended.
- */
 export class DeadlineTimer {
   private readonly controller: AbortController;
   private timeoutId: NodeJS.Timeout | null = null;

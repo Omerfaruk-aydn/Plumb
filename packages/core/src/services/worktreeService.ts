@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -17,7 +16,7 @@ export interface WorktreeInfo {
 }
 
 /**
- * Service for managing Git worktrees within Gemini CLI.
+ * Service for managing Git worktrees within PLUMB.
  * Handles creation, cleanup, and environment setup for isolated sessions.
  */
 export class WorktreeService {

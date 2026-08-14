@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,7 +8,7 @@ import { IgnoreFileParser } from './ignoreFileParser.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../config/constants.js';
 
 describe('IgnoreFileParser', () => {
   let projectRoot: string;
@@ -32,10 +31,10 @@ describe('IgnoreFileParser', () => {
   describe('Basic File Loading', () => {
     it('should identify paths ignored by a single ignore file', async () => {
       await createTestFile(
-        GEMINI_IGNORE_FILE_NAME,
+        PLUMB_IGNORE_FILE_NAME,
         'ignored.txt\n/ignored_dir/',
       );
-      const parser = new IgnoreFileParser(projectRoot, GEMINI_IGNORE_FILE_NAME);
+      const parser = new IgnoreFileParser(projectRoot, PLUMB_IGNORE_FILE_NAME);
 
       expect(parser.isIgnored('ignored.txt', false)).toBe(true);
       expect(parser.isIgnored('ignored_dir/file.txt', false)).toBe(true);

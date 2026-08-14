@@ -2,8 +2,8 @@
 
 Architecting a complex solution requires precision. By combining Plan Mode's
 structured environment with model steering's real-time feedback, you can guide
-Gemini CLI through the research and design phases to ensure the final
-implementation plan is exactly what you need.
+PLUMB through the research and design phases to ensure the final implementation
+plan is exactly what you need.
 
 <!-- prettier-ignore -->
 > [!NOTE]
@@ -12,7 +12,7 @@ implementation plan is exactly what you need.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- PLUMB installed and authenticated.
 - [Plan Mode](../plan-mode.md) enabled in your settings.
 - [Model steering](../model-steering.md) enabled in your settings.
 
@@ -34,8 +34,8 @@ Enter Plan Mode and start a task that requires research.
 
 **Prompt:** `/plan I want to implement a new notification service using Redis.`
 
-Gemini CLI enters Plan Mode and starts researching your existing codebase to
-identify where the new service should live.
+PLUMB enters Plan Mode and starts researching your existing codebase to identify
+where the new service should live.
 
 ## Step 2: Steer the research phase
 
@@ -45,9 +45,9 @@ might realize it's missing the relevant context.
 **Action:** While the spinner is active, type your hint:
 `"Don't forget to check packages/common/queues for the existing Redis config."`
 
-**Result:** Gemini CLI acknowledges your hint and immediately incorporates it
-into its research. You'll see it start exploring the directory you suggested in
-its very next turn.
+**Result:** PLUMB acknowledges your hint and immediately incorporates it into
+its research. You'll see it start exploring the directory you suggested in its
+very next turn.
 
 ## Step 3: Refine the design mid-turn
 
@@ -68,9 +68,9 @@ Once the agent has used your hints to craft the perfect plan, review the final
 
 **Action:** Type: `"Looks perfect. Let's start the implementation."`
 
-Gemini CLI exits Plan Mode and transitions to the implementation phase. Because
-the plan was refined in real-time with your feedback, the agent can now execute
-each step with higher confidence and fewer errors.
+PLUMB exits Plan Mode and transitions to the implementation phase. Because the
+plan was refined in real-time with your feedback, the agent can now execute each
+step with higher confidence and fewer errors.
 
 ## Tips for effective steering
 

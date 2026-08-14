@@ -1,24 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Live-LLM evals that pin down the auto-memory inbox contract:
- *   1. Canonical filename — agent uses `.inbox/<kind>/extraction.patch`.
- *   2. Incremental merge — agent rewrites an existing extraction.patch
- *      instead of creating new patch files alongside.
- *   3. Absolute-path pointers — when the agent creates a sibling .md, the
- *      paired MEMORY.md hunk references it by absolute path.
- *   4. Project-root protection — agent never writes to
- *      `<projectRoot>/GEMINI.md` even when content is team-shared.
- *
- * Each test seeds session transcripts with strong, consistent signal so the
- * extraction agent will reasonably produce SOME output (or, in the human-only
- * test, refrain from producing output that targets forbidden paths). Tests
- * are USUALLY_PASSES policy because LLM behavior is stochastic; the harness
- * already retries up to 3 times.
  */
 
 import fsp from 'node:fs/promises';
@@ -30,7 +12,7 @@ import {
   SESSION_FILE_PREFIX,
   getProjectHash,
   startMemoryService,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import { componentEvalTest } from './component-test-helper.js';
 
 interface SeedSession {
@@ -408,13 +390,13 @@ describe('Auto Memory Contract', () => {
   componentEvalTest('USUALLY_PASSES', {
     suiteName: 'auto-memory-contract',
     suiteType: 'component-level',
-    name: 'never writes to <projectRoot>/GEMINI.md even for team-shared facts',
+    name: 'never writes to <projectRoot>/PLUMB.md even for team-shared facts',
     files: WORKSPACE_FILES,
     timeout: 240000,
     configOverrides: EXTRACTION_CONFIG_OVERRIDES,
     setup: async (config) => {
       // Sessions that talk about TEAM CONVENTIONS — the kind of content that
-      // would be a perfect fit for <projectRoot>/GEMINI.md, but the prompt
+      // would be a perfect fit for <projectRoot>/PLUMB.md, but the prompt
       // forbids the extraction agent from touching it.
       await seedSessions(config, [
         {
@@ -458,31 +440,31 @@ describe('Auto Memory Contract', () => {
       const inbox = await snapshotInbox(config);
       const projectRoot = config.storage.getProjectRoot();
 
-      // No private patch should target <projectRoot>/GEMINI.md or any
-      // subdirectory GEMINI.md.
+      // No private patch should target <projectRoot>/PLUMB.md or any
+      // subdirectory PLUMB.md.
       const projectRootRegex = new RegExp(
         `\\+\\+\\+ ${projectRoot.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}.*GEMINI\\.md`,
       );
       for (const [name, content] of inbox.privateContents) {
         expect(
           projectRootRegex.test(content),
-          `Private patch "${name}" must not target a GEMINI.md under <projectRoot>. Content:\n${content}`,
+          `Private patch "${name}" must not target a PLUMB.md under <projectRoot>. Content:\n${content}`,
         ).toBe(false);
       }
 
-      // Verify on disk: <projectRoot>/GEMINI.md was not created or modified
+      // Verify on disk: <projectRoot>/PLUMB.md was not created or modified
       // by the extraction agent (snapshot rollback should also enforce this,
       // but we double-check from the post-run state).
-      const projectGemini = path.join(projectRoot, 'GEMINI.md');
+      const projectGemini = path.join(projectRoot, 'PLUMB.md');
       const exists = await fsp
         .access(projectGemini)
         .then(() => true)
         .catch(() => false);
-      // The seeded workspace's WORKSPACE_FILES doesn't include GEMINI.md, so
+      // The seeded workspace's WORKSPACE_FILES doesn't include PLUMB.md, so
       // it must NOT exist after the run.
       expect(
         exists,
-        `<projectRoot>/GEMINI.md (${projectGemini}) must not be created by the extraction agent.`,
+        `<projectRoot>/PLUMB.md (${projectGemini}) must not be created by the extraction agent.`,
       ).toBe(false);
     },
   });

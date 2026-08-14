@@ -1,9 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Sparse-default boundary: proves OMP-only scope and exact counts.
  */
 
 import { describe, it, expect, vi } from 'vitest';

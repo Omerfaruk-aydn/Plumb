@@ -1,11 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Effective provider + model + route tool contract and generated registry
- * protocol matrix. This module reports facts already carried by the selected
- * model/registry route; it does not infer capability from model names.
  */
 
 import { getCatalogModels } from './catalog/model-catalog.js';

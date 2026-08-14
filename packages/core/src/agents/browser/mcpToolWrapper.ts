@@ -1,18 +1,6 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @fileoverview Creates DeclarativeTool classes for MCP tools.
- *
- * These tools are ONLY registered in the browser agent's isolated ToolRegistry,
- * NOT in the main agent's registry. They dispatch to the BrowserManager's
- * isolated MCP client directly.
- *
- * Tool definitions are dynamically discovered from chrome-devtools-mcp
- * at runtime, not hardcoded.
  */
 
 import type { FunctionDeclaration } from '@google/genai';

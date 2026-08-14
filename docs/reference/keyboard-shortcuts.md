@@ -1,6 +1,6 @@
-# Gemini CLI keyboard shortcuts
+# PLUMB keyboard shortcuts
 
-Gemini CLI ships with a set of default keyboard shortcuts for editing input,
+PLUMB ships with a set of default keyboard shortcuts for editing input,
 navigating history, and controlling the UI. Use this reference to learn the
 available combinations.
 
@@ -251,8 +251,8 @@ a `key` combination.
 
 ## Vi mode shortcuts
 
-When vim mode is enabled with `/vim` or `general.vimMode: true`, Gemini CLI
-supports NORMAL and INSERT modes.
+When vim mode is enabled with `/vim` or `general.vimMode: true`, PLUMB supports
+NORMAL and INSERT modes.
 
 ### Mode switching
 

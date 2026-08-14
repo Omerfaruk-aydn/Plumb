@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -46,7 +45,7 @@ import {
   type MCPServerConfig,
   type GeminiCLIExtension,
 } from '../config/config.js';
-import { GoogleCredentialProvider } from '../mcp/google-auth-provider.js';
+import { GoogleCredentialProvider } from '../mcp/plumbGoogleAuthProvider.js';
 import { ServiceAccountImpersonationProvider } from '../mcp/sa-impersonation-provider.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 import { McpComplianceTransport } from './mcp-compliance-transport.js';

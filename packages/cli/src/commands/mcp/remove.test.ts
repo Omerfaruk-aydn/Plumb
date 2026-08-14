@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import { removeCommand } from './remove.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { GEMINI_DIR, debugLogger } from '@google/gemini-cli-core';
+import { PLUMB_DIR, debugLogger } from '@plumb/core';
 
 vi.mock('fs', async (importOriginal) => {
   const actualFs = await importOriginal<typeof fs>();
@@ -117,7 +116,7 @@ describe('mcp remove command', () => {
       vi.restoreAllMocks();
 
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-remove-test-'));
-      settingsDir = path.join(tempDir, GEMINI_DIR);
+      settingsDir = path.join(tempDir, PLUMB_DIR);
       settingsPath = path.join(settingsDir, 'settings.json');
       fs.mkdirSync(settingsDir, { recursive: true });
 

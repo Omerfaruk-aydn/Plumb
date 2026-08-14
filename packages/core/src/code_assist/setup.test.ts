@@ -1,8 +1,8 @@
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   ProjectIdRequiredError,
@@ -11,7 +11,7 @@ import {
   InvalidNumericProjectIdError,
   resetUserDataCacheForTesting,
 } from './setup.js';
-import { ValidationRequiredError } from '../utils/googleQuotaErrors.js';
+import { ValidationRequiredError } from '../utils/plumbGoogleQuotaErrors.js';
 import { CodeAssistServer } from '../code_assist/server.js';
 import type { OAuth2Client } from 'google-auth-library';
 import { UserTierId, type GeminiUserTier } from './types.js';

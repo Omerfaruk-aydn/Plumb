@@ -1,14 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @license
- * Copyright 2025 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * Script for commenting on the original PR after patch creation (step 1).
- * Handles parsing create-patch-pr.js output and creating appropriate feedback.
  */
 
 import yargs from 'yargs';

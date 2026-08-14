@@ -1,21 +1,6 @@
 /**
- * @license
- * Copyright 2026 PLUMB Authors
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Zhipu Coding Plan (智谱) — real source-backed coding plan integration.
- *
- * Upstream source: D:\PLUMB-upstreams\oh-my-pi
- *  - packages/ai/src/registry/zhipu-coding-plan.ts
- *  - packages/ai/src/registry/api-key-login.ts
- *
- * Auth flow: API key paste (<id>.<secret>)
- * Endpoint: https://open.bigmodel.cn/api/coding/paas/v4
- * Model discovery: bundled (glm-5.1, glm-4.7-flash)
- * Transport: openai-completions compatible
- *
- * This is a PRODUCTION_READY coding plan with the complete chain:
- * catalog -> auth -> credential resolution -> endpoint -> model list -> streaming
  */
 
 import {

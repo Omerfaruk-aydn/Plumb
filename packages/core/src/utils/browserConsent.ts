@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -28,7 +27,7 @@ const BROWSER_PROFILE_DIR = 'cli-browser-profile';
  */
 export async function getBrowserConsentIfNeeded(): Promise<boolean> {
   const consentFilePath = path.join(
-    Storage.getGlobalGeminiDir(),
+    Storage.getGlobalPlumbDir(),
     BROWSER_PROFILE_DIR,
     BROWSER_CONSENT_FLAG_FILE,
   );

@@ -1,8 +1,8 @@
 # System Prompt Override (GEMINI_SYSTEM_MD)
 
-The core system instructions that guide Gemini CLI can be completely replaced
-with your own Markdown file. This feature is controlled via the
-`GEMINI_SYSTEM_MD` environment variable.
+The core system instructions that guide PLUMB can be completely replaced with
+your own Markdown file. This feature is controlled via the `GEMINI_SYSTEM_MD`
+environment variable.
 
 ## Overview
 
@@ -104,18 +104,18 @@ safety and workflow rules.
 
 This creates the file and writes the current built‑in system prompt to it.
 
-## Best practices: system.md vs GEMINI.md
+## Best practices: system.md vs PLUMB.md
 
 - system.md (firmware):
   - Non‑negotiable operational rules: safety, tool‑use protocols, approvals, and
     mechanics that keep the CLI reliable.
   - Stable across tasks and projects (or per project when needed).
-- GEMINI.md (strategy):
+- PLUMB.md (strategy):
   - Persona, goals, methodologies, and project/domain context.
   - Evolves per task; relies on system.md for safe execution.
 
-Keep system.md minimal but complete for safety and tool operation. Keep
-GEMINI.md focused on high‑level guidance and project specifics.
+Keep system.md minimal but complete for safety and tool operation. Keep PLUMB.md
+focused on high‑level guidance and project specifics.
 
 ## Troubleshooting
 

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +18,7 @@ import { Session } from './acpSession.js';
 import type * as acp from '@agentclientprotocol/sdk';
 import {
   ReadManyFilesTool,
-  type GeminiChat,
+  type PlumbChat,
   type Config,
   type MessageBus,
   type GitService,
@@ -30,7 +29,7 @@ import {
   MessageBusType,
   type ToolConfirmationRequest,
   DiscoveredMCPTool,
-} from '@google/gemini-cli-core';
+} from '@plumb/core';
 import type { LoadedSettings } from '../config/settings.js';
 import { type Part, FinishReason } from '@google/genai';
 import * as fs from 'node:fs/promises';
@@ -47,10 +46,8 @@ vi.mock('node:path', async (importOriginal) => {
 });
 
 vi.mock(
-  '@google/gemini-cli-core',
-  async (
-    importOriginal: () => Promise<typeof import('@google/gemini-cli-core')>,
-  ) => {
+  '@plumb/core',
+  async (importOriginal: () => Promise<typeof import('@plumb/core')>) => {
     const actual = await importOriginal();
     return {
       ...actual,
@@ -82,7 +79,7 @@ async function* createMockStream(
 }
 
 describe('Session', () => {
-  let mockChat: Mocked<GeminiChat>;
+  let mockChat: Mocked<PlumbChat>;
   let mockConfig: Mocked<Config>;
   let mockConnection: Mocked<acp.AgentSideConnection>;
   let session: Session;
@@ -103,7 +100,7 @@ describe('Session', () => {
       addHistory: vi.fn(),
       recordCompletedToolCalls: vi.fn(),
       getHistory: vi.fn().mockReturnValue([]),
-    } as unknown as Mocked<GeminiChat>;
+    } as unknown as Mocked<PlumbChat>;
     mockTool = {
       kind: 'read',
       build: vi.fn().mockReturnValue({
@@ -577,9 +574,7 @@ describe('Session', () => {
   });
 
   it('should send sessionUpdate when approval mode changes', async () => {
-    const { coreEvents, CoreEvent, ApprovalMode } = await import(
-      '@google/gemini-cli-core'
-    );
+    const { coreEvents, CoreEvent, ApprovalMode } = await import('@plumb/core');
 
     coreEvents.emit(CoreEvent.ApprovalModeChanged, {
       sessionId: 'session-1',

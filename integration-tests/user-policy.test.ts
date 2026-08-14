@@ -1,12 +1,11 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
-import { TestRig, GEMINI_DIR } from './test-helper.js';
+import { TestRig, PLUMB_DIR } from './test-helper.js';
 import fs from 'node:fs';
 
 describe('User Policy Regression Repro', () => {
@@ -28,7 +27,7 @@ describe('User Policy Regression Repro', () => {
     });
 
     // Create ~/.gemini/policies/allowed-tools.toml
-    const userPoliciesDir = join(rig.homeDir!, GEMINI_DIR, 'policies');
+    const userPoliciesDir = join(rig.homeDir!, PLUMB_DIR, 'policies');
     fs.mkdirSync(userPoliciesDir, { recursive: true });
     fs.writeFileSync(
       join(userPoliciesDir, 'allowed-tools.toml'),

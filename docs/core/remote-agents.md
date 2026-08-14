@@ -1,18 +1,18 @@
 # Remote Subagents
 
-Gemini CLI supports connecting to remote subagents using the Agent-to-Agent
-(A2A) protocol. This allows Gemini CLI to interact with other agents, expanding
-its capabilities by delegating tasks to remote services.
+PLUMB supports connecting to remote subagents using the Agent-to-Agent (A2A)
+protocol. This allows PLUMB to interact with other agents, expanding its
+capabilities by delegating tasks to remote services.
 
-Gemini CLI can connect to any compliant A2A agent. You can find samples of A2A
-agents in the following repositories:
+PLUMB can connect to any compliant A2A agent. You can find samples of A2A agents
+in the following repositories:
 
 - [ADK Samples (Python)](https://github.com/google/adk-samples/tree/main/python)
 - [ADK Python Contributing Samples](https://github.com/google/adk-python/tree/main/contributing/samples)
 
 ## Proxy support
 
-Gemini CLI routes traffic to remote agents through an HTTP/HTTPS proxy if one is
+PLUMB routes traffic to remote agents through an HTTP/HTTPS proxy if one is
 configured. It uses the `general.proxy` setting in your `settings.json` file or
 standard environment variables (`HTTP_PROXY`, `HTTPS_PROXY`).
 
@@ -163,14 +163,14 @@ agent_card_json:
 
 ## Authentication
 
-Many remote agents require authentication. Gemini CLI supports several
-authentication methods aligned with the
+Many remote agents require authentication. PLUMB supports several authentication
+methods aligned with the
 [A2A security specification](https://a2a-protocol.org/latest/specification/#451-securityscheme).
 Add an `auth` block to your agent's frontmatter to configure credentials.
 
 ### Supported auth types
 
-Gemini CLI supports the following authentication types:
+PLUMB supports the following authentication types:
 
 | Type                 | Description                                                                                    |
 | :------------------- | :--------------------------------------------------------------------------------------------- |
@@ -373,8 +373,8 @@ auth:
 ### OAuth 2.0 (`oauth`)
 
 Performs an interactive OAuth 2.0 Authorization Code flow with PKCE. On first
-use, Gemini CLI opens your browser for sign-in and persists the resulting tokens
-for subsequent requests.
+use, PLUMB opens your browser for sign-in and persists the resulting tokens for
+subsequent requests.
 
 | Field               | Type     | Required | Description                                                                                                                                        |
 | :------------------ | :------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -405,8 +405,8 @@ Tokens are persisted to disk and refreshed automatically when they expire.
 
 ### Auth validation
 
-When Gemini CLI loads a remote agent, it validates your auth configuration
-against the agent card's declared `securitySchemes`. If the agent requires
+When PLUMB loads a remote agent, it validates your auth configuration against
+the agent card's declared `securitySchemes`. If the agent requires
 authentication that you haven't configured, you'll see an error describing
 what's needed.
 
@@ -422,7 +422,7 @@ is re-executed on retry to fetch a fresh key.
 
 ### Agent card fetching and auth
 
-When connecting to a remote agent, Gemini CLI first fetches the agent card
+When connecting to a remote agent, PLUMB first fetches the agent card
 **without** authentication. If the card endpoint returns a `401` or `403`, it
 retries the fetch **with** the configured auth headers. This lets agents have
 publicly accessible cards while protecting their task endpoints, or to protect
@@ -430,7 +430,7 @@ both behind auth.
 
 ## Managing Subagents
 
-Users can manage subagents using the following commands within Gemini CLI:
+Users can manage subagents using the following commands within PLUMB:
 
 - `/agents list`: Displays all available local and remote subagents.
 - `/agents reload`: Reloads the agent registry. Use this after adding or
@@ -440,7 +440,7 @@ Users can manage subagents using the following commands within Gemini CLI:
 
 <!-- prettier-ignore -->
 > [!TIP]
-> You can use the `@cli_help` agent within Gemini CLI for assistance
+> You can use the `@cli_help` agent within PLUMB for assistance
 > with configuring subagents.
 
 ## Disabling remote agents

@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -50,7 +49,7 @@ const {
   };
 });
 
-vi.mock('@google/gemini-cli-provider', () => ({
+vi.mock('@plumb/provider', () => ({
   getPlumbModelRegistry: () => ({
     findModel: mockFindModel,
     loadCache: mockLoadCache,

@@ -1,22 +1,12 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * Real production Ink configuration screen for Azure OpenAI -- the one
- * cloud provider whose configuration is a *list* (a resource can have many
- * model->deployment mappings) rather than a flat field set, so it gets its
- * own screen instead of PlumbGenericCloudConfigForm. First-class deployment
- * management: Add/Edit/Remove a deployment mapping, never a raw
- * comma-separated env-string editor.
  */
+
 import type React from 'react';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box, Text } from 'ink';
-import {
-  validateAzureConfig,
-  type AzureDeployment,
-} from '@google/gemini-cli-provider';
+import { validateAzureConfig, type AzureDeployment } from '@plumb/provider';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import {

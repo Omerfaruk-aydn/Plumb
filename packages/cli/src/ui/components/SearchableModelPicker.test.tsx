@@ -1,6 +1,5 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { act } from 'react';
 import { SearchableModelPicker } from './SearchableModelPicker.js';
-import type { PlumbModel } from '@google/gemini-cli-provider';
+import type { PlumbModel } from '@plumb/provider';
 
 enum TerminalKeys {
   ENTER = '\u000D',

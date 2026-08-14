@@ -1,13 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * Manages the current active topic title and tactical intent for a session.
- * Hosted within the Config instance for session-scoping.
- */
 export class TopicState {
   private activeTopicTitle?: string;
   private activeIntent?: string;
