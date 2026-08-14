@@ -174,6 +174,17 @@ async function resolveToolRoute(
   }
   const modelRegistry = getPlumbModelRegistry();
 
+  // Hydrate the canonical discovered-model registry from any on-disk cache
+  // BEFORE anything else. This is a synchronous, no-network read — it must
+  // run for explicit and modeless requests alike, so a model already
+  // cached from a prior discovery is never invisible to
+  // resolveModelSelection merely because this call path skips (or has not
+  // yet reached) a live discovery attempt. Network discovery and cache
+  // hydration converge into the same discovered-model map either way.
+  if (modelRegistry.hasDiscoveryCapability(providerId)) {
+    modelRegistry.loadCache(providerId);
+  }
+
   // Same canonical sequence the batch probe runs: attempt authoritative
   // discovery (when capable) BEFORE reading any authority state, then gate
   // on resolveProbeAuthorityDecision. Explicit --model skips this — an

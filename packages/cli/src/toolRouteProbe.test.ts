@@ -14,6 +14,7 @@ const {
   authorityStats,
   hasDiscoveryCapability,
   attemptAuthoritativeDiscovery,
+  loadCache,
   model,
 } = vi.hoisted(() => ({
   output: [] as string[],
@@ -34,6 +35,7 @@ const {
     models: [],
     state: 'SUCCEEDED_NONEMPTY',
   })),
+  loadCache: vi.fn(() => []),
   model: {
     id: 'safe-model',
     name: 'Safe model',
@@ -154,6 +156,7 @@ vi.mock('@google/gemini-cli-provider', async (importOriginal) => {
       getModelAuthorityStats: authorityStats,
       hasDiscoveryCapability,
       attemptAuthoritativeDiscovery,
+      loadCache,
     })),
     plumbModelStream: vi.fn(),
     enableToolRouteDiag: vi.fn(),
@@ -795,5 +798,35 @@ describe('single-probe pipeline unification (regression D)', () => {
     );
 
     expect(attemptAuthoritativeDiscovery).not.toHaveBeenCalled();
+  });
+
+  it('C. cache hydration runs before resolution for an explicit --model, so a cached-only model is visible instead of flattening to ROUTE_NOT_FOUND', async () => {
+    loadCache.mockClear();
+
+    await runToolRouteProbeResult('safe-provider', 'claude-sonnet-4-6').catch(
+      () => undefined,
+    );
+
+    // loadCache must run (synchronous, no-network) even though the
+    // discovery/authority gate itself is skipped for an explicit model —
+    // otherwise a model that only exists in the on-disk cache is invisible
+    // to resolveModelSelection's findModel lookup.
+    expect(loadCache).toHaveBeenCalledWith('safe-provider');
+  });
+
+  it('cache hydration also runs for the modeless path, so single and batch converge on the same hydrated authority before any live attempt', async () => {
+    loadCache.mockClear();
+    attemptAuthoritativeDiscovery.mockClear();
+
+    await runToolRouteProbeResult('safe-provider').catch(() => undefined);
+
+    const loadCacheCallOrder = loadCache.mock.invocationCallOrder[0];
+    const discoveryCallOrder =
+      attemptAuthoritativeDiscovery.mock.invocationCallOrder[0];
+    expect(loadCache).toHaveBeenCalledWith('safe-provider');
+    expect(attemptAuthoritativeDiscovery).toHaveBeenCalled();
+    // Cache hydration is the first, cheap step — it must run before the
+    // (potentially network-bound) authoritative discovery attempt.
+    expect(loadCacheCallOrder).toBeLessThan(discoveryCallOrder);
   });
 });

@@ -474,7 +474,7 @@ export class PlumbModelRegistry {
       apiKey,
       oauthToken,
     });
-    const state: ModelDiscoveryState =
+    let state: ModelDiscoveryState =
       outcome.status === 'success'
         ? 'SUCCEEDED_NONEMPTY'
         : outcome.status === 'empty'
@@ -488,6 +488,36 @@ export class PlumbModelRegistry {
                 : outcome.errorCode === 'DISCOVERY_PROTOCOL_ERROR'
                   ? 'PROTOCOL_FAILED'
                   : 'NETWORK_FAILED';
+
+    // Fresh cache contract: this cycle's live attempt came back with zero
+    // models (empty result, or an attempt that failed outright), but an
+    // on-disk cache exists that is fresh, authoritative, non-empty, and
+    // actually scoped to THIS provider (never trust a cache row whose
+    // models carry a different `.provider`, mirroring the Antigravity
+    // backing-id orphaning bug). A fresh valid cache must never be
+    // discarded in favor of a spurious live-empty/failed signal — hydrate
+    // from it and report the honest non-empty state instead of silently
+    // behaving as though zero models are known.
+    if (outcome.models.length === 0) {
+      const cached = readModelCache(providerId);
+      const cacheProviderMatches = Boolean(
+        cached && cached.models.every((m) => m.provider === providerId),
+      );
+      if (
+        cached &&
+        cached.fresh &&
+        cached.authoritative &&
+        cacheProviderMatches &&
+        cached.models.length > 0
+      ) {
+        for (const model of cached.models) {
+          this.#discoveredModels.set(`${providerId}:${model.id}`, model);
+        }
+        state = 'SUCCEEDED_NONEMPTY';
+        this.#discoveryStates.set(providerId, state);
+        return { models: cached.models, state };
+      }
+    }
     this.#discoveryStates.set(providerId, state);
 
     const bundled = getCatalogModels(providerId);
@@ -1027,15 +1057,22 @@ export class PlumbModelRegistry {
       }
     }
 
-    // Add cached models to discovered
+    // Add cached models to discovered — but only rows actually scoped to
+    // the requested provider. A cache row carrying a different `.provider`
+    // (a backing/OMP alias id leaking into this provider's cache slot,
+    // mirroring the prior Antigravity orphaning bug) must never be filed
+    // under this provider's authority.
+    const hydrated: PlumbModel[] = [];
     for (const model of entry.models) {
+      if (model.provider !== providerId) continue;
       const key = `${model.provider}:${model.id}`;
       if (!this.#discoveredModels.has(key)) {
         this.#discoveredModels.set(key, model);
       }
+      hydrated.push(model);
     }
 
-    return entry.models;
+    return hydrated;
   }
 
   /** Invalidate cache for a provider. */

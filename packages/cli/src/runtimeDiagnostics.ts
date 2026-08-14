@@ -1162,7 +1162,12 @@ export async function buildProviderModelsDiagnostics(
       | undefined;
     if (cacheFn) {
       try {
-        const cached = cacheFn(canonicalId);
+        const cached = cacheFn(canonicalId) as {
+          models: Array<{ provider?: string }>;
+          fresh: boolean;
+          authoritative?: boolean;
+          updatedAt: number;
+        } | null;
         if (cached && Array.isArray(cached.models)) {
           cacheHit = true;
           cacheAge = Date.now() - cached.updatedAt;
@@ -1170,8 +1175,29 @@ export async function buildProviderModelsDiagnostics(
           lines.push(`cache.age.ms: ${cacheAge}`);
           lines.push(`cache.fresh: ${cached.fresh ? 'yes' : 'no'}`);
           lines.push(`cache.model.count: ${cached.models.length}`);
+          // Distinguish cache METADATA (the row exists) from cache CONTENT
+          // (the payload is actually usable authority) — a nonempty
+          // `cache.model.count` must never be read as proof the payload is
+          // valid, provider-matching, or schema-compatible on its own.
+          const payloadPresent = cached.models.length > 0;
+          const providerMatch =
+            !payloadPresent ||
+            cached.models.every((m) => m.provider === canonicalId);
+          const schemaCompatible = cached.models.every(
+            (m) => typeof m === 'object' && m !== null,
+          );
+          lines.push(`cache.payload.present: ${payloadPresent}`);
+          lines.push(
+            `cache.payload.valid: ${payloadPresent && schemaCompatible}`,
+          );
+          lines.push(`cache.payload.providerMatch: ${providerMatch}`);
+          lines.push(`cache.payload.schemaCompatible: ${schemaCompatible}`);
         } else {
           lines.push(`cache.hit: no`);
+          lines.push(`cache.payload.present: false`);
+          lines.push(`cache.payload.valid: false`);
+          lines.push(`cache.payload.providerMatch: false`);
+          lines.push(`cache.payload.schemaCompatible: false`);
         }
       } catch {
         lines.push(`cache.hit: unknown (cache module unavailable)`);
@@ -1283,16 +1309,59 @@ async function runProviderLiveProbe(
       );
     }
   } else {
+    // Route through the SAME canonical PlumbModelRegistry pipeline the real
+    // probe uses (attemptAuthoritativeDiscovery honors the fresh-cache
+    // contract and hydrates the same discovered-model map) — never a
+    // separate, ad-hoc discovery call. The previous version of this
+    // diagnostic invoked the low-level `discoverProviderModels(id)` helper
+    // with no context object at all, so it always threw internally and
+    // silently reported raw/filtered counts of 0 regardless of real cache
+    // or live state.
     try {
-      const discoverFn = (providerModule as Record<string, unknown>)[
-        'discoverProviderModels'
-      ] as ((id: string) => Promise<unknown[]>) | undefined;
-      if (discoverFn) {
-        const result = await discoverFn(canonicalId);
-        if (Array.isArray(result)) {
-          liveModels = result as typeof liveModels;
-          liveSource = 'OFFICIAL_CLIENT_DYNAMIC';
+      const modelRegistry = providerModule.getPlumbModelRegistry?.() as
+        | {
+            attemptAuthoritativeDiscovery?: (
+              id: string,
+              apiKey?: string,
+            ) => Promise<{ models: unknown[]; state: string }>;
+            loadCache?: (id: string) => unknown[];
+          }
+        | undefined;
+      let apiKey: string | undefined;
+      try {
+        const getProviderRegistry = (providerModule as Record<string, unknown>)[
+          'getPlumbProviderRegistry'
+        ] as
+          | (() => {
+              initialize: () => Promise<void>;
+              getApiKey: (id: string) => Promise<string | undefined>;
+            })
+          | undefined;
+        const providerRegistry = getProviderRegistry?.();
+        if (providerRegistry) {
+          await providerRegistry.initialize();
+          apiKey = await providerRegistry.getApiKey(canonicalId);
         }
+      } catch {
+        // The registry itself will classify the credential failure below.
+      }
+      const hydrated = modelRegistry?.loadCache?.(canonicalId) ?? [];
+      lines.push(`cache.hydration.count: ${hydrated.length}`);
+      if (modelRegistry?.attemptAuthoritativeDiscovery) {
+        const attempt = await modelRegistry.attemptAuthoritativeDiscovery(
+          canonicalId,
+          apiKey,
+        );
+        lines.push(`cache.hydration.status: ${attempt.state}`);
+        if (Array.isArray(attempt.models)) {
+          liveModels = attempt.models as typeof liveModels;
+          liveSource =
+            attempt.state === 'SUCCEEDED_NONEMPTY'
+              ? 'OFFICIAL_CLIENT_DYNAMIC'
+              : liveSource;
+        }
+      } else {
+        lines.push(`cache.hydration.status: REGISTRY_UNAVAILABLE`);
       }
     } catch (err) {
       lines.push(

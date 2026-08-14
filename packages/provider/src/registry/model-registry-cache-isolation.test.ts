@@ -109,4 +109,29 @@ describe('local model cache endpoint isolation', () => {
     expect(registry.loadCache('litellm')).toEqual([]);
     expect(cache.invalidate).toHaveBeenCalledWith('litellm');
   });
+
+  it('E. rejects a cache row whose model carries a different provider id than requested (alias/orphaning guard)', () => {
+    cache.entry = {
+      models: [
+        {
+          id: 'leaked-model',
+          name: 'leaked',
+          provider: 'github-copilot-omp-backing',
+          api: 'openai-responses',
+          contextWindow: 131072,
+          maxTokens: 32768,
+          input: 'text',
+        },
+      ],
+      fresh: true,
+      authoritative: true,
+      updatedAt: Date.now(),
+    };
+    const registry = new PlumbModelRegistry();
+
+    expect(registry.loadCache('github-copilot')).toEqual([]);
+    expect(
+      registry.findModel('github-copilot', 'leaked-model'),
+    ).toBeUndefined();
+  });
 });

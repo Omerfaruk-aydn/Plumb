@@ -259,6 +259,27 @@ describe('buildProviderModelsDiagnostics', () => {
     // report already computed -- no second, disagreeing authority.
     expect(report).toContain(`AGENT_SDK_RAW_COUNT: ${rawSupportedModelCount}`);
   });
+
+  it('routes github-copilot (and every non-claude-subscription provider) through the canonical PlumbModelRegistry pipeline instead of an ad-hoc call with no context', async () => {
+    const { lines, failures, rawSupportedModelCount, filteredModelCount } =
+      await buildProviderModelsDiagnostics('github-copilot');
+    expect(failures).toEqual([]);
+    const report = lines.join('\n');
+    expect(report).toContain('canonical.provider: github-copilot');
+    // These honest cache/hydration fields only exist once the live probe
+    // routes through PlumbModelRegistry.loadCache/attemptAuthoritativeDiscovery
+    // — their presence proves the old ad-hoc, argument-less
+    // `discoverProviderModels(id)` call (which always threw internally and
+    // silently reported raw/filtered counts of 0) is gone.
+    expect(report).toContain('cache.hydration.count:');
+    expect(report).toContain('cache.hydration.status:');
+    // The live probe must never crash outright — `live.probe.error` is
+    // allowed (e.g. no local credential), but the raw/filtered counters
+    // must still be real, consistent integers.
+    expect(Number.isInteger(rawSupportedModelCount)).toBe(true);
+    expect(Number.isInteger(filteredModelCount)).toBe(true);
+    expect(rawSupportedModelCount).toBe(filteredModelCount);
+  });
 });
 
 describe('buildModelLimitsDiagnostics', () => {
