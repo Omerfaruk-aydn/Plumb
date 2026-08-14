@@ -446,3 +446,71 @@ export function resolveProbeAuthorityDecision(
       };
   }
 }
+
+// ─── Account usability (discovery membership != usable-by-this-account) ──
+//
+// A model appearing in a provider's discovery/catalog set proves only that
+// the PROVIDER offers it — never that THIS account is entitled/enabled to
+// actually use it (GitHub Copilot's per-seat/per-plan model gating is the
+// motivating case: `gpt-5.5` can be a live-discovered member of the
+// account's 79-model catalog while the account itself is not enrolled for
+// it, and upstream rejects the request with `error.param: "model"`).
+// `discoveryStatus` and `accountUsability` must never be conflated.
+
+/** Whether a model was actually observed in the live/cache discovery set —
+ * NOT whether the account can use it. */
+export type DiscoveryStatus = 'DISCOVERED' | 'NOT_DISCOVERED';
+
+/**
+ * Whether THIS account has been proven able to actually use the model.
+ * `VERIFIED_AVAILABLE` / `VERIFIED_UNAVAILABLE` require an observed live
+ * request outcome — discovery membership alone can never produce either
+ * verdict. `UNKNOWN` is the only honest state before any request has been
+ * attempted.
+ */
+export type AccountUsability =
+  | 'VERIFIED_AVAILABLE'
+  | 'VERIFIED_UNAVAILABLE'
+  | 'UNKNOWN';
+
+export interface ModelAuthorityDimensionsInput {
+  /** Was the model observed in the live/cache discovery set for this
+   * provider? (independent of whether a request was ever attempted) */
+  readonly discovered: boolean;
+  /**
+   * The outcome of an actual live request for this model, if one was
+   * attempted this cycle. `undefined` means no request was attempted —
+   * `accountUsability` must then be `UNKNOWN`, never inferred from
+   * `discovered` alone.
+   */
+  readonly liveRequestOutcome?:
+    | 'SUCCEEDED'
+    | 'MODEL_NOT_AVAILABLE'
+    | 'OTHER_FAILURE';
+}
+
+export interface ModelAuthorityDimensions {
+  readonly discoveryStatus: DiscoveryStatus;
+  readonly accountUsability: AccountUsability;
+}
+
+/**
+ * Resolve the `discoveryStatus` / `accountUsability` pair honestly.
+ * `routeCompatibility` (MATCH/MISMATCH/UNKNOWN) is a third, independent
+ * dimension already owned by `ResolvedModelSelection.routeAuthority` in
+ * `registry/model-registry.ts` — this function does not duplicate it.
+ */
+export function resolveModelAuthorityDimensions(
+  input: ModelAuthorityDimensionsInput,
+): ModelAuthorityDimensions {
+  const discoveryStatus: DiscoveryStatus = input.discovered
+    ? 'DISCOVERED'
+    : 'NOT_DISCOVERED';
+  let accountUsability: AccountUsability = 'UNKNOWN';
+  if (input.liveRequestOutcome === 'SUCCEEDED') {
+    accountUsability = 'VERIFIED_AVAILABLE';
+  } else if (input.liveRequestOutcome === 'MODEL_NOT_AVAILABLE') {
+    accountUsability = 'VERIFIED_UNAVAILABLE';
+  }
+  return { discoveryStatus, accountUsability };
+}

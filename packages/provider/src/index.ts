@@ -102,6 +102,7 @@ export {
   resolveLiveModelAuthority,
   liveModelUnresolvedClassification,
   resolveProbeAuthorityDecision,
+  resolveModelAuthorityDimensions,
   type BatchResultClass,
   type BatchProbeResult,
   type ClassifiedBatchResult,
@@ -112,6 +113,10 @@ export {
   type ModelAuthorityKind,
   type ProbeAuthorityDecision,
   type ProbeAuthorityInput,
+  type DiscoveryStatus,
+  type AccountUsability,
+  type ModelAuthorityDimensions,
+  type ModelAuthorityDimensionsInput,
 } from './toolRouteContract.js';
 
 // Provider catalog

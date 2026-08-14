@@ -10,6 +10,8 @@ import {
   classifyGoogleHttpError,
   classifyAnthropicHttpError,
   classifyAnthropicSseErrorType,
+  classifyResponsesHttpError,
+  extractSafeResponsesErrorDetails,
   sanitizeErrorBodyMessage,
 } from './errorClassification.js';
 
@@ -314,5 +316,68 @@ describe('sanitizeErrorBodyMessage', () => {
         'fallback',
       ),
     ).toBe('inner');
+  });
+});
+
+describe('classifyResponsesHttpError (regression G: evidence-driven model_not_supported classification)', () => {
+  it('G. a 400 with error.param="model" reclassifies from generic INVALID_REQUEST to MODEL_NOT_AVAILABLE — the exact GitHub Copilot /responses gpt-5.5 shape', () => {
+    const body = JSON.stringify({
+      error: {
+        type: 'invalid_request_error',
+        param: 'model',
+        message: 'The requested model is not supported.',
+      },
+    });
+    const result = classifyResponsesHttpError(400, body);
+    expect(result.code).toBe('MODEL_NOT_AVAILABLE');
+  });
+
+  it('a 400 with no error.param="model" evidence keeps the ordinary generic classification (never fabricated)', () => {
+    const body = JSON.stringify({
+      error: { type: 'invalid_request_error', message: 'bad request shape' },
+    });
+    const result = classifyResponsesHttpError(400, body);
+    expect(result.code).toBe('INVALID_REQUEST');
+  });
+
+  it('a non-INVALID_REQUEST status (e.g. 401) is never reclassified by param evidence', () => {
+    const body = JSON.stringify({
+      error: { type: 'authentication_error', param: 'model', message: 'x' },
+    });
+    const result = classifyResponsesHttpError(401, body);
+    expect(result.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('an unparsable body falls through to the ordinary status-code classification', () => {
+    const result = classifyResponsesHttpError(400, 'not json');
+    expect(result.code).toBe('INVALID_REQUEST');
+  });
+});
+
+describe('extractSafeResponsesErrorDetails on an Anthropic-shaped body (regression A: Anthropic Copilot 400 body safe parsing)', () => {
+  it('A. parses the documented Anthropic error shape ({error:{type,message}}, no param) safely', () => {
+    const body = JSON.stringify({
+      type: 'error',
+      error: {
+        type: 'invalid_request_error',
+        message: 'thinking.budget_tokens: Field required',
+      },
+    });
+    const details = extractSafeResponsesErrorDetails(body);
+    expect(details.errorType).toBe('invalid_request_error');
+    expect(details.errorParam).toBeUndefined();
+    expect(details.errorMessageSafe).toBe(
+      'thinking.budget_tokens: Field required',
+    );
+  });
+
+  it('bounds the message to 300 chars and redacts credential-looking substrings', () => {
+    const longMessage = `Bearer sk-abcdefgh12345678 ${'x'.repeat(400)}`;
+    const body = JSON.stringify({
+      error: { type: 'invalid_request_error', message: longMessage },
+    });
+    const details = extractSafeResponsesErrorDetails(body);
+    expect(details.errorMessageSafe).not.toContain('sk-abcdefgh12345678');
+    expect(details.errorMessageSafe!.length).toBeLessThanOrEqual(300);
   });
 });

@@ -26,6 +26,7 @@ import {
   computeBatchBreakdown,
   isLocalProvider,
   resolveProbeAuthorityDecision,
+  resolveModelAuthorityDimensions,
   type ClassifiedBatchResult,
   type PlumbContentPart,
   type PlumbEffectiveToolRouteContract,
@@ -747,6 +748,46 @@ export async function runToolRouteProbeResult(
     'wire.reasoningFieldPresent',
     firstResponseDiag?.['reasoningFieldPresent'] ?? false,
   );
+  // Anthropic Messages structural request facts (booleans/counts only — no
+  // thinking/system/tool-argument content). Printed for every dialect the
+  // same way vertex.*/wire.* fields are — 'false'/0 on a non-Anthropic
+  // route is itself an honest, informative value.
+  line(
+    'anthropic.thinkingPresent',
+    firstResponseDiag?.['anthropicThinkingPresent'] ?? false,
+  );
+  line(
+    'anthropic.outputConfigPresent',
+    firstResponseDiag?.['anthropicOutputConfigPresent'] ?? false,
+  );
+  line(
+    'anthropic.effortPresent',
+    firstResponseDiag?.['anthropicEffortPresent'] ?? false,
+  );
+  line(
+    'anthropic.temperaturePresent',
+    firstResponseDiag?.['anthropicTemperaturePresent'] ?? false,
+  );
+  line(
+    'anthropic.serviceTierPresent',
+    firstResponseDiag?.['anthropicServiceTierPresent'] ?? false,
+  );
+  line(
+    'anthropic.systemPresent',
+    firstResponseDiag?.['anthropicSystemPresent'] ?? false,
+  );
+  line('anthropic.toolCount', firstResponseDiag?.['requestToolsCount'] ?? 0);
+  line(
+    'anthropic.toolChoiceCategory',
+    firstResponseDiag?.['toolChoiceValueCategory'] ?? 'absent',
+  );
+  line('anthropic.maxTokens', firstResponseDiag?.['anthropicMaxTokens'] ?? 0);
+  line(
+    'anthropic.endpointPath',
+    routeContract.scope.dialect === 'anthropic-messages'
+      ? (firstResponseDiag?.['endpointPath'] ?? 'not_recorded')
+      : 'not_applicable',
+  );
   line(
     'wire.upstreamErrorType',
     firstResponseDiag?.['upstreamErrorType'] ?? 'none',
@@ -778,6 +819,31 @@ export async function runToolRouteProbeResult(
   );
   line('AUTO_TOOL_SELECTION_WORKS', 'NOT_TESTED_BY_FORCED_PROBE');
   line('safeError', safeError);
+  // Account usability is a THIRD, independent dimension from discovery
+  // membership and route compatibility: a model can be a live-discovered,
+  // route-compatible member of the catalog while this specific account is
+  // not entitled/enabled to actually use it (GitHub Copilot's per-model
+  // seat gating). Never infer VERIFIED_AVAILABLE from discovery membership
+  // alone — only an observed live request outcome may set it.
+  const authorityDimensions = resolveModelAuthorityDimensions({
+    discovered: resolved.selection.liveAuthorityMatch,
+    liveRequestOutcome:
+      safeError === 'none'
+        ? 'SUCCEEDED'
+        : safeError === 'MODEL_NOT_AVAILABLE'
+          ? 'MODEL_NOT_AVAILABLE'
+          : 'OTHER_FAILURE',
+  });
+  line('model.discoveryStatus', authorityDimensions.discoveryStatus);
+  line('model.accountUsability', authorityDimensions.accountUsability);
+  if (safeError === 'MODEL_NOT_AVAILABLE') {
+    // Diagnostic-only, safe, static recommendation — never an automatic
+    // account/config change.
+    line(
+      'model.accountUsability.recommendation',
+      'Upstream reported the model identifier itself is not supported for this account. If this is unexpected, check whether the model needs to be enabled in the official provider model selector for this account.',
+    );
+  }
   const succeeded =
     calls.length > 0 &&
     completed.length === calls.length &&

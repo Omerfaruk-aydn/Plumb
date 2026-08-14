@@ -36,6 +36,7 @@ import {
   classifyAnthropicHttpError,
   classifyAnthropicSseErrorType,
   classifyGoogleHttpError,
+  extractSafeResponsesErrorDetails,
 } from './errorClassification.js';
 import { streamClaudeSubscription } from './claudeSubscription.js';
 import { streamWatsonx } from './watsonx.js';
@@ -108,6 +109,13 @@ export function createFreshDiagSnapshot(
     parallelToolCallsPresent: false,
     maxOutputTokensFieldName: 'absent',
     reasoningFieldPresent: false,
+    anthropicThinkingPresent: false,
+    anthropicOutputConfigPresent: false,
+    anthropicEffortPresent: false,
+    anthropicTemperaturePresent: false,
+    anthropicServiceTierPresent: false,
+    anthropicSystemPresent: false,
+    anthropicMaxTokens: 0,
     vertexStage: 'not_recorded',
     vertexFailedStage: 'not_recorded',
     vertexValidationError: 'none',
@@ -198,6 +206,15 @@ export interface ToolRouteRequestWireDetails {
   readonly parallelToolCallsPresent?: boolean;
   readonly maxOutputTokensFieldName?: string;
   readonly reasoningFieldPresent?: boolean;
+  /** Anthropic Messages structural facts (booleans/categories/counts only —
+   * never thinking/system/tool-argument content). */
+  readonly anthropicThinkingPresent?: boolean;
+  readonly anthropicOutputConfigPresent?: boolean;
+  readonly anthropicEffortPresent?: boolean;
+  readonly anthropicTemperaturePresent?: boolean;
+  readonly anthropicServiceTierPresent?: boolean;
+  readonly anthropicSystemPresent?: boolean;
+  readonly anthropicMaxTokens?: number;
 }
 
 export function recordToolRouteRequest(
@@ -249,6 +266,17 @@ export function recordToolRouteRequest(
     target['maxOutputTokensFieldName'] =
       details.maxOutputTokensFieldName ?? 'absent';
     target['reasoningFieldPresent'] = details.reasoningFieldPresent ?? false;
+    target['anthropicThinkingPresent'] =
+      details.anthropicThinkingPresent ?? false;
+    target['anthropicOutputConfigPresent'] =
+      details.anthropicOutputConfigPresent ?? false;
+    target['anthropicEffortPresent'] = details.anthropicEffortPresent ?? false;
+    target['anthropicTemperaturePresent'] =
+      details.anthropicTemperaturePresent ?? false;
+    target['anthropicServiceTierPresent'] =
+      details.anthropicServiceTierPresent ?? false;
+    target['anthropicSystemPresent'] = details.anthropicSystemPresent ?? false;
+    target['anthropicMaxTokens'] = details.anthropicMaxTokens ?? 0;
     if (details.requestFamily === 'google-gemini') {
       target['vertexStage'] = 'REQUEST_CONSTRUCTED';
     }
@@ -1170,6 +1198,21 @@ async function* anthropicMessagesStream(
           : '/v1/messages',
       toolSerializationShape: toolsSerialized ? 'ANTHROPIC_TOOLS' : 'none',
       toolsPresent: toolsSerialized,
+      // Structural facts only — booleans/counts, never content. PLUMB's
+      // Anthropic transport does not currently construct `output_config`,
+      // `service_tier`, or an `effort` field at all (unlike OMP's richer
+      // adaptive-thinking dispatcher); those report `false` honestly rather
+      // than being omitted, so a differential audit can see PLUMB simply
+      // never sends them yet, not that they were dropped for this request.
+      anthropicThinkingPresent: Boolean(hasThinking),
+      anthropicOutputConfigPresent: false,
+      anthropicEffortPresent: false,
+      anthropicTemperaturePresent: temperature !== undefined,
+      anthropicServiceTierPresent: false,
+      anthropicSystemPresent: Boolean(
+        systemPrompt || systemMessages.length > 0,
+      ),
+      anthropicMaxTokens: (body.max_tokens as number | undefined) ?? 0,
     },
   );
 
@@ -1284,7 +1327,17 @@ async function* anthropicMessagesStream(
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     const classified = classifyAnthropicHttpError(response.status, errorText);
-    recordToolRouteHttpFailure(response.status, classified.code);
+    // Anthropic's documented error body (`{"error":{"type":...,"message":...}}`)
+    // is a subset of the same shape the Responses-family extractor already
+    // parses safely (type/param/message, sanitized, 300-char bound); reuse it
+    // rather than duplicating the same sanitization logic for Anthropic.
+    // Anthropic errors carry no `param`, so errorParam stays 'none' honestly.
+    recordToolRouteHttpFailure(
+      response.status,
+      classified.code,
+      [],
+      extractSafeResponsesErrorDetails(errorText),
+    );
     yield {
       type: 'error',
       error: classified,

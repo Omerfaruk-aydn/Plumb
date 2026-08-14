@@ -650,6 +650,55 @@ describe('plumbModelStream â€” GitHub Copilot anthropic-messages auth heade
     expect(capturedHeaders?.['Authorization']).toBeUndefined();
   });
 
+  it('D/E. structural request-field presence (thinking, temperature, system) is identical for github-copilot and native Anthropic — no gateway-scoped field suppression exists to bleed or diverge', async () => {
+    globalThis.fetch = (async () =>
+      new Response(null, { status: 200, headers: {} })) as typeof fetch;
+    const thinkingModel = {
+      thinking: { supportedEfforts: ['high'], effortBudgets: { high: 8000 } },
+    };
+
+    enableToolRouteDiag();
+    for await (const _event of plumbModelStream({
+      model: { ...copilotClaudeModel, ...thinkingModel },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'gho_real_copilot_token',
+      temperature: 0.5,
+      probeId: 'copilot-anthropic-field-parity',
+    })) {
+      // drain
+    }
+    const copilotDiag = getLastToolRouteDiag('copilot-anthropic-field-parity');
+
+    for await (const _event of plumbModelStream({
+      model: { ...nativeAnthropicModel, ...thinkingModel },
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-real-key',
+      temperature: 0.5,
+      probeId: 'native-anthropic-field-parity',
+    })) {
+      // drain
+    }
+    const nativeDiag = getLastToolRouteDiag('native-anthropic-field-parity');
+
+    // Same model.thinking config + same temperature => identical structural
+    // field presence regardless of provider. No Copilot-specific
+    // suppression was found in the current OMP source for any field PLUMB
+    // actually constructs (thinking/temperature/system) — this proves none
+    // was accidentally introduced, and that direct Anthropic never inherits
+    // a Copilot-only restriction (or vice versa).
+    expect(copilotDiag?.['anthropicThinkingPresent']).toBe(
+      nativeDiag?.['anthropicThinkingPresent'],
+    );
+    expect(copilotDiag?.['anthropicThinkingPresent']).toBe(true);
+    expect(copilotDiag?.['anthropicTemperaturePresent']).toBe(
+      nativeDiag?.['anthropicTemperaturePresent'],
+    );
+    expect(copilotDiag?.['anthropicTemperaturePresent']).toBe(true);
+    expect(copilotDiag?.['anthropicSystemPresent']).toBe(
+      nativeDiag?.['anthropicSystemPresent'],
+    );
+  });
+
   it('routes Vercel AI Gateway Anthropic requests with its gateway key', async () => {
     let capturedUrl: string | undefined;
     let capturedHeaders: Record<string, string> | undefined;
@@ -866,6 +915,39 @@ describe('plumbModelStream â€” Anthropic Messages HTTP/SSE error classifica
     expect(events[0]).toMatchObject({
       error: { code: 'UPSTREAM_ERROR' },
     });
+  });
+
+  it('A. HTTP 400 invalid_request_error exposes the real safe upstream error details in diagnostics (regression: previously always "none")', async () => {
+    enableToolRouteDiag();
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message: 'thinking.budget_tokens: Field required',
+          },
+        }),
+        { status: 400 },
+      )) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+      probeId: 'anthropic-400-diag-probe',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ error: { code: 'INVALID_REQUEST' } });
+    const diag = getLastToolRouteDiag('anthropic-400-diag-probe');
+    expect(diag?.['httpStatus']).toBe(400);
+    expect(diag?.['upstreamErrorType']).toBe('invalid_request_error');
+    expect(diag?.['upstreamErrorMessageSafe']).toBe(
+      'thinking.budget_tokens: Field required',
+    );
+    // Anthropic's documented error schema carries no `param` field.
+    expect(diag?.['upstreamErrorParam']).toBe('none');
   });
 
   it('a proxy/gateway HTML 502 (never reached Anthropic) falls back to generic classification without leaking markup', async () => {

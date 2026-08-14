@@ -16,6 +16,7 @@ import {
   resolveLiveModelAuthority,
   resolveProbeAuthorityDecision,
   liveModelUnresolvedClassification,
+  resolveModelAuthorityDimensions,
   type ClassifiedBatchResult,
 } from './toolRouteContract.js';
 
@@ -367,5 +368,52 @@ describe('batch counters mutually exclusive sum (regression I)', () => {
     expect(breakdown.pass).toBe(1);
     expect(breakdown.sum).toBe(results.length);
     expect(breakdown.sumMatchesConfigured).toBe(true);
+  });
+});
+
+describe('resolveModelAuthorityDimensions (regression F: discovery membership != account usability)', () => {
+  it('F. a model present in discovery with no live request attempted is UNKNOWN usability, never inferred VERIFIED_AVAILABLE — the exact gpt-5.5 shape (discovered, live 400 model_not_supported)', () => {
+    // Discovery membership alone (no request attempted yet).
+    const beforeRequest = resolveModelAuthorityDimensions({
+      discovered: true,
+    });
+    expect(beforeRequest.discoveryStatus).toBe('DISCOVERED');
+    expect(beforeRequest.accountUsability).toBe('UNKNOWN');
+
+    // The live request evidence then proves it unavailable for THIS
+    // account — discovery membership never changes, only usability does.
+    const afterRequest = resolveModelAuthorityDimensions({
+      discovered: true,
+      liveRequestOutcome: 'MODEL_NOT_AVAILABLE',
+    });
+    expect(afterRequest.discoveryStatus).toBe('DISCOVERED');
+    expect(afterRequest.accountUsability).toBe('VERIFIED_UNAVAILABLE');
+  });
+
+  it('a successful live request proves VERIFIED_AVAILABLE', () => {
+    const result = resolveModelAuthorityDimensions({
+      discovered: true,
+      liveRequestOutcome: 'SUCCEEDED',
+    });
+    expect(result.accountUsability).toBe('VERIFIED_AVAILABLE');
+  });
+
+  it('an unrelated failure (e.g. auth) proves nothing about model usability — stays UNKNOWN, never VERIFIED_UNAVAILABLE', () => {
+    const result = resolveModelAuthorityDimensions({
+      discovered: true,
+      liveRequestOutcome: 'OTHER_FAILURE',
+    });
+    expect(result.accountUsability).toBe('UNKNOWN');
+  });
+
+  it('a model absent from discovery is NOT_DISCOVERED regardless of usability evidence', () => {
+    const result = resolveModelAuthorityDimensions({
+      discovered: false,
+      liveRequestOutcome: 'SUCCEEDED',
+    });
+    expect(result.discoveryStatus).toBe('NOT_DISCOVERED');
+    // Usability can still be proven even for a model reached via an
+    // explicit --model request outside the discovered set.
+    expect(result.accountUsability).toBe('VERIFIED_AVAILABLE');
   });
 });

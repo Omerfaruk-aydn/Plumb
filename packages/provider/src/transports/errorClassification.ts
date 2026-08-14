@@ -172,6 +172,32 @@ export function extractSafeResponsesErrorDetails(
 }
 
 /**
+ * Classify an OpenAI-Responses-family HTTP error, refined by the same safe
+ * structured evidence `extractSafeResponsesErrorDetails` already extracts
+ * for diagnostics. A 4xx whose body names `error.param: "model"` is
+ * evidence-backed proof the *model identifier itself* was rejected, not a
+ * generic malformed request — this is exactly the shape GitHub Copilot's
+ * `/responses` proxy returns for a model present in discovery but not
+ * enabled/available for the account ("The requested model is not
+ * supported."). Reclassifying this to `MODEL_NOT_AVAILABLE` is honest and
+ * evidence-driven (never inferred from provider identity alone); anything
+ * without that specific evidence keeps the ordinary status-code
+ * classification.
+ */
+export function classifyResponsesHttpError(
+  status: number,
+  bodyText: string,
+): ClassifiedHttpError {
+  const generic = classifyGenericHttpError(status, bodyText);
+  if (generic.code !== 'INVALID_REQUEST') return generic;
+  const safe = extractSafeResponsesErrorDetails(bodyText);
+  if (safe.errorParam === 'model') {
+    return { code: 'MODEL_NOT_AVAILABLE', message: generic.message };
+  }
+  return generic;
+}
+
+/**
  * Classify a generic (OpenAI-/Anthropic-/Ollama-compatible) HTTP error
  * response using only the HTTP status code and OMP's vetted rate-limit-
  * reason text heuristics. No provider-specific structured-error parsing —

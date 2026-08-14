@@ -31,7 +31,7 @@ import {
   resolveCustomCredentialHeader,
 } from '../config/customProviderDefinitions.js';
 import {
-  classifyGenericHttpError,
+  classifyResponsesHttpError,
   extractSafeResponsesErrorDetails,
 } from './errorClassification.js';
 
@@ -241,7 +241,7 @@ export async function* streamOpenAIResponses(
   }
   if (!response.ok) {
     const text = await response.text().catch(() => 'Unknown error');
-    const classified = classifyGenericHttpError(response.status, text);
+    const classified = classifyResponsesHttpError(response.status, text);
     recordToolRouteHttpFailure(
       response.status,
       classified.code,
