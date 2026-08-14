@@ -574,7 +574,19 @@ export async function main() {
       exitCode = await printProviderRuntimeDiagnostics();
     }
     await runExitCleanup();
-    process.exit(exitCode);
+    // Set the exit code and let Node's own event loop drain naturally
+    // instead of forcing immediate termination. These diagnostic commands
+    // (--test-tool-route, --diagnose-provider-models, ...) issue real HTTP
+    // requests; a forced process.exit() right after a fast-closing/error
+    // response races Node/undici's own asynchronous socket-close teardown —
+    // on Windows this is the exact "handle already marked CLOSING, closed
+    // again during forced exit" pattern behind the
+    // `UV_HANDLE_CLOSING` libuv assertion. No interactive session (Ink,
+    // stdin raw mode) is ever active on this path, so there is nothing that
+    // requires forcing the process down — Node exits on its own once every
+    // handle (including in-flight/keep-alive HTTP sockets) finishes closing.
+    process.exitCode = exitCode;
+    return;
   }
 
   const { sessionId, resumedSessionData } = await resolveSessionId(
