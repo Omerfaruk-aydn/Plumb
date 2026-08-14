@@ -800,6 +800,44 @@ export async function runToolRouteProbeResult(
     'wire.upstreamErrorMessageSafe',
     firstResponseDiag?.['upstreamErrorMessageSafe'] ?? 'none',
   );
+  // Safe, provider-neutral forensic structure of the raw error body — key
+  // NAMES and field PATHS only, never values, never the raw body.
+  line(
+    'wire.errorBodyPresent',
+    firstResponseDiag?.['errorBodyPresent'] ?? false,
+  );
+  line(
+    'wire.errorBodyContentType',
+    firstResponseDiag?.['errorBodyContentType'] ?? 'none',
+  );
+  line(
+    'wire.errorBodyFormat',
+    firstResponseDiag?.['errorBodyFormat'] ?? 'not_recorded',
+  );
+  line(
+    'wire.errorBodyByteLength',
+    firstResponseDiag?.['errorBodyByteLength'] ?? 0,
+  );
+  line(
+    'wire.errorTopLevelKeys',
+    JSON.stringify(firstResponseDiag?.['errorTopLevelKeys'] ?? []),
+  );
+  line(
+    'wire.errorNestedErrorPresent',
+    firstResponseDiag?.['errorNestedErrorPresent'] ?? false,
+  );
+  line(
+    'wire.errorNestedErrorKeys',
+    JSON.stringify(firstResponseDiag?.['errorNestedErrorKeys'] ?? []),
+  );
+  line(
+    'wire.errorMessageCandidatePaths',
+    JSON.stringify(firstResponseDiag?.['errorMessageCandidatePaths'] ?? []),
+  );
+  line(
+    'wire.upstreamErrorTextSafe',
+    firstResponseDiag?.['upstreamErrorTextSafe'] ?? 'none',
+  );
   // plumbModelStream emits one normalized event per native structured call;
   // delta fragments are intentionally not counted here.
   line('response.structuredToolCalls', calls.length);

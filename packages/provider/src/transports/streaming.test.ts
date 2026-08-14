@@ -948,6 +948,70 @@ describe('plumbModelStream â€” Anthropic Messages HTTP/SSE error classifica
     );
     // Anthropic's documented error schema carries no `param` field.
     expect(diag?.['upstreamErrorParam']).toBe('none');
+    // C. canonical Anthropic error JSON — forensic envelope fields.
+    expect(diag?.['errorBodyPresent']).toBe(true);
+    expect(diag?.['errorBodyFormat']).toBe('JSON_OBJECT');
+    expect((diag?.['errorTopLevelKeys'] as string[]).sort()).toEqual([
+      'error',
+      'type',
+    ]);
+    expect(diag?.['errorNestedErrorPresent']).toBe(true);
+    expect(diag?.['errorMessageCandidatePaths']).toEqual(['error.message']);
+  });
+
+  it('D. a plain-text (non-JSON) Copilot error body reports the honest TEXT shape and a sanitized fallback — this is the actual observed Copilot claude-sonnet-4.6 evidence shape (upstream fields legitimately stay "none" because there is no structured error to extract)', async () => {
+    enableToolRouteDiag();
+    globalThis.fetch = (async () =>
+      new Response('Bad Request', {
+        status: 400,
+        headers: { 'content-type': 'text/plain' },
+      })) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+      probeId: 'anthropic-400-plaintext-probe',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ error: { code: 'INVALID_REQUEST' } });
+    const diag = getLastToolRouteDiag('anthropic-400-plaintext-probe');
+    expect(diag?.['errorBodyPresent']).toBe(true);
+    expect(diag?.['errorBodyFormat']).toBe('TEXT');
+    expect(diag?.['errorBodyContentType']).toBe('text/plain');
+    expect(diag?.['errorTopLevelKeys']).toEqual([]);
+    expect(diag?.['errorNestedErrorPresent']).toBe(false);
+    expect(diag?.['upstreamErrorTextSafe']).toBe('Bad Request');
+    // No structured {error:{type,message}} shape existed to extract from
+    // plain text, so these honestly stay 'none' rather than being guessed.
+    expect(diag?.['upstreamErrorType']).toBe('none');
+  });
+
+  it('response body is read exactly once for an Anthropic HTTP failure (no double-read)', async () => {
+    let textCallCount = 0;
+    const body = JSON.stringify({
+      error: { type: 'invalid_request_error', message: 'bad request' },
+    });
+    globalThis.fetch = (async () => {
+      const real = new Response(body, { status: 400 });
+      const originalText = real.text.bind(real);
+      real.text = async () => {
+        textCallCount++;
+        return originalText();
+      };
+      return real;
+    }) as typeof fetch;
+    const events: PlumbStreamEvent[] = [];
+    for await (const event of plumbModelStream({
+      model: nativeAnthropicModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      apiKey: 'sk-ant-test',
+    })) {
+      events.push(event);
+    }
+    expect(events[0]).toMatchObject({ error: { code: 'INVALID_REQUEST' } });
+    expect(textCallCount).toBe(1);
   });
 
   it('a proxy/gateway HTML 502 (never reached Anthropic) falls back to generic classification without leaking markup', async () => {

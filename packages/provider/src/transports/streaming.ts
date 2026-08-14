@@ -37,6 +37,8 @@ import {
   classifyAnthropicSseErrorType,
   classifyGoogleHttpError,
   extractSafeResponsesErrorDetails,
+  extractSafeErrorEnvelope,
+  type SafeErrorEnvelope,
 } from './errorClassification.js';
 import { streamClaudeSubscription } from './claudeSubscription.js';
 import { streamWatsonx } from './watsonx.js';
@@ -104,6 +106,17 @@ export function createFreshDiagSnapshot(
     upstreamErrorType: 'none',
     upstreamErrorParam: 'none',
     upstreamErrorMessageSafe: 'none',
+    // Safe, provider-neutral structural facts about the raw error body —
+    // never the raw body itself. See `extractSafeErrorEnvelope`.
+    errorBodyPresent: false,
+    errorBodyContentType: 'none',
+    errorBodyFormat: 'not_recorded',
+    errorBodyByteLength: 0,
+    errorTopLevelKeys: [] as string[],
+    errorNestedErrorPresent: false,
+    errorNestedErrorKeys: [] as string[],
+    errorMessageCandidatePaths: [] as string[],
+    upstreamErrorTextSafe: 'none',
     hasInput: false,
     inputItemCount: 0,
     parallelToolCallsPresent: false,
@@ -335,6 +348,10 @@ export function recordToolRouteHttpFailure(
   fieldViolations: readonly string[] = [],
   upstream?: SafeUpstreamErrorDetails,
   context?: string | PlumbStreamOptions,
+  /** Safe, provider-neutral structural facts about the raw error body —
+   * see `extractSafeErrorEnvelope`. Optional so every existing call site
+   * (and every caller in a mocked test) keeps working unchanged. */
+  envelope?: SafeErrorEnvelope,
 ): void {
   if (!toolRouteDiagEnabled) return;
   const target = resolveDiagTarget(context);
@@ -346,6 +363,31 @@ export function recordToolRouteHttpFailure(
     target['upstreamErrorType'] = upstream.errorType ?? 'none';
     target['upstreamErrorParam'] = upstream.errorParam ?? 'none';
     target['upstreamErrorMessageSafe'] = upstream.errorMessageSafe ?? 'none';
+  }
+  if (envelope) {
+    target['errorBodyPresent'] = envelope.bodyPresent;
+    target['errorBodyContentType'] = envelope.contentType;
+    target['errorBodyFormat'] = envelope.format;
+    target['errorBodyByteLength'] = envelope.byteLength;
+    target['errorTopLevelKeys'] = [...envelope.topLevelKeys];
+    target['errorNestedErrorPresent'] = envelope.nestedErrorPresent;
+    target['errorNestedErrorKeys'] = [...envelope.nestedErrorKeys];
+    target['errorMessageCandidatePaths'] = [...envelope.messageCandidatePaths];
+    target['upstreamErrorTextSafe'] = envelope.textSafe ?? 'none';
+    // The narrower, dialect-specific `upstream` extractor is authoritative
+    // when it found evidence. When it found nothing but the broader
+    // envelope extractor recognized a different safe shape (e.g. a bare
+    // {message:"..."} or {error:"..."} body), surface that evidence
+    // instead of leaving the field falsely 'none'.
+    if (!upstream?.errorType && envelope.errorType) {
+      target['upstreamErrorType'] = envelope.errorType;
+    }
+    if (!upstream?.errorParam && envelope.errorParam) {
+      target['upstreamErrorParam'] = envelope.errorParam;
+    }
+    if (!upstream?.errorMessageSafe && envelope.errorMessageSafe) {
+      target['upstreamErrorMessageSafe'] = envelope.errorMessageSafe;
+    }
   }
 }
 
@@ -1325,18 +1367,30 @@ async function* anthropicMessagesStream(
   }
 
   if (!response.ok) {
+    // Read the body exactly once — every downstream consumer (dialect
+    // classification, the narrow Responses-shaped extractor, and the
+    // provider-neutral forensic envelope extractor below) operates on this
+    // same already-read `errorText` string, never a second `response.text()`
+    // call and never `response.clone()`.
     const errorText = await response.text().catch(() => 'Unknown error');
+    const contentType = response.headers.get('content-type') ?? undefined;
     const classified = classifyAnthropicHttpError(response.status, errorText);
     // Anthropic's documented error body (`{"error":{"type":...,"message":...}}`)
     // is a subset of the same shape the Responses-family extractor already
     // parses safely (type/param/message, sanitized, 300-char bound); reuse it
     // rather than duplicating the same sanitization logic for Anthropic.
     // Anthropic errors carry no `param`, so errorParam stays 'none' honestly.
+    // The envelope extractor additionally records the SAFE STRUCTURE of the
+    // body (format/keys/candidate paths) when it doesn't match that shape,
+    // so a body Copilot's Anthropic proxy returns in some other envelope is
+    // still forensically visible instead of silently reporting 'none'.
     recordToolRouteHttpFailure(
       response.status,
       classified.code,
       [],
       extractSafeResponsesErrorDetails(errorText),
+      undefined,
+      extractSafeErrorEnvelope(errorText, contentType),
     );
     yield {
       type: 'error',

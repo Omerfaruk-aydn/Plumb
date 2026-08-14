@@ -33,6 +33,7 @@ import {
 import {
   classifyResponsesHttpError,
   extractSafeResponsesErrorDetails,
+  extractSafeErrorEnvelope,
 } from './errorClassification.js';
 
 type ResponsesInputItem = Record<string, unknown>;
@@ -240,7 +241,11 @@ export async function* streamOpenAIResponses(
     return;
   }
   if (!response.ok) {
+    // Single read: every consumer below (classification, the Responses
+    // extractor, and the forensic envelope extractor) shares this one
+    // already-read `text` string.
     const text = await response.text().catch(() => 'Unknown error');
+    const contentType = response.headers.get('content-type') ?? undefined;
     const classified = classifyResponsesHttpError(response.status, text);
     recordToolRouteHttpFailure(
       response.status,
@@ -250,6 +255,7 @@ export async function* streamOpenAIResponses(
         ...extractSafeResponsesErrorDetails(text),
       },
       options,
+      extractSafeErrorEnvelope(text, contentType),
     );
     yield {
       type: 'error',

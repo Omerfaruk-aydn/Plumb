@@ -12,6 +12,7 @@ import {
   classifyAnthropicSseErrorType,
   classifyResponsesHttpError,
   extractSafeResponsesErrorDetails,
+  extractSafeErrorEnvelope,
   sanitizeErrorBodyMessage,
 } from './errorClassification.js';
 
@@ -379,5 +380,180 @@ describe('extractSafeResponsesErrorDetails on an Anthropic-shaped body (regressi
     const details = extractSafeResponsesErrorDetails(body);
     expect(details.errorMessageSafe).not.toContain('sk-abcdefgh12345678');
     expect(details.errorMessageSafe!.length).toBeLessThanOrEqual(300);
+  });
+});
+
+describe('extractSafeErrorEnvelope (provider-neutral SAFE response-shape forensics)', () => {
+  it('canonical Anthropic error JSON: {error:{type,message}}, no param', () => {
+    const body = JSON.stringify({
+      type: 'error',
+      error: { type: 'invalid_request_error', message: 'bad field' },
+    });
+    const env = extractSafeErrorEnvelope(body, 'application/json');
+    expect(env.bodyPresent).toBe(true);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect([...env.topLevelKeys].sort()).toEqual(['error', 'type']);
+    expect(env.nestedErrorPresent).toBe(true);
+    expect([...env.nestedErrorKeys].sort()).toEqual(['message', 'type']);
+    expect(env.messageCandidatePaths).toEqual(['error.message']);
+    expect(env.errorType).toBe('invalid_request_error');
+    expect(env.errorParam).toBeUndefined();
+    expect(env.errorMessageSafe).toBe('bad field');
+  });
+
+  it('OpenAI-style error JSON: {error:{type,param,code,message}}', () => {
+    const body = JSON.stringify({
+      error: {
+        type: 'invalid_request_error',
+        code: 'model_not_found',
+        param: 'model',
+        message: 'The requested model is not supported.',
+      },
+    });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect(env.errorType).toBe('invalid_request_error');
+    expect(env.errorCode).toBe('model_not_found');
+    expect(env.errorParam).toBe('model');
+    expect(env.errorMessageSafe).toBe('The requested model is not supported.');
+    expect(env.messageCandidatePaths).toEqual(['error.message']);
+  });
+
+  it('GitHub-style message JSON: {message:"..."}', () => {
+    const body = JSON.stringify({ message: 'Bad credentials' });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect(env.topLevelKeys).toEqual(['message']);
+    expect(env.nestedErrorPresent).toBe(false);
+    expect(env.messageCandidatePaths).toEqual(['message']);
+    expect(env.errorMessageSafe).toBe('Bad credentials');
+    expect(env.errorType).toBeUndefined();
+  });
+
+  it('error-as-string JSON: {error:"..."}', () => {
+    const body = JSON.stringify({ error: 'unauthorized' });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect(env.nestedErrorPresent).toBe(false);
+    expect(env.messageCandidatePaths).toEqual(['error']);
+    expect(env.errorMessageSafe).toBe('unauthorized');
+  });
+
+  it('{detail:"..."} shape', () => {
+    const body = JSON.stringify({ detail: 'Not found' });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.messageCandidatePaths).toEqual(['detail']);
+    expect(env.errorMessageSafe).toBe('Not found');
+  });
+
+  it('errors-array JSON: {errors:[{message:"..."}]}', () => {
+    const body = JSON.stringify({ errors: [{ message: 'field x invalid' }] });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect(env.messageCandidatePaths).toEqual(['errors[0].message']);
+    expect(env.errorMessageSafe).toBe('field x invalid');
+  });
+
+  it('a bare top-level JSON array reports [0].message when present', () => {
+    const body = JSON.stringify([{ message: 'top-level array error' }]);
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_ARRAY');
+    expect(env.messageCandidatePaths).toEqual(['[0].message']);
+    expect(env.errorMessageSafe).toBe('top-level array error');
+  });
+
+  it('plain-text error body', () => {
+    const env = extractSafeErrorEnvelope(
+      'upstream refused the connection',
+      'text/plain',
+    );
+    expect(env.format).toBe('TEXT');
+    expect(env.bodyPresent).toBe(true);
+    expect(env.topLevelKeys).toEqual([]);
+    expect(env.textSafe).toBe('upstream refused the connection');
+    expect(env.errorMessageSafe).toBeUndefined();
+  });
+
+  it('HTML error body strips markup and never leaks it in textSafe', () => {
+    const env = extractSafeErrorEnvelope(
+      '<html><body><h1>502 Bad Gateway</h1></body></html>',
+      'text/html',
+    );
+    expect(env.format).toBe('HTML');
+    expect(env.textSafe).not.toContain('<');
+    expect(env.textSafe).toContain('502 Bad Gateway');
+  });
+
+  it('empty body', () => {
+    const env = extractSafeErrorEnvelope('', undefined);
+    expect(env.format).toBe('EMPTY');
+    expect(env.bodyPresent).toBe(false);
+    expect(env.byteLength).toBe(0);
+    expect(env.textSafe).toBeUndefined();
+  });
+
+  it('malformed JSON falls back to TEXT, never throws', () => {
+    const env = extractSafeErrorEnvelope('{ "error": "unterminated');
+    expect(env.format).toBe('TEXT');
+    expect(env.errorMessageSafe).toBeUndefined();
+  });
+
+  it('a recognized-but-unmapped JSON object still reports its shape (top-level keys) without inventing a message', () => {
+    const body = JSON.stringify({ status: 503, retryAfterSeconds: 30 });
+    const env = extractSafeErrorEnvelope(body);
+    expect(env.format).toBe('JSON_OBJECT');
+    expect([...env.topLevelKeys].sort()).toEqual([
+      'retryAfterSeconds',
+      'status',
+    ]);
+    expect(env.messageCandidatePaths).toEqual([]);
+    expect(env.errorMessageSafe).toBeUndefined();
+  });
+
+  it('a bare JSON primitive (not an object/array) reports UNKNOWN, never invents structure', () => {
+    const env = extractSafeErrorEnvelope('"just a string"');
+    expect(env.format).toBe('UNKNOWN');
+    expect(env.topLevelKeys).toEqual([]);
+  });
+
+  it('secret redaction: bearer tokens and API keys never appear in errorMessageSafe or textSafe', () => {
+    const jsonBody = JSON.stringify({
+      error: {
+        type: 'authentication_error',
+        message: 'Bearer sk-abcdefgh12345678 rejected; token=ya29.abc123XYZ',
+      },
+    });
+    const envJson = extractSafeErrorEnvelope(jsonBody);
+    expect(envJson.errorMessageSafe).not.toContain('sk-abcdefgh12345678');
+    expect(envJson.errorMessageSafe).not.toContain('ya29.abc123XYZ');
+
+    const textBody = 'auth failed: Bearer sk-abcdefgh12345678';
+    const envText = extractSafeErrorEnvelope(textBody, 'text/plain');
+    expect(envText.textSafe).not.toContain('sk-abcdefgh12345678');
+  });
+
+  it('300-char truncation applies to both errorMessageSafe and textSafe', () => {
+    const longJson = JSON.stringify({ message: 'x'.repeat(1000) });
+    const envJson = extractSafeErrorEnvelope(longJson);
+    expect(envJson.errorMessageSafe!.length).toBeLessThanOrEqual(300);
+
+    const longText = 'y'.repeat(1000);
+    const envText = extractSafeErrorEnvelope(longText, 'text/plain');
+    expect(envText.textSafe!.length).toBeLessThanOrEqual(300);
+  });
+
+  it('byte length reflects the actual body, and content-type defaults to "none" when absent', () => {
+    const env = extractSafeErrorEnvelope('{"message":"hi"}');
+    expect(env.contentType).toBe('none');
+    expect(env.byteLength).toBe(
+      new TextEncoder().encode('{"message":"hi"}').length,
+    );
+  });
+
+  it('caps reported key counts to a reasonable maximum rather than dumping an unbounded list', () => {
+    const manyKeys: Record<string, string> = {};
+    for (let i = 0; i < 50; i++) manyKeys[`k${i}`] = 'v';
+    const env = extractSafeErrorEnvelope(JSON.stringify(manyKeys));
+    expect(env.topLevelKeys.length).toBeLessThanOrEqual(20);
   });
 });

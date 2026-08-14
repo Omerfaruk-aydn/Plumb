@@ -171,6 +171,236 @@ export function extractSafeResponsesErrorDetails(
   return result;
 }
 
+/** Structural shape of an upstream error response body — never the values,
+ * only the shape. `UNKNOWN` is returned rather than invented whenever the
+ * body doesn't match a recognized envelope. */
+export type SafeErrorBodyFormat =
+  | 'JSON_OBJECT'
+  | 'JSON_ARRAY'
+  | 'TEXT'
+  | 'HTML'
+  | 'EMPTY'
+  | 'UNKNOWN';
+
+/** Safe, provider-neutral structural facts about an upstream error body —
+ * key names and field paths only, never values, never the raw body. */
+export interface SafeErrorEnvelope {
+  readonly bodyPresent: boolean;
+  readonly contentType: string;
+  readonly format: SafeErrorBodyFormat;
+  readonly byteLength: number;
+  readonly topLevelKeys: readonly string[];
+  readonly nestedErrorPresent: boolean;
+  readonly nestedErrorKeys: readonly string[];
+  /** Field PATHS only (e.g. "error.message", "errors[0].message") — never
+   * the message text itself. */
+  readonly messageCandidatePaths: readonly string[];
+  readonly errorType?: string;
+  readonly errorCode?: string;
+  readonly errorParam?: string;
+  readonly errorMessageSafe?: string;
+  /** Sanitized, truncated fallback text — only set for TEXT/HTML bodies
+   * (or bodies with no recognized message field), never for a body that
+   * already yielded a structured `errorMessageSafe`. */
+  readonly textSafe?: string;
+}
+
+const MAX_ENVELOPE_KEYS = 20;
+
+function stripHtmlTags(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function looksLikeHtml(text: string): boolean {
+  const head = text.trim().slice(0, 200);
+  return (
+    /^<(!doctype\s+html|html)/i.test(head) || /<\/?[a-z][^>]*>/i.test(head)
+  );
+}
+
+function safeFallbackText(
+  bodyText: string,
+  format: SafeErrorBodyFormat,
+): string | undefined {
+  const source = format === 'HTML' ? stripHtmlTags(bodyText) : bodyText.trim();
+  if (!source) return undefined;
+  return redactSensitiveText(source).slice(0, MAX_SAFE_ERROR_DETAIL);
+}
+
+function safeMessageFrom(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  return redactSensitiveText(value).slice(0, MAX_SAFE_ERROR_DETAIL);
+}
+
+/**
+ * Provider-neutral SAFE error-envelope extractor. Recognizes ONLY
+ * evidence-backed shapes:
+ *   { error: { type, code, param, message } }  (Anthropic/OpenAI-family)
+ *   { error: "..." }
+ *   { message: "..." }
+ *   { detail: "..." }
+ *   { errors: [{ message: "..." }, ...] }
+ * plus plain-text and HTML bodies. An unrecognized JSON object still
+ * reports its top-level key NAMES (shape only) so a human can see what
+ * envelope it actually is, but never invents `errorType`/`errorParam`/
+ * `errorMessageSafe` for a shape it doesn't recognize — those stay
+ * `undefined`, never guessed. This is deliberately separate from (and does
+ * not replace) `extractSafeResponsesErrorDetails`, which stays narrowly
+ * scoped to the OpenAI-Responses-family shape `classifyResponsesHttpError`
+ * depends on.
+ */
+export function extractSafeErrorEnvelope(
+  bodyText: string,
+  contentType?: string,
+): SafeErrorEnvelope {
+  const source = bodyText ?? '';
+  const byteLength = new TextEncoder().encode(source).length;
+  const trimmed = source.trim();
+  const bodyPresent = trimmed.length > 0;
+  const base = { bodyPresent, contentType: contentType ?? 'none', byteLength };
+
+  if (!bodyPresent) {
+    return {
+      ...base,
+      format: 'EMPTY',
+      topLevelKeys: [],
+      nestedErrorPresent: false,
+      nestedErrorKeys: [],
+      messageCandidatePaths: [],
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    const format: SafeErrorBodyFormat = looksLikeHtml(trimmed)
+      ? 'HTML'
+      : 'TEXT';
+    return {
+      ...base,
+      format,
+      topLevelKeys: [],
+      nestedErrorPresent: false,
+      nestedErrorKeys: [],
+      messageCandidatePaths: [],
+      textSafe: safeFallbackText(trimmed, format),
+    };
+  }
+
+  if (Array.isArray(parsed)) {
+    const first = parsed[0] as Record<string, unknown> | undefined;
+    const messageCandidatePaths: string[] = [];
+    let errorMessageSafe: string | undefined;
+    if (first && typeof first === 'object') {
+      const msg = safeMessageFrom(first['message']);
+      if (msg) {
+        messageCandidatePaths.push('[0].message');
+        errorMessageSafe = msg;
+      }
+    }
+    return {
+      ...base,
+      format: 'JSON_ARRAY',
+      topLevelKeys: [],
+      nestedErrorPresent: false,
+      nestedErrorKeys: [],
+      messageCandidatePaths,
+      errorMessageSafe,
+    };
+  }
+
+  if (parsed === null || typeof parsed !== 'object') {
+    // A bare JSON primitive (string/number/bool) — not a recognized
+    // error envelope. Report the shape honestly, invent nothing.
+    return {
+      ...base,
+      format: 'UNKNOWN',
+      topLevelKeys: [],
+      nestedErrorPresent: false,
+      nestedErrorKeys: [],
+      messageCandidatePaths: [],
+    };
+  }
+
+  const rec = parsed as Record<string, unknown>;
+  const topLevelKeys = Object.keys(rec).slice(0, MAX_ENVELOPE_KEYS);
+  const nested = rec['error'];
+  const nestedRec: Record<string, unknown> | undefined =
+    nested && typeof nested === 'object' && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : undefined;
+  const nestedErrorPresent = nestedRec !== undefined;
+  const nestedErrorKeys = nestedRec
+    ? Object.keys(nestedRec).slice(0, MAX_ENVELOPE_KEYS)
+    : [];
+
+  const messageCandidatePaths: string[] = [];
+  let errorType: string | undefined;
+  let errorCode: string | undefined;
+  let errorParam: string | undefined;
+  let errorMessageSafe: string | undefined;
+
+  if (nestedRec) {
+    errorType = safeMessageFrom(nestedRec['type']);
+    errorCode = safeMessageFrom(nestedRec['code']);
+    if (
+      typeof nestedRec['param'] === 'string' &&
+      nestedRec['param'].length < 250
+    ) {
+      errorParam = safeMessageFrom(nestedRec['param']);
+    }
+    const nestedMessage = safeMessageFrom(nestedRec['message']);
+    if (nestedMessage) {
+      messageCandidatePaths.push('error.message');
+      errorMessageSafe = nestedMessage;
+    }
+  } else {
+    const errorAsString = safeMessageFrom(rec['error']);
+    if (errorAsString) {
+      messageCandidatePaths.push('error');
+      errorMessageSafe = errorAsString;
+    }
+  }
+
+  const topMessage = safeMessageFrom(rec['message']);
+  if (topMessage) {
+    messageCandidatePaths.push('message');
+    errorMessageSafe = errorMessageSafe ?? topMessage;
+  }
+  const detail = safeMessageFrom(rec['detail']);
+  if (detail) {
+    messageCandidatePaths.push('detail');
+    errorMessageSafe = errorMessageSafe ?? detail;
+  }
+  if (Array.isArray(rec['errors']) && rec['errors'].length > 0) {
+    const first = (rec['errors'] as unknown[])[0] as
+      | Record<string, unknown>
+      | undefined;
+    const arrMessage = first ? safeMessageFrom(first['message']) : undefined;
+    if (arrMessage) {
+      messageCandidatePaths.push('errors[0].message');
+      errorMessageSafe = errorMessageSafe ?? arrMessage;
+    }
+  }
+
+  return {
+    ...base,
+    format: 'JSON_OBJECT',
+    topLevelKeys,
+    nestedErrorPresent,
+    nestedErrorKeys,
+    messageCandidatePaths,
+    errorType,
+    errorCode,
+    errorParam,
+    errorMessageSafe,
+  };
+}
+
 /**
  * Classify an OpenAI-Responses-family HTTP error, refined by the same safe
  * structured evidence `extractSafeResponsesErrorDetails` already extracts
