@@ -356,11 +356,11 @@ describe('PlumbModelRegistry', () => {
     });
 
     expect(selection.model?.id).toBe('model-responses');
-    expect(selection.routeAuthorityMatch).toBe(true);
+    expect(selection.routeAuthority).toBe('MATCH');
     expect(selection.routeMismatchReason).toBe('NONE');
   });
 
-  it('22. User explicit model with route mismatch reports USER_EXPLICIT with routeAuthorityMatch: false', () => {
+  it('22. User explicit model with route mismatch reports USER_EXPLICIT with routeAuthority: MISMATCH', () => {
     registry.addDiscoveredModels([
       makeModel('model-completions', 'test-route-prov', {
         api: 'openai-completions',
@@ -376,7 +376,66 @@ describe('PlumbModelRegistry', () => {
     expect(selection.model?.id).toBe('model-completions');
     expect(selection.source).toBe('USER_EXPLICIT');
     expect(selection.providerAuthorityMatch).toBe(true);
-    expect(selection.routeAuthorityMatch).toBe(false);
+    expect(selection.routeAuthority).toBe('MISMATCH');
     expect(selection.routeMismatchReason).toBe('DIALECT_MISMATCH');
+  });
+
+  it('23. Provider membership alone (no target constraints) never fabricates MATCH — reports UNKNOWN', () => {
+    registry.addDiscoveredModels([
+      makeModel('gpt-5.5', 'test-route-prov', { api: 'openai-responses' }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+    });
+
+    expect(selection.model?.id).toBe('gpt-5.5');
+    expect(selection.routeAuthority).toBe('UNKNOWN');
+    expect(selection.routeAuthoritySource).toBe('NO_TARGET_CONSTRAINTS');
+    expect(selection.fallbackReason).toBe('PROBE_ROUTE_UNVERIFIED');
+  });
+
+  it('24. Missing route metadata (no target given) is UNKNOWN even for an explicit --model', () => {
+    registry.addDiscoveredModels([
+      makeModel('gpt-5.5', 'test-route-prov', { api: 'openai-responses' }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+      requestedModel: 'gpt-5.5',
+    });
+
+    expect(selection.source).toBe('USER_EXPLICIT');
+    expect(selection.routeAuthority).toBe('UNKNOWN');
+  });
+
+  it('25. Automatic selection prefers a MATCH candidate over an UNKNOWN one', () => {
+    registry.addDiscoveredModels([
+      makeModel('model-a', 'test-route-prov', { api: 'openai-completions' }),
+      makeModel('model-b', 'test-route-prov', { api: 'openai-responses' }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+      targetDialect: 'openai-responses',
+    });
+
+    expect(selection.model?.id).toBe('model-b');
+    expect(selection.routeAuthority).toBe('MATCH');
+  });
+
+  it('26. Automatic selection never selects a proven MISMATCH candidate', () => {
+    registry.addDiscoveredModels([
+      makeModel('model-a', 'test-route-prov', { api: 'openai-completions' }),
+    ]);
+
+    const selection = registry.resolveModelSelection({
+      providerId: 'test-route-prov',
+      targetDialect: 'anthropic-messages',
+    });
+
+    expect(selection.model).toBeUndefined();
+    expect(selection.routeAuthority).toBe('MISMATCH');
+    expect(selection.fallbackReason).toBe('ROUTE_MODEL_UNRESOLVED');
   });
 });

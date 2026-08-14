@@ -277,3 +277,95 @@ describe('resolveProbeAuthorityDecision (discovery-state-driven authority)', () 
     expect(decision.probeAllowed).toBe(true);
   });
 });
+
+describe('honest PASS invariant (structural proof, not absence of error)', () => {
+  // Regression E: structuredToolProtocol=false + safeError none must never
+  // be classified PASS merely because no transport error occurred.
+  it('E. code=OK with structuredToolCalls=false is INCONCLUSIVE, never PASS', () => {
+    const r = classifyBatchResult({
+      provider: 'opencode-go',
+      code: 'OK',
+      structuredToolCalls: false,
+    });
+    expect(r.className).toBe('INCONCLUSIVE');
+  });
+
+  // Regression F: auto/no-call downgrade with no error is inconclusive, not
+  // a failure and not a fabricated pass.
+  it('F. zero normalized calls with a full-proof shape is INCONCLUSIVE', () => {
+    const r = classifyBatchResult({
+      provider: 'opencode-go',
+      code: 'OK',
+      normalizedToolCalls: 0,
+      schedulerExecutions: 0,
+      toolResults: 0,
+      resultReinjected: false,
+      continuationCompleted: false,
+    });
+    expect(r.className).toBe('INCONCLUSIVE');
+  });
+
+  // Regression H: the full structured-tool chain proven end-to-end is the
+  // only shape that earns PASS.
+  it('H. a fully proven structured-tool chain is PASS', () => {
+    const r = classifyBatchResult({
+      provider: 'opencode-go',
+      code: 'OK',
+      structuredToolCalls: true,
+      normalizedToolCalls: 1,
+      schedulerExecutions: 1,
+      toolResults: 1,
+      resultReinjected: true,
+      continuationCompleted: true,
+    });
+    expect(r.className).toBe('PASS');
+  });
+
+  it('a partial chain (calls observed but reinjection/continuation incomplete) is INCONCLUSIVE, not PASS', () => {
+    const r = classifyBatchResult({
+      provider: 'opencode-go',
+      code: 'OK',
+      structuredToolCalls: true,
+      normalizedToolCalls: 1,
+      schedulerExecutions: 1,
+      toolResults: 1,
+      resultReinjected: true,
+      continuationCompleted: false,
+    });
+    expect(r.className).toBe('INCONCLUSIVE');
+  });
+
+  it('legacy callers supplying only `code` (no proof at all) keep PASS for a PASS-mapped code', () => {
+    const r = classifyBatchResult({ provider: 'mix', code: 'OK' });
+    expect(r.className).toBe('PASS');
+  });
+});
+
+describe('batch counters mutually exclusive sum (regression I)', () => {
+  it('I. INCONCLUSIVE participates in the sum invariant alongside every other class', () => {
+    const results: ClassifiedBatchResult[] = [
+      classifyBatchResult({
+        provider: 'a',
+        code: 'OK',
+        structuredToolCalls: false,
+      }),
+      classifyBatchResult({ provider: 'b', code: 'AUTH_REQUIRED' }),
+      classifyBatchResult({
+        provider: 'c',
+        code: 'OK',
+        structuredToolCalls: true,
+        normalizedToolCalls: 1,
+        schedulerExecutions: 1,
+        toolResults: 1,
+        resultReinjected: true,
+        continuationCompleted: true,
+      }),
+    ];
+    const breakdown = computeBatchBreakdown(results, results.length);
+    expect(breakdown.inconclusive).toBe(1);
+    expect(breakdown.authBlocked).toBe(1);
+    expect(breakdown.pass).toBe(1);
+    expect(breakdown.sum).toBe(results.length);
+    expect(breakdown.sumMatchesConfigured).toBe(true);
+  });
+});

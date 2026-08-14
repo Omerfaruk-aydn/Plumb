@@ -91,12 +91,45 @@ export function toolChoiceSentSource(
   }
 }
 
+/**
+ * Requested vs. effective force. A route/dialect downgrade (e.g. an
+ * unverified route falling back to `auto`) must never be reported as if the
+ * originally requested forced/named selector actually went out on the wire.
+ */
+export function computeProbeForce(
+  requestedChoice: PlumbToolChoice | undefined,
+  effective: {
+    readonly value?: PlumbToolChoice;
+    readonly sent: boolean;
+    readonly downgraded: boolean;
+  },
+): { forceRequested: boolean; forceEffective: boolean } {
+  const forceRequested =
+    requestedChoice?.mode === 'required' || requestedChoice?.mode === 'named';
+  const forceEffective =
+    !effective.downgraded &&
+    (effective.value?.mode === 'required' || effective.value?.mode === 'named');
+  return { forceRequested, forceEffective };
+}
+
 /** Structured probe outcome consumed by the honest batch classification. */
 export interface ToolRouteProbeOutcome {
   readonly provider: string;
   readonly exitCode: number;
   readonly code: string;
   readonly structuredToolCalls: boolean;
+  /** Full structural protocol proof — optional so legacy/test callers that
+   * only supply the boolean above keep working. When present, batch
+   * classification requires the whole chain before reporting PASS. */
+  readonly normalizedToolCalls?: number;
+  readonly schedulerExecutions?: number;
+  readonly toolResults?: number;
+  readonly resultReinjected?: boolean;
+  readonly continuationCompleted?: boolean;
+  /** What tool-choice selector the probe intended to send vs. what was
+   * actually sent after route/dialect downgrade. */
+  readonly forceRequested?: boolean;
+  readonly forceEffective?: boolean;
 }
 
 interface ResolvedToolRoute {
@@ -105,25 +138,48 @@ interface ResolvedToolRoute {
   selection: ResolvedModelSelection;
 }
 
+/** Honest, non-generic failure to resolve a route — never flattened to a
+ * single opaque code. Carries the exact canonical classification. */
+interface UnresolvedToolRoute {
+  failureCode: string;
+}
+
+/**
+ * Canonical route resolution pipeline. This is the ONE place that runs
+ * discovery and applies `resolveProbeAuthorityDecision` before ever calling
+ * `resolveModelSelection` — the single-provider probe (`--test-tool-route`)
+ * and the batch probe (`--test-tool-routes`) both funnel through it so they
+ * can never diverge on model authority or classification.
+ */
 async function resolveToolRoute(
   providerId: string,
   requestedModel: string | undefined,
   refreshModels: boolean,
-): Promise<ResolvedToolRoute | undefined> {
+): Promise<ResolvedToolRoute | UnresolvedToolRoute | undefined> {
   if (!getPlumbProvider(providerId)) return undefined;
 
   const providerRegistry = getPlumbProviderRegistry();
   await providerRegistry.initialize();
+  const local = isLocalProvider(providerId);
   const credential = providerRegistry.getProviderState(providerId)?.credentials;
-  const apiKey = refreshModels
-    ? ((await providerRegistry.getApiKey(providerId)) ??
-      (credential?.type === 'oauth' ? credential.access : ''))
-    : '';
+  let apiKey = '';
+  if (refreshModels) {
+    try {
+      apiKey =
+        (await providerRegistry.getApiKey(providerId)) ??
+        (credential?.type === 'oauth' ? credential.access : '');
+    } catch {
+      apiKey = credential?.type === 'oauth' ? credential.access : '';
+    }
+  }
   const modelRegistry = getPlumbModelRegistry();
 
-  if (refreshModels && modelRegistry.hasDiscoveryCapability(providerId)) {
-    const stats = modelRegistry.getModelAuthorityStats(providerId);
-    if (stats.discoveryState === 'NOT_ATTEMPTED') {
+  // Same canonical sequence the batch probe runs: attempt authoritative
+  // discovery (when capable) BEFORE reading any authority state, then gate
+  // on resolveProbeAuthorityDecision. Explicit --model skips this — an
+  // explicit request is always allowed to attempt the probe.
+  if (refreshModels && !requestedModel) {
+    if (modelRegistry.hasDiscoveryCapability(providerId)) {
       try {
         await modelRegistry.attemptAuthoritativeDiscovery(
           providerId,
@@ -132,6 +188,17 @@ async function resolveToolRoute(
       } catch {
         // Discovery failure leaves stats in an honest non-empty or empty state.
       }
+    }
+    const stats = modelRegistry.getModelAuthorityStats(providerId);
+    const decision = resolveProbeAuthorityDecision({
+      discoveryState: stats.discoveryState,
+      explicitModelRequested: false,
+      isLocalProvider: local,
+      bundledFallbackCount: stats.bundledFallbackCount,
+      liveDiscoveryCount: stats.liveDiscoveryCount,
+    });
+    if (!decision.probeAllowed) {
+      return { failureCode: decision.classificationCode };
     }
   }
 
@@ -142,7 +209,14 @@ async function resolveToolRoute(
     probeTools: true,
   });
 
-  if (!selection.model) return undefined;
+  if (!selection.model) {
+    return {
+      failureCode:
+        selection.fallbackReason === 'discovery_empty_live_model_unresolved'
+          ? 'LIVE_MODEL_UNRESOLVED'
+          : 'ROUTE_NOT_FOUND',
+    };
+  }
   return { model: selection.model, apiKey, selection };
 }
 
@@ -168,7 +242,7 @@ export async function diagnoseToolRoute(
     return 1;
   }
 
-  let resolved: ResolvedToolRoute | undefined;
+  let resolved: ResolvedToolRoute | UnresolvedToolRoute | undefined;
   try {
     // Diagnostics must not turn into a discovery request. They inspect only
     // the already configured/catalogued route.
@@ -182,6 +256,12 @@ export async function diagnoseToolRoute(
     line('provider', providerId);
     if (requestedModel) line('model', requestedModel);
     line('result', 'ROUTE_NOT_FOUND');
+    return 1;
+  }
+  if ('failureCode' in resolved) {
+    line('provider', providerId);
+    if (requestedModel) line('model', requestedModel);
+    line('result', resolved.failureCode);
     return 1;
   }
 
@@ -207,9 +287,10 @@ export async function diagnoseToolRoute(
     'model.selection.liveAuthorityMatch',
     resolved.selection.liveAuthorityMatch,
   );
+  line('model.selection.routeAuthority', resolved.selection.routeAuthority);
   line(
-    'model.selection.routeAuthorityMatch',
-    resolved.selection.routeAuthorityMatch,
+    'model.selection.routeAuthoritySource',
+    resolved.selection.routeAuthoritySource,
   );
   line(
     'model.selection.routeMismatchReason',
@@ -287,7 +368,7 @@ export async function runToolRouteProbeResult(
   providerId: string,
   requestedModel?: string,
 ): Promise<ToolRouteProbeOutcome> {
-  let resolved: ResolvedToolRoute | undefined;
+  let resolved: ResolvedToolRoute | UnresolvedToolRoute | undefined;
   try {
     resolved = await resolveToolRoute(providerId, requestedModel, true);
   } catch {
@@ -299,6 +380,13 @@ export async function runToolRouteProbeResult(
       exitCode: 1,
       code: 'ROUTE_RESOLUTION_FAILED',
       structuredToolCalls: false,
+      normalizedToolCalls: 0,
+      schedulerExecutions: 0,
+      toolResults: 0,
+      resultReinjected: false,
+      continuationCompleted: false,
+      forceRequested: false,
+      forceEffective: false,
     };
   }
   if (!resolved) {
@@ -310,6 +398,31 @@ export async function runToolRouteProbeResult(
       exitCode: 1,
       code: 'ROUTE_NOT_FOUND',
       structuredToolCalls: false,
+      normalizedToolCalls: 0,
+      schedulerExecutions: 0,
+      toolResults: 0,
+      resultReinjected: false,
+      continuationCompleted: false,
+      forceRequested: false,
+      forceEffective: false,
+    };
+  }
+  if ('failureCode' in resolved) {
+    line('diagnostic.mode', 'FORCED_STRUCTURED_TOOL_PROBE');
+    line('provider', providerId);
+    line('result', resolved.failureCode);
+    return {
+      provider: providerId,
+      exitCode: 1,
+      code: resolved.failureCode,
+      structuredToolCalls: false,
+      normalizedToolCalls: 0,
+      schedulerExecutions: 0,
+      toolResults: 0,
+      resultReinjected: false,
+      continuationCompleted: false,
+      forceRequested: false,
+      forceEffective: false,
     };
   }
   const { model, apiKey } = resolved;
@@ -500,9 +613,10 @@ export async function runToolRouteProbeResult(
     'model.selection.liveAuthorityMatch',
     resolved.selection.liveAuthorityMatch,
   );
+  line('model.selection.routeAuthority', resolved.selection.routeAuthority);
   line(
-    'model.selection.routeAuthorityMatch',
-    resolved.selection.routeAuthorityMatch,
+    'model.selection.routeAuthoritySource',
+    resolved.selection.routeAuthoritySource,
   );
   line(
     'model.selection.routeMismatchReason',
@@ -532,10 +646,12 @@ export async function runToolRouteProbeResult(
     'toolChoice.sent.source',
     toolChoiceSentSource(requestedChoice, effective, route.routeVerified),
   );
-  line(
-    'probe.forced',
-    requestedChoice?.mode === 'required' || requestedChoice?.mode === 'named',
+  const { forceRequested, forceEffective } = computeProbeForce(
+    requestedChoice,
+    effective,
   );
+  line('probe.forceRequested', forceRequested);
+  line('probe.forceEffective', forceEffective);
   line('request.tools.count', firstResponseDiag?.['requestToolsCount'] ?? 0);
   // Safe wire-proof structural facts recorded by the transport immediately
   // before network. Counts/paths/shapes only — no prompt, credential, or
@@ -661,6 +777,13 @@ export async function runToolRouteProbeResult(
     exitCode: succeeded ? 0 : 1,
     code: safeError !== 'none' ? safeError : 'OK',
     structuredToolCalls: calls.length > 0,
+    normalizedToolCalls: calls.length,
+    schedulerExecutions: completed.length,
+    toolResults: completed.length,
+    resultReinjected,
+    continuationCompleted,
+    forceRequested,
+    forceEffective,
   };
 }
 
@@ -810,6 +933,7 @@ export async function runConfiguredToolRouteProbes(
   line('batch.routeUnresolved.count', breakdown.routeUnresolved);
   line('batch.protocolUnsupported.count', breakdown.protocolUnsupported);
   line('batch.liveModelUnresolved.count', breakdown.liveModelUnresolved);
+  line('batch.inconclusive.count', breakdown.inconclusive);
   line('batch.unknown.count', breakdown.unknown);
   line('BATCH_SUM', breakdown.sum);
   line('BATCH_SUM_MATCHES_CONFIGURED', breakdown.sumMatchesConfigured);
@@ -825,7 +949,7 @@ export async function runConfiguredToolRouteProbes(
         ? 'CONFIGURED_ROUTE_PROBES_PASS'
         : conclusiveFailures > 0
           ? 'CONFIGURED_ROUTE_REQUEST_FAILURES'
-          : breakdown.pass > 0
+          : breakdown.pass > 0 || breakdown.inconclusive > 0
             ? 'CONFIGURED_ROUTE_PROBES_INCONCLUSIVE'
             : 'CONFIGURED_ROUTE_ENVIRONMENT_BLOCKED',
   );
@@ -847,6 +971,11 @@ async function runClassifiedProbe(
       provider: providerId,
       code: outcome.code,
       structuredToolCalls: outcome.structuredToolCalls,
+      normalizedToolCalls: outcome.normalizedToolCalls,
+      schedulerExecutions: outcome.schedulerExecutions,
+      toolResults: outcome.toolResults,
+      resultReinjected: outcome.resultReinjected,
+      continuationCompleted: outcome.continuationCompleted,
     });
     line('batch.provider.result', outcome.code);
     line('batch.provider.class', classified.className);

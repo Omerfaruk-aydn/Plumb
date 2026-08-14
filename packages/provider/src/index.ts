@@ -183,6 +183,8 @@ export {
   type ResolveProbeModelInput,
   type ResolvedModelSelection,
   type RouteMismatchCategory,
+  type RouteAuthorityState,
+  type RouteAuthoritySource,
 } from './registry/model-registry.js';
 export type { ModelDiscoveryState } from './toolRouteContract.js';
 

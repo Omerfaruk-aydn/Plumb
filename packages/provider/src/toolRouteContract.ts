@@ -23,6 +23,7 @@ export type BatchResultClass =
   | 'ROUTE_UNRESOLVED'
   | 'PROTOCOL_UNSUPPORTED'
   | 'LIVE_MODEL_UNRESOLVED'
+  | 'INCONCLUSIVE'
   | 'UNKNOWN';
 
 export const BATCH_RESULT_CLASSES: readonly BatchResultClass[] = [
@@ -34,6 +35,7 @@ export const BATCH_RESULT_CLASSES: readonly BatchResultClass[] = [
   'ROUTE_UNRESOLVED',
   'PROTOCOL_UNSUPPORTED',
   'LIVE_MODEL_UNRESOLVED',
+  'INCONCLUSIVE',
   'UNKNOWN',
 ];
 
@@ -121,6 +123,20 @@ export interface BatchProbeResult {
   readonly provider: string;
   readonly code: string;
   readonly structuredToolCalls: boolean;
+  /**
+   * Optional structural protocol proof. When absent, classification falls
+   * back to the legacy `structuredToolCalls` boolean (or PASS-by-default if
+   * that too is absent, for callers that only ever supply `code`). When
+   * present, a code that maps to PASS is only kept as PASS if the full
+   * structured-tool chain is actually proven; otherwise it is downgraded to
+   * INCONCLUSIVE — a probe can never be PASS merely because no transport
+   * error occurred.
+   */
+  readonly normalizedToolCalls?: number;
+  readonly schedulerExecutions?: number;
+  readonly toolResults?: number;
+  readonly resultReinjected?: boolean;
+  readonly continuationCompleted?: boolean;
 }
 
 export interface ClassifiedBatchResult {
@@ -129,16 +145,53 @@ export interface ClassifiedBatchResult {
   readonly className: BatchResultClass;
   readonly isToolRuntimeFailure: boolean;
 }
+
+type PassProofFields = Partial<
+  Pick<
+    BatchProbeResult,
+    | 'structuredToolCalls'
+    | 'normalizedToolCalls'
+    | 'schedulerExecutions'
+    | 'toolResults'
+    | 'resultReinjected'
+    | 'continuationCompleted'
+  >
+>;
+
+/**
+ * A code that classifies to PASS is only honestly PASS when the full
+ * structured-tool chain was proven. Absence of an error is not proof: a
+ * probe with `structuredToolCalls: false` (or a proof object with zero
+ * normalized calls / incomplete scheduling / reinjection / continuation)
+ * downgrades to INCONCLUSIVE.
+ */
+function refinePassClassification(result: PassProofFields): BatchResultClass {
+  if (result.normalizedToolCalls === undefined) {
+    // Legacy shape: only the boolean is known. Explicit false is the only
+    // signal available that the chain never happened.
+    return result.structuredToolCalls === false ? 'INCONCLUSIVE' : 'PASS';
+  }
+  const fullChain =
+    result.normalizedToolCalls >= 1 &&
+    (result.schedulerExecutions ?? 0) >= 1 &&
+    (result.toolResults ?? 0) >= 1 &&
+    result.resultReinjected === true &&
+    result.continuationCompleted === true;
+  return fullChain ? 'PASS' : 'INCONCLUSIVE';
+}
+
 export function classifyBatchResult(
   result: Pick<BatchProbeResult, 'code'> &
-    Partial<Pick<BatchProbeResult, 'structuredToolCalls'>> & {
+    PassProofFields & {
       provider?: string;
     },
 ): ClassifiedBatchResult {
   const provider = result.provider ?? '';
-  const className = classifyCode(result.code, {
+  const baseClass = classifyCode(result.code, {
     localProvider: isLocalProvider(provider),
   });
+  const className =
+    baseClass === 'PASS' ? refinePassClassification(result) : baseClass;
   return {
     provider,
     code: result.code,
@@ -160,6 +213,7 @@ export interface BatchBreakdownCounters {
   routeUnresolved: number;
   protocolUnsupported: number;
   liveModelUnresolved: number;
+  inconclusive: number;
   unknown: number;
   configuredTotal: number;
 }
@@ -182,6 +236,7 @@ export const ZERO_BATCH_COUNTERS: Omit<
   routeUnresolved: 0,
   protocolUnsupported: 0,
   liveModelUnresolved: 0,
+  inconclusive: 0,
   unknown: 0,
 };
 
@@ -216,6 +271,9 @@ export function computeBatchBreakdown(
       case 'LIVE_MODEL_UNRESOLVED':
         counters.liveModelUnresolved++;
         break;
+      case 'INCONCLUSIVE':
+        counters.inconclusive++;
+        break;
       case 'UNKNOWN':
         counters.unknown++;
         break;
@@ -230,6 +288,7 @@ export function computeBatchBreakdown(
     counters.routeUnresolved +
     counters.protocolUnsupported +
     counters.liveModelUnresolved +
+    counters.inconclusive +
     counters.unknown;
   return {
     ...counters,

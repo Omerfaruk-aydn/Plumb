@@ -121,6 +121,26 @@ export type RouteMismatchCategory =
   | 'MODEL_ROUTE_UNSUPPORTED'
   | 'UNKNOWN_ROUTE_COMPAT';
 
+/**
+ * Honest, tri-state route authority. Provider/discovery membership alone
+ * (a model simply being present in a provider's model list) is NEVER
+ * sufficient proof of route-level (dialect / endpoint family / wire model)
+ * compatibility. `MATCH` is only returned when the caller supplied an
+ * authoritative target to check the model against (`targetDialect` /
+ * `targetEndpointFamily` / `targetWireModel`) and the model satisfies it.
+ * `UNKNOWN` means no such target was supplied — the model's route was never
+ * actually verified — and must never be serialized or reported as truthy
+ * proof of compatibility.
+ */
+export type RouteAuthorityState = 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+
+/** Where the `RouteAuthorityState` verdict came from. */
+export type RouteAuthoritySource =
+  | 'TARGET_CONSTRAINTS_VERIFIED'
+  | 'NO_TARGET_CONSTRAINTS'
+  | 'TOOLS_CAPABILITY_UNSUPPORTED'
+  | 'MODEL_UNRESOLVED';
+
 export interface ResolvedModelSelection {
   model?: PlumbModel;
   source:
@@ -134,7 +154,8 @@ export interface ResolvedModelSelection {
   wireId?: string;
   providerAuthorityMatch: boolean;
   liveAuthorityMatch: boolean;
-  routeAuthorityMatch: boolean;
+  routeAuthority: RouteAuthorityState;
+  routeAuthoritySource: RouteAuthoritySource;
   routeMismatchReason?: RouteMismatchCategory;
   fallbackReason: string;
 }
@@ -174,32 +195,138 @@ function getEndpointFamilyForDialect(
   }
 }
 
+interface RouteCompatibility {
+  authority: RouteAuthorityState;
+  reason: RouteMismatchCategory;
+  source: RouteAuthoritySource;
+}
+
+/**
+ * Evaluate a model against caller-supplied route targets. Only `MATCH` when
+ * an authoritative target was supplied and satisfied, or the model is
+ * authoritatively known (`toolsSupported === false`) to be incompatible. A
+ * model that merely exists in a provider's list — with no target to check it
+ * against — is `UNKNOWN`, never fabricated `MATCH`.
+ */
 function evaluateRouteCompatibility(
   model: PlumbModel | undefined,
   input: ResolveProbeModelInput,
-): { match: boolean; reason: RouteMismatchCategory } {
+): RouteCompatibility {
   if (!model) {
-    return { match: false, reason: 'UNKNOWN_ROUTE_COMPAT' };
+    return {
+      authority: 'UNKNOWN',
+      reason: 'UNKNOWN_ROUTE_COMPAT',
+      source: 'MODEL_UNRESOLVED',
+    };
   }
   if (input.targetDialect && model.api !== input.targetDialect) {
-    return { match: false, reason: 'DIALECT_MISMATCH' };
+    return {
+      authority: 'MISMATCH',
+      reason: 'DIALECT_MISMATCH',
+      source: 'TARGET_CONSTRAINTS_VERIFIED',
+    };
   }
   if (input.targetEndpointFamily) {
     const family = getEndpointFamilyForDialect(model.api);
     if (family !== input.targetEndpointFamily) {
-      return { match: false, reason: 'ENDPOINT_FAMILY_MISMATCH' };
+      return {
+        authority: 'MISMATCH',
+        reason: 'ENDPOINT_FAMILY_MISMATCH',
+        source: 'TARGET_CONSTRAINTS_VERIFIED',
+      };
     }
   }
   if (input.targetWireModel) {
     const wireId = model.requestModelId ?? model.id;
     if (wireId !== input.targetWireModel) {
-      return { match: false, reason: 'WIRE_MODEL_MISMATCH' };
+      return {
+        authority: 'MISMATCH',
+        reason: 'WIRE_MODEL_MISMATCH',
+        source: 'TARGET_CONSTRAINTS_VERIFIED',
+      };
     }
   }
   if (input.probeTools && model.toolsSupported === false) {
-    return { match: false, reason: 'MODEL_ROUTE_UNSUPPORTED' };
+    return {
+      authority: 'MISMATCH',
+      reason: 'MODEL_ROUTE_UNSUPPORTED',
+      source: 'TOOLS_CAPABILITY_UNSUPPORTED',
+    };
   }
-  return { match: true, reason: 'NONE' };
+  const hasTargetConstraint =
+    input.targetDialect !== undefined ||
+    input.targetEndpointFamily !== undefined ||
+    input.targetWireModel !== undefined;
+  if (!hasTargetConstraint) {
+    return {
+      authority: 'UNKNOWN',
+      reason: 'NONE',
+      source: 'NO_TARGET_CONSTRAINTS',
+    };
+  }
+  return {
+    authority: 'MATCH',
+    reason: 'NONE',
+    source: 'TARGET_CONSTRAINTS_VERIFIED',
+  };
+}
+
+/**
+ * Pick a route-aware candidate from a pool already filtered to exclude
+ * `MISMATCH`. Configured/provider preference is honored first (by name) even
+ * if its route authority is `UNKNOWN`; otherwise a deterministic `MATCH`
+ * candidate is preferred over an `UNKNOWN` one — automatic selection must
+ * never prefer a proven `MISMATCH`, and must never fabricate `MATCH` when
+ * only `UNKNOWN` candidates exist.
+ */
+function pickRouteAwareCandidate(
+  pool: readonly PlumbModel[],
+  input: ResolveProbeModelInput,
+  configuredModel: string | undefined,
+  providerDefaultModel: string | undefined,
+):
+  | {
+      model: PlumbModel;
+      source: 'CONFIGURED_PREFERENCE' | 'PROVIDER_PREFERRED' | 'FIRST';
+      routeComp: RouteCompatibility;
+    }
+  | undefined {
+  if (configuredModel) {
+    const match = pool.find(
+      (m) => m.id === configuredModel || m.requestModelId === configuredModel,
+    );
+    if (match) {
+      return {
+        model: match,
+        source: 'CONFIGURED_PREFERENCE',
+        routeComp: evaluateRouteCompatibility(match, input),
+      };
+    }
+  }
+  if (providerDefaultModel) {
+    const match = pool.find(
+      (m) =>
+        m.id === providerDefaultModel ||
+        m.requestModelId === providerDefaultModel,
+    );
+    if (match) {
+      return {
+        model: match,
+        source: 'PROVIDER_PREFERRED',
+        routeComp: evaluateRouteCompatibility(match, input),
+      };
+    }
+  }
+  const matched = pool.find(
+    (m) => evaluateRouteCompatibility(m, input).authority === 'MATCH',
+  );
+  const first = matched ?? pool[0];
+  if (!first) return undefined;
+  return {
+    model: first,
+    source: 'FIRST',
+    routeComp: evaluateRouteCompatibility(first, input),
+  };
 }
 
 /** Live-vs-bundled authority counts for one provider. Used by the honest
@@ -483,9 +610,15 @@ export class PlumbModelRegistry {
           wireId,
           providerAuthorityMatch: true,
           liveAuthorityMatch: liveMatch,
-          routeAuthorityMatch: routeComp.match,
+          routeAuthority: routeComp.authority,
+          routeAuthoritySource: routeComp.source,
           routeMismatchReason: routeComp.reason,
-          fallbackReason: 'none',
+          // USER_EXPLICIT remains explicit even when route compatibility is
+          // unverified — the user asked for this model by name.
+          fallbackReason:
+            routeComp.authority === 'UNKNOWN'
+              ? 'PROBE_ROUTE_UNVERIFIED'
+              : 'none',
         };
       }
       return {
@@ -495,7 +628,8 @@ export class PlumbModelRegistry {
         wireId: requestedModel,
         providerAuthorityMatch: false,
         liveAuthorityMatch: false,
-        routeAuthorityMatch: false,
+        routeAuthority: 'UNKNOWN',
+        routeAuthoritySource: 'MODEL_UNRESOLVED',
         routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
         fallbackReason: 'requested_model_not_found',
       };
@@ -512,18 +646,20 @@ export class PlumbModelRegistry {
           source: 'UNRESOLVED',
           providerAuthorityMatch: false,
           liveAuthorityMatch: false,
-          routeAuthorityMatch: false,
+          routeAuthority: 'UNKNOWN',
+          routeAuthoritySource: 'MODEL_UNRESOLVED',
           routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
           fallbackReason: 'no_live_authority_models',
         };
       }
 
-      // Restrict candidate set first to route-compatible models
-      const routeCompatibleDiscovered = discovered.filter(
-        (m) => evaluateRouteCompatibility(m, input).match,
+      // Exclude only proven MISMATCH candidates. Route authority UNKNOWN is
+      // still a valid candidate — it means unverified, not incompatible.
+      const nonMismatchDiscovered = discovered.filter(
+        (m) => evaluateRouteCompatibility(m, input).authority !== 'MISMATCH',
       );
 
-      if (routeCompatibleDiscovered.length === 0) {
+      if (nonMismatchDiscovered.length === 0) {
         const firstM = discovered[0];
         const comp = evaluateRouteCompatibility(firstM, input);
         return {
@@ -531,70 +667,37 @@ export class PlumbModelRegistry {
           source: 'UNRESOLVED',
           providerAuthorityMatch: true,
           liveAuthorityMatch: true,
-          routeAuthorityMatch: false,
+          routeAuthority: 'MISMATCH',
+          routeAuthoritySource: comp.source,
           routeMismatchReason: comp.reason,
-          fallbackReason: 'no_route_compatible_live_models',
+          fallbackReason: 'ROUTE_MODEL_UNRESOLVED',
         };
       }
 
-      // 1. Check configured model
-      if (configuredModel) {
-        const match = routeCompatibleDiscovered.find(
-          (m) =>
-            m.id === configuredModel || m.requestModelId === configuredModel,
-        );
-        if (match) {
-          return {
-            model: match,
-            source: 'CONFIGURED_PREFERENCE',
-            displayId: match.id,
-            wireId: match.requestModelId ?? match.id,
-            providerAuthorityMatch: true,
-            liveAuthorityMatch: true,
-            routeAuthorityMatch: true,
-            routeMismatchReason: 'NONE',
-            fallbackReason: 'none',
-          };
-        }
-      }
-
-      // 2. Check provider preferred model
-      if (provider?.defaultModel) {
-        const match = routeCompatibleDiscovered.find(
-          (m) =>
-            m.id === provider.defaultModel ||
-            m.requestModelId === provider.defaultModel,
-        );
-        if (match) {
-          return {
-            model: match,
-            source: 'PROVIDER_PREFERRED',
-            displayId: match.id,
-            wireId: match.requestModelId ?? match.id,
-            providerAuthorityMatch: true,
-            liveAuthorityMatch: true,
-            routeAuthorityMatch: true,
-            routeMismatchReason: 'NONE',
-            fallbackReason: 'none',
-          };
-        }
-      }
-
-      // 3. First deterministic live route-compatible candidate
-      const first = routeCompatibleDiscovered[0];
+      const pick = pickRouteAwareCandidate(
+        nonMismatchDiscovered,
+        input,
+        configuredModel,
+        provider?.defaultModel,
+      )!;
       return {
-        model: first,
-        source: 'LIVE_AUTHORITY_FIRST',
-        displayId: first.id,
-        wireId: first.requestModelId ?? first.id,
+        model: pick.model,
+        source:
+          pick.source === 'CONFIGURED_PREFERENCE'
+            ? 'CONFIGURED_PREFERENCE'
+            : pick.source === 'PROVIDER_PREFERRED'
+              ? 'PROVIDER_PREFERRED'
+              : 'LIVE_AUTHORITY_FIRST',
+        displayId: pick.model.id,
+        wireId: pick.model.requestModelId ?? pick.model.id,
         providerAuthorityMatch: true,
         liveAuthorityMatch: true,
-        routeAuthorityMatch: true,
-        routeMismatchReason: 'NONE',
-        fallbackReason: provider?.defaultModel
-          ? 'preferred_not_route_compatible_or_in_live_discovery'
-          : configuredModel
-            ? 'configured_not_route_compatible_or_in_live_discovery'
+        routeAuthority: pick.routeComp.authority,
+        routeAuthoritySource: pick.routeComp.source,
+        routeMismatchReason: pick.routeComp.reason,
+        fallbackReason:
+          pick.routeComp.authority === 'UNKNOWN'
+            ? 'PROBE_ROUTE_UNVERIFIED'
             : 'none',
       };
     }
@@ -606,7 +709,8 @@ export class PlumbModelRegistry {
         source: 'UNRESOLVED',
         providerAuthorityMatch: false,
         liveAuthorityMatch: false,
-        routeAuthorityMatch: false,
+        routeAuthority: 'UNKNOWN',
+        routeAuthoritySource: 'MODEL_UNRESOLVED',
         routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
         fallbackReason: 'discovery_empty_live_model_unresolved',
       };
@@ -614,11 +718,11 @@ export class PlumbModelRegistry {
 
     // Static authoritative or un-attempted fallback
     if (bundled.length > 0) {
-      const routeCompatibleBundled = bundled.filter(
-        (m) => evaluateRouteCompatibility(m, input).match,
+      const nonMismatchBundled = bundled.filter(
+        (m) => evaluateRouteCompatibility(m, input).authority !== 'MISMATCH',
       );
 
-      if (routeCompatibleBundled.length === 0) {
+      if (nonMismatchBundled.length === 0) {
         const firstB = bundled[0];
         const comp = evaluateRouteCompatibility(firstB, input);
         return {
@@ -626,64 +730,38 @@ export class PlumbModelRegistry {
           source: 'UNRESOLVED',
           providerAuthorityMatch: true,
           liveAuthorityMatch: false,
-          routeAuthorityMatch: false,
+          routeAuthority: 'MISMATCH',
+          routeAuthoritySource: comp.source,
           routeMismatchReason: comp.reason,
-          fallbackReason: 'no_route_compatible_bundled_models',
+          fallbackReason: 'ROUTE_MODEL_UNRESOLVED',
         };
       }
 
-      if (configuredModel) {
-        const match = routeCompatibleBundled.find(
-          (m) =>
-            m.id === configuredModel || m.requestModelId === configuredModel,
-        );
-        if (match) {
-          return {
-            model: match,
-            source: 'CONFIGURED_PREFERENCE',
-            displayId: match.id,
-            wireId: match.requestModelId ?? match.id,
-            providerAuthorityMatch: true,
-            liveAuthorityMatch: false,
-            routeAuthorityMatch: true,
-            routeMismatchReason: 'NONE',
-            fallbackReason: 'none',
-          };
-        }
-      }
-
-      if (provider?.defaultModel) {
-        const match = routeCompatibleBundled.find(
-          (m) =>
-            m.id === provider.defaultModel ||
-            m.requestModelId === provider.defaultModel,
-        );
-        if (match) {
-          return {
-            model: match,
-            source: 'PROVIDER_PREFERRED',
-            displayId: match.id,
-            wireId: match.requestModelId ?? match.id,
-            providerAuthorityMatch: true,
-            liveAuthorityMatch: false,
-            routeAuthorityMatch: true,
-            routeMismatchReason: 'NONE',
-            fallbackReason: 'none',
-          };
-        }
-      }
-
-      const first = routeCompatibleBundled[0];
+      const pick = pickRouteAwareCandidate(
+        nonMismatchBundled,
+        input,
+        configuredModel,
+        provider?.defaultModel,
+      )!;
       return {
-        model: first,
-        source: 'STATIC_CATALOG_DEFAULT',
-        displayId: first.id,
-        wireId: first.requestModelId ?? first.id,
+        model: pick.model,
+        source:
+          pick.source === 'CONFIGURED_PREFERENCE'
+            ? 'CONFIGURED_PREFERENCE'
+            : pick.source === 'PROVIDER_PREFERRED'
+              ? 'PROVIDER_PREFERRED'
+              : 'STATIC_CATALOG_DEFAULT',
+        displayId: pick.model.id,
+        wireId: pick.model.requestModelId ?? pick.model.id,
         providerAuthorityMatch: true,
         liveAuthorityMatch: false,
-        routeAuthorityMatch: true,
-        routeMismatchReason: 'NONE',
-        fallbackReason: 'none',
+        routeAuthority: pick.routeComp.authority,
+        routeAuthoritySource: pick.routeComp.source,
+        routeMismatchReason: pick.routeComp.reason,
+        fallbackReason:
+          pick.routeComp.authority === 'UNKNOWN'
+            ? 'PROBE_ROUTE_UNVERIFIED'
+            : 'none',
       };
     }
 
@@ -692,7 +770,8 @@ export class PlumbModelRegistry {
       source: 'UNRESOLVED',
       providerAuthorityMatch: false,
       liveAuthorityMatch: false,
-      routeAuthorityMatch: false,
+      routeAuthority: 'UNKNOWN',
+      routeAuthoritySource: 'MODEL_UNRESOLVED',
       routeMismatchReason: 'UNKNOWN_ROUTE_COMPAT',
       fallbackReason: 'no_models_available',
     };

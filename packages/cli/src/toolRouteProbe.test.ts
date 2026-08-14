@@ -179,9 +179,11 @@ vi.mock('@google/gemini-cli-core', () => ({
 }));
 
 import {
+  computeProbeForce,
   diagnoseToolRoute,
   isCompletedToolContinuationEvent,
   runConfiguredToolRouteProbes,
+  runToolRouteProbeResult,
   toolChoiceSentSource,
   type ToolRouteProbeOutcome,
 } from './toolRouteProbe.js';
@@ -625,6 +627,42 @@ describe('batch final-result policy (Problem 8)', () => {
     expect(text).toContain('batch.provider.liveDiscoveredModels: 77');
     expect(text).toContain('batch.pass.count: 1');
   });
+
+  it('J. OpenCode Go live-shaped golden (full structured-tool chain) is preserved as PASS through the batch pipeline', async () => {
+    getActiveProviderStates.mockReturnValue([
+      { provider: { id: 'opencode-go' }, authState: 'authenticated' },
+    ]);
+    authorityStats.mockReturnValue({
+      liveDiscoveryCount: 12,
+      bundledFallbackCount: 4,
+      customCount: 0,
+      discoveryState: 'SUCCEEDED_NONEMPTY',
+    });
+
+    const probe = vi.fn(
+      async (providerId: string): Promise<ToolRouteProbeOutcome> => ({
+        provider: providerId,
+        exitCode: 0,
+        code: 'OK',
+        structuredToolCalls: true,
+        normalizedToolCalls: 1,
+        schedulerExecutions: 1,
+        toolResults: 1,
+        resultReinjected: true,
+        continuationCompleted: true,
+        forceRequested: true,
+        forceEffective: true,
+      }),
+    );
+
+    await expect(runConfiguredToolRouteProbes(probe)).resolves.toBe(0);
+
+    const text = rendered();
+    expect(text).toContain('batch.provider.class: PASS');
+    expect(text).toContain('batch.pass.count: 1');
+    expect(text).toContain('batch.inconclusive.count: 0');
+    expect(text).toContain('result: CONFIGURED_ROUTE_PROBES_PASS');
+  });
 });
 
 describe('toolChoiceSentSource (honest selector provenance)', () => {
@@ -686,5 +724,76 @@ describe('toolChoiceSentSource (honest selector provenance)', () => {
         false,
       ),
     ).toBe('POLICY_AUTO_FALLBACK');
+  });
+});
+
+describe('computeProbeForce (requested vs effective force, regression G)', () => {
+  it('G. a downgraded selector reports forceRequested=true but forceEffective=false', () => {
+    const result = computeProbeForce(
+      { mode: 'named', name: 'plumb_tool_probe' },
+      { value: { mode: 'auto' }, sent: true, downgraded: true },
+    );
+    expect(result.forceRequested).toBe(true);
+    expect(result.forceEffective).toBe(false);
+  });
+
+  it('an undowngraded named/required selector reports both true', () => {
+    expect(
+      computeProbeForce(
+        { mode: 'required' },
+        { value: { mode: 'required' }, sent: true, downgraded: false },
+      ),
+    ).toEqual({ forceRequested: true, forceEffective: true });
+  });
+
+  it('an auto request never claims force in either direction', () => {
+    expect(
+      computeProbeForce(
+        { mode: 'auto' },
+        { value: { mode: 'auto' }, sent: true, downgraded: false },
+      ),
+    ).toEqual({ forceRequested: false, forceEffective: false });
+  });
+});
+
+describe('single-probe pipeline unification (regression D)', () => {
+  it('D. --test-tool-route without --model consults the same resolveProbeAuthorityDecision gate as the batch path, instead of flattening every failure to ROUTE_NOT_FOUND', async () => {
+    authorityStats.mockImplementation(() => ({
+      liveDiscoveryCount: 0,
+      bundledFallbackCount: 1,
+      customCount: 0,
+      discoveryState: 'AUTH_BLOCKED',
+    }));
+
+    const outcome = await runToolRouteProbeResult('safe-provider');
+
+    // The canonical authority decision is honored (AUTH_REQUIRED), not the
+    // old single-probe behavior of collapsing everything into
+    // ROUTE_NOT_FOUND whenever a model failed to resolve.
+    expect(outcome.code).toBe('AUTH_REQUIRED');
+    expect(outcome.exitCode).toBe(1);
+    expect(rendered()).toContain('result: AUTH_REQUIRED');
+    expect(rendered()).not.toContain('result: ROUTE_NOT_FOUND');
+    expect(attemptAuthoritativeDiscovery).toHaveBeenCalled();
+  });
+
+  it('an explicit --model skips the discovery gate entirely (USER_EXPLICIT bypass), matching the batch explicit-model path', async () => {
+    authorityStats.mockImplementation(() => ({
+      liveDiscoveryCount: 0,
+      bundledFallbackCount: 1,
+      customCount: 0,
+      discoveryState: 'AUTH_BLOCKED',
+    }));
+    attemptAuthoritativeDiscovery.mockClear();
+
+    // With --model set, resolveToolRoute must not gate on discovery state at
+    // all — it proceeds straight to resolveModelSelection (which the mock
+    // resolves to `model`), so this never returns the AUTH_REQUIRED gate
+    // code seen in the previous test.
+    await runToolRouteProbeResult('safe-provider', 'safe-model').catch(
+      () => undefined,
+    );
+
+    expect(attemptAuthoritativeDiscovery).not.toHaveBeenCalled();
   });
 });
