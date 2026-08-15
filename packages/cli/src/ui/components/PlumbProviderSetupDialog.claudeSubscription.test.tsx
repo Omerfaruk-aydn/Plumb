@@ -10,6 +10,7 @@ import { PlumbProviderSetupDialog } from './PlumbProviderSetupDialog.js';
 import { PlumbProviderCategory } from '@plumb/provider';
 import type {
   PlumbProvider,
+  PlumbModel,
   ClaudeSubscriptionStatusResult,
 } from '@plumb/provider';
 
@@ -279,5 +280,70 @@ describe('PlumbProviderSetupDialog — Claude Subscription (Agent SDK)', () => {
     // SPAWN_FAILED are launch failures, not "maybe it worked" ambiguity.
     expect(mockGetClaudeSubscriptionStatus).toHaveBeenCalledTimes(1);
     expect(lastFrame()).toContain('The official Claude CLI was not found.');
+  });
+
+  // Regression: onRefreshFullModels (called on every CONNECTED_SUBSCRIPTION
+  // probe -- see probeClaudeSubscription) returns the SAME already-known
+  // model list, not just newly-discovered entries. Concatenating it onto
+  // the dialog's initial `fullModels` prop without deduping doubled every
+  // entry in the Step 4 picker (e.g. "Claude Sonnet 5" listed twice).
+  it('does not double-list models when onRefreshFullModels returns the same models already passed via fullModels', async () => {
+    mockGetClaudeSubscriptionStatus.mockResolvedValue({
+      status: 'CONNECTED_SUBSCRIPTION',
+    });
+    const fixtureModels: PlumbModel[] = [
+      {
+        id: 'default',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        name: 'Default (recommended)',
+        contextWindow: 200_000,
+        maxTokens: 16_000,
+        input: 'text',
+      },
+      {
+        id: 'claude-sonnet-5',
+        provider: 'claude-subscription',
+        api: 'claude-agent-sdk',
+        name: 'Claude Sonnet 5',
+        contextWindow: 200_000,
+        maxTokens: 64_000,
+        input: 'text',
+      },
+    ];
+    const onRefreshFullModels = vi.fn().mockResolvedValue(fixtureModels);
+
+    const { stdin, lastFrame, waitUntilReady } = await renderWithProviders(
+      <PlumbProviderSetupDialog
+        onComplete={vi.fn()}
+        onCancel={vi.fn()}
+        providers={mockProviders}
+        categoryGroups={mockCategoryGroups}
+        models={[]}
+        fullModels={fixtureModels}
+        onRefreshFullModels={onRefreshFullModels}
+      />,
+    );
+
+    await waitUntilReady();
+    await pressKey(stdin, DOWN_ARROW);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await pressKey(stdin, ENTER);
+    await waitUntilReady();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await waitUntilReady();
+
+    expect(onRefreshFullModels).toHaveBeenCalledTimes(1);
+    const frame = lastFrame();
+    // The dialog also always merges in the CLAUDE_SUBSCRIPTION_MODELS pinned
+    // floor as a safety net (currently 3 entries with no overlap against
+    // this fixture), so the real assertion here is "no duplicates", not an
+    // exact count tied to the floor list's size.
+    expect(frame?.match(/Default \(recommended\)/g)?.length).toBe(1);
+    expect(frame?.match(/Claude Sonnet 5/g)?.length).toBe(1);
   });
 });

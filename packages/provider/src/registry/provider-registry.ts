@@ -203,6 +203,33 @@ export class PlumbProviderRegistry {
     }
   }
 
+  /**
+   * Marks a provider active without storing a PLUMB-side credential. For
+   * synthetic providers whose auth is entirely owned by an external process
+   * (claude-subscription's official Agent SDK CLI, authenticated via
+   * `claude setup-token` — PLUMB never receives or stores a token for it),
+   * the normal setAuthenticated() path never runs because there is no
+   * credential to persist. Without this, such a provider is confirmed
+   * connected (e.g. getClaudeSubscriptionStatus() === CONNECTED_SUBSCRIPTION)
+   * during first-time setup, a model gets picked, but the provider never
+   * enters #activeProviders — so every later /model open (which filters via
+   * getActiveProviderStates()) silently omits it, even in the same running
+   * session. Call this once external auth is confirmed live.
+   */
+  markProviderActiveWithoutCredential(providerId: PlumbProviderId): void {
+    const provider = getPlumbProvider(providerId);
+    if (!provider) return;
+    this.#activeProviders.set(providerId, {
+      provider,
+      authState: 'authenticated',
+      healthState: 'unknown',
+      credentials: null,
+    });
+    if (!this.#selectedProvider) {
+      this.#selectedProvider = providerId;
+    }
+  }
+
   setAuthError(providerId: PlumbProviderId, error: string): void {
     const existing = this.#activeProviders.get(providerId);
     this.#activeProviders.set(providerId, {

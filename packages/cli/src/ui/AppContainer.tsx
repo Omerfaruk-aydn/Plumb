@@ -1040,6 +1040,24 @@ Logging in with Google... Restarting PLUMB to continue.
             `Failed to store provider credential: ${getErrorMessage(e)}`,
           );
         }
+      } else if (providerId === 'claude-subscription') {
+        // No PLUMB-side credential to store here (see PlumbProviderSetupDialog:
+        // Claude Subscription auth is entirely owned by the official Agent
+        // SDK's `claude setup-token`). Without marking the provider active in
+        // the registry, it silently disappears from every later /model open
+        // in this same session, even though the connection is real and live.
+        try {
+          traceStage('saving-credential');
+          const { getPlumbProviderRegistry } = await import('@plumb/provider');
+          const registry = getPlumbProviderRegistry();
+          await registry.initialize();
+          registry.markProviderActiveWithoutCredential(providerId);
+          traceStage('saving-credential-complete');
+        } catch (e) {
+          debugLogger.warn(
+            `Failed to mark claude-subscription active: ${getErrorMessage(e)}`,
+          );
+        }
       }
 
       // --- Stage: saving-model ---

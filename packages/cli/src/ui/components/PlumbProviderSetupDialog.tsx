@@ -346,15 +346,32 @@ export const PlumbProviderSetupDialog: React.FC<
   >([]);
   const [dynamicFullModels, setDynamicFullModels] = useState<PlumbModel[]>([]);
 
-  const allModels = useMemo(
-    () => [...initialModels, ...dynamicModels],
-    [initialModels, dynamicModels],
-  );
+  // Regression: onRefreshModels/onRefreshFullModels (see
+  // handleOAuthStart/probeClaudeSubscription) return the FULL current
+  // model list for the provider, not just newly-discovered entries — e.g.
+  // getAllAvailableModels() is called both to build the dialog's initial
+  // props AND again on refresh. Naively concatenating initial + dynamic
+  // therefore double-lists every model already present before the refresh
+  // (each entry rendered twice in the Step 4 picker). Dedupe by
+  // provider+id, keeping the dynamic (freshest) entry on conflict.
+  const allModels = useMemo(() => {
+    const byKey = new Map<
+      string,
+      { id: string; name?: string; provider: string }
+    >();
+    for (const m of [...initialModels, ...dynamicModels]) {
+      byKey.set(`${m.provider}::${m.id}`, m);
+    }
+    return [...byKey.values()];
+  }, [initialModels, dynamicModels]);
 
-  const allFullModels = useMemo(
-    () => [...(initialFullModels ?? []), ...dynamicFullModels],
-    [initialFullModels, dynamicFullModels],
-  );
+  const allFullModels = useMemo(() => {
+    const byKey = new Map<string, PlumbModel>();
+    for (const m of [...(initialFullModels ?? []), ...dynamicFullModels]) {
+      byKey.set(`${m.provider}::${m.id}`, m);
+    }
+    return [...byKey.values()];
+  }, [initialFullModels, dynamicFullModels]);
 
   const categoryProviders = useMemo(() => {
     if (!state.category) return [];

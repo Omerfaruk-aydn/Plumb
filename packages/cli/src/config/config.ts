@@ -1324,6 +1324,31 @@ export async function loadCliConfig(
     const persistedProviderId = readPlumbProviderId(settings);
     if (persistedProviderId) {
       config.setPlumbProvider(persistedProviderId);
+      // Claude Subscription has no PLUMB-side credential to restore from
+      // the keychain/credential-store (its auth is entirely owned by the
+      // official Agent SDK's `claude setup-token` — see
+      // registry/provider-registry.ts#markProviderActiveWithoutCredential).
+      // Without this, every cold start silently drops it from
+      // getActiveProviderStates(), so /model stops listing Claude Pro/Max
+      // after a restart even though the underlying sign-in is still valid —
+      // while every other coding-plan provider (a real stored credential)
+      // survives restart via the block above. Live-probe and re-mark it
+      // active here, the same way the setup wizard does on first sign-in.
+      if (persistedProviderId === 'claude-subscription') {
+        try {
+          const providerPkg = await import('@plumb/provider');
+          const registry = providerPkg.getPlumbProviderRegistry();
+          await registry.initialize();
+          const status = await providerPkg.getClaudeSubscriptionStatus();
+          if (status.status === 'CONNECTED_SUBSCRIPTION') {
+            registry.markProviderActiveWithoutCredential('claude-subscription');
+          }
+        } catch {
+          // Non-fatal: /model just won't list claude-subscription until
+          // the user re-runs setup; nothing else depends on this at cold
+          // start.
+        }
+      }
       // Pre-warm the tool-capability authority (see
       // Config.setActiveModelToolsCapability) for a returning session so the
       // very first system prompt built after cold start already gates
