@@ -714,6 +714,36 @@ describe('getClaudeSubscriptionModels', () => {
     expect(result.models).toEqual(mod.CLAUDE_SUBSCRIPTION_MODELS);
   });
 
+  it('keeps a "default" entry when it accompanies other real generic aliases (observed live shape: default+opus+haiku), instead of dropping it as a placeholder', async () => {
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        {
+          value: 'default',
+          displayName: 'Default (recommended)',
+          description: 'Sonnet 4.5 · Best for everyday tasks',
+        },
+        {
+          value: 'opus',
+          displayName: 'Opus',
+          description: 'Opus 4.5 · Most capable for complex work',
+        },
+        {
+          value: 'haiku',
+          displayName: 'Haiku',
+          description: 'Haiku 4.5 · Fastest for quick answers',
+        },
+      ]),
+    );
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('ACCOUNT_DYNAMIC');
+    expect(result.models.map((m) => m.id).sort()).toEqual(
+      ['default', 'haiku', 'opus'].sort(),
+    );
+    const defaultEntry = result.models.find((m) => m.id === 'default');
+    expect(defaultEntry?.source).toBe('ACCOUNT_DYNAMIC');
+  });
+
   it('reports ACCOUNT_DYNAMIC and reuses known numeric metadata when a discovered id matches a pinned entry exactly', async () => {
     mockQuery.mockReturnValue(
       makeQueryWithSupportedModels([

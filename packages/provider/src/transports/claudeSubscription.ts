@@ -612,8 +612,20 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
       };
     }
 
+    // The batch has already been trust-checked above using ONLY the strict
+    // `claude-`/known-generic-alias predicate, so a lone-`default` probe
+    // artifact (no other real entries) was already rejected and never
+    // reaches this point. Once a batch is trusted, the live CLI's own
+    // "default" alias (its recommended/current model, e.g. `{ value:
+    // 'default', description: 'Sonnet 4.5 · Best for everyday tasks' }`)
+    // is real, account-scoped data too — observed live alongside 'opus'/
+    // 'haiku' on an authenticated session — and must not be silently
+    // dropped from the final list, or an authenticated 3-model account
+    // response degrades to a 2-model one for no account-truth reason.
+    const isKeepableDiscoveredId = (id: string) =>
+      looksLikeRealModelId(id) || id === 'default';
     const models: ClaudeSubscriptionModelMetadata[] = discovered
-      .filter((info) => looksLikeRealModelId(info.value))
+      .filter((info) => isKeepableDiscoveredId(info.value))
       .map((info) => {
         const known = knownById.get(info.value);
         if (known) {
