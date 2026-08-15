@@ -502,7 +502,7 @@
       "reason": "PLUMB feature: baseUrl/resourceName/deploymentMap now resolve through resolveProviderConfigValue (PLUMB-saved config > environment variable), matching the PLUMB-config-over-env precedence already established for every other cloud provider, instead of reading AZURE_OPENAI_BASE_URL/AZURE_OPENAI_RESOURCE_NAME/AZURE_OPENAI_DEPLOYMENT_NAME_MAP directly from process.env. The deployment map is parsed by the unchanged parseAzureDeploymentNameMap using the identical 'model=deployment,...' string shape regardless of source, so an environment-only setup behaves exactly as before. No change to apiKey resolution (already credential-store-backed via options.apiKey/getEnvApiKey) or request-building/streaming logic"
     },
     {
-      "path": "packages/provider/src/vendor-ai/providers/google-gemini-cli.ts",
+      "path": "packages/provider/src/vendor-ai/providers/plumbGoogleGeminiCli.ts",
       "upstream": "packages/ai/src/providers/google-gemini-cli.ts",
       "reason": "PLUMB fix: exported the previously-private DEFAULT_ENDPOINT constant so packages/provider/src/transports/streaming.ts (the transport PlumbContentGenerator actually calls) can send real google-antigravity/google-gemini-cli requests to the real pinned Cloud Code Assist endpoint/path/Bearer-auth instead of the public Gemini API `?key=` shape it was previously using, which leaked the OAuth access token into the URL query string and 404'd. No change to this file's own request-building/streaming logic"
     },
@@ -562,7 +562,7 @@
       "reason": "whole-file adaptation: SQLite cache (bun:sqlite) replaced by a JSON-file cache backend (node:fs) with the same schema versioning and TTL semantics; documented in plumb-runtime-activation-invalidation.md"
     },
     {
-      "path": "packages/provider/src/vendor-catalog/provider-models/google.ts",
+      "path": "packages/provider/src/vendor-catalog/provider-models/plumbGoogle.ts",
       "upstream": "packages/catalog/src/provider-models/google.ts",
       "reason": "type-level cast for the optional preconnect member (Node fetch typings); runtime behavior unchanged. PLUMB feature: googleVertexModelManagerOptions now wires fetchDynamicModels (via new discovery/vertex.ts, publishers.models.list) when an apiKey is configured, instead of always returning a static-only options object — upstream has no Vertex dynamic-discovery path at all"
     },
@@ -587,7 +587,7 @@
       "reason": "PLUMB feature: added CATALOG_PROVIDERS entries for sambanova, nebius, cohere, byteplus-modelark, volcengine-ark, and portkey (see openai-compat.ts adaptationDiffs entry above)"
     },
     {
-      "path": "packages/provider/src/vendor-ai/providers/google-shared.ts",
+      "path": "packages/provider/src/vendor-ai/providers/plumbGoogleShared.ts",
       "upstream": "packages/ai/src/providers/google-shared.ts",
       "reason": "PLUMB fix: consecutive same-role (user/model) content parts are now merged into the last Content entry instead of pushed as a new adjacent-same-role entry, matching CONVERSATION ROLE NORMALIZATION requirements for Google's generateContent wire format (Antigravity/Vertex/Gemini reject or mishandle back-to-back same-role Content turns produced when a multi-part user or tool-result turn spans multiple source messages). No change to per-part transformation logic"
     },
