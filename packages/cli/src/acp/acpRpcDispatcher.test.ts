@@ -53,7 +53,7 @@ describe('GeminiAgent - RPC Dispatcher', () => {
       getContentGeneratorConfig: vi.fn(),
       getActiveModel: vi.fn().mockReturnValue('gemini-pro'),
       getModel: vi.fn().mockReturnValue('gemini-pro'),
-      getGeminiClient: vi.fn().mockReturnValue({
+      getPlumbClient: vi.fn().mockReturnValue({
         startChat: vi.fn().mockResolvedValue({}),
       }),
       getMessageBus: vi.fn().mockReturnValue({

@@ -71,7 +71,7 @@ describe('directoryCommand', () => {
     mockConfig = {
       getWorkspaceContext: () => mockWorkspaceContext,
       isRestrictiveSandbox: vi.fn().mockReturnValue(false),
-      getGeminiClient: vi.fn().mockReturnValue({
+      getPlumbClient: vi.fn().mockReturnValue({
         addDirectoryContext: vi.fn(),
         getChatRecordingService: vi.fn().mockReturnValue({
           recordDirectories: vi.fn(),

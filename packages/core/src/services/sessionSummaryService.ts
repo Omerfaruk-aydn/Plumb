@@ -63,7 +63,7 @@ export class SessionSummaryService {
       // Filter to user/gemini messages only (exclude system messages)
       const filteredMessages = messages.filter((msg) => {
         // Skip system messages (info, error, warning)
-        if (msg.type !== 'user' && msg.type !== 'gemini') {
+        if (msg.type !== 'user' && msg.type !== 'plumb') {
           return false;
         }
         const content = partListUnionToString(msg.content);

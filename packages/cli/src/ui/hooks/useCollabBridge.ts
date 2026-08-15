@@ -1,12 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * F21 (PLUMB-UI-DEVRIM-PROMPT.md): bridges UIState (chat history) into the
- * running CollabServer, if any. A no-op while `/collab` hasn't been started.
- * On start, only messages from that point forward are streamed -- it does
- * not backfill everything said before the session went live.
+ * @license
  */
 import { useEffect, useRef } from 'react';
 import type { HistoryItem } from '../types.js';
@@ -16,8 +12,8 @@ function roleForHistoryItem(item: HistoryItem): CollabRole | null {
   switch (item.type) {
     case 'user':
       return 'user';
-    case 'gemini':
-    case 'gemini_content':
+    case 'plumb':
+    case 'plumb_content':
       return 'assistant';
     case 'info':
     case 'error':

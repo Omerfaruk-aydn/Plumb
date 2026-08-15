@@ -29,7 +29,7 @@ export const ROOT_SCHEDULER_ID = 'root';
  * (always visible) rather than the "hidden unless awaiting approval"
  * treatment reserved for real subagents. Kept distinct from
  * `ROOT_SCHEDULER_ID` because these calls never flow through PLUMB's own
- * response-reinjection step (see `useGeminiStream`'s `markToolsAsSubmitted`),
+ * response-reinjection step (see `usePlumbStream`'s `markToolsAsSubmitted`),
  * so the UI layer needs to tell them apart to avoid treating them as
  * perpetually "not yet submitted".
  */

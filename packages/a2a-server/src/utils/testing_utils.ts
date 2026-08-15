@@ -13,7 +13,7 @@ import {
   ApprovalMode,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_TRUNCATE_TOOL_OUTPUT_THRESHOLD,
-  GeminiClient,
+  PlumbClient,
   HookSystem,
   type MessageBus,
   PolicyDecision,
@@ -53,7 +53,7 @@ export function createMockConfig(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       const config = this as unknown as Config;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      return config.getGeminiClient?.() as unknown as GeminiClient;
+      return config.getPlumbClient?.() as unknown as PlumbClient;
     },
     getToolRegistry: vi.fn().mockReturnValue({
       getTool: vi.fn(),
@@ -124,9 +124,9 @@ export function createMockConfig(
     .fn()
     .mockReturnValue(new HookSystem(mockConfig));
 
-  mockConfig.getGeminiClient = vi
+  mockConfig.getPlumbClient = vi
     .fn()
-    .mockReturnValue(new GeminiClient(mockConfig));
+    .mockReturnValue(new PlumbClient(mockConfig));
 
   mockConfig.getPolicyEngine = vi.fn().mockReturnValue({
     check: async () => {

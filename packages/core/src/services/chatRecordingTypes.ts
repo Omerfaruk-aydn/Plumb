@@ -73,7 +73,7 @@ export type ConversationRecordExtra =
       type: 'user' | 'info' | 'error' | 'warning';
     }
   | {
-      type: 'gemini';
+      type: 'plumb';
       toolCalls?: ToolCallRecord[];
       thoughts?: Array<ThoughtSummary & { timestamp: string }>;
       tokens?: TokensSummary | null;

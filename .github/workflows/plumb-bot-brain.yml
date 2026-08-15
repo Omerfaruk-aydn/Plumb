@@ -105,9 +105,9 @@ jobs:
             gh run download "$LAST_RUN_ID" -n brain-data -D .temp_brain_data || echo "brain-data not found"
 
             # Restore only persistent memory files
-            cp .temp_brain_data/tools/gemini-cli-bot/lessons-learned.md tools/gemini-cli-bot/lessons-learned.md 2>/dev/null || true
-            mkdir -p tools/gemini-cli-bot/history/
-            cp .temp_brain_data/tools/gemini-cli-bot/history/*.csv tools/gemini-cli-bot/history/ 2>/dev/null || true
+            cp .temp_brain_data/tools/plumb-cli-bot/lessons-learned.md tools/plumb-cli-bot/lessons-learned.md 2>/dev/null || true
+            mkdir -p tools/plumb-cli-bot/history/
+            cp .temp_brain_data/tools/plumb-cli-bot/history/*.csv tools/plumb-cli-bot/history/ 2>/dev/null || true
             rm -rf .temp_brain_data
           else
             echo "No previous successful run found."
@@ -116,21 +116,21 @@ jobs:
       - name: 'Collect Current Metrics'
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-        run: 'npx tsx tools/gemini-cli-bot/metrics/index.ts'
+        run: 'npx tsx tools/plumb-cli-bot/metrics/index.ts'
 
       - name: 'Run Brain Phases'
         env:
           GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           GEMINI_MODEL: 'gemini-3-flash-preview'
-          PLUMB_CLI_HOME: 'tools/gemini-cli-bot'
+          PLUMB_CLI_HOME: 'tools/plumb-cli-bot'
           ENABLE_PRS: "${{ github.event.inputs.enable_prs || 'false' }}"
           TRIGGER_ISSUE_NUMBER: '${{ github.event.issue.number || github.event.inputs.issue_number }}'
           TRIGGER_COMMENT_ID: '${{ github.event.comment.id || github.event.inputs.comment_id }}'
         run: |
-          PROMPT_PATH="tools/gemini-cli-bot/brain/scheduled.md"
+          PROMPT_PATH="tools/plumb-cli-bot/brain/scheduled.md"
           if [ "${{ github.event_name }}" = "issue_comment" ] || [ "${{ github.event.inputs.run_interactive }}" = "true" ]; then
-            PROMPT_PATH="tools/gemini-cli-bot/brain/interactive.md"
+            PROMPT_PATH="tools/plumb-cli-bot/brain/interactive.md"
             export ENABLE_PRS="true"
           fi
 
@@ -160,7 +160,7 @@ jobs:
           echo "" >> trigger_context.md
 
           cat trigger_context.md "$PROMPT_PATH" > combined_prompt.md
-          node bundle/gemini.js --policy tools/gemini-cli-bot/ci-policy.toml --prompt="$(cat combined_prompt.md)"
+          node bundle/plumb.js --policy tools/plumb-cli-bot/ci-policy.toml --prompt="$(cat combined_prompt.md)"
 
           if [ -n "$TRIGGER_ISSUE_NUMBER" ] && [ ! -s "issue-comment.md" ] && [ ! -s "pr-comment.md" ]; then
             echo "Agent failed to respond. Generating fallback error message."
@@ -175,13 +175,13 @@ jobs:
           GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           GEMINI_MODEL: 'gemini-3-flash-preview'
-          PLUMB_CLI_HOME: 'tools/gemini-cli-bot'
+          PLUMB_CLI_HOME: 'tools/plumb-cli-bot'
         run: |
           if git diff --staged --quiet; then
              echo "No changes staged. Skipping critique."
              echo "[APPROVED]" > critique_result.txt
           else
-             node bundle/gemini.js --policy tools/gemini-cli-bot/ci-policy.toml --prompt="$(cat tools/gemini-cli-bot/.gemini/skills/critique/SKILL.md)" 2>&1 | tee critique_output.log
+             node bundle/plumb.js --policy tools/plumb-cli-bot/ci-policy.toml --prompt="$(cat tools/plumb-cli-bot/.plumb/skills/critique/SKILL.md)" 2>&1 | tee critique_output.log
 
              if [ "${PIPESTATUS[0]}" -eq 0 ] && grep -q "\[APPROVED\]" critique_output.log && ! grep -q "\[REJECTED\]" critique_output.log; then
                echo "[APPROVED]" > critique_result.txt
@@ -207,8 +207,8 @@ jobs:
         with:
           name: 'brain-data'
           path: |
-            tools/gemini-cli-bot/lessons-learned.md
-            tools/gemini-cli-bot/history/*.csv
+            tools/plumb-cli-bot/lessons-learned.md
+            tools/plumb-cli-bot/history/*.csv
             bot-changes.patch
             pr-description.md
             branch-name.txt

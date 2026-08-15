@@ -34,7 +34,7 @@ vi.mock('./components/CliSpinner.js', () => ({
 }));
 
 // Mock hooks to align with codebase style, even if App uses UIState directly
-vi.mock('./hooks/useGeminiStream.js');
+vi.mock('./hooks/usePlumbStream.js');
 vi.mock('./hooks/useHistoryManager.js');
 vi.mock('./hooks/useQuotaAndFallback.js');
 vi.mock('./hooks/useThemeCommand.js');

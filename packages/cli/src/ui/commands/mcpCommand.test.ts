@@ -72,7 +72,7 @@ describe('mcpCommand', () => {
     getMcpServers: ReturnType<typeof vi.fn>;
     getBlockedMcpServers: ReturnType<typeof vi.fn>;
     getPromptRegistry: ReturnType<typeof vi.fn>;
-    getGeminiClient: ReturnType<typeof vi.fn>;
+    getPlumbClient: ReturnType<typeof vi.fn>;
     getMcpClientManager: ReturnType<typeof vi.fn>;
     getResourceRegistry: ReturnType<typeof vi.fn>;
     setUserInteractedWithMcp: ReturnType<typeof vi.fn>;
@@ -102,7 +102,7 @@ describe('mcpCommand', () => {
         getAllPrompts: vi.fn().mockReturnValue([]),
         getPromptsByServer: vi.fn().mockReturnValue([]),
       }),
-      getGeminiClient: vi.fn(),
+      getPlumbClient: vi.fn(),
       getMcpClientManager: vi.fn().mockImplementation(() => ({
         getBlockedMcpServers: vi.fn().mockReturnValue([]),
         getMcpServers: vi.fn().mockReturnValue({}),

@@ -1,6 +1,6 @@
 # PLUMB Bot (Cognitive Repository)
 
-This directory contains the foundational architecture for the `gemini-cli-bot`,
+This directory contains the foundational architecture for the `plumb-cli-bot`,
 transforming the repository into a proactive, evolutionary system.
 
 It implements a dual-layer approach to balance immediate responsiveness with
@@ -11,7 +11,7 @@ long-term strategic optimization.
 ### 1. System 1: The Pulse (Reflex Layer)
 
 - **Purpose**: High-frequency, deterministic maintenance.
-- **Frequency**: 30-minute cron (`.github/workflows/gemini-cli-bot-pulse.yml`).
+- **Frequency**: 30-minute cron (`.github/workflows/plumb-bot-pulse.yml`).
 - **Implementation**: Pure TypeScript/JavaScript scripts.
 - **Classification**: Optionally utilizes PLUMB for high-confidence semantic
   classification (e.g., triage, labeling, sentiment) while preferring
@@ -25,7 +25,7 @@ long-term strategic optimization.
 
 - **Purpose**: Strategic investigation, policy refinement, and proactive
   self-optimization.
-- **Frequency**: 24-hour cron (`.github/workflows/gemini-cli-bot-brain.yml`).
+- **Frequency**: 24-hour cron (`.github/workflows/plumb-bot-brain.yml`).
 - **Implementation**: Agentic PLUMB phases.
 - **Phases**:
   - **Metrics Collection**: Executes scripts in `metrics/scripts/` to track
@@ -59,11 +59,11 @@ To manually collect repository metrics locally, run the following command from
 the workspace root:
 
 ```bash
-npx tsx tools/gemini-cli-bot/metrics/index.ts
+npx tsx tools/plumb-cli-bot/metrics/index.ts
 ```
 
 This will execute all scripts within `metrics/scripts/` and output the results
-to `tools/gemini-cli-bot/history/metrics-before.csv`.
+to `tools/plumb-cli-bot/history/metrics-before.csv`.
 
 ### Development
 

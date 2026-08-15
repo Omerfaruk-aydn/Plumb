@@ -22,7 +22,7 @@ vi.mock('../utils/llm-edit-fixer.js', () => ({
 }));
 
 vi.mock('../core/client.js', () => ({
-  GeminiClient: vi.fn().mockImplementation(() => ({
+  PlumbClient: vi.fn().mockImplementation(() => ({
     generateJson: mockGenerateJson,
     getHistory: vi.fn().mockResolvedValue([]),
   })),
@@ -106,7 +106,7 @@ describe('EditTool', () => {
       getSessionId: vi.fn(() => 'mock-session-id'),
       getContentGeneratorConfig: vi.fn(() => ({ authType: 'mock' })),
       getProxy: vi.fn(() => undefined),
-      getGeminiClient: vi.fn().mockReturnValue(geminiClient),
+      getPlumbClient: vi.fn().mockReturnValue(geminiClient),
       getBaseLlmClient: vi.fn().mockReturnValue(baseLlmClient),
       getTargetDir: () => rootDir,
       getProjectRoot: () => rootDir,

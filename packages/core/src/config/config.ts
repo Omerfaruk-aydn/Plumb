@@ -55,7 +55,7 @@ import {
   ListBackgroundProcessesTool,
   ReadBackgroundOutputTool,
 } from '../tools/shellBackgroundTools.js';
-import { GeminiClient } from '../core/client.js';
+import { PlumbClient } from '../core/client.js';
 import { BaseLlmClient } from '../core/baseLlmClient.js';
 import { LocalLiteRtLmClient } from '../core/localLiteRtLmClient.js';
 import type { HookDefinition, HookEventName } from '../hooks/types.js';
@@ -803,7 +803,7 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
   private readonly usageStatisticsEnabled: boolean;
-  private _geminiClient!: GeminiClient;
+  private _geminiClient!: PlumbClient;
   private _sandboxManager: SandboxManager;
   private readonly _sandboxPolicyManager: SandboxPolicyManager;
   private baseLlmClient!: BaseLlmClient;
@@ -1430,7 +1430,7 @@ export class Config implements McpContext, AgentLoopContext {
         );
       }
     }
-    this._geminiClient = new GeminiClient(this);
+    this._geminiClient = new PlumbClient(this);
     this.a2aClientManager = new A2AClientManager(this);
     this.modelRouterService = new ModelRouterService(this);
   }
@@ -1786,7 +1786,7 @@ export class Config implements McpContext, AgentLoopContext {
    * @deprecated Do not access directly on Config.
    * Use the injected AgentLoopContext instead.
    */
-  get geminiClient(): GeminiClient {
+  get geminiClient(): PlumbClient {
     return this._geminiClient;
   }
 
@@ -2993,7 +2993,7 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /** @deprecated Use geminiClient getter */
-  getGeminiClient(): GeminiClient {
+  getPlumbClient(): PlumbClient {
     return this.geminiClient;
   }
 
@@ -4234,7 +4234,7 @@ export class Config implements McpContext, AgentLoopContext {
       client.updateSystemInstruction();
     } else {
       debugLogger.debug(
-        '[Config] GeminiClient not initialized; skipping live prompt/tool refresh.',
+        '[Config] PlumbClient not initialized; skipping live prompt/tool refresh.',
       );
     }
   };

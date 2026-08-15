@@ -50,7 +50,7 @@ describe('summarizeSessionForShare', () => {
       conversation({
         messages: [
           { type: 'user', id: '1', timestamp: '1', content: 'a' },
-          { type: 'gemini', id: '2', timestamp: '2', content: 'b' },
+          { type: 'plumb', id: '2', timestamp: '2', content: 'b' },
           { type: 'user', id: '3', timestamp: '3', content: 'c' },
         ],
       }),
@@ -74,7 +74,7 @@ describe('summarizeSessionForShare', () => {
         messages: [
           { type: 'user', id: '1', timestamp: '1', content: 'edit a.ts' },
           {
-            type: 'gemini',
+            type: 'plumb',
             id: '2',
             timestamp: '2',
             content: 'done',

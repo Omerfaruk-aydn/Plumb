@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { PromptRegistry } from '../prompts/prompt-registry.js';
@@ -38,7 +38,7 @@ export interface AgentLoopContext {
   readonly messageBus: MessageBus;
 
   /** The client used to communicate with the LLM in this context. */
-  readonly geminiClient: GeminiClient;
+  readonly geminiClient: PlumbClient;
 
   /** The service used to prepare commands for sandboxed execution. */
   readonly sandboxManager: SandboxManager;

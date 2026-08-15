@@ -64,7 +64,7 @@ describe('HookEventHandler', () => {
   beforeEach(() => {
     vi.resetAllMocks();
 
-    const mockGeminiClient = {
+    const mockPlumbClient = {
       getChatRecordingService: vi.fn().mockReturnValue({
         getConversationFilePath: vi
           .fn()
@@ -76,8 +76,8 @@ describe('HookEventHandler', () => {
       get config() {
         return this;
       },
-      geminiClient: mockGeminiClient,
-      getGeminiClient: vi.fn().mockReturnValue(mockGeminiClient),
+      geminiClient: mockPlumbClient,
+      getPlumbClient: vi.fn().mockReturnValue(mockPlumbClient),
       getSessionId: vi.fn().mockReturnValue('test-session'),
       getWorkingDir: vi.fn().mockReturnValue('/test/project'),
     } as unknown as Config;

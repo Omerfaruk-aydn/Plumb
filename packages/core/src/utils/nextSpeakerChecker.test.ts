@@ -73,7 +73,7 @@ vi.mock('node:fs', async (importOriginal) => {
   };
 });
 
-// Mock GeminiClient and Config constructor
+// Mock PlumbClient and Config constructor
 vi.mock('../core/baseLlmClient.js');
 vi.mock('../config/config.js');
 

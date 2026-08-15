@@ -14,24 +14,24 @@ import {
 } from 'vitest';
 import { WebSearchTool, type WebSearchToolParams } from './web-search.js';
 import type { Config } from '../config/config.js';
-import { GeminiClient } from '../core/client.js';
+import { PlumbClient } from '../core/client.js';
 import { ToolErrorType } from './tool-error.js';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
 
-// Mock GeminiClient and Config constructor
+// Mock PlumbClient and Config constructor
 vi.mock('../core/client.js');
 vi.mock('../config/config.js');
 
 describe('WebSearchTool', () => {
   const abortSignal = new AbortController().signal;
-  let mockGeminiClient: GeminiClient;
+  let mockPlumbClient: PlumbClient;
   let tool: WebSearchTool;
 
   beforeEach(() => {
     const mockConfigInstance = {
-      getGeminiClient: () => mockGeminiClient,
+      getPlumbClient: () => mockPlumbClient,
       get geminiClient() {
-        return mockGeminiClient;
+        return mockPlumbClient;
       },
       getProxy: () => undefined,
       generationConfigService: {
@@ -47,7 +47,7 @@ describe('WebSearchTool', () => {
     (
       mockConfigInstance as unknown as { config: Config; promptId: string }
     ).promptId = 'test-prompt-id';
-    mockGeminiClient = new GeminiClient(mockConfigInstance);
+    mockPlumbClient = new PlumbClient(mockConfigInstance);
     tool = new WebSearchTool(mockConfigInstance, createMockMessageBus());
   });
 
@@ -91,7 +91,7 @@ describe('WebSearchTool', () => {
   describe('execute', () => {
     it('should return search results for a successful query', async () => {
       const params: WebSearchToolParams = { query: 'successful query' };
-      (mockGeminiClient.generateContent as Mock).mockResolvedValue({
+      (mockPlumbClient.generateContent as Mock).mockResolvedValue({
         candidates: [
           {
             content: {
@@ -116,7 +116,7 @@ describe('WebSearchTool', () => {
 
     it('should handle no search results found', async () => {
       const params: WebSearchToolParams = { query: 'no results query' };
-      (mockGeminiClient.generateContent as Mock).mockResolvedValue({
+      (mockPlumbClient.generateContent as Mock).mockResolvedValue({
         candidates: [
           {
             content: {
@@ -139,7 +139,7 @@ describe('WebSearchTool', () => {
     it('should return a WEB_SEARCH_FAILED error on failure', async () => {
       const params: WebSearchToolParams = { query: 'error query' };
       const testError = new Error('API Failure');
-      (mockGeminiClient.generateContent as Mock).mockRejectedValue(testError);
+      (mockPlumbClient.generateContent as Mock).mockRejectedValue(testError);
 
       const invocation = tool.build(params);
       const result = await invocation.execute({ abortSignal });
@@ -152,7 +152,7 @@ describe('WebSearchTool', () => {
 
     it('should correctly format results with sources and citations', async () => {
       const params: WebSearchToolParams = { query: 'grounding query' };
-      (mockGeminiClient.generateContent as Mock).mockResolvedValue({
+      (mockPlumbClient.generateContent as Mock).mockResolvedValue({
         candidates: [
           {
             content: {
@@ -199,7 +199,7 @@ Sources:
 
     it('should insert markers at correct byte positions for multibyte text', async () => {
       const params: WebSearchToolParams = { query: 'multibyte query' };
-      (mockGeminiClient.generateContent as Mock).mockResolvedValue({
+      (mockPlumbClient.generateContent as Mock).mockResolvedValue({
         candidates: [
           {
             content: {

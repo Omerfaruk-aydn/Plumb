@@ -159,7 +159,7 @@ vi.mock('./hooks/useConsoleMessages.js');
 vi.mock('./hooks/useTerminalSize.js', () => ({
   useTerminalSize: vi.fn(() => ({ columns: 80, rows: 24 })),
 }));
-vi.mock('./hooks/useGeminiStream.js');
+vi.mock('./hooks/usePlumbStream.js');
 vi.mock('./hooks/vim.js');
 vi.mock('./hooks/useFocus.js');
 vi.mock('./hooks/useBracketedPaste.js');
@@ -224,7 +224,7 @@ import { useSettingsCommand } from './hooks/useSettingsCommand.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useErrorCount } from './hooks/useConsoleMessages.js';
-import { useGeminiStream } from './hooks/useGeminiStream.js';
+import { usePlumbStream } from './hooks/usePlumbStream.js';
 import { useVim } from './hooks/vim.js';
 import { useFolderTrust } from './hooks/useFolderTrust.js';
 import { useIdeTrustListener } from './hooks/useIdeTrustListener.js';
@@ -308,7 +308,7 @@ describe('AppContainer State Management', () => {
   const mockedUseModelCommand = useModelCommand as Mock;
   const mockedUseSlashCommandProcessor = useSlashCommandProcessor as Mock;
   const mockedUseConsoleMessages = useErrorCount as Mock;
-  const mockedUseGeminiStream = useGeminiStream as Mock;
+  const mockedUseGeminiStream = usePlumbStream as Mock;
   const mockedUseVim = useVim as Mock;
   const mockedUseFolderTrust = useFolderTrust as Mock;
   const mockedUseIdeTrustListener = useIdeTrustListener as Mock;
@@ -1044,7 +1044,7 @@ describe('AppContainer State Management', () => {
             },
             {
               id: 'msg-2',
-              type: 'gemini' as const,
+              type: 'plumb' as const,
               content: 'Hi there!',
               role: 'model' as const,
               parts: [{ text: 'Hi there!' }],
@@ -1088,7 +1088,7 @@ describe('AppContainer State Management', () => {
         recordToolCalls: vi.fn(),
       };
 
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => true),
         resumeChat: vi.fn(),
         getUserTier: vi.fn(),
@@ -1096,8 +1096,8 @@ describe('AppContainer State Management', () => {
       };
 
       const configWithRecording = makeFakeConfig();
-      vi.spyOn(configWithRecording, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithRecording, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
 
       const { unmount } = await act(async () =>
@@ -1122,7 +1122,7 @@ describe('AppContainer State Management', () => {
         getCurrentConversation: vi.fn(),
       };
 
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => true),
         resumeChat: vi.fn(),
         getUserTier: vi.fn(),
@@ -1131,8 +1131,8 @@ describe('AppContainer State Management', () => {
       };
 
       const configWithRecording = makeFakeConfig();
-      vi.spyOn(configWithRecording, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithRecording, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
       vi.spyOn(configWithRecording, 'getSessionId').mockReturnValue(
         'test-session-123',
@@ -1148,8 +1148,8 @@ describe('AppContainer State Management', () => {
       );
 
       // Verify the recording service structure is correct
-      expect(configWithRecording.getGeminiClient).toBeDefined();
-      expect(mockGeminiClient.getChatRecordingService).toBeDefined();
+      expect(configWithRecording.getPlumbClient).toBeDefined();
+      expect(mockPlumbClient.getChatRecordingService).toBeDefined();
       expect(mockChatRecordingService.initialize).toBeDefined();
       expect(mockChatRecordingService.recordMessage).toBeDefined();
       unmount();
@@ -1167,15 +1167,15 @@ describe('AppContainer State Management', () => {
         getSessionId: vi.fn(() => 'test-session-123'),
       };
 
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => true),
         getChatRecordingService: vi.fn(() => mockChatRecordingService),
         getUserTier: vi.fn(),
       };
 
       const configWithRecording = makeFakeConfig();
-      vi.spyOn(configWithRecording, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithRecording, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
 
       const { unmount } = await act(async () =>
@@ -1198,7 +1198,7 @@ describe('AppContainer State Management', () => {
   describe('Session Resume Flow', () => {
     it('accepts resumed session data', async () => {
       const mockResumeChat = vi.fn();
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => true),
         resumeChat: mockResumeChat,
         getUserTier: vi.fn(),
@@ -1211,8 +1211,8 @@ describe('AppContainer State Management', () => {
       };
 
       const configWithClient = makeFakeConfig();
-      vi.spyOn(configWithClient, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithClient, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
 
       const resumedData = {
@@ -1230,7 +1230,7 @@ describe('AppContainer State Management', () => {
             },
             {
               id: 'msg-2',
-              type: 'gemini' as const,
+              type: 'plumb' as const,
               content: 'Previous answer',
               role: 'model' as const,
               parts: [{ text: 'Previous answer' }],
@@ -1253,14 +1253,14 @@ describe('AppContainer State Management', () => {
       );
 
       // Verify the resume functionality structure is in place
-      expect(mockGeminiClient.resumeChat).toBeDefined();
+      expect(mockPlumbClient.resumeChat).toBeDefined();
       expect(resumedData.conversation.messages).toHaveLength(2);
       unmount();
     });
 
     it('does not attempt resume when client is not initialized', async () => {
       const mockResumeChat = vi.fn();
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => false), // Not initialized
         resumeChat: mockResumeChat,
         getUserTier: vi.fn(),
@@ -1268,8 +1268,8 @@ describe('AppContainer State Management', () => {
       };
 
       const configWithClient = makeFakeConfig();
-      vi.spyOn(configWithClient, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithClient, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
 
       const resumedData = {
@@ -1353,15 +1353,15 @@ describe('AppContainer State Management', () => {
         })),
       };
 
-      const mockGeminiClient = {
+      const mockPlumbClient = {
         isInitialized: vi.fn(() => true),
         getChatRecordingService: vi.fn(() => mockChatRecordingService),
         getUserTier: vi.fn(),
       };
 
       const configWithRecording = makeFakeConfig();
-      vi.spyOn(configWithRecording, 'getGeminiClient').mockReturnValue(
-        mockGeminiClient as unknown as ReturnType<Config['getGeminiClient']>,
+      vi.spyOn(configWithRecording, 'getPlumbClient').mockReturnValue(
+        mockPlumbClient as unknown as ReturnType<Config['getPlumbClient']>,
       );
 
       const { unmount } = await act(async () =>
@@ -3277,7 +3277,7 @@ describe('AppContainer State Management', () => {
   describe('onCancelSubmit Behavior', () => {
     let mockSetText: Mock;
 
-    // Helper to extract arguments from the useGeminiStream hook call
+    // Helper to extract arguments from the usePlumbStream hook call
     // This isolates the positional argument dependency to a single location
     const extractUseGeminiStreamArgs = (args: unknown[]) => ({
       onCancelSubmit: args[13] as (shouldRestorePrompt?: boolean) => void,

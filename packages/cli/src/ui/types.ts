@@ -169,13 +169,13 @@ export type HistoryItemUser = HistoryItemBase & {
   text: string;
 };
 
-export type HistoryItemGemini = HistoryItemBase & {
-  type: 'gemini';
+export type HistoryItemPlumb = HistoryItemBase & {
+  type: 'plumb';
   text: string;
 };
 
-export type HistoryItemGeminiContent = HistoryItemBase & {
-  type: 'gemini_content';
+export type HistoryItemPlumbContent = HistoryItemBase & {
+  type: 'plumb_content';
   text: string;
 };
 
@@ -424,8 +424,8 @@ export type HistoryItemMcpStatus = HistoryItemBase & {
 export type HistoryItemWithoutId =
   | HistoryItemUser
   | HistoryItemUserShell
-  | HistoryItemGemini
-  | HistoryItemGeminiContent
+  | HistoryItemPlumb
+  | HistoryItemPlumbContent
   | HistoryItemInfo
   | HistoryItemError
   | HistoryItemWarning
@@ -465,7 +465,7 @@ export enum MessageType {
   MODEL_STATS = 'model_stats',
   TOOL_STATS = 'tool_stats',
   QUIT = 'quit',
-  GEMINI = 'gemini',
+  PLUMB = 'plumb',
   COMPRESSION = 'compression',
   EXPORT_SESSION = 'export_session',
   EXTENSIONS_LIST = 'extensions_list',
@@ -547,7 +547,7 @@ export interface SubmitPromptResult {
 }
 
 /**
- * Defines the result of the slash command processor for its consumer (useGeminiStream).
+ * Defines the result of the slash command processor for its consumer (usePlumbStream).
  */
 export type SlashCommandProcessorResult =
   | {

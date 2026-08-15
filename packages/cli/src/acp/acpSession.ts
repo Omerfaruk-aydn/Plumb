@@ -248,7 +248,7 @@ export class Session {
             content: { type: 'text', text: contentString },
           });
         }
-      } else if (msg.type === 'gemini') {
+      } else if (msg.type === 'plumb') {
         // Thoughts
         if (msg.thoughts) {
           for (const thought of msg.thoughts) {

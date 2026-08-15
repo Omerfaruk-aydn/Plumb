@@ -205,7 +205,7 @@ export class UiTelemetryService extends EventEmitter {
     let totalTokensInContext = 0;
 
     for (const message of conversation.messages) {
-      if (message.type === 'gemini') {
+      if (message.type === 'plumb') {
         const model = message.model || 'unknown';
         const modelMetrics = this.getOrCreateModelMetrics(model);
 

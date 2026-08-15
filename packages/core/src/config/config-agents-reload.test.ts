@@ -11,7 +11,7 @@ import * as fs from 'node:fs/promises';
 
 // Mock minimum dependencies that have side effects or external calls
 vi.mock('../core/client.js', () => ({
-  GeminiClient: vi.fn().mockImplementation(() => ({
+  PlumbClient: vi.fn().mockImplementation(() => ({
     initialize: vi.fn().mockResolvedValue(undefined),
     isInitialized: vi.fn().mockReturnValue(true),
     setTools: vi.fn().mockResolvedValue(undefined),

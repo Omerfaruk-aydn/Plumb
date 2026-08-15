@@ -128,7 +128,7 @@ import { basename } from 'node:path';
 import { computeTerminalTitle } from '../utils/windowTitle.js';
 import { useTextBuffer } from './components/shared/text-buffer.js';
 import { useLogger } from './hooks/useLogger.js';
-import { useGeminiStream } from './hooks/useGeminiStream.js';
+import { usePlumbStream } from './hooks/usePlumbStream.js';
 import { useAgentStream } from './hooks/useAgentStream.js';
 import { type BackgroundTask } from './hooks/useExecutionLifecycle.js';
 import { useVim } from './hooks/vim.js';
@@ -251,7 +251,7 @@ export const AppContainer = (props: AppContainerProps) => {
   const recordingFilenameRef = useRef<string | null>(null);
   const historyManager = useHistory({
     chatRecordingService:
-      config.getGeminiClient()?.getChatRecordingService() ?? null,
+      config.getPlumbClient()?.getChatRecordingService() ?? null,
   });
 
   useMemoryMonitor(historyManager);
@@ -514,7 +514,7 @@ export const AppContainer = (props: AppContainerProps) => {
 
       if (result) {
         const additionalContext = result.getAdditionalContext();
-        const geminiClient = config.getGeminiClient();
+        const geminiClient = config.getPlumbClient();
         if (additionalContext && geminiClient) {
           await geminiClient.addHistory({
             role: 'user',
@@ -882,13 +882,13 @@ export const AppContainer = (props: AppContainerProps) => {
       selectedAuthType === AuthType.COMPUTE_ADC);
 
   // Session browser and resume functionality
-  const isGeminiClientInitialized = config.getGeminiClient()?.isInitialized();
+  const isPlumbClientInitialized = config.getPlumbClient()?.isInitialized();
 
   const { loadHistoryForResume, isResuming } = useSessionResume({
     config,
     historyManager,
     refreshStatic,
-    isGeminiClientInitialized,
+    isPlumbClientInitialized,
     setQuittingMessages,
     resumedSessionData,
     isAuthenticating,
@@ -1526,8 +1526,8 @@ Logging in with Google... Restarting PLUMB to continue.
         logger,
       })
     : // eslint-disable-next-line react-hooks/rules-of-hooks
-      useGeminiStream(
-        config.getGeminiClient(),
+      usePlumbStream(
+        config.getPlumbClient(),
         historyManager.history,
         historyManager.addItem,
         config,
@@ -1930,7 +1930,7 @@ Logging in with Google... Restarting PLUMB to continue.
   // Initial prompt handling
   const initialPrompt = useMemo(() => config.getQuestion(), [config]);
   const initialPromptSubmitted = useRef(false);
-  const geminiClient = config.getGeminiClient();
+  const geminiClient = config.getPlumbClient();
 
   useEffect(() => {
     if (

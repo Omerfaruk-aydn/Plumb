@@ -116,8 +116,8 @@ export function useHistory({
             });
             break;
           case 'user':
-          case 'gemini':
-          case 'gemini_content':
+          case 'plumb':
+          case 'plumb_content':
             // Core conversation recording handled by PlumbChat.
             break;
           default:

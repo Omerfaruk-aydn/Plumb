@@ -82,7 +82,7 @@ const cliConfig = {
   banner: {
     js: `const require = (await import('node:module')).createRequire(import.meta.url); const __chunk_filename = (await import('node:url')).fileURLToPath(import.meta.url); const __chunk_dirname = (await import('node:path')).dirname(__chunk_filename);`,
   },
-  entryPoints: { gemini: 'packages/cli/index.ts' },
+  entryPoints: { plumb: 'packages/cli/index.ts' },
   outdir: 'bundle',
   splitting: true,
   define: {
@@ -171,14 +171,14 @@ Promise.allSettled([
 ]).then((results) => {
   const [cliResult, workerResult, a2aResult] = results;
   if (cliResult.status === 'rejected') {
-    console.error('gemini.js build failed:', cliResult.reason);
+    console.error('plumb.js build failed:', cliResult.reason);
     process.exit(1);
   }
   if (workerResult.status === 'rejected') {
     console.error('worker-entry.js build failed:', workerResult.reason);
     process.exit(1);
   }
-  // error in a2a-server bundling will not stop gemini.js bundling process
+  // error in a2a-server bundling will not stop plumb.js bundling process
   if (a2aResult.status === 'rejected') {
     console.warn('a2a-server build failed:', a2aResult.reason);
   }

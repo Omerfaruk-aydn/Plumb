@@ -146,7 +146,7 @@ console.log(`
 
      npm run start
 
-   (or, equivalently: node ${path.relative(cwd, REPO_ROOT)}/bundle/gemini.js)
+   (or, equivalently: node ${path.relative(cwd, REPO_ROOT)}/bundle/plumb.js)
 
    Sanity check before launching:
      node ${path.relative(cwd, path.join(REPO_ROOT, 'scripts/check-inbox.js'))}

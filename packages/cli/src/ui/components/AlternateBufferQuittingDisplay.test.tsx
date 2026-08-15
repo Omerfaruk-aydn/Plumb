@@ -211,7 +211,7 @@ describe('AlternateBufferQuittingDisplay', () => {
     persistentStateMock.setData({ tipsShown: 0 });
     const history: HistoryItem[] = [
       { id: 1, type: 'user', text: 'Hello Gemini' },
-      { id: 2, type: 'gemini', text: 'Hello User!' },
+      { id: 2, type: 'plumb', text: 'Hello User!' },
     ];
     const { lastFrame, unmount } = await renderWithProviders(
       <AlternateBufferQuittingDisplay />,

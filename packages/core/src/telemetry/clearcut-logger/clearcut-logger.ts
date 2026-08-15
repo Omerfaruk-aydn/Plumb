@@ -291,7 +291,6 @@ async function getGpuInfo(): Promise<string> {
 // Singleton class for batch posting log events to Clearcut. When a new event comes in, the elapsed time
 // is checked and events are flushed to Clearcut if at least a minute has passed since the last flush.
 export class ClearcutLogger {
-  private static instance: ClearcutLogger;
   private config?: Config;
   private sessionData: EventValue[] = [];
   private promptId: string = '';
@@ -336,13 +335,10 @@ export class ClearcutLogger {
     }
   }
 
-  static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config === undefined || !config?.getUsageStatisticsEnabled())
-      return undefined;
-    if (!ClearcutLogger.instance) {
-      ClearcutLogger.instance = new ClearcutLogger(config);
-    }
-    return ClearcutLogger.instance;
+  static getInstance(_config?: Config): ClearcutLogger | undefined {
+    // PLUMB does not send usage telemetry to Google's Clearcut service.
+    // This logger is permanently disabled regardless of settings.
+    return undefined;
   }
 
   /** For testing purposes only. */

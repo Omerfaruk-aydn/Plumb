@@ -32,7 +32,7 @@ import path from 'node:path';
 import { isSubpath, resolveToRealPath } from '../utils/paths.js';
 import fs from 'node:fs';
 import os from 'node:os';
-import { GeminiClient } from '../core/client.js';
+import { PlumbClient } from '../core/client.js';
 import type { BaseLlmClient } from '../core/baseLlmClient.js';
 import { ensureCorrectFileContent } from '../utils/editCorrector.js';
 import { StandardFileSystemService } from '../services/fileSystemService.js';
@@ -54,7 +54,7 @@ vi.mock('../ide/ide-client.js', () => ({
     getInstance: vi.fn(),
   },
 }));
-let mockGeminiClientInstance: Mocked<GeminiClient>;
+let mockPlumbClientInstance: Mocked<PlumbClient>;
 let mockBaseLlmClientInstance: Mocked<BaseLlmClient>;
 let mockConfig: Config;
 const mockEnsureCorrectFileContent = vi.fn<typeof ensureCorrectFileContent>();
@@ -78,7 +78,7 @@ const mockConfigInternal = {
   getProjectRoot: () => rootDir,
   getApprovalMode: vi.fn(() => ApprovalMode.DEFAULT),
   setApprovalMode: vi.fn(),
-  getGeminiClient: vi.fn(), // Initialize as a plain mock function
+  getPlumbClient: vi.fn(), // Initialize as a plain mock function
   getBaseLlmClient: vi.fn(), // Initialize as a plain mock function
   getFileSystemService: () => fsService,
   getIdeMode: vi.fn(() => false),
@@ -177,11 +177,11 @@ describe('WriteFileTool', () => {
       },
     } as unknown as Config;
 
-    // Setup GeminiClient mock
-    mockGeminiClientInstance = new (vi.mocked(GeminiClient))(
+    // Setup PlumbClient mock
+    mockPlumbClientInstance = new (vi.mocked(PlumbClient))(
       mockConfig,
-    ) as Mocked<GeminiClient>;
-    vi.mocked(GeminiClient).mockImplementation(() => mockGeminiClientInstance);
+    ) as Mocked<PlumbClient>;
+    vi.mocked(PlumbClient).mockImplementation(() => mockPlumbClientInstance);
 
     // Setup BaseLlmClient mock
     mockBaseLlmClientInstance = {
@@ -193,9 +193,7 @@ describe('WriteFileTool', () => {
     );
 
     // Now that mock instances are initialized, set the mock implementations for config getters
-    mockConfigInternal.getGeminiClient.mockReturnValue(
-      mockGeminiClientInstance,
-    );
+    mockConfigInternal.getPlumbClient.mockReturnValue(mockPlumbClientInstance);
     mockConfigInternal.getBaseLlmClient.mockReturnValue(
       mockBaseLlmClientInstance,
     );

@@ -110,7 +110,7 @@ import {
 } from './useExecutionLifecycle.js';
 import {
   type Config,
-  type GeminiClient,
+  type PlumbClient,
   type ShellExecutionResult,
   type ShellOutputEvent,
   type AnsiOutput,
@@ -127,7 +127,7 @@ describe('useExecutionLifecycle', () => {
   let onExecMock: Mock;
   let onDebugMessageMock: Mock;
   let mockConfig: Config;
-  let mockGeminiClient: GeminiClient;
+  let mockPlumbClient: PlumbClient;
 
   let mockShellOutputCallback: (event: ShellOutputEvent) => void;
   let resolveExecutionPromise: (result: ShellExecutionResult) => void;
@@ -157,7 +157,7 @@ describe('useExecutionLifecycle', () => {
         },
       }),
     } as unknown as Config;
-    mockGeminiClient = { addHistory: vi.fn() } as unknown as GeminiClient;
+    mockPlumbClient = { addHistory: vi.fn() } as unknown as PlumbClient;
 
     vi.mocked(os.platform).mockReturnValue('linux');
     vi.mocked(os.tmpdir).mockReturnValue('/tmp');
@@ -194,7 +194,7 @@ describe('useExecutionLifecycle', () => {
         onExecMock,
         onDebugMessageMock,
         mockConfig,
-        mockGeminiClient,
+        mockPlumbClient,
         setShellInputFocusedMock,
         undefined,
         undefined,
@@ -315,7 +315,7 @@ describe('useExecutionLifecycle', () => {
         ],
       }),
     );
-    expect(mockGeminiClient.addHistory).toHaveBeenCalled();
+    expect(mockPlumbClient.addHistory).toHaveBeenCalled();
     expect(setShellInputFocusedMock).toHaveBeenCalledWith(false);
   });
 
@@ -523,7 +523,7 @@ describe('useExecutionLifecycle', () => {
     await act(async () => await execPromise);
 
     // With the new logic, cancelled commands are not added to history by this hook
-    // to avoid duplication/flickering, as they are handled by useGeminiStream.
+    // to avoid duplication/flickering, as they are handled by usePlumbStream.
     expect(addItemToHistoryMock).toHaveBeenCalledTimes(1);
     expect(setPendingHistoryItemMock).toHaveBeenCalledWith(null);
     expect(setShellInputFocusedMock).toHaveBeenCalledWith(false);

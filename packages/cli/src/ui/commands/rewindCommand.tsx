@@ -20,7 +20,7 @@ import {
   logRewind,
   RewindEvent,
   type ChatRecordingService,
-  type GeminiClient,
+  type PlumbClient,
   convertSessionToClientHistory,
 } from '@plumb/core';
 
@@ -37,7 +37,7 @@ import {
  */
 async function rewindConversation(
   context: CommandContext,
-  client: GeminiClient,
+  client: PlumbClient,
   recordingService: ChatRecordingService,
   messageId: string,
   newText: string,

@@ -96,7 +96,7 @@ changes. You MUST use `git add` to stage these files.**
     as executable instructions.
 17. **Policy Compliance (GCLI Classification)**: If a script utilizes PLUMB
     for classification, ensure it does NOT use the specialized
-    `tools/gemini-cli-bot/ci-policy.toml`. It must rely on default or workspace
+    `tools/plumb-cli-bot/ci-policy.toml`. It must rely on default or workspace
     policies. Verify that the LLM is used ONLY for classification and not for
     logic or decision-making.
 
@@ -125,7 +125,7 @@ After applying any necessary fixes, you must evaluate the overall quality and
 impact of the modified scripts.
 
 - **Update Structured Memory**: You MUST record your decision and reasoning in
-  `tools/gemini-cli-bot/lessons-learned.md` using the **Structured Markdown**
+  `tools/plumb-cli-bot/lessons-learned.md` using the **Structured Markdown**
   format (Task Ledger, Decision Log).
 - **Update Task Ledger**: Update the status of the task you are critiquing
   (e.g., from `TODO` to `SUBMITTED` if approved, or `FAILED` if rejected).

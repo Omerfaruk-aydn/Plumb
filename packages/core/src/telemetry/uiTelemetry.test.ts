@@ -762,7 +762,7 @@ describe('UiTelemetryService', () => {
             content: 'Hello',
           },
           {
-            type: 'gemini',
+            type: 'plumb',
             model: 'gemini-1.5-pro',
             tokens: {
               input: 10,
@@ -778,7 +778,7 @@ describe('UiTelemetryService', () => {
             ],
           },
           {
-            type: 'gemini',
+            type: 'plumb',
             model: 'gemini-1.5-pro',
             tokens: {
               input: 100,

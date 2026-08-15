@@ -16,7 +16,7 @@ import {
 import { act } from 'react';
 import { renderHookWithProviders } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
-import { useGeminiStream } from './useGeminiStream.js';
+import { usePlumbStream } from './usePlumbStream.js';
 import { useKeypress } from './useKeypress.js';
 import * as atCommandProcessor from './atCommandProcessor.js';
 import {
@@ -78,7 +78,7 @@ const mockMessageBus = {
   unsubscribe: vi.fn(),
 };
 
-const MockedGeminiClientClass = vi.hoisted(() =>
+const MockedPlumbClientClass = vi.hoisted(() =>
   vi.fn().mockImplementation(function (this: any, _config: any) {
     // _config
     this.startChat = mockStartChat;
@@ -156,7 +156,7 @@ vi.mock('@plumb/core', async (importOriginal) => {
     ...actualCoreModule,
     isBackgroundExecutionData: mockIsBackgroundExecutionData,
     GitService: vi.fn(),
-    GeminiClient: MockedGeminiClientClass,
+    PlumbClient: MockedPlumbClientClass,
     UserPromptEvent: MockedUserPromptEvent,
     ValidationRequiredError: MockValidationRequiredError,
     parseAndFormatApiError: mockParseAndFormatApiError,
@@ -271,8 +271,8 @@ vi.mock('./useAlternateBuffer.js', () => ({
 
 // --- END MOCKS ---
 
-// --- Tests for useGeminiStream Hook ---
-describe('useGeminiStream', () => {
+// --- Tests for usePlumbStream Hook ---
+describe('usePlumbStream', () => {
   let mockAddItem = vi.fn();
   let mockOnDebugMessage = vi.fn();
   let mockHandleSlashCommand = vi.fn().mockResolvedValue(false);
@@ -292,8 +292,8 @@ describe('useGeminiStream', () => {
   const mockOnCancelSubmit = vi.fn();
   const mockSetShellInputFocused = vi.fn();
 
-  const mockGetGeminiClient = vi.fn().mockImplementation(() => {
-    const clientInstance = new MockedGeminiClientClass(mockConfig);
+  const mockGetPlumbClient = vi.fn().mockImplementation(() => {
+    const clientInstance = new MockedPlumbClientClass(mockConfig);
     return clientInstance;
   });
 
@@ -330,7 +330,7 @@ describe('useGeminiStream', () => {
     ),
     getProjectRoot: vi.fn(() => '/test/dir'),
     getCheckpointingEnabled: vi.fn(() => false),
-    getGeminiClient: mockGetGeminiClient,
+    getPlumbClient: mockGetPlumbClient,
     getMcpClientManager: () => mockMcpClientManager as any,
     getApprovalMode: vi.fn(() => ApprovalMode.DEFAULT),
     getUsageStatisticsEnabled: () => true,
@@ -390,8 +390,8 @@ describe('useGeminiStream', () => {
       0, // lastToolOutputTime
     ]);
 
-    // Reset mocks for GeminiClient instance methods (startChat and sendMessageStream)
-    // The GeminiClient constructor itself is mocked at the module level.
+    // Reset mocks for PlumbClient instance methods (startChat and sendMessageStream)
+    // The PlumbClient constructor itself is mocked at the module level.
     mockStartChat.mockClear().mockResolvedValue({
       sendMessageStream: mockSendMessageStream,
     } as unknown as any); // PlumbChat -> any
@@ -419,7 +419,7 @@ describe('useGeminiStream', () => {
     geminiClient?: any,
     loadedSettings: LoadedSettings = mockLoadedSettings,
   ) => {
-    const client = geminiClient || mockConfig.getGeminiClient();
+    const client = geminiClient || mockConfig.getPlumbClient();
     let lastToolCalls = initialToolCalls;
 
     const initialProps = {
@@ -481,7 +481,7 @@ describe('useGeminiStream', () => {
 
     const { result, rerender } = await renderHookWithProviders(
       (props: typeof initialProps) =>
-        useGeminiStream(
+        usePlumbStream(
           props.client,
           props.history,
           props.addItem,
@@ -583,8 +583,8 @@ describe('useGeminiStream', () => {
     } = options;
 
     return renderHookWithProviders(() =>
-      useGeminiStream(
-        new MockedGeminiClientClass(mockConfig),
+      usePlumbStream(
+        new MockedPlumbClientClass(mockConfig),
         [],
         mockAddItem,
         mockConfig,
@@ -760,8 +760,8 @@ describe('useGeminiStream', () => {
     });
 
     await renderHookWithProviders(() =>
-      useGeminiStream(
-        new MockedGeminiClientClass(mockConfig),
+      usePlumbStream(
+        new MockedPlumbClientClass(mockConfig),
         [],
         mockAddItem,
         mockConfig,
@@ -860,8 +860,8 @@ describe('useGeminiStream', () => {
     });
 
     await renderHookWithProviders(() =>
-      useGeminiStream(
-        new MockedGeminiClientClass(mockConfig),
+      usePlumbStream(
+        new MockedPlumbClientClass(mockConfig),
         [],
         mockAddItem,
         mockConfig,
@@ -974,7 +974,7 @@ describe('useGeminiStream', () => {
         },
       } as any,
     ];
-    const client = new MockedGeminiClientClass(mockConfig);
+    const client = new MockedPlumbClientClass(mockConfig);
 
     // Capture the onComplete callback
     let capturedOnComplete:
@@ -994,7 +994,7 @@ describe('useGeminiStream', () => {
     });
 
     await renderHookWithProviders(() =>
-      useGeminiStream(
+      usePlumbStream(
         client,
         [],
         mockAddItem,
@@ -1071,7 +1071,7 @@ describe('useGeminiStream', () => {
         invocation: { getDescription: () => 'Updating topic' },
       } as any,
     ];
-    const client = new MockedGeminiClientClass(mockConfig);
+    const client = new MockedPlumbClientClass(mockConfig);
 
     // Capture the onComplete callback
     let capturedOnComplete:
@@ -1091,7 +1091,7 @@ describe('useGeminiStream', () => {
     });
 
     await renderHookWithProviders(() =>
-      useGeminiStream(
+      usePlumbStream(
         client,
         [],
         mockAddItem,
@@ -1155,7 +1155,7 @@ describe('useGeminiStream', () => {
         } as unknown as AnyToolInvocation,
       } as unknown as TrackedCompletedToolCall,
     ];
-    const client = new MockedGeminiClientClass(mockConfig);
+    const client = new MockedPlumbClientClass(mockConfig);
 
     const { result } = await renderTestHook([], client);
 
@@ -1235,7 +1235,7 @@ describe('useGeminiStream', () => {
         ui: { errorVerbosity: 'low' },
       },
     } as LoadedSettings;
-    const client = new MockedGeminiClientClass(mockConfig);
+    const client = new MockedPlumbClientClass(mockConfig);
 
     const { result } = await renderTestHook([], client, lowVerbositySettings);
 
@@ -1332,7 +1332,7 @@ describe('useGeminiStream', () => {
       responseSubmittedToGemini: false,
     };
     const allCancelledTools = [cancelledToolCall1, cancelledToolCall2];
-    const client = new MockedGeminiClientClass(mockConfig);
+    const client = new MockedPlumbClientClass(mockConfig);
 
     let capturedOnComplete:
       | ((completedTools: TrackedToolCall[]) => Promise<void>)
@@ -1351,7 +1351,7 @@ describe('useGeminiStream', () => {
     });
 
     await renderHookWithProviders(() =>
-      useGeminiStream(
+      usePlumbStream(
         client,
         [],
         mockAddItem,
@@ -1468,8 +1468,8 @@ describe('useGeminiStream', () => {
     });
 
     const { result, rerender } = await renderHookWithProviders(() =>
-      useGeminiStream(
-        new MockedGeminiClientClass(mockConfig),
+      usePlumbStream(
+        new MockedPlumbClientClass(mockConfig),
         [],
         mockAddItem,
         mockConfig,
@@ -1605,8 +1605,8 @@ describe('useGeminiStream', () => {
       mockSendMessageStream.mockReturnValue(mockStream);
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          mockConfig.getGeminiClient(),
+        usePlumbStream(
+          mockConfig.getPlumbClient(),
           [],
           mockAddItem,
           mockConfig,
@@ -1646,8 +1646,8 @@ describe('useGeminiStream', () => {
       mockSendMessageStream.mockReturnValue(mockStream);
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          mockConfig.getGeminiClient(),
+        usePlumbStream(
+          mockConfig.getPlumbClient(),
           [],
           mockAddItem,
           mockConfig,
@@ -1730,7 +1730,7 @@ describe('useGeminiStream', () => {
 
       // The text should not have been updated with " Canceled"
       const lastCall = mockAddItem.mock.calls.find(
-        (call) => call[0].type === 'gemini',
+        (call) => call[0].type === 'plumb',
       );
       expect(lastCall?.[0].text).toBe('Initial');
 
@@ -2099,8 +2099,8 @@ describe('useGeminiStream', () => {
 
     it('should not call handleSlashCommand is shell mode is active', async () => {
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -2130,7 +2130,7 @@ describe('useGeminiStream', () => {
     });
 
     it('should record client-initiated tool calls in PlumbChat history', async () => {
-      const { result, client: mockGeminiClient } = await renderTestHook();
+      const { result, client: mockPlumbClient } = await renderTestHook();
 
       mockHandleSlashCommand.mockResolvedValue({
         type: 'schedule_tool',
@@ -2176,7 +2176,7 @@ describe('useGeminiStream', () => {
       });
 
       // Verify that the tool call and response were added to PlumbChat history
-      expect(mockGeminiClient.addHistory).toHaveBeenCalledWith({
+      expect(mockPlumbClient.addHistory).toHaveBeenCalledWith({
         role: 'model',
         parts: [
           {
@@ -2187,14 +2187,14 @@ describe('useGeminiStream', () => {
           },
         ],
       });
-      expect(mockGeminiClient.addHistory).toHaveBeenCalledWith({
+      expect(mockPlumbClient.addHistory).toHaveBeenCalledWith({
         role: 'user',
         parts: completedTool.response.responseParts,
       });
     });
 
     it('should NOT record other client-initiated tool calls in history', async () => {
-      const { result, client: mockGeminiClient } = await renderTestHook();
+      const { result, client: mockPlumbClient } = await renderTestHook();
 
       mockHandleSlashCommand.mockResolvedValue({
         type: 'schedule_tool',
@@ -2240,7 +2240,7 @@ describe('useGeminiStream', () => {
       });
 
       // Verify that addHistory was NOT called
-      expect(mockGeminiClient.addHistory).not.toHaveBeenCalled();
+      expect(mockPlumbClient.addHistory).not.toHaveBeenCalled();
     });
   });
 
@@ -2268,8 +2268,8 @@ describe('useGeminiStream', () => {
       } as unknown as Config;
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(testConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(testConfig),
           [],
           mockAddItem,
           testConfig,
@@ -2575,8 +2575,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -2680,8 +2680,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -2888,8 +2888,8 @@ describe('useGeminiStream', () => {
     });
 
     const { result } = await renderHookWithProviders(() =>
-      useGeminiStream(
-        new MockedGeminiClientClass(mockConfig),
+      usePlumbStream(
+        new MockedPlumbClientClass(mockConfig),
         [],
         mockAddItem,
         mockConfig,
@@ -2959,8 +2959,8 @@ describe('useGeminiStream', () => {
     });
 
     const { result } = await renderHookWithProviders(() =>
-      useGeminiStream(
-        mockConfig.getGeminiClient(),
+      usePlumbStream(
+        mockConfig.getPlumbClient(),
         [],
         mockAddItem,
         mockConfig,
@@ -3089,7 +3089,7 @@ describe('useGeminiStream', () => {
       expect(mockAddItem).toHaveBeenNthCalledWith(
         3,
         expect.objectContaining({
-          type: 'gemini',
+          type: 'plumb',
           text: modelResponseContent,
         }),
         expect.any(Number),
@@ -3124,8 +3124,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -3187,7 +3187,7 @@ describe('useGeminiStream', () => {
       await waitFor(() => {
         expect(mockAddItem).toHaveBeenCalledWith(
           expect.objectContaining({
-            type: 'gemini',
+            type: 'plumb',
             text: 'Model response content',
           }),
           expect.any(Number),
@@ -3224,8 +3224,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -3254,7 +3254,7 @@ describe('useGeminiStream', () => {
       await waitFor(() => {
         expect(mockAddItem).toHaveBeenCalledWith(
           expect.objectContaining({
-            type: 'gemini',
+            type: 'plumb',
             text: 'Some response content',
           }),
           expect.any(Number),
@@ -3287,7 +3287,7 @@ describe('useGeminiStream', () => {
       await waitFor(() => {
         expect(mockAddItem).toHaveBeenCalledWith(
           expect.objectContaining({
-            type: 'gemini',
+            type: 'plumb',
             text: 'New response content',
           }),
           expect.any(Number),
@@ -3306,8 +3306,8 @@ describe('useGeminiStream', () => {
       ]);
 
       const { result, rerender } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          mockConfig.getGeminiClient(),
+        usePlumbStream(
+          mockConfig.getPlumbClient(),
           [],
           mockAddItem,
           mockConfig,
@@ -3377,8 +3377,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -3434,8 +3434,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -3502,8 +3502,8 @@ describe('useGeminiStream', () => {
       );
 
       const { result } = await renderHookWithProviders(() =>
-        useGeminiStream(
-          new MockedGeminiClientClass(mockConfig),
+        usePlumbStream(
+          new MockedPlumbClientClass(mockConfig),
           [],
           mockAddItem,
           mockConfig,
@@ -3547,8 +3547,8 @@ describe('useGeminiStream', () => {
       const mockLoopDetectionService = {
         disableForSession: vi.fn(),
       };
-      mockConfig.getGeminiClient = vi.fn().mockReturnValue({
-        ...new MockedGeminiClientClass(mockConfig),
+      mockConfig.getPlumbClient = vi.fn().mockReturnValue({
+        ...new MockedPlumbClientClass(mockConfig),
         getLoopDetectionService: () => mockLoopDetectionService,
       });
     });
@@ -3585,10 +3585,10 @@ describe('useGeminiStream', () => {
         disableForSession: vi.fn(),
       };
       const mockClient = {
-        ...new MockedGeminiClientClass(mockConfig),
+        ...new MockedPlumbClientClass(mockConfig),
         getLoopDetectionService: () => mockLoopDetectionService,
       };
-      mockConfig.getGeminiClient = vi.fn().mockReturnValue(mockClient);
+      mockConfig.getPlumbClient = vi.fn().mockReturnValue(mockClient);
 
       // Mock for the initial request
       mockSendMessageStream.mockReturnValueOnce(
@@ -3664,10 +3664,10 @@ describe('useGeminiStream', () => {
         disableForSession: vi.fn(),
       };
       const mockClient = {
-        ...new MockedGeminiClientClass(mockConfig),
+        ...new MockedPlumbClientClass(mockConfig),
         getLoopDetectionService: () => mockLoopDetectionService,
       };
-      mockConfig.getGeminiClient = vi.fn().mockReturnValue(mockClient);
+      mockConfig.getPlumbClient = vi.fn().mockReturnValue(mockClient);
 
       mockSendMessageStream.mockReturnValue(
         (async function* () {
@@ -3831,7 +3831,7 @@ describe('useGeminiStream', () => {
       await waitFor(() => {
         expect(mockAddItem).toHaveBeenCalledWith(
           expect.objectContaining({
-            type: 'gemini',
+            type: 'plumb',
             text: 'Some response content',
           }),
           expect.any(Number),
@@ -3886,10 +3886,10 @@ describe('useGeminiStream', () => {
           disableForSession: vi.fn(),
         };
         const mockClient = {
-          ...new MockedGeminiClientClass(mockConfig),
+          ...new MockedPlumbClientClass(mockConfig),
           getLoopDetectionService: () => mockLoopDetectionService,
         };
-        mockConfig.getGeminiClient = vi.fn().mockReturnValue(mockClient);
+        mockConfig.getPlumbClient = vi.fn().mockReturnValue(mockClient);
 
         // First call triggers loop detection
         mockSendMessageStream.mockReturnValueOnce(
@@ -4104,7 +4104,7 @@ describe('useGeminiStream', () => {
       );
       expect(mockAddItem).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          type: 'gemini_content',
+          type: 'plumb_content',
           text: 'test content',
         }),
         expect.any(Number),
@@ -4146,7 +4146,7 @@ describe('useGeminiStream', () => {
       );
       expect(mockAddItem).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          type: 'gemini_content',
+          type: 'plumb_content',
           text: 'content',
         }),
         expect.any(Number),

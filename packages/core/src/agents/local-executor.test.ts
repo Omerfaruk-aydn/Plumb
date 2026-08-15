@@ -78,7 +78,7 @@ import {
 } from '@google/genai';
 import type { Config } from '../config/config.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import type { SandboxManager } from '../services/sandboxManager.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import { MockTool } from '../test-utils/mock-tool.js';
@@ -505,7 +505,7 @@ describe('LocalAgentExecutor', () => {
   describe('create (Initialization and Validation)', () => {
     it('should explicitly map execution context properties to prevent unintended propagation', async () => {
       const definition = createTestDefinition([LS_TOOL_NAME]);
-      const mockGeminiClient = {} as unknown as GeminiClient;
+      const mockPlumbClient = {} as unknown as PlumbClient;
       const mockSandboxManager = {} as unknown as SandboxManager;
       const extendedContext = {
         config: mockConfig,
@@ -514,7 +514,7 @@ describe('LocalAgentExecutor', () => {
         promptRegistry: mockConfig.promptRegistry,
         resourceRegistry: mockConfig.resourceRegistry,
         messageBus: mockConfig.messageBus,
-        geminiClient: mockGeminiClient,
+        geminiClient: mockPlumbClient,
         sandboxManager: mockSandboxManager,
         unintendedProperty: 'should not be here',
       } as unknown as AgentLoopContext;
@@ -574,7 +574,7 @@ describe('LocalAgentExecutor', () => {
     it('should propagate parentSessionId from context when creating executionContext', async () => {
       const parentSessionId = 'top-level-session-id';
       const currentPromptId = 'subagent-a-id';
-      const mockGeminiClient = {} as unknown as GeminiClient;
+      const mockPlumbClient = {} as unknown as PlumbClient;
       const mockSandboxManager = {} as unknown as SandboxManager;
       const mockMessageBus = {
         derive: () => ({}),
@@ -592,7 +592,7 @@ describe('LocalAgentExecutor', () => {
         toolRegistry: mockToolRegistry,
         promptRegistry: {} as unknown as PromptRegistry,
         resourceRegistry: {} as unknown as ResourceRegistry,
-        geminiClient: mockGeminiClient,
+        geminiClient: mockPlumbClient,
         sandboxManager: mockSandboxManager,
         messageBus: mockMessageBus,
       } as unknown as AgentLoopContext;
@@ -620,7 +620,7 @@ describe('LocalAgentExecutor', () => {
 
     it('should fall back to promptId if parentSessionId is missing (top-level subagent)', async () => {
       const rootSessionId = 'root-session-id';
-      const mockGeminiClient = {} as unknown as GeminiClient;
+      const mockPlumbClient = {} as unknown as PlumbClient;
       const mockSandboxManager = {} as unknown as SandboxManager;
       const mockMessageBus = {
         derive: () => ({}),
@@ -638,7 +638,7 @@ describe('LocalAgentExecutor', () => {
         toolRegistry: mockToolRegistry,
         promptRegistry: {} as unknown as PromptRegistry,
         resourceRegistry: {} as unknown as ResourceRegistry,
-        geminiClient: mockGeminiClient,
+        geminiClient: mockPlumbClient,
         sandboxManager: mockSandboxManager,
         messageBus: mockMessageBus,
       } as unknown as AgentLoopContext;

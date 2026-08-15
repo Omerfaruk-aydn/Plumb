@@ -1,17 +1,13 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * F19 (PLUMB-UI-DEVRIM-PROMPT.md): shared plumbing for /undo and /redo --
- * resolving the config/client/recording-service triple both commands need,
- * and pushing a restored message list back into the client + UI history
- * (mirrors what rewindCommand.tsx does after a chat rewind).
+ * @license
  */
 import type {
   Config,
   ChatRecordingService,
-  GeminiClient,
+  PlumbClient,
   MessageRecord,
   MessageActionReturn,
 } from '@plumb/core';
@@ -22,7 +18,7 @@ import { convertSessionToHistoryFormats } from '../hooks/useSessionBrowser.js';
 
 export interface UndoRedoServices {
   config: Config;
-  client: GeminiClient;
+  client: PlumbClient;
   recordingService: ChatRecordingService;
 }
 
@@ -69,7 +65,7 @@ export function isUndoRedoServices(
 /** Pushes a full message list into the client and UI history, replacing what's currently shown. */
 export function applyRestoredMessages(
   context: CommandContext,
-  client: GeminiClient,
+  client: PlumbClient,
   messages: MessageRecord[],
 ): void {
   const clientHistory = convertSessionToClientHistory(messages);

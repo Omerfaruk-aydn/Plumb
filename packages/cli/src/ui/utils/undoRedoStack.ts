@@ -1,17 +1,8 @@
 /**
- * @license
- * Copyright 2026 Google LLC
+ * Copyright 2026 PLUMB contributors
  * SPDX-License-Identifier: Apache-2.0
  *
- * F19 (PLUMB-UI-DEVRIM-PROMPT.md): in-memory undo/redo stacks backing the
- * /undo and /redo commands. Populated proactively -- `captureTurnSnapshot`
- * is called from `useGeminiStream` right before every real (non-continuation)
- * user turn, so /undo itself needs no extra round-trip at invocation time.
- *
- * State lives entirely in this process: it is keyed by `Config` instance
- * (one per session) and is not persisted to disk, so it does not survive a
- * CLI restart. That mirrors the UX spec, which only requires the stack to
- * clear on new input, not to outlive the session.
+ * @license
  */
 import type { Config, ChatRecordingService, MessageRecord } from '@plumb/core';
 import { debugLogger } from '@plumb/core';

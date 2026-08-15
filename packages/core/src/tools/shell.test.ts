@@ -148,7 +148,7 @@ describe('ShellTool', () => {
         const projectTempDir = this.storage.getProjectTempDir();
         return `Path not in workspace: Attempted path "${absolutePath}" resolves outside the allowed workspace directories: ${workspaceDirs.join(', ')} or the project temp directory: ${projectTempDir}`;
       },
-      getGeminiClient: vi.fn().mockReturnValue({}),
+      getPlumbClient: vi.fn().mockReturnValue({}),
       getShellToolInactivityTimeout: vi.fn().mockReturnValue(1000),
       getEnableInteractiveShell: vi.fn().mockReturnValue(false),
       isInteractiveShellEnabled: vi.fn().mockReturnValue(false),

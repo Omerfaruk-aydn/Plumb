@@ -344,7 +344,7 @@ describe('<HistoryItemDisplay />', () => {
       it('should render a truncated gemini item', async () => {
         const item: HistoryItem = {
           id: 1,
-          type: 'gemini',
+          type: 'plumb',
           text: longCode,
         };
         const { lastFrame, unmount } = await renderWithProviders(
@@ -366,7 +366,7 @@ describe('<HistoryItemDisplay />', () => {
       it('should render a full gemini item when using availableTerminalHeightGemini', async () => {
         const item: HistoryItem = {
           id: 1,
-          type: 'gemini',
+          type: 'plumb',
           text: longCode,
         };
         const { lastFrame, unmount } = await renderWithProviders(
@@ -389,7 +389,7 @@ describe('<HistoryItemDisplay />', () => {
       it('should render a truncated gemini_content item', async () => {
         const item: HistoryItem = {
           id: 1,
-          type: 'gemini_content',
+          type: 'plumb_content',
           text: longCode,
         };
         const { lastFrame, unmount } = await renderWithProviders(
@@ -411,7 +411,7 @@ describe('<HistoryItemDisplay />', () => {
       it('should render a full gemini_content item when using availableTerminalHeightGemini', async () => {
         const item: HistoryItem = {
           id: 1,
-          type: 'gemini_content',
+          type: 'plumb_content',
           text: longCode,
         };
         const { lastFrame, unmount } = await renderWithProviders(

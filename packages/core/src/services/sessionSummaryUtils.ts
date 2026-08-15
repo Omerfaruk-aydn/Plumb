@@ -269,7 +269,7 @@ function buildMemoryScratchpad(
   let validationStatus: MemoryScratchpad['validationStatus'];
 
   for (const message of messages) {
-    if (message.type !== 'gemini' || !message.toolCalls) {
+    if (message.type !== 'plumb' || !message.toolCalls) {
       continue;
     }
 

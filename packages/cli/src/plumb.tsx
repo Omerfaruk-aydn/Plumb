@@ -233,7 +233,7 @@ export async function resolveSessionId(
         (m) =>
           typeof m === 'object' &&
           m !== null &&
-          (m.type === 'user' || m.type === 'gemini') &&
+          (m.type === 'user' || m.type === 'plumb') &&
           m.content !== undefined,
       );
 

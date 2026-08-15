@@ -10,5 +10,5 @@ export interface MetricOutput {
   details?: Record<string, unknown>;
 }
 
-export const GITHUB_OWNER = 'google-gemini';
-export const GITHUB_REPO = 'gemini-cli';
+export const GITHUB_OWNER = 'Omerfaruk-aydn';
+export const GITHUB_REPO = 'Plumb';

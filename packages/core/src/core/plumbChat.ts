@@ -298,7 +298,7 @@ export class PlumbChat {
     } else if (resumedSessionData) {
       // Otherwise, if resuming from disk, build from the persisted record.
       initialHistory = resumedSessionData.conversation.messages
-        .filter((m) => m.type === 'user' || m.type === 'gemini')
+        .filter((m) => m.type === 'user' || m.type === 'plumb')
         .map((m) => ({
           id: m.id,
           content: {
@@ -457,7 +457,7 @@ export class PlumbChat {
 
           // Turn 2: Synthetic Model Acknowledgment
           const modelId = this.chatRecordingService.recordSyntheticMessage(
-            'gemini',
+            'plumb',
             [
               {
                 text: 'Binary content received. Proceeding with analysis.',
@@ -985,7 +985,7 @@ export class PlumbChat {
       this.agentHistory.push(content);
     } else {
       const id = this.chatRecordingService.recordSyntheticMessage(
-        content.role === 'user' ? 'user' : 'gemini',
+        content.role === 'user' ? 'user' : 'plumb',
         content.parts || [],
       );
       this.agentHistory.push({ id, content });
@@ -1000,7 +1000,7 @@ export class PlumbChat {
         return item;
       }
       const id = this.chatRecordingService.recordSyntheticMessage(
-        item.role === 'user' ? 'user' : 'gemini',
+        item.role === 'user' ? 'user' : 'plumb',
         item.parts || [],
       );
       return { id, content: item };
@@ -1327,13 +1327,13 @@ export class PlumbChat {
     if (responseText || hasThoughts || hasToolCall) {
       id = this.chatRecordingService.recordMessage({
         model,
-        type: 'gemini',
+        type: 'plumb',
         content: responseText,
       });
     } else {
       // Still need a durable ID even if response is empty (e.g. only tool calls)
       id = this.chatRecordingService.recordSyntheticMessage(
-        'gemini',
+        'plumb',
         consolidatedParts,
       );
     }

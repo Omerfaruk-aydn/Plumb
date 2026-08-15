@@ -39,8 +39,8 @@ jobs:
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
         run: |
-          if [ -d "tools/gemini-cli-bot/reflexes/scripts" ] && [ "$(ls -A tools/gemini-cli-bot/reflexes/scripts)" ]; then
-            for script in tools/gemini-cli-bot/reflexes/scripts/*.ts; do
+          if [ -d "tools/plumb-cli-bot/reflexes/scripts" ] && [ "$(ls -A tools/plumb-cli-bot/reflexes/scripts)" ]; then
+            for script in tools/plumb-cli-bot/reflexes/scripts/*.ts; do
               echo "Running reflex script: $script"
               npx tsx "$script"
             done

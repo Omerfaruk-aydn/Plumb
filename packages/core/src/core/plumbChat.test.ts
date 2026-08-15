@@ -293,7 +293,7 @@ describe('PlumbChat', () => {
             },
             {
               id: 'b',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'turn 2' }],
               create_time: new Date(),
             },
@@ -1323,7 +1323,7 @@ describe('PlumbChat', () => {
       const geminiWrite = newWrites.find((w) => {
         try {
           const data = JSON.parse(w[1] as string);
-          return data.type === 'gemini';
+          return data.type === 'plumb';
         } catch {
           return false;
         }

@@ -599,7 +599,7 @@ describe('SessionSelector', () => {
       lastUpdated: '2024-01-01T10:30:00.000Z',
       messages: [
         {
-          type: 'gemini',
+          type: 'plumb',
           content: 'Hello, how can I help?',
           id: 'msg1',
           timestamp: '2024-01-01T10:00:00.000Z',
@@ -842,7 +842,7 @@ describe('extractFirstUserMessage', () => {
   it('should return "Empty conversation" for no user messages', () => {
     const messages = [
       {
-        type: 'gemini',
+        type: 'plumb',
         content: 'Hello',
         id: 'msg1',
         timestamp: '2024-01-01T10:00:00.000Z',
@@ -895,7 +895,7 @@ describe('convertSessionToHistoryFormats', () => {
       {
         id: '1',
         timestamp: new Date().toISOString(),
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         toolCalls: [
           {
@@ -943,7 +943,7 @@ describe('convertSessionToHistoryFormats', () => {
       {
         id: '1',
         timestamp: new Date().toISOString(),
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         toolCalls: [
           {
@@ -1006,7 +1006,7 @@ describe('convertSessionToHistoryFormats', () => {
       {
         id: '5',
         timestamp: new Date().toISOString(),
-        type: 'gemini',
+        type: 'plumb',
         content: 'Hello gemini',
         thoughts: [
           {
@@ -1039,7 +1039,7 @@ describe('convertSessionToHistoryFormats', () => {
       thought: { subject: 'Thinking', description: 'about things' },
     });
     expect(result.uiHistory[5]).toEqual(
-      expect.objectContaining({ type: 'gemini', text: 'Hello gemini' }),
+      expect.objectContaining({ type: 'plumb', text: 'Hello gemini' }),
     );
   });
 
@@ -1069,7 +1069,7 @@ describe('convertSessionToHistoryFormats', () => {
       {
         id: '1',
         timestamp: new Date().toISOString(),
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         toolCalls: [
           {

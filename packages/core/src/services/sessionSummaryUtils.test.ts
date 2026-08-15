@@ -489,7 +489,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Reading package.json' }],
               toolCalls: [
                 {
@@ -562,7 +562,7 @@ describe('sessionSummaryUtils', () => {
           JSON.stringify({
             id: 'g-resumed',
             timestamp: '2024-01-02T00:00:01Z',
-            type: 'gemini',
+            type: 'plumb',
             content: [{ text: 'Editing file' }],
             toolCalls: [
               {
@@ -721,7 +721,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Reading files' }],
               toolCalls: [
                 {
@@ -773,7 +773,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Running commands' }],
               toolCalls: [
                 {
@@ -849,7 +849,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Running helper' }],
               toolCalls: [
                 {
@@ -900,7 +900,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Editing files' }],
               toolCalls: [
                 {
@@ -969,7 +969,7 @@ describe('sessionSummaryUtils', () => {
             {
               id: 'g1',
               timestamp: '2024-01-01T00:00:01Z',
-              type: 'gemini',
+              type: 'plumb',
               content: [{ text: 'Running tests' }],
               toolCalls: [
                 {

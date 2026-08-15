@@ -20,7 +20,7 @@ vi.mock('@plumb/core', async () => {
   };
 });
 
-import { uiTelemetryService, type GeminiClient } from '@plumb/core';
+import { uiTelemetryService, type PlumbClient } from '@plumb/core';
 
 describe('clearCommand', () => {
   let mockContext: CommandContext;
@@ -53,7 +53,7 @@ describe('clearCommand', () => {
             getChat: () => ({
               getChatRecordingService: mockGetChatRecordingService,
             }),
-          } as unknown as GeminiClient,
+          } as unknown as PlumbClient,
         },
       },
     });

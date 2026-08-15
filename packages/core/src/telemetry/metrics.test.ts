@@ -992,7 +992,7 @@ describe('Telemetry Metrics', () => {
         recordStartupPerformanceModule(mockConfigDisabled, 100, {
           phase: 'settings_loading',
           details: {
-            auth_type: 'gemini',
+            auth_type: 'plumb',
           },
         });
 
@@ -1006,7 +1006,7 @@ describe('Telemetry Metrics', () => {
         recordStartupPerformanceModule(mockConfig, 150, {
           phase: 'settings_loading',
           details: {
-            auth_type: 'gemini',
+            auth_type: 'plumb',
             telemetry_enabled: true,
             settings_sources: 2,
           },
@@ -1017,7 +1017,7 @@ describe('Telemetry Metrics', () => {
           'installation.id': 'test-installation-id',
           'user.email': 'test@example.com',
           phase: 'settings_loading',
-          auth_type: 'gemini',
+          auth_type: 'plumb',
           telemetry_enabled: true,
           settings_sources: 2,
         });

@@ -5,7 +5,7 @@
 
 import * as path from 'node:path';
 import type { GitService } from '../services/gitService.js';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import { getErrorMessage } from './errors.js';
 import { z } from 'zod';
 import type { Content } from '@google/genai';
@@ -83,7 +83,7 @@ export function getTruncatedCheckpointNames(filenames: string[]): string[] {
 export async function processRestorableToolCalls<HistoryType>(
   toolCalls: ToolCallRequestInfo[],
   gitService: GitService,
-  geminiClient: GeminiClient,
+  geminiClient: PlumbClient,
   history?: HistoryType,
 ): Promise<{
   checkpointsToWrite: Map<string, string>;

@@ -6,8 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "plumb": "dist/index.js",
-    "gemini": "dist/index.js"
+    "plumb": "dist/index.js"
   },
   "scripts": {
     "prebuild": "node ../../scripts/generate-build-identity.js",

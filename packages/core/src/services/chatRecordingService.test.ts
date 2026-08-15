@@ -185,7 +185,7 @@ describe('ChatRecordingService', () => {
           timestamp: '2024-01-01T10:00:00.000Z',
         },
         {
-          type: 'gemini',
+          type: 'plumb',
           content: 'I can help with that.',
           id: 'msg2',
           timestamp: '2024-01-01T10:01:00.000Z',
@@ -370,7 +370,7 @@ describe('ChatRecordingService', () => {
 
     it('should update the last message with token info', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Response',
         model: 'gemini-pro',
       });
@@ -387,7 +387,7 @@ describe('ChatRecordingService', () => {
         sessionFile,
       )) as ConversationRecord;
       const geminiMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
       expect(geminiMsg.tokens).toEqual({
         input: 1,
@@ -401,7 +401,7 @@ describe('ChatRecordingService', () => {
 
     it('should queue token info if the last message already has tokens', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Response',
         model: 'gemini-pro',
       });
@@ -461,7 +461,7 @@ describe('ChatRecordingService', () => {
 
     it('should not write to disk when queuing tokens (last message already has tokens)', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Response',
         model: 'gemini-pro',
       });
@@ -490,7 +490,7 @@ describe('ChatRecordingService', () => {
 
     it('should use in-memory cache and not re-read from disk on subsequent operations', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Response',
         model: 'gemini-pro',
       });
@@ -507,7 +507,7 @@ describe('ChatRecordingService', () => {
       });
 
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Another response',
         model: 'gemini-pro',
       });
@@ -526,7 +526,7 @@ describe('ChatRecordingService', () => {
 
     it('should add new tool calls to the last message', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         model: 'gemini-pro',
       });
@@ -545,7 +545,7 @@ describe('ChatRecordingService', () => {
         sessionFile,
       )) as ConversationRecord;
       const geminiMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
       expect(geminiMsg.toolCalls).toHaveLength(1);
       expect(geminiMsg.toolCalls![0].name).toBe('testTool');
@@ -553,7 +553,7 @@ describe('ChatRecordingService', () => {
 
     it('should preserve dynamic description and NOT overwrite with generic one', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         model: 'gemini-pro',
       });
@@ -575,7 +575,7 @@ describe('ChatRecordingService', () => {
         sessionFile,
       )) as ConversationRecord;
       const geminiMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
 
       expect(geminiMsg.toolCalls![0].description).toBe(dynamicDescription);
@@ -602,16 +602,16 @@ describe('ChatRecordingService', () => {
         sessionFile,
       )) as ConversationRecord;
       expect(conversation.messages).toHaveLength(2);
-      expect(conversation.messages[1].type).toBe('gemini');
+      expect(conversation.messages[1].type).toBe('plumb');
       expect(
-        (conversation.messages[1] as MessageRecord & { type: 'gemini' })
+        (conversation.messages[1] as MessageRecord & { type: 'plumb' })
           .toolCalls,
       ).toHaveLength(1);
     });
 
     it('should record agentId when provided', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         model: 'gemini-pro',
       });
@@ -631,7 +631,7 @@ describe('ChatRecordingService', () => {
         sessionFile,
       )) as ConversationRecord;
       const geminiMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
       expect(geminiMsg.toolCalls).toHaveLength(1);
       expect(geminiMsg.toolCalls![0].agentId).toBe('test-agent-id');
@@ -1005,7 +1005,7 @@ describe('ChatRecordingService', () => {
         model: 'm',
       });
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'msg2',
         model: 'm',
       });
@@ -1181,7 +1181,7 @@ describe('ChatRecordingService', () => {
     it('should update tool results from API history (masking sync)', async () => {
       // 1. Record an initial message and tool call
       const modelMsgId = chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'I will list the files.',
         model: 'gemini-pro',
       });
@@ -1239,7 +1239,7 @@ describe('ChatRecordingService', () => {
       )) as ConversationRecord;
 
       const geminiMsg = conversation.messages[0];
-      if (geminiMsg.type !== 'gemini')
+      if (geminiMsg.type !== 'plumb')
         throw new Error('Expected gemini message');
       expect(geminiMsg.toolCalls).toBeDefined();
       expect(geminiMsg.toolCalls![0].id).toBe(callId);
@@ -1257,7 +1257,7 @@ describe('ChatRecordingService', () => {
     it('should preserve multi-modal sibling parts during sync', async () => {
       await chatRecordingService.initialize();
       const modelMsgId = chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         model: 'gemini-pro',
       });
@@ -1317,7 +1317,7 @@ describe('ChatRecordingService', () => {
       )) as ConversationRecord;
 
       const lastMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
       const result = lastMsg.toolCalls![0].result as Part[];
       expect(result).toHaveLength(2);
@@ -1331,7 +1331,7 @@ describe('ChatRecordingService', () => {
     it('should handle parts appearing BEFORE the functionResponse in a content block', async () => {
       await chatRecordingService.initialize();
       const modelMsgId = chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: '',
         model: 'gemini-pro',
       });
@@ -1380,7 +1380,7 @@ describe('ChatRecordingService', () => {
       )) as ConversationRecord;
 
       const lastMsg = conversation.messages[0] as MessageRecord & {
-        type: 'gemini';
+        type: 'plumb';
       };
       const result = lastMsg.toolCalls![0].result as Part[];
       expect(result).toHaveLength(2);
@@ -1390,7 +1390,7 @@ describe('ChatRecordingService', () => {
 
     it('should not write to disk when no tool calls match', async () => {
       chatRecordingService.recordMessage({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Response with no tool calls',
         model: 'gemini-pro',
       });
@@ -1470,7 +1470,7 @@ describe('ChatRecordingService', () => {
       // Explicit ID registration (e.g. from context processor)
       const customId = 'stable-hash-123';
       const id2 = chatRecordingService.recordSyntheticMessage(
-        'gemini',
+        'plumb',
         parts,
         customId,
       );
@@ -1483,7 +1483,7 @@ describe('ChatRecordingService', () => {
       expect(record!.messages[0].id).toBe(id1);
       expect(record!.messages[0].type).toBe('user');
       expect(record!.messages[1].id).toBe(customId);
-      expect(record!.messages[1].type).toBe('gemini');
+      expect(record!.messages[1].type).toBe('plumb');
     });
 
     it('should synchronize history turns and maintain their durable identity', async () => {

@@ -65,7 +65,7 @@ describe('Tool Confirmation Policy Updates', () => {
       }),
       getFileService: () => ({}),
       getFileFilteringOptions: () => ({}),
-      getGeminiClient: () => ({}),
+      getPlumbClient: () => ({}),
       getBaseLlmClient: () => ({}),
       getDisableLLMCorrection: () => true,
       getIdeMode: () => false,

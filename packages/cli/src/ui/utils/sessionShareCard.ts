@@ -52,7 +52,7 @@ export function summarizeSessionForShare(
   let addedLines = 0;
   let removedLines = 0;
   for (const msg of conversation.messages) {
-    if (msg.type !== 'gemini' || !msg.toolCalls) continue;
+    if (msg.type !== 'plumb' || !msg.toolCalls) continue;
     for (const toolCall of msg.toolCalls) {
       const fileDiff = getFileDiffFromResultDisplay(toolCall.resultDisplay);
       if (!fileDiff) continue;

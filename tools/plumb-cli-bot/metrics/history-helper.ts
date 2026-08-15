@@ -9,7 +9,7 @@ import { join } from 'node:path';
 const TIMESERIES_FILE = join(
   process.cwd(),
   'tools',
-  'gemini-cli-bot',
+  'plumb-cli-bot',
   'history',
   'metrics-timeseries.csv',
 );

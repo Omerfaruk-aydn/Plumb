@@ -37,7 +37,7 @@ if (fs.existsSync(sourceBundleDir)) {
 // Inherit optionalDependencies from root package.json, excluding dev-only packages.
 const rootPkg = readJson('package.json');
 const optionalDependencies = { ...(rootPkg.optionalDependencies || {}) };
-delete optionalDependencies['gemini-cli-devtools'];
+delete optionalDependencies['@plumb/devtools'];
 
 // Update plumb-cli package.json for bundled npm release
 const cliPkgPath = 'packages/cli/package.json';
@@ -45,7 +45,7 @@ const cliPkg = readJson(cliPkgPath);
 
 cliPkg.files = ['bundle/'];
 cliPkg.bin = {
-  gemini: 'bundle/gemini.js',
+  plumb: 'bundle/plumb.js',
 };
 
 delete cliPkg.dependencies;

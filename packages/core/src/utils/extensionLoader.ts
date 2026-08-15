@@ -124,7 +124,7 @@ export abstract class ExtensionLoader {
       // reload memory, this is somewhat expensive and also busts the context
       // cache, we want to only do it once.
       await this.config.getMemoryContextManager()?.refresh();
-      this.config.getGeminiClient().updateSystemInstruction();
+      this.config.getPlumbClient().updateSystemInstruction();
       await this.config.getHookSystem()?.initialize();
       await this.config.getAgentRegistry().reload();
       await this.config.reloadSkills();

@@ -76,6 +76,26 @@ function isRewindRecord(record: unknown): record is RewindRecord {
   return isStringProperty(record, '$rewindTo');
 }
 
+/**
+ * Legacy session files persisted before the PLUMB rebrand used the literal
+ * message-type value 'gemini'. Normalize it to 'plumb' at the read boundary
+ * so old session history remains loadable.
+ */
+function normalizeLegacyGeminiRecordType(record: unknown): unknown {
+  if (record === null || typeof record !== 'object') return record;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+  const obj = record as { [key: string]: unknown };
+  if (obj['type'] === 'gemini') {
+    obj['type'] = 'plumb';
+  }
+  if (Array.isArray(obj['messages'])) {
+    for (const message of obj['messages']) {
+      normalizeLegacyGeminiRecordType(message);
+    }
+  }
+  return record;
+}
+
 function isMessageRecord(record: unknown): record is MessageRecord {
   return isStringProperty(record, 'id');
 }
@@ -112,7 +132,7 @@ export function isResumableMessageRecord(message: MessageRecord): boolean {
     return !isIgnoredUserContent(contentString.trim());
   }
 
-  if (message.type === 'gemini') {
+  if (message.type === 'plumb') {
     return (
       contentString.trim().length > 0 ||
       (message.toolCalls?.length ?? 0) > 0 ||
@@ -167,7 +187,9 @@ export async function loadConversationRecord(
     for await (const line of rl) {
       if (!line.trim()) continue;
       try {
-        const record = JSON.parse(line) as unknown;
+        const record = normalizeLegacyGeminiRecordType(
+          JSON.parse(line) as unknown,
+        );
         if (isRewindRecord(record)) {
           if (isTrackingMemoryScratchpadFreshness) {
             memoryScratchpadIsStale = true;
@@ -623,7 +645,7 @@ export class ChatRecordingService {
         message.displayContent,
         message.id,
       );
-      if (msg.type === 'gemini') {
+      if (msg.type === 'plumb') {
         msg.thoughts = this.queuedThoughts;
         msg.tokens = this.queuedTokens;
         msg.model = message.model;
@@ -679,7 +701,7 @@ export class ChatRecordingService {
         total: respUsageMetadata.totalTokenCount ?? 0,
       };
       const lastMsg = this.getLastMessage(this.cachedConversation);
-      if (lastMsg && lastMsg.type === 'gemini' && !lastMsg.tokens) {
+      if (lastMsg && lastMsg.type === 'plumb' && !lastMsg.tokens) {
         lastMsg.tokens = tokens;
         this.queuedTokens = null;
         this.pushMessage(lastMsg);
@@ -714,12 +736,12 @@ export class ChatRecordingService {
       const lastMsg = this.getLastMessage(this.cachedConversation);
       if (
         !lastMsg ||
-        lastMsg.type !== 'gemini' ||
+        lastMsg.type !== 'plumb' ||
         this.queuedThoughts.length > 0
       ) {
         const newMsg: MessageRecord = {
-          ...this.newMessage('gemini' as const, ''),
-          type: 'gemini' as const,
+          ...this.newMessage('plumb' as const, ''),
+          type: 'plumb' as const,
           toolCalls: enrichedToolCalls,
           thoughts: this.queuedThoughts,
           model,
@@ -914,7 +936,7 @@ export class ChatRecordingService {
         // It's a new (possibly synthetic) turn like a summary
         updated = true;
         return this.newMessage(
-          turn.content.role === 'user' ? 'user' : 'gemini',
+          turn.content.role === 'user' ? 'user' : 'plumb',
           turn.content.parts || [],
           undefined,
           turn.id,
@@ -932,10 +954,10 @@ export class ChatRecordingService {
             // Find the gemini message that contains this tool call
             const geminiMsg = newMessages.find(
               (m) =>
-                m.type === 'gemini' &&
+                m.type === 'plumb' &&
                 m.toolCalls?.some((tc) => tc.id === callId),
             );
-            if (geminiMsg && geminiMsg.type === 'gemini') {
+            if (geminiMsg && geminiMsg.type === 'plumb') {
               const tc = geminiMsg.toolCalls!.find((tc) => tc.id === callId);
               if (tc) {
                 // If the history version is different (e.g. masked), sync it into the record
@@ -987,7 +1009,9 @@ async function parseLegacyRecordFallback(
 > {
   try {
     const fileContent = await fs.promises.readFile(filePath, 'utf8');
-    const parsed = JSON.parse(fileContent) as unknown;
+    const parsed = normalizeLegacyGeminiRecordType(
+      JSON.parse(fileContent) as unknown,
+    );
 
     const isLegacyRecord = (val: unknown): val is ConversationRecord =>
       typeof val === 'object' && val !== null && 'sessionId' in val;

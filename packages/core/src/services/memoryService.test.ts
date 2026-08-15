@@ -105,7 +105,7 @@ function createConversation(
     id: String(i + 1),
     timestamp: new Date().toISOString(),
     content: [{ text: `Message ${i + 1}` }],
-    type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+    type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
   }));
   return {
     sessionId: rest.sessionId ?? `session-${Date.now()}`,
@@ -391,7 +391,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         sandboxManager: undefined,
       } as unknown as Parameters<typeof startMemoryService>[0];
 
@@ -423,7 +423,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         sandboxManager: undefined,
       } as unknown as Parameters<typeof startMemoryService>[0];
 
@@ -476,7 +476,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         sandboxManager: undefined,
       } as unknown as Parameters<typeof startMemoryService>[0];
 
@@ -546,7 +546,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),
@@ -635,7 +635,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),
@@ -735,7 +735,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),
@@ -987,7 +987,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),
@@ -2128,7 +2128,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),
@@ -2209,7 +2209,7 @@ describe('memoryService', () => {
         },
         getToolRegistry: vi.fn(),
         getMessageBus: vi.fn(),
-        getGeminiClient: vi.fn(),
+        getPlumbClient: vi.fn(),
         getSkillManager: vi.fn().mockReturnValue({ getSkills: () => [] }),
         modelConfigService: {
           registerRuntimeModelConfig: vi.fn(),

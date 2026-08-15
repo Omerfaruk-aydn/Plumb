@@ -53,7 +53,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [
             {
               text: 'To add dark mode, you need to create a theme provider and toggle state...',
@@ -102,7 +102,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: '' }],
         },
       ];
@@ -117,7 +117,7 @@ describe('SessionSummaryService', () => {
       const messages: MessageRecord[] = Array.from({ length: 30 }, (_, i) => ({
         id: `${i}`,
         timestamp: '2025-12-03T00:00:00Z',
-        type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+        type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
         content: [{ text: `Message ${i}` }],
       }));
 
@@ -145,7 +145,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Gemini response' }],
         },
       ];
@@ -177,7 +177,7 @@ describe('SessionSummaryService', () => {
         {
           id: '3',
           timestamp: '2025-12-03T00:02:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Gemini response' }],
         },
       ];
@@ -210,7 +210,7 @@ describe('SessionSummaryService', () => {
         {
           id: '3',
           timestamp: '2025-12-03T00:02:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Gemini response' }],
         },
       ];
@@ -241,7 +241,7 @@ describe('SessionSummaryService', () => {
         {
           id: '3',
           timestamp: '2025-12-03T00:02:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Gemini response' }],
         },
       ];
@@ -278,7 +278,7 @@ describe('SessionSummaryService', () => {
         {
           id: '4',
           timestamp: '2025-12-03T00:03:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Gemini answer' }],
         },
         {
@@ -510,7 +510,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Response' }],
         },
       ];
@@ -537,7 +537,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [
             {
               text: 'Here is a detailed explanation...',
@@ -563,7 +563,7 @@ describe('SessionSummaryService', () => {
       const messages = Array.from({ length: 5 }, (_, i) => ({
         id: `${i}`,
         timestamp: '2025-12-03T00:00:00Z',
-        type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+        type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
         content: [{ text: `Message ${i}` }],
       }));
 
@@ -580,7 +580,7 @@ describe('SessionSummaryService', () => {
       const messages = Array.from({ length: 50 }, (_, i) => ({
         id: `${i}`,
         timestamp: '2025-12-03T00:00:00Z',
-        type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+        type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
         content: [{ text: `Message ${i}` }],
       }));
 
@@ -608,7 +608,7 @@ describe('SessionSummaryService', () => {
       const messages = Array.from({ length: 20 }, (_, i) => ({
         id: `${i}`,
         timestamp: '2025-12-03T00:00:00Z',
-        type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+        type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
         content: [{ text: `Message ${i}` }],
       }));
 
@@ -625,7 +625,7 @@ describe('SessionSummaryService', () => {
       const messages = Array.from({ length: 30 }, (_, i) => ({
         id: `${i}`,
         timestamp: '2025-12-03T00:00:00Z',
-        type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+        type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
         content: [{ text: `Message ${i}` }],
       }));
 
@@ -649,7 +649,7 @@ describe('SessionSummaryService', () => {
         ...Array.from({ length: 10 }, (_, i) => ({
           id: `${i}`,
           timestamp: '2025-12-03T00:00:00Z',
-          type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+          type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
           content: [{ text: `Message ${i}` }],
         })),
         // System messages (should be filtered out)
@@ -669,7 +669,7 @@ describe('SessionSummaryService', () => {
         ...Array.from({ length: 40 }, (_, i) => ({
           id: `${i + 10}`,
           timestamp: '2025-12-03T00:12:00Z',
-          type: i % 2 === 0 ? ('user' as const) : ('gemini' as const),
+          type: i % 2 === 0 ? ('user' as const) : ('plumb' as const),
           content: [{ text: `Message ${i + 10}` }],
         })),
       ];
@@ -721,13 +721,13 @@ describe('SessionSummaryService', () => {
         {
           id: '1',
           timestamp: '2025-12-03T00:00:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'First response' }],
         },
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Second response' }],
         },
       ];
@@ -793,7 +793,7 @@ describe('SessionSummaryService', () => {
         {
           id: '2',
           timestamp: '2025-12-03T00:01:00Z',
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Valid response' }],
         },
       ];

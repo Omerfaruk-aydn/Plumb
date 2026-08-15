@@ -552,7 +552,7 @@ export const useSlashCommandProcessor = (
                     }
                   }
                 case 'load_history': {
-                  config?.getGeminiClient()?.setHistory(result.clientHistory);
+                  config?.getPlumbClient()?.setHistory(result.clientHistory);
                   fullCommandContext.ui.clear();
                   result.history.forEach((item, index) => {
                     fullCommandContext.ui.addItem(item, index);
@@ -563,7 +563,7 @@ export const useSlashCommandProcessor = (
                   if (result.deleteSession) {
                     try {
                       const chatRecordingService = config
-                        ?.getGeminiClient()
+                        ?.getPlumbClient()
                         ?.getChatRecordingService();
                       if (chatRecordingService) {
                         await chatRecordingService.deleteCurrentSessionAsync();

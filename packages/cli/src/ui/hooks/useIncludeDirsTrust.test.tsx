@@ -81,9 +81,7 @@ describe('useIncludeDirsTrust', () => {
       getWorkspaceContext: () => mockWorkspaceContext,
       shouldLoadMemoryFromIncludeDirectories: vi.fn().mockReturnValue(false),
       getMemoryContextManager: vi.fn(),
-      getGeminiClient: vi
-        .fn()
-        .mockReturnValue({ addDirectoryContext: vi.fn() }),
+      getPlumbClient: vi.fn().mockReturnValue({ addDirectoryContext: vi.fn() }),
     } as unknown as Config;
 
     mockHistoryManager = {

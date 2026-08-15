@@ -106,7 +106,7 @@ describe('RewindViewer', () => {
         name: 'a single interaction',
         messages: [
           { type: 'user', content: 'Hello', id: '1', timestamp: '1' },
-          { type: 'gemini', content: 'Hi there!', id: '1', timestamp: '1' },
+          { type: 'plumb', content: 'Hi there!', id: '1', timestamp: '1' },
         ],
       },
       {
@@ -188,9 +188,9 @@ describe('RewindViewer', () => {
     const longText2 = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7';
     const conversation = createConversation([
       { type: 'user', content: longText1, id: '1', timestamp: '1' },
-      { type: 'gemini', content: 'Response 1', id: '1', timestamp: '1' },
+      { type: 'plumb', content: 'Response 1', id: '1', timestamp: '1' },
       { type: 'user', content: longText2, id: '2', timestamp: '1' },
-      { type: 'gemini', content: 'Response 2', id: '2', timestamp: '1' },
+      { type: 'plumb', content: 'Response 2', id: '2', timestamp: '1' },
     ]);
     const onExit = vi.fn();
     const onRewind = vi.fn();

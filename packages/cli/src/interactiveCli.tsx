@@ -199,7 +199,7 @@ export async function startInteractiveUI(
   const cleanupNonResumableCurrentSession = async () => {
     try {
       await config
-        .getGeminiClient()
+        .getPlumbClient()
         ?.getChatRecordingService()
         ?.deleteCurrentSessionIfNotResumableAsync();
     } catch (e: unknown) {

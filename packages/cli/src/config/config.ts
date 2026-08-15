@@ -1271,7 +1271,7 @@ export async function loadCliConfig(
     enableShellOutputEfficiency:
       settings.tools?.shell?.enableShellOutputEfficiency ?? true,
     // In ACP mode, always skip the next-speaker check. This check triggers
-    // recursive continuation turns inside GeminiClient.processTurn() that
+    // recursive continuation turns inside PlumbClient.processTurn() that
     // conflict with ACP's explicit turn management via session/prompt,
     // causing infinite agent_thought_chunk loops.
     skipNextSpeakerCheck: isAcpMode || settings.model?.skipNextSpeakerCheck,

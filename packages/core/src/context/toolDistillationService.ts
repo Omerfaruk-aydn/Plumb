@@ -11,7 +11,7 @@ import {
   type Config,
 } from '../index.js';
 import type { PartListUnion } from '@google/genai';
-import { type GeminiClient } from '../core/client.js';
+import { type PlumbClient } from '../core/client.js';
 import { saveTruncatedToolOutput } from '../utils/fileUtils.js';
 import {
   READ_FILE_TOOL_NAME,
@@ -38,7 +38,7 @@ export interface DistilledToolOutput {
 export class ToolOutputDistillationService {
   constructor(
     private readonly config: Config,
-    private readonly geminiClient: GeminiClient,
+    private readonly geminiClient: PlumbClient,
     private readonly promptId: string,
   ) {}
 

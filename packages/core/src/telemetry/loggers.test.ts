@@ -7,7 +7,7 @@ import {
   CoreToolCallStatus,
   AuthType,
   EditTool,
-  GeminiClient,
+  PlumbClient,
   ToolConfirmationOutcome,
   ToolErrorType,
   ToolRegistry,
@@ -1283,7 +1283,7 @@ describe('loggers', () => {
     const cfg1 = {
       getSessionId: () => 'test-session-id',
       getTargetDir: () => 'target-dir',
-      getGeminiClient: () => mockGeminiClient,
+      getPlumbClient: () => mockPlumbClient,
     } as Config;
     const cfg2 = {
       getSessionId: () => 'test-session-id',
@@ -1321,11 +1321,11 @@ describe('loggers', () => {
     (cfg2 as unknown as { config: Config; promptId: string }).promptId =
       'test-prompt-id';
 
-    const mockGeminiClient = new GeminiClient(cfg2);
+    const mockPlumbClient = new PlumbClient(cfg2);
     const mockConfig = {
       getSessionId: () => 'test-session-id',
       getTargetDir: () => 'target-dir',
-      getGeminiClient: () => mockGeminiClient,
+      getPlumbClient: () => mockPlumbClient,
       getUsageStatisticsEnabled: () => true,
       getTelemetryEnabled: () => true,
       getTelemetryLogPromptsEnabled: () => true,

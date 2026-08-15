@@ -27,7 +27,7 @@ describe('useRewindLogic', () => {
 
   const mockModelMessage: MessageRecord = {
     id: 'msg-2',
-    type: 'gemini',
+    type: 'plumb',
     content: 'Hi there',
     timestamp: new Date(1001).toISOString(),
   };

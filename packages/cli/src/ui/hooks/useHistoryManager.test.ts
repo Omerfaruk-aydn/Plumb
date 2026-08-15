@@ -96,7 +96,7 @@ describe('useHistoryManager', () => {
       text: 'First',
     };
     const itemData2: Omit<HistoryItem, 'id'> = {
-      type: 'gemini', // Replaced HistoryItemType.Gemini
+      type: 'plumb', // Replaced HistoryItemType.Gemini
       text: 'Second',
     };
 
@@ -120,7 +120,7 @@ describe('useHistoryManager', () => {
     const { result } = await renderHook(() => useHistory());
     const timestamp = Date.now();
     const initialItem: Omit<HistoryItem, 'id'> = {
-      type: 'gemini', // Replaced HistoryItemType.Gemini
+      type: 'plumb', // Replaced HistoryItemType.Gemini
       text: 'Initial content',
     };
     let itemId!: number;
@@ -173,7 +173,7 @@ describe('useHistoryManager', () => {
       text: 'First',
     };
     const itemData2: Omit<HistoryItem, 'id'> = {
-      type: 'gemini', // Replaced HistoryItemType.Gemini
+      type: 'plumb', // Replaced HistoryItemType.Gemini
       text: 'Second',
     };
 
@@ -203,7 +203,7 @@ describe('useHistoryManager', () => {
       text: 'Duplicate message',
     };
     const itemData3: Omit<HistoryItem, 'id'> = {
-      type: 'gemini', // Replaced HistoryItemType.Gemini
+      type: 'plumb', // Replaced HistoryItemType.Gemini
       text: 'Gemini response',
     };
     const itemData4: Omit<HistoryItem, 'id'> = {
@@ -232,7 +232,7 @@ describe('useHistoryManager', () => {
       text: 'Message 1',
     };
     const itemData2: Omit<HistoryItem, 'id'> = {
-      type: 'gemini', // Replaced HistoryItemType.Gemini
+      type: 'plumb', // Replaced HistoryItemType.Gemini
       text: 'Gemini response',
     };
     const itemData3: Omit<HistoryItem, 'id'> = {

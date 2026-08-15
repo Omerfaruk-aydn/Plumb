@@ -187,7 +187,7 @@ describe('Phase 7 custom-provider switch matrix (zero cross-definition bleed)', 
   it.each([
     [OPENAI_ID, 'openai-private-model', 'openai'],
     [ANTHROPIC_ID, 'anthropic-private-model', 'anthropic'],
-    [GEMINI_ID, 'gemini-private-model', 'gemini'],
+    [GEMINI_ID, 'gemini-private-model', 'plumb'],
   ] as const)(
     '%s completes native structured call normalization and result replay',
     async (providerId, modelId, dialect) => {
@@ -213,7 +213,7 @@ describe('Phase 7 custom-provider switch matrix (zero cross-definition bleed)', 
                 { status: 200 },
               );
             }
-            if (dialect === 'gemini') {
+            if (dialect === 'plumb') {
               return new Response(
                 'data: {"candidates":[{"content":{"parts":[{"text":"continued"}]},"finishReason":"STOP"}]}\n\n',
                 { status: 200 },
@@ -235,7 +235,7 @@ describe('Phase 7 custom-provider switch matrix (zero cross-definition bleed)', 
               { status: 200 },
             );
           }
-          if (dialect === 'gemini') {
+          if (dialect === 'plumb') {
             return new Response(
               'data: {"candidates":[{"content":{"parts":[{"functionCall":{"id":"call_custom","name":"plumb_tool_probe","args":{}}}]},"finishReason":"STOP"}]}\n\n',
               { status: 200 },

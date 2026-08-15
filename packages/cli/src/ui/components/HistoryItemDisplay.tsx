@@ -112,7 +112,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
       {itemForDisplay.type === 'user_shell' && (
         <UserShellMessage text={itemForDisplay.text} width={terminalWidth} />
       )}
-      {itemForDisplay.type === 'gemini' && (
+      {itemForDisplay.type === 'plumb' && (
         <PlumbMessage
           text={itemForDisplay.text}
           isPending={isPending}
@@ -122,7 +122,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
           terminalWidth={terminalWidth}
         />
       )}
-      {itemForDisplay.type === 'gemini_content' && (
+      {itemForDisplay.type === 'plumb_content' && (
         <PlumbMessageContent
           text={itemForDisplay.text}
           isPending={isPending}

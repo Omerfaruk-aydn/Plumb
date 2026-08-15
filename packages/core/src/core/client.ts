@@ -89,7 +89,7 @@ type BeforeAgentHookReturn =
   | { additionalContext: string | undefined }
   | undefined;
 
-export class GeminiClient {
+export class PlumbClient {
   private chat?: PlumbChat;
   private sessionTurnCount = 0;
 

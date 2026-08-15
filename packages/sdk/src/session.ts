@@ -12,7 +12,7 @@ import {
   GeminiEventType,
   type ToolCallRequestInfo,
   type ServerGeminiStreamEvent,
-  type GeminiClient,
+  type PlumbClient,
   type Content,
   scheduleAgentTools,
   getAuthTypeFromEnv,
@@ -49,7 +49,7 @@ export class GeminiCliSession {
   private readonly tools: Array<Tool<any>>;
   private readonly skillRefs: SkillReference[];
   private readonly instructions: SystemInstructions | undefined;
-  private client: GeminiClient | undefined;
+  private client: PlumbClient | undefined;
   private initialized = false;
 
   constructor(
@@ -169,7 +169,7 @@ export class GeminiCliSession {
     if (this.resumedData) {
       const history: Content[] = this.resumedData.conversation.messages.map(
         (m) => {
-          const role = m.type === 'gemini' ? 'model' : 'user';
+          const role = m.type === 'plumb' ? 'model' : 'user';
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           let parts: any[] = [];
           if (Array.isArray(m.content)) {
@@ -221,7 +221,7 @@ export class GeminiCliSession {
     const fs = new SdkAgentFilesystem(this.config);
     const shell = new SdkAgentShell(this.config);
 
-    let request: Parameters<GeminiClient['sendMessageStream']>[0] = [
+    let request: Parameters<PlumbClient['sendMessageStream']>[0] = [
       { text: prompt },
     ];
 
@@ -308,7 +308,7 @@ export class GeminiCliSession {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       request = functionResponses as unknown as Parameters<
-        GeminiClient['sendMessageStream']
+        PlumbClient['sendMessageStream']
       >[0];
     }
   }

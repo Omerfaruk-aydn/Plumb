@@ -16,7 +16,7 @@ import type {
   ToolCallRequestInfo,
 } from '../scheduler/types.js';
 import { CoreToolCallStatus } from '../scheduler/types.js';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import type { Scheduler } from '../scheduler/scheduler.js';
 import type { Config } from '../config/config.js';
 
@@ -42,7 +42,7 @@ function createMockDeps(
   const mockConfig = {
     getMaxSessionTurns: vi.fn().mockReturnValue(-1),
     getModel: vi.fn().mockReturnValue('gemini-2.5-pro'),
-    getGeminiClient: vi.fn().mockReturnValue(mockClient),
+    getPlumbClient: vi.fn().mockReturnValue(mockClient),
     getMessageBus: vi.fn().mockImplementation(() => ({
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
@@ -50,7 +50,7 @@ function createMockDeps(
   };
 
   return {
-    client: mockClient as unknown as GeminiClient,
+    client: mockClient as unknown as PlumbClient,
     scheduler: mockScheduler as unknown as Scheduler,
     config: mockConfig as unknown as Config,
     promptId: 'test-prompt',
@@ -778,7 +778,7 @@ describe('LegacyAgentSession', () => {
       expect(sendMock).not.toHaveBeenCalled();
     });
 
-    it('treats GeminiClient MaxSessionTurns as a terminal max_turns stream end', async () => {
+    it('treats PlumbClient MaxSessionTurns as a terminal max_turns stream end', async () => {
       const sendMock = deps.client.sendMessageStream as ReturnType<
         typeof vi.fn
       >;

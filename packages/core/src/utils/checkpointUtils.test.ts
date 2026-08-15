@@ -14,7 +14,7 @@ import {
   getCheckpointInfoList,
 } from './checkpointUtils.js';
 import type { GitService } from '../services/gitService.js';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import type { ToolCallRequestInfo } from '../scheduler/types.js';
 
 describe('checkpoint utils', () => {
@@ -128,9 +128,9 @@ describe('checkpoint utils', () => {
       getCurrentCommitHash: vi.fn(),
     } as unknown as GitService;
 
-    const mockGeminiClient = {
+    const mockPlumbClient = {
       getHistory: vi.fn(),
-    } as unknown as GeminiClient;
+    } as unknown as PlumbClient;
 
     beforeEach(() => {
       vi.clearAllMocks();
@@ -148,7 +148,7 @@ describe('checkpoint utils', () => {
       ] as ToolCallRequestInfo[];
 
       (mockGitService.createFileSnapshot as Mock).mockResolvedValue('hash123');
-      (mockGeminiClient.getHistory as Mock).mockReturnValue([
+      (mockPlumbClient.getHistory as Mock).mockReturnValue([
         { role: 'user', parts: [] },
       ]);
 
@@ -156,7 +156,7 @@ describe('checkpoint utils', () => {
         await processRestorableToolCalls(
           toolCalls,
           mockGitService,
-          mockGeminiClient,
+          mockPlumbClient,
           'history-data',
         );
 
@@ -196,7 +196,7 @@ describe('checkpoint utils', () => {
       const { checkpointsToWrite, errors } = await processRestorableToolCalls(
         toolCalls,
         mockGitService,
-        mockGeminiClient,
+        mockPlumbClient,
       );
 
       expect(errors).toHaveLength(1);
@@ -223,7 +223,7 @@ describe('checkpoint utils', () => {
       const { checkpointsToWrite, errors } = await processRestorableToolCalls(
         toolCalls,
         mockGitService,
-        mockGeminiClient,
+        mockPlumbClient,
       );
 
       expect(errors).toHaveLength(1);
@@ -253,7 +253,7 @@ describe('checkpoint utils', () => {
       const { checkpointsToWrite, errors } = await processRestorableToolCalls(
         toolCalls,
         mockGitService,
-        mockGeminiClient,
+        mockPlumbClient,
       );
 
       expect(errors).toHaveLength(2);

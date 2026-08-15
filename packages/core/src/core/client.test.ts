@@ -14,7 +14,7 @@ import {
 } from 'vitest';
 
 import type { Content, GenerateContentResponse, Part } from '@google/genai';
-import { GeminiClient } from './client.js';
+import { PlumbClient } from './client.js';
 import {
   AuthType,
   type ContentGenerator,
@@ -187,7 +187,7 @@ async function fromAsync<T>(promise: AsyncGenerator<T>): Promise<readonly T[]> {
 describe('Gemini Client (client.ts)', () => {
   let mockContentGenerator: ContentGenerator;
   let mockConfig: Config;
-  let client: GeminiClient;
+  let client: PlumbClient;
   let mockGenerateContentFn: Mock;
   let mockRouterService: { route: Mock };
   beforeEach(async () => {
@@ -215,7 +215,7 @@ describe('Gemini Client (client.ts)', () => {
       countTokens: vi.fn().mockResolvedValue({ totalTokens: 100 }),
     } as unknown as ContentGenerator;
 
-    // Because the GeminiClient constructor kicks off an async process (startChat)
+    // Because the PlumbClient constructor kicks off an async process (startChat)
     // that depends on a fully-formed Config object, we need to mock the
     // entire implementation of Config for these tests.
     const mockToolRegistry = {
@@ -268,7 +268,7 @@ describe('Gemini Client (client.ts)', () => {
       getWorkspaceContext: vi.fn().mockReturnValue({
         getDirectories: vi.fn().mockReturnValue(['/test/dir']),
       }),
-      getGeminiClient: vi.fn(),
+      getPlumbClient: vi.fn(),
       getRetryFetchErrors: vi.fn().mockReturnValue(true),
       getMaxAttempts: vi.fn().mockReturnValue(3),
       getModelRouterService: vi
@@ -330,10 +330,10 @@ describe('Gemini Client (client.ts)', () => {
     (mockConfig as unknown as { config: Config; promptId: string }).promptId =
       'test-prompt-id';
 
-    client = new GeminiClient(mockConfig as unknown as AgentLoopContext);
+    client = new PlumbClient(mockConfig as unknown as AgentLoopContext);
     await client.initialize();
-    vi.mocked(mockConfig.getGeminiClient).mockReturnValue(client);
-    (mockConfig as unknown as { geminiClient: GeminiClient }).geminiClient =
+    vi.mocked(mockConfig.getPlumbClient).mockReturnValue(client);
+    (mockConfig as unknown as { geminiClient: PlumbClient }).geminiClient =
       client;
 
     vi.mocked(uiTelemetryService.setLastPromptTokenCount).mockClear();

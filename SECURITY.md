@@ -1,9 +1,9 @@
 # Reporting Security Issues
 
-To report a security issue, please use [https://g.co/vulnz](https://g.co/vulnz).
-We use g.co/vulnz for our intake, and do coordination and disclosure here on
-GitHub (including using GitHub Security Advisory). The Google Security Team will
-respond within 5 working days of your report on g.co/vulnz.
+If you discover a security vulnerability in PLUMB, please report it privately
+via
+[GitHub Security Advisories](https://github.com/Omerfaruk-aydn/Plumb/security/advisories/new)
+rather than opening a public issue.
 
-[GitHub Security Advisory]:
-  https://github.com/google-gemini/gemini-cli/security/advisories
+We'll acknowledge your report, coordinate a fix, and credit you in the advisory
+(unless you prefer to stay anonymous) once it's resolved.

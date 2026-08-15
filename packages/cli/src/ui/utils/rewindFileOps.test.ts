@@ -55,7 +55,7 @@ describe('rewindFileOps', () => {
       const conversation = {
         messages: [
           userMsg,
-          { type: 'gemini', text: 'Hello' } as unknown as MessageRecord,
+          { type: 'plumb', text: 'Hello' } as unknown as MessageRecord,
         ],
       };
       const result = calculateTurnStats(
@@ -96,7 +96,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [
               {
                 name: 'replace',
@@ -171,7 +171,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [
               {
                 resultDisplay: 'd1',
@@ -182,7 +182,7 @@ describe('rewindFileOps', () => {
             type: 'user',
           } as unknown as MessageRecord,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [
               {
                 resultDisplay: 'd2',
@@ -246,7 +246,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [{ resultDisplay: 'diff' } as unknown as ToolCallRecord],
           } as unknown as MessageRecord,
         ],
@@ -294,7 +294,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [{ resultDisplay: 'diff' } as unknown as ToolCallRecord],
           } as unknown as MessageRecord,
         ],
@@ -339,7 +339,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [{ resultDisplay: 'diff' } as unknown as ToolCallRecord],
           } as unknown as MessageRecord,
         ],
@@ -389,7 +389,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [{ resultDisplay: 'diff' } as unknown as ToolCallRecord],
           } as unknown as MessageRecord,
         ],
@@ -439,7 +439,7 @@ describe('rewindFileOps', () => {
         messages: [
           userMsg,
           {
-            type: 'gemini',
+            type: 'plumb',
             toolCalls: [{ resultDisplay: 'diff' } as unknown as ToolCallRecord],
           } as unknown as MessageRecord,
         ],

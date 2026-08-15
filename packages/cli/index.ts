@@ -53,7 +53,7 @@ async function getMemoryNodeArgs(): Promise<string[]> {
     const { join } = await import('node:path');
     // Respect PLUMB_CLI_HOME environment variable, falling back to os.homedir()
     const baseDir =
-      process.env['PLUMB_CLI_HOME'] || join(os.homedir(), '.gemini');
+      process.env['PLUMB_CLI_HOME'] || join(os.homedir(), '.plumb');
     const settingsPath = join(baseDir, 'settings.json');
     const rawSettings = readFileSync(settingsPath, 'utf8');
     const settings = JSON.parse(rawSettings);

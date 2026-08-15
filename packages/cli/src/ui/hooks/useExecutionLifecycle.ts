@@ -11,7 +11,7 @@ import { useCallback, useReducer, useRef, useEffect } from 'react';
 import type {
   AnsiOutput,
   Config,
-  GeminiClient,
+  PlumbClient,
   CompletionBehavior,
 } from '@plumb/core';
 import {
@@ -41,7 +41,7 @@ const RESTORE_VISIBILITY_DELAY_MS = 300;
 const MAX_OUTPUT_LENGTH = 10000;
 
 function addShellCommandToGeminiHistory(
-  geminiClient: GeminiClient,
+  geminiClient: PlumbClient,
   rawQuery: string,
   resultText: string,
 ) {
@@ -79,7 +79,7 @@ export const useExecutionLifecycle = (
   onExec: (command: Promise<void>) => void,
   onDebugMessage: (message: string) => void,
   config: Config,
-  geminiClient: GeminiClient,
+  geminiClient: PlumbClient,
   setShellInputFocused: (value: boolean) => void,
   terminalWidth?: number,
   terminalHeight?: number,

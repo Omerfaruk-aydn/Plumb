@@ -82,7 +82,7 @@ describe('GeminiAgent Session Resume', () => {
       initialize: vi.fn().mockResolvedValue(undefined),
       getFileSystemService: vi.fn(),
       setFileSystemService: vi.fn(),
-      getGeminiClient: vi.fn().mockReturnValue({
+      getPlumbClient: vi.fn().mockReturnValue({
         initialize: vi.fn().mockResolvedValue(undefined),
         resumeChat: vi.fn().mockResolvedValue(undefined),
         getChat: vi.fn().mockReturnValue({}),
@@ -148,7 +148,7 @@ describe('GeminiAgent Session Resume', () => {
       messages: [
         { type: 'user', content: [{ text: 'Hello' }] },
         {
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Hi there' }],
           thoughts: [{ subject: 'Thinking', description: 'about greeting' }],
           toolCalls: [
@@ -162,7 +162,7 @@ describe('GeminiAgent Session Resume', () => {
           ],
         },
         {
-          type: 'gemini',
+          type: 'plumb',
           content: [{ text: 'Trying a write' }],
           toolCalls: [
             {
@@ -234,7 +234,7 @@ describe('GeminiAgent Session Resume', () => {
     });
 
     // Verify resumeChat received the correct arguments
-    expect(mockConfig.getGeminiClient().resumeChat).toHaveBeenCalledWith(
+    expect(mockConfig.getPlumbClient().resumeChat).toHaveBeenCalledWith(
       mockClientHistory,
       expect.objectContaining({
         conversation: sessionData,

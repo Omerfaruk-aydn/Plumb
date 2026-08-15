@@ -61,7 +61,7 @@ describe('AcpSessionManager', () => {
       getContentGeneratorConfig: vi.fn(),
       getActiveModel: vi.fn().mockReturnValue('gemini-pro'),
       getModel: vi.fn().mockReturnValue('gemini-pro'),
-      getGeminiClient: vi.fn().mockReturnValue({
+      getPlumbClient: vi.fn().mockReturnValue({
         startChat: vi.fn().mockResolvedValue({}),
       }),
       getMessageBus: vi.fn().mockReturnValue({
@@ -148,7 +148,7 @@ describe('AcpSessionManager', () => {
     expect(response.sessionId).toBe('test-session-id');
     expect(loadCliConfig).toHaveBeenCalled();
     expect(mockConfig.initialize).toHaveBeenCalled();
-    expect(mockConfig.getGeminiClient).toHaveBeenCalled();
+    expect(mockConfig.getPlumbClient).toHaveBeenCalled();
 
     // Verify deferred call (sendAvailableCommands)
     await vi.runAllTimersAsync();

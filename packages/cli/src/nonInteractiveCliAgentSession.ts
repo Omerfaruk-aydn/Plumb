@@ -222,7 +222,7 @@ export async function runNonInteractive({
         }
       });
 
-      const geminiClient = config.getGeminiClient();
+      const geminiClient = config.getPlumbClient();
       scheduler = new Scheduler({
         context: config,
         messageBus: config.getMessageBus(),

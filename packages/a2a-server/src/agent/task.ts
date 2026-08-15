@@ -6,7 +6,7 @@
 import {
   type AgentLoopContext,
   Scheduler,
-  type GeminiClient,
+  type PlumbClient,
   GeminiEventType,
   ToolConfirmationOutcome,
   ApprovalMode,
@@ -75,7 +75,7 @@ export class Task {
   contextId: string;
   scheduler: Scheduler;
   config: Config;
-  geminiClient: GeminiClient;
+  geminiClient: PlumbClient;
   pendingToolConfirmationDetails: Map<string, ToolCallConfirmationDetails>;
   pendingCorrelationIds: Map<string, string> = new Map();
   taskState: TaskState;

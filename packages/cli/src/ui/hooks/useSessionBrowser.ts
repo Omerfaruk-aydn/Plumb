@@ -107,7 +107,7 @@ export const useSessionBrowser = (
         // (without the ".json" extension), not the full session UUID.
         try {
           const chatRecordingService = config
-            .getGeminiClient()
+            .getPlumbClient()
             ?.getChatRecordingService();
           if (chatRecordingService) {
             await chatRecordingService.deleteSession(session.file);

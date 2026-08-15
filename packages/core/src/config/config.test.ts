@@ -45,7 +45,7 @@ import {
   type ContentGeneratorConfig,
   type ContentGenerator,
 } from '../core/contentGenerator.js';
-import { GeminiClient } from '../core/client.js';
+import { PlumbClient } from '../core/client.js';
 import { GitService } from '../services/gitService.js';
 import { ShellTool } from '../tools/shell.js';
 import { AgentTool } from '../agents/agent-tool.js';
@@ -154,7 +154,7 @@ vi.mock('../tools/memoryTool', async (importOriginal) => {
 vi.mock('../core/contentGenerator.js');
 
 vi.mock('../core/client.js', () => ({
-  GeminiClient: vi.fn().mockImplementation(() => ({
+  PlumbClient: vi.fn().mockImplementation(() => ({
     initialize: vi.fn().mockResolvedValue(undefined),
     stripThoughtsFromHistory: vi.fn(),
     isInitialized: vi.fn().mockReturnValue(false),
@@ -846,7 +846,7 @@ describe('Server Config (config.ts)', () => {
       );
       // Verify that contentGeneratorConfig is updated
       expect(config.getContentGeneratorConfig()).toEqual(mockContentConfig);
-      expect(GeminiClient).toHaveBeenCalledWith(config);
+      expect(PlumbClient).toHaveBeenCalledWith(config);
     });
 
     it('should clear fallback overrides when refreshing auth', async () => {

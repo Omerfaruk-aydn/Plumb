@@ -579,7 +579,7 @@ export function convertSessionToHistoryFormats(
 
   for (const msg of messages) {
     // Add thoughts if present
-    if (msg.type === 'gemini' && msg.thoughts && msg.thoughts.length > 0) {
+    if (msg.type === 'plumb' && msg.thoughts && msg.thoughts.length > 0) {
       for (const thought of msg.thoughts) {
         uiHistory.push({
           type: 'thinking',
@@ -622,12 +622,12 @@ export function convertSessionToHistoryFormats(
         case 'warning':
           messageType = MessageType.WARNING;
           break;
-        case 'gemini':
-          messageType = MessageType.GEMINI;
+        case 'plumb':
+          messageType = MessageType.PLUMB;
           break;
         default:
           checkExhaustive(msg);
-          messageType = MessageType.GEMINI;
+          messageType = MessageType.PLUMB;
           break;
       }
 

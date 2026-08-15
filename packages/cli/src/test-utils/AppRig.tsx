@@ -736,7 +736,7 @@ export class AppRig {
     // Poison the chat recording service to prevent late writes to the test directory
     if (this.config) {
       const recordingService = this.config
-        .getGeminiClient()
+        .getPlumbClient()
         ?.getChatRecordingService();
       if (recordingService) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

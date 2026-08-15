@@ -15,7 +15,7 @@ interface UseSessionResumeParams {
   config: Config;
   historyManager: UseHistoryManagerReturn;
   refreshStatic: () => void;
-  isGeminiClientInitialized: boolean;
+  isPlumbClientInitialized: boolean;
   setQuittingMessages: (messages: null) => void;
   resumedSessionData?: ResumedSessionData;
   isAuthenticating: boolean;
@@ -30,7 +30,7 @@ export function useSessionResume({
   config,
   historyManager,
   refreshStatic,
-  isGeminiClientInitialized,
+  isPlumbClientInitialized,
   setQuittingMessages,
   resumedSessionData,
   isAuthenticating,
@@ -55,7 +55,7 @@ export function useSessionResume({
       resumedData: ResumedSessionData,
     ) => {
       // Wait for the client.
-      if (!isGeminiClientInitialized) {
+      if (!isPlumbClientInitialized) {
         return;
       }
 
@@ -81,7 +81,7 @@ export function useSessionResume({
         }
 
         // Give the history to the Gemini client.
-        await config.getGeminiClient()?.resumeChat(clientHistory, resumedData);
+        await config.getPlumbClient()?.resumeChat(clientHistory, resumedData);
       } catch (error) {
         coreEvents.emitFeedback(
           'error',
@@ -92,7 +92,7 @@ export function useSessionResume({
         setIsResuming(false);
       }
     },
-    [config, isGeminiClientInitialized, setQuittingMessages],
+    [config, isPlumbClientInitialized, setQuittingMessages],
   );
 
   // Handle interactive resume from the command line (-r/--resume without -p/--prompt-interactive).
@@ -102,7 +102,7 @@ export function useSessionResume({
     if (
       resumedSessionData &&
       !isAuthenticating &&
-      isGeminiClientInitialized &&
+      isPlumbClientInitialized &&
       !hasLoadedResumedSession.current
     ) {
       hasLoadedResumedSession.current = true;
@@ -118,7 +118,7 @@ export function useSessionResume({
   }, [
     resumedSessionData,
     isAuthenticating,
-    isGeminiClientInitialized,
+    isPlumbClientInitialized,
     loadHistoryForResume,
   ]);
 

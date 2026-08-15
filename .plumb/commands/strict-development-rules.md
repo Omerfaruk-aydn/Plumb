@@ -46,11 +46,11 @@ PLUMB project.
   logic for custom string measurement or string truncation. Use Ink layout
   instead, leveraging `ResizeObserver` as needed.
 - **Keyboard Handling**: Keyboard handling MUST go through `useKeyPress.ts` from
-  the PLUMB package rather than the standard ink library. This library
-  supports reporting multiple keyboard events sequentially in the same React
-  frame (critical for slow terminals). Handling this correctly often requires
-  reducers to ensure multiple state updates are handled gracefully without
-  overriding values. Refer to `text-buffer.ts` for a canonical example.
+  the PLUMB package rather than the standard ink library. This library supports
+  reporting multiple keyboard events sequentially in the same React frame
+  (critical for slow terminals). Handling this correctly often requires reducers
+  to ensure multiple state updates are handled gracefully without overriding
+  values. Refer to `text-buffer.ts` for a canonical example.
 - **Logging**: Do not leave `console.log`, `console.warn`, or `console.error` in
   the code.
 - **State**: Ensure state initialization is explicit (e.g., use `undefined`
@@ -154,5 +154,5 @@ PLUMB project.
 
 - **Refactoring**: Actively clean up code duplication, technical debt, and
   boilerplate ("AI Slop") when working in the codebase.
-- **Prompts**: Be aware that changes can impact the prompts sent to PLUMB
-  and affect overall quality.
+- **Prompts**: Be aware that changes can impact the prompts sent to PLUMB and
+  affect overall quality.

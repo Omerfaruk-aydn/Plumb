@@ -5,7 +5,7 @@
 
 import type { ToolResult } from '../tools/tools.js';
 import type { Content } from '@google/genai';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import { getResponseText, partToString } from './partUtils.js';
 import { debugLogger } from './debugLogger.js';
 import type { ModelConfigKey } from '../services/modelConfigService.js';
@@ -21,7 +21,7 @@ import { LlmRole } from '../telemetry/llmRole.js';
 export type Summarizer = (
   config: Config,
   result: ToolResult,
-  geminiClient: GeminiClient,
+  geminiClient: PlumbClient,
   abortSignal: AbortSignal,
 ) => Promise<string>;
 
@@ -36,7 +36,7 @@ export type Summarizer = (
 export const defaultSummarizer: Summarizer = (
   _config: Config,
   result: ToolResult,
-  _geminiClient: GeminiClient,
+  _geminiClient: PlumbClient,
   _abortSignal: AbortSignal,
 ) => Promise.resolve(JSON.stringify(result.llmContent));
 
@@ -72,7 +72,7 @@ export async function summarizeToolOutput(
   config: Config,
   modelConfigKey: ModelConfigKey,
   textToSummarize: string,
-  geminiClient: GeminiClient,
+  geminiClient: PlumbClient,
   abortSignal: AbortSignal,
 ): Promise<string> {
   const maxOutputTokens =

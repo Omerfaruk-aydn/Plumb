@@ -8,7 +8,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { SlashCommand, CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import type { Content } from '@google/genai';
-import { AuthType, type GeminiClient } from '@plumb/core';
+import { AuthType, type PlumbClient } from '@plumb/core';
 
 import * as fsPromises from 'node:fs/promises';
 import { chatCommand, debugCommand } from './chatCommand.js';
@@ -81,7 +81,7 @@ describe('chatCommand', () => {
           },
           geminiClient: {
             getChat: mockGetChat,
-          } as unknown as GeminiClient,
+          } as unknown as PlumbClient,
         },
         logger: {
           saveCheckpoint: mockSaveCheckpoint,
@@ -288,7 +288,7 @@ describe('chatCommand', () => {
         type: 'load_history',
         history: [
           { type: 'user', text: 'hello gemini' },
-          { type: 'gemini', text: 'hello world' },
+          { type: 'plumb', text: 'hello world' },
         ] as HistoryItemWithoutId[],
         clientHistory: conversation,
       });
@@ -328,7 +328,7 @@ describe('chatCommand', () => {
         type: 'load_history',
         history: [
           { type: 'user', text: 'hello gemini' },
-          { type: 'gemini', text: 'hello world' },
+          { type: 'plumb', text: 'hello world' },
         ] as HistoryItemWithoutId[],
         clientHistory: conversation,
       });

@@ -123,7 +123,7 @@ export class AcpSessionManager {
     startupProfiler.flush(config);
     startAutoMemoryIfEnabled(config);
 
-    const geminiClient = config.getGeminiClient();
+    const geminiClient = config.getPlumbClient();
 
     const chat = await geminiClient.startChat();
 
@@ -178,7 +178,7 @@ export class AcpSessionManager {
 
     const clientHistory = convertSessionToClientHistory(sessionData.messages);
 
-    const geminiClient = config.getGeminiClient();
+    const geminiClient = config.getPlumbClient();
     await geminiClient.initialize();
     await geminiClient.resumeChat(clientHistory, {
       conversation: sessionData,

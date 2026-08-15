@@ -1138,7 +1138,7 @@ describe('resolveSessionId', () => {
       messages: [
         { type: 'info', content: 'Old info', id: '1' },
         { type: 'user', content: 'Hello', id: '2' },
-        { type: 'gemini', content: 'Hi', id: '3' },
+        { type: 'plumb', content: 'Hi', id: '3' },
         { type: 'error', content: 'Old error', id: '4' },
         { type: 'user', id: '5' }, // Missing content
         null, // Null object
@@ -1177,7 +1177,7 @@ describe('resolveSessionId', () => {
         content: 'Hello',
       });
       expect(resumedSessionData?.conversation.messages![2]).toMatchObject({
-        type: 'gemini',
+        type: 'plumb',
         content: 'Hi',
       });
 

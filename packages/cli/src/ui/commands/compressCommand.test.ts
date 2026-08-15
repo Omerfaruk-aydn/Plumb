@@ -6,7 +6,7 @@
 import {
   CompressionStatus,
   type ChatCompressionInfo,
-  type GeminiClient,
+  type PlumbClient,
 } from '@plumb/core';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { compressCommand } from './compressCommand.js';
@@ -24,7 +24,7 @@ describe('compressCommand', () => {
         agentContext: {
           geminiClient: {
             tryCompressChat: mockTryCompressChat,
-          } as unknown as GeminiClient,
+          } as unknown as PlumbClient,
         },
       },
     });

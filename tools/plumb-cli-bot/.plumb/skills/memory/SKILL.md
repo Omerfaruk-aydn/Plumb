@@ -16,11 +16,11 @@ synchronizes with previous sessions, and prepares Pull Requests.
   - **Task Ledger**: Keep only the most recent 50 tasks.
   - **Decision Log**: Keep only the most recent 20 entries.
 
-You MUST maintain `tools/gemini-cli-bot/lessons-learned.md` using the following
+You MUST maintain `tools/plumb-cli-bot/lessons-learned.md` using the following
 structured Markdown format:
 
 ```markdown
-# Gemini Bot Brain: Memory & State
+# PLUMB Bot Brain: Memory & State
 
 ## 📋 Task Ledger
 
@@ -53,7 +53,7 @@ structured Markdown format:
 Before beginning your investigation, you MUST synchronize with the bot's
 persistent state:
 
-1.  **Read Memory**: Read `tools/gemini-cli-bot/lessons-learned.md`.
+1.  **Read Memory**: Read `tools/plumb-cli-bot/lessons-learned.md`.
 2.  **Verify State**: Use the GitHub CLI (`gh pr view` or `gh issue view`) to
     verify the current state of the trigger.
 3.  **Update Ledger**:
@@ -66,7 +66,7 @@ persistent state:
 
 Once your investigation and implementation are complete:
 
-1.  **Record Findings**: You MUST update `tools/gemini-cli-bot/lessons-learned.md`
+1.  **Record Findings**: You MUST update `tools/plumb-cli-bot/lessons-learned.md`
     using the format defined above.
 2.  **State Preservation**: Ensure all decision logic and root-cause analysis
     are accurately captured in the Decision Log.

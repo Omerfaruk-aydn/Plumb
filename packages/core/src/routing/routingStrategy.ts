@@ -51,7 +51,7 @@ export interface RoutingStrategy {
    * Determines which model to use for a given request context.
    * @param context The full context of the request.
    * @param config The current configuration.
-   * @param client A reference to the GeminiClient, allowing the strategy to make its own API calls if needed.
+   * @param client A reference to the PlumbClient, allowing the strategy to make its own API calls if needed.
    * @returns A promise that resolves to a RoutingDecision, or null if the strategy is not applicable.
    */
   route(

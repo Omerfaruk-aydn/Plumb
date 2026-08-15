@@ -20,12 +20,12 @@ import type { HistoryItemWithoutId } from '../types.js';
 
 describe('useSessionResume', () => {
   // Mock dependencies
-  const mockGeminiClient = {
+  const mockPlumbClient = {
     resumeChat: vi.fn(),
   };
 
   const mockConfig = {
-    getGeminiClient: vi.fn().mockReturnValue(mockGeminiClient),
+    getPlumbClient: vi.fn().mockReturnValue(mockPlumbClient),
   };
 
   const createMockHistoryManager = (): UseHistoryManagerReturn => ({
@@ -45,7 +45,7 @@ describe('useSessionResume', () => {
     config: mockConfig as unknown as Config,
     historyManager: mockHistoryManager,
     refreshStatic: mockRefreshStatic,
-    isGeminiClientInitialized: true,
+    isPlumbClientInitialized: true,
     setQuittingMessages: mockSetQuittingMessages,
     resumedSessionData: undefined,
     isAuthenticating: false,
@@ -72,7 +72,7 @@ describe('useSessionResume', () => {
 
       const uiHistory: HistoryItemWithoutId[] = [
         { type: 'user', text: 'Hello' },
-        { type: 'gemini', text: 'Hi there!' },
+        { type: 'plumb', text: 'Hi there!' },
       ];
 
       const clientHistory = [
@@ -110,12 +110,12 @@ describe('useSessionResume', () => {
       );
       expect(mockHistoryManager.addItem).toHaveBeenNthCalledWith(
         2,
-        { type: 'gemini', text: 'Hi there!' },
+        { type: 'plumb', text: 'Hi there!' },
         1,
         true,
       );
       expect(mockRefreshStatic).toHaveBeenCalledTimes(1);
-      expect(mockGeminiClient.resumeChat).toHaveBeenCalledWith(
+      expect(mockPlumbClient.resumeChat).toHaveBeenCalledWith(
         clientHistory,
         resumedData,
       );
@@ -125,7 +125,7 @@ describe('useSessionResume', () => {
       const { result } = await renderHook(() =>
         useSessionResume({
           ...getDefaultProps(),
-          isGeminiClientInitialized: false,
+          isPlumbClientInitialized: false,
         }),
       );
 
@@ -156,7 +156,7 @@ describe('useSessionResume', () => {
 
       expect(mockHistoryManager.clearItems).not.toHaveBeenCalled();
       expect(mockHistoryManager.addItem).not.toHaveBeenCalled();
-      expect(mockGeminiClient.resumeChat).not.toHaveBeenCalled();
+      expect(mockPlumbClient.resumeChat).not.toHaveBeenCalled();
     });
 
     it('should handle empty history arrays', async () => {
@@ -182,7 +182,7 @@ describe('useSessionResume', () => {
       expect(mockHistoryManager.clearItems).toHaveBeenCalled();
       expect(mockHistoryManager.addItem).not.toHaveBeenCalled();
       expect(mockRefreshStatic).toHaveBeenCalledTimes(1);
-      expect(mockGeminiClient.resumeChat).toHaveBeenCalledWith([], resumedData);
+      expect(mockPlumbClient.resumeChat).toHaveBeenCalledWith([], resumedData);
     });
 
     it('should restore directories from resumed session data', async () => {
@@ -292,7 +292,7 @@ describe('useSessionResume', () => {
       const initialCallback = result.current.loadHistoryForResume;
 
       const newMockConfig = {
-        getGeminiClient: vi.fn().mockReturnValue(mockGeminiClient),
+        getPlumbClient: vi.fn().mockReturnValue(mockPlumbClient),
       };
 
       rerender({ config: newMockConfig as unknown as Config });
@@ -307,7 +307,7 @@ describe('useSessionResume', () => {
 
       expect(mockHistoryManager.clearItems).not.toHaveBeenCalled();
       expect(mockHistoryManager.addItem).not.toHaveBeenCalled();
-      expect(mockGeminiClient.resumeChat).not.toHaveBeenCalled();
+      expect(mockPlumbClient.resumeChat).not.toHaveBeenCalled();
     });
 
     it('should not resume when user is authenticating', async () => {
@@ -339,7 +339,7 @@ describe('useSessionResume', () => {
 
       expect(mockHistoryManager.clearItems).not.toHaveBeenCalled();
       expect(mockHistoryManager.addItem).not.toHaveBeenCalled();
-      expect(mockGeminiClient.resumeChat).not.toHaveBeenCalled();
+      expect(mockPlumbClient.resumeChat).not.toHaveBeenCalled();
     });
 
     it('should not resume when Gemini client is not initialized', async () => {
@@ -365,13 +365,13 @@ describe('useSessionResume', () => {
             conversation,
             filePath: '/path/to/session.json',
           },
-          isGeminiClientInitialized: false,
+          isPlumbClientInitialized: false,
         }),
       );
 
       expect(mockHistoryManager.clearItems).not.toHaveBeenCalled();
       expect(mockHistoryManager.addItem).not.toHaveBeenCalled();
-      expect(mockGeminiClient.resumeChat).not.toHaveBeenCalled();
+      expect(mockPlumbClient.resumeChat).not.toHaveBeenCalled();
     });
 
     it('should automatically resume session when resumedSessionData is provided', async () => {
@@ -391,7 +391,7 @@ describe('useSessionResume', () => {
             id: 'msg-2',
             timestamp: '2025-01-01T00:02:00Z',
             content: 'Welcome back!',
-            type: 'gemini',
+            type: 'plumb',
           },
         ] as MessageRecord[],
       };
@@ -424,12 +424,12 @@ describe('useSessionResume', () => {
       );
       expect(mockHistoryManager.addItem).toHaveBeenNthCalledWith(
         2,
-        expect.objectContaining({ type: 'gemini', text: 'Welcome back!' }),
+        expect.objectContaining({ type: 'plumb', text: 'Welcome back!' }),
         1,
         true,
       );
       expect(mockRefreshStatic).toHaveBeenCalledTimes(1);
-      expect(mockGeminiClient.resumeChat).toHaveBeenCalled();
+      expect(mockPlumbClient.resumeChat).toHaveBeenCalled();
     });
 
     it('should only resume once even if props change', async () => {
@@ -522,12 +522,12 @@ describe('useSessionResume', () => {
       });
 
       await waitFor(() => {
-        expect(mockGeminiClient.resumeChat).toHaveBeenCalled();
+        expect(mockPlumbClient.resumeChat).toHaveBeenCalled();
       });
 
       // Check that the client history was called with filtered messages
       // (slash commands should be filtered out)
-      const clientHistory = mockGeminiClient.resumeChat.mock.calls[0][0];
+      const clientHistory = mockPlumbClient.resumeChat.mock.calls[0][0];
 
       // Should only have the non-slash-command message
       expect(clientHistory).toHaveLength(1);

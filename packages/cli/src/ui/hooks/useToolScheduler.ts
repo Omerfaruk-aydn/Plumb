@@ -31,7 +31,7 @@ export type MarkToolsAsSubmittedFn = (callIds: string[]) => void;
 export type CancelAllFn = (signal: AbortSignal) => void;
 
 /**
- * The shape expected by useGeminiStream.
+ * The shape expected by usePlumbStream.
  * It matches the Core ToolCall structure + the UI metadata flag.
  */
 export type TrackedToolCall = ToolCall & {
@@ -39,7 +39,7 @@ export type TrackedToolCall = ToolCall & {
   subagentHistory?: SubagentActivityItem[];
 };
 
-// Narrowed types for specific statuses (used by useGeminiStream)
+// Narrowed types for specific statuses (used by usePlumbStream)
 export type TrackedScheduledToolCall = Extract<
   TrackedToolCall,
   { status: 'scheduled' }
@@ -242,7 +242,7 @@ export function useToolScheduler(
       // 1. Await Core Scheduler directly
       const results = await scheduler.schedule(request, signal);
 
-      // 2. Trigger legacy reinjection logic (useGeminiStream loop)
+      // 2. Trigger legacy reinjection logic (usePlumbStream loop)
       // Since this hook instance owns the "root" scheduler, we always trigger
       // onComplete when it finishes its batch.
       await onCompleteRef.current(results);

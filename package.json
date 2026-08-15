@@ -88,8 +88,7 @@
     "cross-spawn": "7.0.6"
   },
   "bin": {
-    "plumb": "bundle/gemini.js",
-    "gemini": "bundle/gemini.js"
+    "plumb": "bundle/plumb.js"
   },
   "files": [
     "bundle/",

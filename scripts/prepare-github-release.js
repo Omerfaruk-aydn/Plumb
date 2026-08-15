@@ -40,7 +40,7 @@ updatePackageJson('packages/cli/package.json', (pkg) => {
   pkg.name = 'plumb-cli';
   pkg.files = ['bundle/'];
   pkg.bin = {
-    plumb: 'bundle/gemini.js',
+    plumb: 'bundle/plumb.js',
   };
 
   // Remove fields that are not relevant to the bundled package.

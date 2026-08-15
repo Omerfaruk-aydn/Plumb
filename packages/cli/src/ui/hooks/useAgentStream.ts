@@ -166,7 +166,7 @@ export const useAgentStream = ({
                 );
                 if (splitPoint === geminiMessageBufferRef.current.length) {
                   setPendingHistoryItem({
-                    type: 'gemini',
+                    type: 'plumb',
                     text: geminiMessageBufferRef.current,
                   });
                 } else {
@@ -177,12 +177,12 @@ export const useAgentStream = ({
                   const after =
                     geminiMessageBufferRef.current.substring(splitPoint);
                   addItem(
-                    { type: 'gemini', text: before },
+                    { type: 'plumb', text: before },
                     userMessageTimestampRef.current,
                   );
                   geminiMessageBufferRef.current = after;
                   setPendingHistoryItem({
-                    type: 'gemini_content',
+                    type: 'plumb_content',
                     text: after,
                   });
                 }

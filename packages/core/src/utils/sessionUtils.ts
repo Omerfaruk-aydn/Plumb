@@ -130,7 +130,7 @@ export function convertSessionToClientHistory(
           parts: ensurePartArray(msg.content),
         },
       });
-    } else if (msg.type === 'gemini') {
+    } else if (msg.type === 'plumb') {
       const modelParts: Part[] = [];
 
       const contentParts = msg.content ? ensurePartArray(msg.content) : [];

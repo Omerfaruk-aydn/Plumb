@@ -49,7 +49,7 @@ import { captureTurnSnapshot } from '../utils/undoRedoStack.js';
 import type {
   Config,
   EditorType,
-  GeminiClient,
+  PlumbClient,
   ServerGeminiChatCompressedEvent,
   ServerGeminiContentEvent as ContentEvent,
   ServerGeminiFinishedEvent,
@@ -213,8 +213,8 @@ function calculateStreamingState(
  * Manages the Gemini stream, including user input, command processing,
  * API interaction, and tool call lifecycle.
  */
-export const useGeminiStream = (
-  geminiClient: GeminiClient,
+export const usePlumbStream = (
+  geminiClient: PlumbClient,
   history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   config: Config,
@@ -343,10 +343,10 @@ export const useGeminiStream = (
         // Record tool calls with full metadata before sending responses.
         try {
           const currentModel =
-            config.getGeminiClient().getCurrentSequenceModel() ??
+            config.getPlumbClient().getCurrentSequenceModel() ??
             config.getModel();
           config
-            .getGeminiClient()
+            .getPlumbClient()
             .getChat()
             .recordCompletedToolCalls(
               currentModel,
@@ -453,7 +453,7 @@ export const useGeminiStream = (
       ) {
         // TODO(#22883): This lookahead logic is a tactical UI fix to prevent parallel agents
         // from tearing visually when they finish at slightly different times.
-        // Architecturally, `useGeminiStream` should not be responsible for stitching
+        // Architecturally, `usePlumbStream` should not be responsible for stitching
         // together semantic batches using timing/refs. `packages/core` should be
         // refactored to emit structured `ToolBatch` or `Turn` objects, and this layer
         // should simply render those semantic boundaries.
@@ -1087,14 +1087,14 @@ export const useGeminiStream = (
       }
       let newGeminiMessageBuffer = currentGeminiMessageBuffer + eventValue;
       if (
-        pendingHistoryItemRef.current?.type !== 'gemini' &&
-        pendingHistoryItemRef.current?.type !== 'gemini_content'
+        pendingHistoryItemRef.current?.type !== 'plumb' &&
+        pendingHistoryItemRef.current?.type !== 'plumb_content'
       ) {
         // Flush any pending item before starting gemini content
         if (pendingHistoryItemRef.current) {
           addItem(pendingHistoryItemRef.current, userMessageTimestamp);
         }
-        setPendingHistoryItem({ type: 'gemini', text: '' });
+        setPendingHistoryItem({ type: 'plumb', text: '' });
         newGeminiMessageBuffer = eventValue;
       }
       // Split large messages for better rendering performance. Ideally,
@@ -1104,7 +1104,7 @@ export const useGeminiStream = (
         // Update the existing message with accumulated content
         setPendingHistoryItem((item) => ({
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-          type: item?.type as 'gemini' | 'gemini_content',
+          type: item?.type as 'plumb' | 'plumb_content',
           text: newGeminiMessageBuffer,
         }));
       } else {
@@ -1123,14 +1123,14 @@ export const useGeminiStream = (
             {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
               type: pendingHistoryItemRef.current?.type as
-                | 'gemini'
-                | 'gemini_content',
+                | 'plumb'
+                | 'plumb_content',
               text: beforeText,
             },
             userMessageTimestamp,
           );
         }
-        setPendingHistoryItem({ type: 'gemini_content', text: afterText });
+        setPendingHistoryItem({ type: 'plumb_content', text: afterText });
         newGeminiMessageBuffer = afterText;
       }
       return newGeminiMessageBuffer;
@@ -1704,7 +1704,7 @@ export const useGeminiStream = (
 
                     if (result.userSelection === 'disable') {
                       config
-                        .getGeminiClient()
+                        .getPlumbClient()
                         .getLoopDetectionService()
                         .disableForSession();
                       addItem({

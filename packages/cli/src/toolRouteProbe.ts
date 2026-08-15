@@ -480,7 +480,7 @@ export async function runToolRouteProbeResult(
     messageBus,
     promptRegistry: config.getPromptRegistry(),
     resourceRegistry: config.getResourceRegistry(),
-    geminiClient: config.getGeminiClient(),
+    geminiClient: config.getPlumbClient(),
     sandboxManager: config.sandboxManager,
   } satisfies AgentLoopContext;
   const scheduler = new Scheduler({

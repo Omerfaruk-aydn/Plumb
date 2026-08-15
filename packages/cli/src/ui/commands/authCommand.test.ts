@@ -8,7 +8,7 @@ import { authCommand } from './authCommand.js';
 import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { SettingScope } from '../../config/settings.js';
-import type { GeminiClient } from '@plumb/core';
+import type { PlumbClient } from '@plumb/core';
 
 vi.mock('@plumb/core', async () => {
   const actual = await vi.importActual('@plumb/core');
@@ -101,9 +101,9 @@ describe('authCommand', () => {
       const mockStripThoughts = vi.fn();
       const mockClient = {
         stripThoughtsFromHistory: mockStripThoughts,
-      } as unknown as GeminiClient;
+      } as unknown as PlumbClient;
       if (mockContext.services.agentContext?.config) {
-        mockContext.services.agentContext.config.getGeminiClient = vi.fn(
+        mockContext.services.agentContext.config.getPlumbClient = vi.fn(
           () => mockClient,
         );
       }

@@ -842,7 +842,7 @@ function buildAgentLoopContext(config: Config): AgentLoopContext {
     promptRegistry: new PromptRegistry(),
     resourceRegistry: new ResourceRegistry(),
     messageBus: autoApproveBus,
-    geminiClient: config.getGeminiClient(),
+    geminiClient: config.getPlumbClient(),
     sandboxManager: config.sandboxManager,
   };
 }
@@ -940,7 +940,7 @@ async function snapshotFiles(
   const snapshot: FileSnapshot = new Map();
 
   async function walk(currentDir: string): Promise<void> {
-    let entries: Array<Dirent>;
+    let entries: Dirent[];
     try {
       entries = await fs.readdir(currentDir, { withFileTypes: true });
     } catch {
@@ -1028,7 +1028,7 @@ async function buildPendingInboxSummary(memoryDir: string): Promise<string> {
   const sections: string[] = [];
   for (const kind of ['private', 'global'] as const) {
     const kindRoot = path.join(memoryDir, '.inbox', kind);
-    let entries: Array<Dirent>;
+    let entries: Dirent[];
     try {
       entries = await fs.readdir(kindRoot, { withFileTypes: true });
     } catch {

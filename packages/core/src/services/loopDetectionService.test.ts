@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Content } from '@google/genai';
 import type { Config } from '../config/config.js';
-import type { GeminiClient } from '../core/client.js';
+import type { PlumbClient } from '../core/client.js';
 import type { BaseLlmClient } from '../core/baseLlmClient.js';
 import {
   GeminiEventType,
@@ -878,14 +878,14 @@ describe('LoopDetectionService', () => {
 describe('LoopDetectionService LLM Checks', () => {
   let service: LoopDetectionService;
   let mockConfig: Config;
-  let mockGeminiClient: GeminiClient;
+  let mockPlumbClient: PlumbClient;
   let mockBaseLlmClient: BaseLlmClient;
   let abortController: AbortController;
 
   beforeEach(() => {
-    mockGeminiClient = {
+    mockPlumbClient = {
       getHistory: vi.fn().mockReturnValue([]),
-    } as unknown as GeminiClient;
+    } as unknown as PlumbClient;
 
     mockBaseLlmClient = {
       generateJson: vi.fn(),
@@ -898,9 +898,9 @@ describe('LoopDetectionService LLM Checks', () => {
       get config() {
         return this;
       },
-      getGeminiClient: () => mockGeminiClient,
+      getPlumbClient: () => mockPlumbClient,
       get geminiClient() {
-        return mockGeminiClient;
+        return mockPlumbClient;
       },
       getBaseLlmClient: () => mockBaseLlmClient,
       getDisableLoopDetection: () => false,
@@ -1051,7 +1051,7 @@ describe('LoopDetectionService LLM Checks', () => {
         parts: [{ text: 'Some follow up text' }],
       },
     ];
-    vi.mocked(mockGeminiClient.getHistory).mockReturnValue(functionCallHistory);
+    vi.mocked(mockPlumbClient.getHistory).mockReturnValue(functionCallHistory);
 
     mockBaseLlmClient.generateJson = vi
       .fn()
@@ -1210,7 +1210,7 @@ describe('LoopDetectionService LLM Checks', () => {
   it('should not include user prompt in contents when not provided', async () => {
     service.reset('test-prompt-id');
 
-    vi.mocked(mockGeminiClient.getHistory).mockReturnValue([
+    vi.mocked(mockPlumbClient.getHistory).mockReturnValue([
       {
         role: 'model',
         parts: [{ text: 'Some response' }],
