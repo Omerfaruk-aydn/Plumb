@@ -853,9 +853,9 @@ describe('getClaudeSubscriptionModels', () => {
         name: 'Haiku',
         contextWindow: 200_000,
         // The smallest maxTokens among ALL current pinned floor entries
-        // (now 4, including the 16k Haiku 4.5 entry added alongside the
-        // 0.3.233 upgrade) -- see CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR.
-        maxTokens: 16_000,
+        // (the 64k Haiku 4.5 entry -- Opus/Sonnet/Fable 5 are 128k) -- see
+        // CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR.
+        maxTokens: 64_000,
         reasoning: false,
         source: 'ACCOUNT_DYNAMIC',
         limitsSource: 'GENERIC_FLOOR',

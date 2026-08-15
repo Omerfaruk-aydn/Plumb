@@ -470,18 +470,19 @@ export interface ClaudeSubscriptionModelMetadata {
  * -- `claude-opus-4-8` (a pre-upgrade placeholder id) never appeared live
  * and is replaced by the real `claude-opus-5`. `claude-fable-5` and
  * `claude-haiku-4-5-20251001` are added as newly-confirmed real ids from
- * that same probe. contextWindow/maxTokens numbers are still the
- * documented Claude 4.x/5.x-generation platform floor, NOT independently
- * re-verified per model (supportedModels() does not return numeric
- * limits) -- only the ids themselves are live-confirmed.
+ * that same probe. contextWindow/maxTokens are the real, documented
+ * per-model values from platform.claude.com/docs/en/about-claude/models/overview
+ * (Opus 5 / Sonnet 5 / Fable 5: 1M context, 128K max output; Haiku 4.5:
+ * 200K context, 64K max output) — not the generic 200K/32K floor this
+ * table previously carried for all four.
  */
 export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadata[] =
   [
     {
       id: 'claude-opus-5',
       name: 'Claude Opus 5',
-      contextWindow: 200_000,
-      maxTokens: 32_000,
+      contextWindow: 1_000_000,
+      maxTokens: 128_000,
       reasoning: true,
       source: 'OFFICIAL_STATIC_METADATA',
       limitsSource: 'PINNED_REFERENCE',
@@ -489,8 +490,8 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
     {
       id: 'claude-sonnet-5',
       name: 'Claude Sonnet 5',
-      contextWindow: 200_000,
-      maxTokens: 64_000,
+      contextWindow: 1_000_000,
+      maxTokens: 128_000,
       reasoning: true,
       source: 'OFFICIAL_STATIC_METADATA',
       limitsSource: 'PINNED_REFERENCE',
@@ -498,8 +499,8 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
     {
       id: 'claude-fable-5',
       name: 'Claude Fable 5',
-      contextWindow: 200_000,
-      maxTokens: 32_000,
+      contextWindow: 1_000_000,
+      maxTokens: 128_000,
       reasoning: true,
       source: 'OFFICIAL_STATIC_METADATA',
       limitsSource: 'PINNED_REFERENCE',
@@ -508,7 +509,7 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
       id: 'claude-haiku-4-5-20251001',
       name: 'Claude Haiku 4.5',
       contextWindow: 200_000,
-      maxTokens: 16_000,
+      maxTokens: 64_000,
       reasoning: false,
       source: 'OFFICIAL_STATIC_METADATA',
       limitsSource: 'PINNED_REFERENCE',
