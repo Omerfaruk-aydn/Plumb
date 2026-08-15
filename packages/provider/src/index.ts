@@ -504,6 +504,43 @@ export type {
   ClaudeSubscriptionModelsResult,
 } from './transports/claudeSubscription.js';
 
+// Claude Subscription / OpenAI Codex usage (5-hour/weekly rate-limit) reporting
+export { fetchClaudeSubscriptionUsage } from './transports/claudeSubscriptionUsage.js';
+export type {
+  ClaudeSubscriptionUsageSummary,
+  ClaudeUsageWindow,
+  ClaudeScopedWeeklyUsage,
+  ClaudeUsageResult,
+  ClaudeUsageUnavailableReason,
+} from './transports/claudeSubscriptionUsage.js';
+export { fetchOpenAICodexUsage } from './transports/openAICodexUsage.js';
+export type {
+  OpenAICodexUsageSummary,
+  CodexUsageWindow,
+  CodexUsageResult,
+  CodexUsageUnavailableReason,
+} from './transports/openAICodexUsage.js';
+
+// Vendored (OMP) usage/rate-limit reporters for coding-plan/OAuth providers
+// PLUMB owns the credential for directly (no special-cased id aliasing or
+// external-credential-file reads needed — see transports/genericVendorUsage.ts).
+export {
+  fetchGenericVendorUsage,
+  GENERIC_VENDOR_USAGE_PROVIDER_IDS,
+} from './transports/genericVendorUsage.js';
+export type {
+  GenericVendorUsageResult,
+  GenericVendorUsageUnavailableReason,
+} from './transports/genericVendorUsage.js';
+export type {
+  UsageReport,
+  UsageLimit,
+  UsageWindow,
+  UsageAmount,
+  UsageStatus,
+} from './vendor-ai/usage.js';
+export { resolveUsedFraction } from './vendor-ai/usage.js';
+
 // Universal model inventory — single canonical aggregation layer
 export {
   buildUniversalModelInventory,
