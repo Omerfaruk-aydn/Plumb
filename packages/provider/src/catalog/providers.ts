@@ -28,6 +28,16 @@ const PLUMB_TO_OMP_ID: Readonly<Record<string, string>> = {
   antigravity: 'google-antigravity',
   'llama-cpp': 'llama.cpp',
   'anthropic-api': 'anthropic',
+  // The OMP-inherited `openai-codex` OAuth registry def uses a loopback
+  // redirect_uri that is only registered with OpenAI for the upstream
+  // product, not PLUMB (see BLOCKED_CLIENT_REGISTRATIONS below, which this
+  // alias makes moot for this id). `openai-codex-device` is the RFC 8628
+  // device-code registry def for the exact same account/token (see
+  // `storeCredentialsAs: "openai-codex"` in
+  // vendor-ai/registry/openai-codex-device.ts) — it uses OpenAI Codex CLI's
+  // own public device-authorization client id, no redirect_uri or
+  // PLUMB-side registration required, so it actually works.
+  'openai-codex': 'openai-codex-device',
 };
 
 /**
@@ -76,9 +86,7 @@ const PLUMB_SYNTHETIC_IDS: ReadonlySet<string> = new Set([
  * the upstream client). These providers must NOT be selectable as working
  * OAuth login flows. API-key access remains available separately.
  */
-const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([
-  'openai-codex',
-]);
+const BLOCKED_CLIENT_REGISTRATIONS: ReadonlySet<string> = new Set([]);
 
 /**
  * Providers whose OMP-inherited OAuth flow is a real, technically-working
@@ -152,10 +160,10 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     group: 'Coding Plans',
     order: 1,
     description: 'OpenAI Codex subscription via ChatGPT Plus or Pro',
-    authMethods: [
-      { type: 'oauth', port: 1455, pasteCode: true },
-      { type: 'device_code' },
-    ],
+    // Device-code only (see PLUMB_TO_OMP_ID's 'openai-codex' entry above):
+    // the loopback-redirect OAuth flow is not usable from PLUMB, so it must
+    // not be advertised here — device_code is the flow that actually runs.
+    authMethods: [{ type: 'device_code' }],
   },
   'github-copilot': {
     category: PlumbProviderCategory.CODING_PLAN,
@@ -341,9 +349,9 @@ const PRESENTATION: Readonly<Record<string, PlumbPresentation>> = {
     ],
   },
   'claude-subscription': {
-    category: PlumbProviderCategory.OAUTH_ACCOUNT,
-    group: 'OAuth Providers',
-    order: 4,
+    category: PlumbProviderCategory.CODING_PLAN,
+    group: 'Coding Plans',
+    order: 0,
     description:
       'Claude Pro/Max/Team/Enterprise subscription via the official Claude Agent SDK. ' +
       'Tool/function calling is routed through PLUMB’s real tool ' +

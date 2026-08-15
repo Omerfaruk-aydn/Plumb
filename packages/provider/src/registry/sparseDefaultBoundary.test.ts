@@ -75,7 +75,7 @@ describe('sparse-default boundary: OMP-only, not global', () => {
     const bundled = inv.models.filter(
       (m) => m.toolsCapabilitySource === 'BUNDLED_CATALOG',
     );
-    expect(bundled.length).toBe(3935);
+    expect(bundled.length).toBe(3948);
     for (const m of bundled) {
       expect(typeof m.toolsSupported).toBe('boolean');
     }
@@ -108,7 +108,7 @@ describe('exact inventory counts', () => {
       const src = m.toolsCapabilitySource ?? 'UNSET';
       bySource[src] = (bySource[src] ?? 0) + 1;
     }
-    expect(bySource['BUNDLED_CATALOG']).toBe(3935);
+    expect(bySource['BUNDLED_CATALOG']).toBe(3948);
     console.log('CAPABILITY SOURCE BREAKDOWN:', bySource);
   });
 });

@@ -79,6 +79,26 @@ describe('claude-subscription static catalog floor', () => {
   });
 });
 
+describe('openai-codex catalog id override', () => {
+  it('resolves bundled models under the plain openai-codex id, not the openai-codex-device login alias', () => {
+    // Regression: catalog/providers.ts's PLUMB_TO_OMP_ID resolves
+    // 'openai-codex' to 'openai-codex-device' for LOGIN purposes (the
+    // redirect-based OAuth def is not usable from PLUMB). Without the
+    // CATALOG_PROVIDER_FALLBACK override in model-catalog.ts, that same
+    // alias leaked into resolveCatalogProviderId() and made
+    // isGeneratedProvider('openai-codex-device') false (no separate
+    // models.json entry for the device-code registry id), so every
+    // openai-codex model lookup silently returned [] after a real,
+    // successful device-code sign-in — "no models available" in the setup
+    // wizard despite a working credential.
+    const models = getCatalogModels('openai-codex');
+    expect(models.length).toBeGreaterThan(0);
+    for (const model of models) {
+      expect(model.provider).toBe('openai-codex');
+    }
+  });
+});
+
 describe('oci-genai static catalog floor', () => {
   const ORIGINAL_ENV = { ...process.env };
 

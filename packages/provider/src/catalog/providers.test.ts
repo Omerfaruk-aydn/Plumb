@@ -27,6 +27,7 @@ const PLUMB_TO_OMP: Record<string, string> = {
   antigravity: 'google-antigravity',
   'llama-cpp': 'llama.cpp',
   'anthropic-api': 'anthropic',
+  'openai-codex': 'openai-codex-device',
 };
 
 /** Resolve the OMP id backing a PLUMB id (or undefined for PLUMB-only). */
@@ -77,7 +78,7 @@ describe('provider catalog projection', () => {
   it('every selectable provider is OMP-backed and has valid registration', () => {
     // The invariant: every selectable provider must have OMP backing
     // AND must not be in the blocked client-registration set.
-    const blockedClientReg = new Set(['openai-codex']);
+    const blockedClientReg = new Set<string>();
     for (const id of PRODUCTION_READY_PROVIDER_IDS) {
       const provider = PLUMB_PROVIDERS.find((p) => p.id === id);
       expect(provider?.available).toBe(true);
@@ -85,11 +86,14 @@ describe('provider catalog projection', () => {
     }
   });
 
-  it('openai-codex is non-selectable (blocked client registration)', () => {
+  it('openai-codex is selectable via the device-code registry def (redirect flow is not registered for PLUMB)', () => {
     const codex = PLUMB_PROVIDERS.find((p) => p.id === 'openai-codex');
     expect(codex).toBeDefined();
-    expect(codex!.available).toBe(false);
-    expect(PRODUCTION_READY_PROVIDER_IDS.has('openai-codex')).toBe(false);
+    expect(codex!.available).toBe(true);
+    expect(PRODUCTION_READY_PROVIDER_IDS.has('openai-codex')).toBe(true);
+    // Only device_code is advertised — the loopback-redirect OAuth flow
+    // uses a redirect_uri that is not registered with OpenAI for PLUMB.
+    expect(codex!.authMethods).toEqual([{ type: 'device_code' }]);
     // openai API key provider remains separately selectable.
     expect(PRODUCTION_READY_PROVIDER_IDS.has('openai')).toBe(true);
   });

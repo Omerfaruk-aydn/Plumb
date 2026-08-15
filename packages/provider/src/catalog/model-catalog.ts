@@ -31,6 +31,14 @@ const GENERATED_PROVIDERS = new Set<string>(getBundledProviders());
  */
 const CATALOG_PROVIDER_FALLBACK: Readonly<Record<string, string>> = {
   'zai-coding-plan': 'zai',
+  // catalog/providers.ts's PLUMB_TO_OMP_ID resolves 'openai-codex' to the
+  // device-code registry def ('openai-codex-device') for LOGIN purposes
+  // only (its redirect-based OAuth def is not usable from PLUMB). The
+  // bundled models.json catalog has no separate 'openai-codex-device'
+  // entry — its models live under the plain 'openai-codex' key — so this
+  // override must win over resolveProviderAlias() below or every openai-codex
+  // model lookup silently resolves to an empty, non-generated provider id.
+  'openai-codex': 'openai-codex',
 };
 
 /** True when an OMP provider id is a key of the bundled models.json. */
