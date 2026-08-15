@@ -115,13 +115,26 @@ export function getToolGroupBorderAppearance(
       isCurrentlyInShellTurn &&
       !!embeddedShellFocused);
 
+  // A finished batch (no longer pending) previously always fell back to the
+  // same flat theme.border.default regardless of outcome, so a failed tool
+  // call read visually identically to a successful one once it settled --
+  // only the small inline error text gave it away. Carry the failure
+  // through to the group's own border color too.
+  const hasError = toolsToInspect.some((t) =>
+    isTrackedToolCall(t)
+      ? t.status === 'error'
+      : t.status === CoreToolCallStatus.Error,
+  );
+
   const borderColor = isEffectivelyFocused
     ? theme.ui.focus
     : isShell && isPending
       ? theme.ui.active
       : isPending
         ? theme.status.warning
-        : theme.border.default;
+        : hasError
+          ? theme.status.error
+          : theme.border.default;
 
   const borderDimColor = isPending && (!isShell || !isEffectivelyFocused);
 

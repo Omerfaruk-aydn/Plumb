@@ -7,6 +7,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { Text, Box } from 'ink';
 import { theme } from '../../semantic-colors.js';
+import { Colors } from '../../colors.js';
 import { SCREEN_READER_USER_PREFIX } from '../../textConstants.js';
 import { isSlashCommand as checkIsSlashCommand } from '../../utils/commandUtils.js';
 import {
@@ -63,10 +64,20 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
         paddingX={useBackgroundColor ? 1 : 0}
         alignSelf="flex-start"
         width={width}
+        // A colored left border strip gives the user's own message a
+        // distinct identity from the model's response bubble (which uses
+        // theme.text.accent) -- previously both had no border/an
+        // indistinguishable gray one, so consecutive turns visually blurred
+        // together.
+        borderStyle="single"
+        borderTop={false}
+        borderBottom={false}
+        borderRight={false}
+        borderColor={Colors.AccentBlue}
       >
         <Box width={prefixWidth} flexShrink={0}>
           <Text
-            color={theme.text.accent}
+            color={Colors.AccentBlue}
             aria-label={SCREEN_READER_USER_PREFIX}
           >
             {prefix}

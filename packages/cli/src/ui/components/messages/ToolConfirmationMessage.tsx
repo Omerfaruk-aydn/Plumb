@@ -606,7 +606,7 @@ export const ToolConfirmationMessage: React.FC<
             <>
               <Box
                 borderStyle="round"
-                borderColor={theme.border.default}
+                borderColor={theme.status.warning}
                 paddingX={1}
                 paddingY={0}
                 marginBottom={0}
@@ -641,7 +641,7 @@ export const ToolConfirmationMessage: React.FC<
           <>
             <Box
               borderStyle="round"
-              borderColor={theme.border.default}
+              borderColor={theme.status.warning}
               paddingX={1}
               paddingY={0}
               marginBottom={0}
@@ -750,7 +750,7 @@ export const ToolConfirmationMessage: React.FC<
           <>
             <Box
               borderStyle="round"
-              borderColor={theme.border.default}
+              borderColor={theme.status.warning}
               paddingX={1}
               paddingY={0}
               marginBottom={0}
@@ -911,7 +911,7 @@ export const ToolConfirmationMessage: React.FC<
           <Text color={titleColor} wrap="truncate">
             {item.label}{' '}
             <Text color={theme.text.secondary}>
-              ~/.gemini/policies/auto-saved.toml
+              ~/.plumb/policies/auto-saved.toml
             </Text>
           </Text>
         );

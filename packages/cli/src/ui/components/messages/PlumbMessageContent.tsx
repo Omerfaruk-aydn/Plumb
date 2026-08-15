@@ -49,7 +49,7 @@ export const PlumbMessageContent: React.FC<PlumbMessageContentProps> = ({
       borderTop={false}
       borderBottom={false}
       borderRight={false}
-      borderColor={theme.border.default}
+      borderColor={theme.text.accent}
     >
       <MarkdownDisplay
         text={text}

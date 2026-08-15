@@ -103,7 +103,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         </Box>
         {primaryText && (
           <Box flexShrink={1}>
-            <Text color={theme.text.primary} italic wrap="truncate-end">
+            <Text color={theme.text.accent} italic wrap="truncate-end">
               {primaryText}
             </Text>
             {primaryText === INTERACTIVE_SHELL_WAITING_PHRASE && (
@@ -147,7 +147,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
           </Box>
           {primaryText && (
             <Box flexShrink={1}>
-              <Text color={theme.text.primary} italic wrap="truncate-end">
+              <Text color={theme.text.accent} italic wrap="truncate-end">
                 {primaryText}
               </Text>
               {primaryText === INTERACTIVE_SHELL_WAITING_PHRASE && (

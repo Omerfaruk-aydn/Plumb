@@ -62,7 +62,7 @@ export const ThinkingMessage: React.FC<ThinkingMessageProps> = ({
   return (
     <Box width={terminalWidth} flexDirection="column">
       {isFirstThinking && (
-        <Text color={theme.text.primary} italic>
+        <Text color={theme.text.accent} italic>
           {' '}
           Thinking...{' '}
         </Text>

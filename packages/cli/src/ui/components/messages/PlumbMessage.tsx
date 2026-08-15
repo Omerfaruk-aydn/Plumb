@@ -42,7 +42,10 @@ export const PlumbMessage: React.FC<PlumbMessageProps> = ({
       borderTop={false}
       borderBottom={false}
       borderRight={false}
-      borderColor={theme.border.default}
+      // Colored left border gives the model's response its own identity,
+      // distinct from UserMessage's blue-accented one and from the flat
+      // gray this used to share with every other bordered box on screen.
+      borderColor={theme.text.accent}
       paddingLeft={1}
     >
       <Box width={prefixWidth}>
