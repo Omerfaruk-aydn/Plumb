@@ -6,6 +6,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-type-assertion */
 import * as fs from 'node:fs';
 import * as readline from 'node:readline';
+import { createRequire } from 'node:module';
 import { installBunGlobal } from '@plumb/provider';
 import { writeToStderr, writeToStdout } from '@plumb/core';
 import { BUILD_IDENTITY } from './generated/buildIdentity.js';
@@ -1544,11 +1545,28 @@ async function runClaudeSubscriptionAcceptanceTest(
   let sdkPresent = false;
   let sdkVersion = 'unknown';
   try {
-    const sdkPkg = (await import(
-      '@anthropic-ai/claude-agent-sdk/package.json',
-      { with: { type: 'json' } } as never
-    )) as { default?: { version?: string }; version?: string };
-    sdkVersion = sdkPkg.default?.version ?? sdkPkg.version ?? 'unknown';
+    // As of @anthropic-ai/claude-agent-sdk@0.3.233 (upgraded from 0.1.77),
+    // the package's `exports` map no longer includes `./package.json`
+    // (0.1.77 had no `exports` field at all, so any subpath resolved) --
+    // importing that subpath now throws ERR_PACKAGE_PATH_NOT_EXPORTED, and
+    // Vite's static import-analysis rejects it at transform time even
+    // inside a try/catch. Resolve the package's still-exported main entry
+    // ("." -> sdk.mjs) instead and read package.json off disk via `fs`,
+    // which bypasses Node's module-resolution/exports-map machinery
+    // entirely. Uses `createRequire(...).resolve` rather than
+    // `import.meta.resolve` because Vite's SSR transform (this file runs
+    // under it in vitest) does not implement `import.meta.resolve`
+    // (`__vite_ssr_import_meta__.resolve is not a function`), while
+    // `node:module`'s createRequire is a plain Node builtin call Vite
+    // passes through untouched.
+    const nodeRequire = createRequire(import.meta.url);
+    const mainEntryPath = nodeRequire.resolve('@anthropic-ai/claude-agent-sdk');
+    const path = await import('node:path');
+    const pkgJsonPath = path.join(path.dirname(mainEntryPath), 'package.json');
+    const sdkPkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as {
+      version?: string;
+    };
+    sdkVersion = sdkPkg.version ?? 'unknown';
     sdkPresent = true;
   } catch {
     sdkPresent = false;

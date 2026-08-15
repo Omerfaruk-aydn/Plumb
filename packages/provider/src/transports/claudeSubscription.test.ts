@@ -647,7 +647,14 @@ describe('getClaudeSubscriptionModels', () => {
 
   function makeQueryWithSupportedModels(
     models:
-      | Array<{ value: string; displayName?: string; description?: string }>
+      | Array<{
+          value: string;
+          resolvedModel?: string;
+          displayName?: string;
+          description?: string;
+          supportsEffort?: boolean;
+          supportsAdaptiveThinking?: boolean;
+        }>
       | undefined,
   ) {
     const query = (async function* () {
@@ -744,10 +751,77 @@ describe('getClaudeSubscriptionModels', () => {
     expect(defaultEntry?.source).toBe('ACCOUNT_DYNAMIC');
   });
 
+  it('uses `resolvedModel` (0.3.233+ shape) as the canonical id, dedupes aliases that resolve to the same model, and derives reasoning from supportsAdaptiveThinking/supportsEffort -- observed live shape post Agent-SDK 0.1.77 -> 0.3.233 upgrade', async () => {
+    mockQuery.mockReturnValue(
+      makeQueryWithSupportedModels([
+        {
+          value: 'default',
+          resolvedModel: 'claude-sonnet-5',
+          displayName: 'Default (recommended)',
+          description: 'Sonnet 5 · Efficient for routine tasks',
+          supportsEffort: true,
+          supportsAdaptiveThinking: true,
+        },
+        {
+          value: 'sonnet',
+          resolvedModel: 'claude-sonnet-5',
+          displayName: 'Sonnet',
+          description: 'Sonnet 5 · Efficient for routine tasks',
+          supportsEffort: true,
+          supportsAdaptiveThinking: true,
+        },
+        {
+          value: 'claude-fable-5[1m]',
+          resolvedModel: 'claude-fable-5',
+          displayName: 'Fable',
+          description: 'Fable 5 · Most capable for your hardest tasks',
+          supportsEffort: true,
+          supportsAdaptiveThinking: true,
+        },
+        {
+          value: 'opus',
+          resolvedModel: 'claude-opus-5',
+          displayName: 'Opus',
+          description: 'Opus 5 · Best for everyday, complex tasks',
+          supportsEffort: true,
+          supportsAdaptiveThinking: true,
+        },
+        {
+          value: 'haiku',
+          resolvedModel: 'claude-haiku-4-5-20251001',
+          displayName: 'Haiku',
+          description: 'Haiku 4.5 · Fastest for quick answers',
+        },
+      ]),
+    );
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('ACCOUNT_DYNAMIC');
+    // 5 discovered entries, but 'default' and 'sonnet' both resolve to
+    // claude-sonnet-5 -- exactly 4 distinct real models, deduped.
+    expect(result.models.map((m) => m.id).sort()).toEqual(
+      [
+        'claude-sonnet-5',
+        'claude-fable-5',
+        'claude-opus-5',
+        'claude-haiku-4-5-20251001',
+      ].sort(),
+    );
+    // 'sonnet' (the specific alias), not 'default' (the generic
+    // recommendation label), wins as the display-name source.
+    const sonnet = result.models.find((m) => m.id === 'claude-sonnet-5');
+    expect(sonnet?.name).toBe('Claude Sonnet 5');
+    expect(sonnet?.reasoning).toBe(true);
+    const haiku = result.models.find(
+      (m) => m.id === 'claude-haiku-4-5-20251001',
+    );
+    expect(haiku?.reasoning).toBe(false);
+  });
+
   it('reports ACCOUNT_DYNAMIC and reuses known numeric metadata when a discovered id matches a pinned entry exactly', async () => {
     mockQuery.mockReturnValue(
       makeQueryWithSupportedModels([
-        { value: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' },
+        { value: 'claude-opus-5', displayName: 'Claude Opus 5' },
         { value: 'claude-sonnet-5', displayName: 'Claude Sonnet 5' },
       ]),
     );
@@ -778,7 +852,10 @@ describe('getClaudeSubscriptionModels', () => {
         id: 'haiku',
         name: 'Haiku',
         contextWindow: 200_000,
-        maxTokens: 32_000,
+        // The smallest maxTokens among ALL current pinned floor entries
+        // (now 4, including the 16k Haiku 4.5 entry added alongside the
+        // 0.3.233 upgrade) -- see CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR.
+        maxTokens: 16_000,
         reasoning: false,
         source: 'ACCOUNT_DYNAMIC',
         limitsSource: 'GENERIC_FLOOR',
@@ -786,7 +863,7 @@ describe('getClaudeSubscriptionModels', () => {
     ]);
   });
 
-  it('never drops the model count below the pinned static floor across any discovery outcome', async () => {
+  it('never drops the model count below the pinned static floor when discovery is empty/unavailable', async () => {
     const mod = await importFresh();
     const floorCount = mod.CLAUDE_SUBSCRIPTION_MODELS.length;
 
@@ -794,7 +871,13 @@ describe('getClaudeSubscriptionModels', () => {
     expect(
       (await mod.getClaudeSubscriptionModels()).models.length,
     ).toBeGreaterThanOrEqual(floorCount);
+  });
 
+  it('reports the real live discovered count for a trusted, non-empty ACCOUNT_DYNAMIC batch, independent of the pinned floor length', async () => {
+    // This is NOT required to be >= the pinned floor's length: the floor is
+    // a fallback reference table, not a promised minimum for real account
+    // data. A genuinely smaller real account model set must be reported
+    // as-is, not padded out to match an unrelated table's size.
     mockQuery.mockReturnValue(
       makeQueryWithSupportedModels([
         { value: 'opus' },
@@ -802,9 +885,14 @@ describe('getClaudeSubscriptionModels', () => {
         { value: 'haiku' },
       ]),
     );
-    expect(
-      (await mod.getClaudeSubscriptionModels()).models.length,
-    ).toBeGreaterThanOrEqual(floorCount);
+    const mod = await importFresh();
+    const result = await mod.getClaudeSubscriptionModels();
+    expect(result.source).toBe('ACCOUNT_DYNAMIC');
+    expect(result.models.map((m) => m.id).sort()).toEqual([
+      'haiku',
+      'opus',
+      'sonnet',
+    ]);
   });
 
   // ─── REGRESSION: empty cache_control 400 ───────────────────────────

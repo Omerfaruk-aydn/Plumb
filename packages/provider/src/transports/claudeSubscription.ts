@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { spawn, spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import type {
   PlumbModel,
   PlumbStreamEvent,
@@ -325,12 +326,23 @@ function defaultFindClaudeCliOnPath(): string | null {
 
 async function defaultResolveBundledCliJs(): Promise<string | null> {
   try {
-    const pkgJsonUrl = await import.meta.resolve(
-      '@anthropic-ai/claude-agent-sdk/package.json',
-    );
-    const { fileURLToPath } = await import('node:url');
+    // As of @anthropic-ai/claude-agent-sdk@0.3.233 (upgraded from 0.1.77),
+    // the package ships a strict `exports` map that does NOT include
+    // `./package.json` -- resolving that subpath now throws
+    // ERR_PACKAGE_PATH_NOT_EXPORTED (0.1.77 had no `exports` field at all,
+    // so any subpath resolved). Resolve the package's main entry ("." --
+    // still exported, -> sdk.mjs) instead, which sits in the same
+    // directory as cli.js, and derive the directory from THAT. Uses
+    // `createRequire(...).resolve` rather than `import.meta.resolve`
+    // because Vite's SSR transform (this module runs under it in vitest)
+    // does not implement `import.meta.resolve`
+    // (`__vite_ssr_import_meta__.resolve is not a function`), while
+    // `node:module`'s createRequire is a plain Node builtin call Vite
+    // passes through untouched.
+    const nodeRequire = createRequire(import.meta.url);
+    const mainEntryPath = nodeRequire.resolve('@anthropic-ai/claude-agent-sdk');
     const path = await import('node:path');
-    return path.join(path.dirname(fileURLToPath(pkgJsonUrl)), 'cli.js');
+    return path.join(path.dirname(mainEntryPath), 'cli.js');
   } catch {
     return null;
   }
@@ -451,12 +463,23 @@ export interface ClaudeSubscriptionModelMetadata {
  * (`getClaudeSubscriptionModels` below) is unavailable or fails. Update
  * this list from official Claude Code release notes when model aliases
  * change; never claim `source: 'ACCOUNT_DYNAMIC'` on an entry here.
+ *
+ * Ids below were updated (2026-08, alongside the 0.1.77 -> 0.3.233 Agent
+ * SDK upgrade) to the real `resolvedModel` ids a live, authenticated
+ * `query.supportedModels()` probe against this account actually returned
+ * -- `claude-opus-4-8` (a pre-upgrade placeholder id) never appeared live
+ * and is replaced by the real `claude-opus-5`. `claude-fable-5` and
+ * `claude-haiku-4-5-20251001` are added as newly-confirmed real ids from
+ * that same probe. contextWindow/maxTokens numbers are still the
+ * documented Claude 4.x/5.x-generation platform floor, NOT independently
+ * re-verified per model (supportedModels() does not return numeric
+ * limits) -- only the ids themselves are live-confirmed.
  */
 export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadata[] =
   [
     {
-      id: 'claude-opus-4-8',
-      name: 'Claude Opus 4.8',
+      id: 'claude-opus-5',
+      name: 'Claude Opus 5',
       contextWindow: 200_000,
       maxTokens: 32_000,
       reasoning: true,
@@ -469,6 +492,24 @@ export const CLAUDE_SUBSCRIPTION_MODELS: readonly ClaudeSubscriptionModelMetadat
       contextWindow: 200_000,
       maxTokens: 64_000,
       reasoning: true,
+      source: 'OFFICIAL_STATIC_METADATA',
+      limitsSource: 'PINNED_REFERENCE',
+    },
+    {
+      id: 'claude-fable-5',
+      name: 'Claude Fable 5',
+      contextWindow: 200_000,
+      maxTokens: 32_000,
+      reasoning: true,
+      source: 'OFFICIAL_STATIC_METADATA',
+      limitsSource: 'PINNED_REFERENCE',
+    },
+    {
+      id: 'claude-haiku-4-5-20251001',
+      name: 'Claude Haiku 4.5',
+      contextWindow: 200_000,
+      maxTokens: 16_000,
+      reasoning: false,
       source: 'OFFICIAL_STATIC_METADATA',
       limitsSource: 'PINNED_REFERENCE',
     },
@@ -568,10 +609,24 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
       options: { tools: [], maxTurns: 0 },
     });
     const knownById = new Map(CLAUDE_SUBSCRIPTION_MODELS.map((m) => [m.id, m]));
+    // As of @anthropic-ai/claude-agent-sdk@0.3.233 (upgraded from 0.1.77),
+    // each entry also carries `resolvedModel` — the real, backend-resolved
+    // dated model id behind the alias (e.g. `value: 'default'` resolves to
+    // `resolvedModel: 'claude-sonnet-5'`) — plus effort/thinking capability
+    // flags. `resolvedModel` did not exist on 0.1.77; treat it as optional
+    // so an older/downgraded SDK build still degrades to the pre-upgrade
+    // alias-only behavior below rather than breaking.
     const supportedModels = (
       query as unknown as {
         supportedModels?: () => Promise<
-          Array<{ value: string; displayName?: string; description?: string }>
+          Array<{
+            value: string;
+            resolvedModel?: string;
+            displayName?: string;
+            description?: string;
+            supportsEffort?: boolean;
+            supportsAdaptiveThinking?: boolean;
+          }>
         >;
       }
     ).supportedModels;
@@ -601,10 +656,22 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
     ]);
     const looksLikeRealModelId = (id: string) =>
       id.startsWith('claude-') || KNOWN_GENERIC_ALIASES.has(id);
+    // A live `resolvedModel` is stronger evidence than the alias heuristic
+    // above -- it's the backend's own resolved dated id, not a guess from
+    // the alias string -- so it alone can satisfy the trust check (this is
+    // what makes a *solitary* `default` entry trustworthy on 0.3.233, where
+    // it previously wasn't on 0.1.77: the old shape had no `resolvedModel`
+    // to corroborate it, only the ambiguous label).
+    const hasTrustedResolvedModel = (info: { resolvedModel?: string }) =>
+      typeof info.resolvedModel === 'string' &&
+      info.resolvedModel.startsWith('claude-');
     if (
       !discovered ||
       discovered.length === 0 ||
-      !discovered.some((info) => looksLikeRealModelId(info.value))
+      !discovered.some(
+        (info) =>
+          looksLikeRealModelId(info.value) || hasTrustedResolvedModel(info),
+      )
     ) {
       return {
         models: CLAUDE_SUBSCRIPTION_MODELS,
@@ -612,41 +679,75 @@ export async function getClaudeSubscriptionModels(): Promise<ClaudeSubscriptionM
       };
     }
 
-    // The batch has already been trust-checked above using ONLY the strict
-    // `claude-`/known-generic-alias predicate, so a lone-`default` probe
-    // artifact (no other real entries) was already rejected and never
-    // reaches this point. Once a batch is trusted, the live CLI's own
-    // "default" alias (its recommended/current model, e.g. `{ value:
-    // 'default', description: 'Sonnet 4.5 · Best for everyday tasks' }`)
-    // is real, account-scoped data too — observed live alongside 'opus'/
-    // 'haiku' on an authenticated session — and must not be silently
-    // dropped from the final list, or an authenticated 3-model account
-    // response degrades to a 2-model one for no account-truth reason.
-    const isKeepableDiscoveredId = (id: string) =>
-      looksLikeRealModelId(id) || id === 'default';
-    const models: ClaudeSubscriptionModelMetadata[] = discovered
-      .filter((info) => isKeepableDiscoveredId(info.value))
-      .map((info) => {
-        const known = knownById.get(info.value);
-        if (known) {
-          return { ...known, source: 'ACCOUNT_DYNAMIC' };
-        }
-        return {
-          id: info.value,
-          name: info.displayName ?? info.value,
-          // Not a per-model pinned reference — no table entry matched this
-          // live-discovered id. These are the generic Claude-4.x-generation
-          // floor values, kept here ONLY as a transport-side outbound
-          // safety budget. limitsSource: 'GENERIC_FLOOR' tells downstream
-          // consumers (universal inventory) to report UNKNOWN rather than
-          // this number as the model's true contextWindow/maxOutputTokens.
-          contextWindow: CLAUDE_GENERATION_CONTEXT_WINDOW,
-          maxTokens: CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR,
-          reasoning: /reasoning|thinking/i.test(info.description ?? ''),
-          source: 'ACCOUNT_DYNAMIC',
-          limitsSource: 'GENERIC_FLOOR',
-        };
-      });
+    // The batch has already been trust-checked above, so a lone-`default`
+    // probe artifact with no corroborating `resolvedModel` and no other
+    // real entries was already rejected and never reaches this point. Once
+    // a batch is trusted, the live CLI's own "default" alias (its
+    // recommended/current model) is real, account-scoped data too and must
+    // not be silently dropped from the final list.
+    const isKeepableDiscoveredId = (info: {
+      value: string;
+      resolvedModel?: string;
+    }) =>
+      looksLikeRealModelId(info.value) ||
+      info.value === 'default' ||
+      hasTrustedResolvedModel(info);
+
+    // Multiple aliases can resolve to the same real model (observed live:
+    // both `default` and `sonnet` resolve to `claude-sonnet-5`) -- dedupe
+    // by the canonical id so the account's real per-model count is
+    // reported once each, not once per alias. Prefer a non-`default` alias
+    // entry as the display-name source when both exist for the same
+    // canonical id, since `default` is a generic "current recommendation"
+    // label ("Default (recommended)") rather than the model's own name.
+    const byCanonicalId = new Map<
+      string,
+      { info: (typeof discovered)[number]; isDefaultAlias: boolean }
+    >();
+    for (const info of discovered) {
+      if (!isKeepableDiscoveredId(info)) continue;
+      const canonicalId = hasTrustedResolvedModel(info)
+        ? (info.resolvedModel as string)
+        : info.value;
+      const isDefaultAlias = info.value === 'default';
+      const existing = byCanonicalId.get(canonicalId);
+      if (!existing || (existing.isDefaultAlias && !isDefaultAlias)) {
+        byCanonicalId.set(canonicalId, { info, isDefaultAlias });
+      }
+    }
+
+    const models: ClaudeSubscriptionModelMetadata[] = Array.from(
+      byCanonicalId.entries(),
+    ).map(([canonicalId, { info }]) => {
+      const known = knownById.get(canonicalId);
+      if (known) {
+        return { ...known, source: 'ACCOUNT_DYNAMIC' };
+      }
+      return {
+        id: canonicalId,
+        name: info.displayName ?? canonicalId,
+        // Not a per-model pinned reference — no table entry matched this
+        // live-discovered id. These are the generic Claude-4.x-generation
+        // floor values, kept here ONLY as a transport-side outbound
+        // safety budget. limitsSource: 'GENERIC_FLOOR' tells downstream
+        // consumers (universal inventory) to report UNKNOWN rather than
+        // this number as the model's true contextWindow/maxOutputTokens.
+        contextWindow: CLAUDE_GENERATION_CONTEXT_WINDOW,
+        maxTokens: CLAUDE_UNKNOWN_MODEL_MAX_TOKENS_FLOOR,
+        // Prefer the SDK's own explicit capability flags (0.3.233+) over
+        // the old description-text regex sniff, which 0.3.233's real
+        // descriptions (e.g. "Sonnet 5 · Efficient for routine tasks")
+        // no longer contain the words "reasoning"/"thinking" for anyway.
+        // Still fall back to the regex for an older SDK shape that has
+        // neither flag.
+        reasoning:
+          info.supportsAdaptiveThinking === true ||
+          info.supportsEffort === true ||
+          /reasoning|thinking/i.test(info.description ?? ''),
+        source: 'ACCOUNT_DYNAMIC',
+        limitsSource: 'GENERIC_FLOOR',
+      };
+    });
     return { models, source: 'ACCOUNT_DYNAMIC' };
   } catch {
     return {

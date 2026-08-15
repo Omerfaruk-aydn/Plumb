@@ -73,7 +73,7 @@ describe('PlumbModelRegistry', () => {
     // falls back to `api: 'openai-completions'` when that happens, silently
     // misrouting the first chat turn after restart to the wrong transport
     // instead of the Claude Agent SDK.
-    const model = registry.findModel('claude-subscription', 'claude-opus-4-8');
+    const model = registry.findModel('claude-subscription', 'claude-opus-5');
     expect(model).toBeDefined();
     expect(model!.provider).toBe('claude-subscription');
     expect(model!.api).toBe('claude-agent-sdk');
