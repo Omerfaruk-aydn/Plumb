@@ -12,7 +12,7 @@ import path from 'node:path';
  * ACP client-based implementation of FileSystemService
  */
 export class AcpFileSystemService implements FileSystemService {
-  private readonly geminiDir = path.join(os.homedir(), '.gemini');
+  private readonly plumbDir = path.join(os.homedir(), '.plumb');
 
   constructor(
     private readonly connection: acp.AgentSideConnection,
@@ -28,7 +28,7 @@ export class AcpFileSystemService implements FileSystemService {
     // would make the IDE's project root overlap with the global directory).
     return (
       !isWithinRoot(filePath, this.root) ||
-      isWithinRoot(filePath, this.geminiDir)
+      isWithinRoot(filePath, this.plumbDir)
     );
   }
 

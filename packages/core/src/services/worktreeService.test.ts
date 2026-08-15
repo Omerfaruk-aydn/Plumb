@@ -9,7 +9,7 @@ import * as fs from 'node:fs/promises';
 import {
   getProjectRootForWorktree,
   createWorktree,
-  isGeminiWorktree,
+  isPlumbWorktree,
   hasWorktreeChanges,
   cleanupWorktree,
   getWorktreePath,
@@ -32,7 +32,7 @@ describe('worktree utilities', () => {
   const worktreeName = 'test-feature';
   const expectedPath = path.join(
     projectRoot,
-    '.gemini',
+    '.plumb',
     'worktrees',
     worktreeName,
   );
@@ -64,7 +64,7 @@ describe('worktree utilities', () => {
       } as never);
 
       const result = await getProjectRootForWorktree(
-        '/mock/project/.gemini/worktrees/my-feature',
+        '/mock/project/.plumb/worktrees/my-feature',
       );
       expect(result).toBe('/mock/project');
     });
@@ -106,20 +106,20 @@ describe('worktree utilities', () => {
     });
   });
 
-  describe('isGeminiWorktree', () => {
+  describe('isPlumbWorktree', () => {
     it('should return true for a valid gemini worktree path', () => {
-      expect(isGeminiWorktree(expectedPath, projectRoot)).toBe(true);
-      expect(
-        isGeminiWorktree(path.join(expectedPath, 'src'), projectRoot),
-      ).toBe(true);
+      expect(isPlumbWorktree(expectedPath, projectRoot)).toBe(true);
+      expect(isPlumbWorktree(path.join(expectedPath, 'src'), projectRoot)).toBe(
+        true,
+      );
     });
 
     it('should return false for a path outside gemini worktrees', () => {
-      expect(isGeminiWorktree(path.join(projectRoot, 'src'), projectRoot)).toBe(
+      expect(isPlumbWorktree(path.join(projectRoot, 'src'), projectRoot)).toBe(
         false,
       );
       expect(
-        isGeminiWorktree(path.resolve('/some/other/path'), projectRoot),
+        isPlumbWorktree(path.resolve('/some/other/path'), projectRoot),
       ).toBe(false);
     });
   });
@@ -268,7 +268,7 @@ describe('WorktreeService', () => {
   describe('maybeCleanup', () => {
     const info = {
       name: 'feature-x',
-      path: path.join(projectRoot, '.gemini', 'worktrees', 'feature-x'),
+      path: path.join(projectRoot, '.plumb', 'worktrees', 'feature-x'),
       baseSha: 'base-sha',
     };
 

@@ -39,7 +39,7 @@ import {
   applyRequiredServers,
   getAdminBlockedMcpServersMessage,
   getProjectRootForWorktree,
-  isGeminiWorktree,
+  isPlumbWorktree,
   AuthType,
   type WorktreeSettings,
   type HookDefinition,
@@ -1412,7 +1412,7 @@ async function resolveWorktreeSettings(
     const toplevel = stdout.trim();
     const projectRoot = await getProjectRootForWorktree(toplevel);
 
-    if (isGeminiWorktree(toplevel, projectRoot)) {
+    if (isPlumbWorktree(toplevel, projectRoot)) {
       worktreePath = toplevel;
     }
   } catch {

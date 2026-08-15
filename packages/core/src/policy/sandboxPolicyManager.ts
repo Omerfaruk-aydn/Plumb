@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { fileURLToPath } from 'node:url';
 import { debugLogger } from '../utils/debugLogger.js';
 import { type SandboxPermissions } from '../services/sandboxManager.js';
-import { deduplicateAbsolutePaths } from '../utils/paths.js';
+import { deduplicateAbsolutePaths, PLUMB_DIR } from '../utils/paths.js';
 import { normalizeCommand } from '../utils/shell-utils.js';
 
 export const SandboxModeConfigSchema = z.object({
@@ -102,7 +102,7 @@ export class SandboxPolicyManager {
   constructor(customConfigPath?: string) {
     this.configPath =
       customConfigPath ??
-      path.join(os.homedir(), '.gemini', 'policies', 'sandbox.toml');
+      path.join(os.homedir(), PLUMB_DIR, 'policies', 'sandbox.toml');
     this.config = this.loadConfig();
   }
 

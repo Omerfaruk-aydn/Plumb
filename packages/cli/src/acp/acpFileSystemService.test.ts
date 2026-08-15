@@ -93,15 +93,15 @@ describe('AcpFileSystemService', () => {
       },
       {
         capability: true,
-        path: '/home/user/.gemini/tmp/file.md',
+        path: '/home/user/.plumb/tmp/file.md',
         root: '/home/user',
-        desc: 'fallback if file is inside global gemini dir, even if root overlaps',
+        desc: 'fallback if file is inside global plumb dir, even if root overlaps',
         setup: () => {
           mockFallback.readTextFile.mockResolvedValue('content');
         },
         verify: () => {
           expect(mockFallback.readTextFile).toHaveBeenCalledWith(
-            '/home/user/.gemini/tmp/file.md',
+            '/home/user/.plumb/tmp/file.md',
           );
           expect(mockConnection.readTextFile).not.toHaveBeenCalled();
         },
@@ -187,12 +187,12 @@ describe('AcpFileSystemService', () => {
       },
       {
         capability: true,
-        path: '/home/user/.gemini/tmp/file.md',
+        path: '/home/user/.plumb/tmp/file.md',
         root: '/home/user',
-        desc: 'fallback if file is inside global gemini dir, even if root overlaps',
+        desc: 'fallback if file is inside global plumb dir, even if root overlaps',
         verify: () => {
           expect(mockFallback.writeTextFile).toHaveBeenCalledWith(
-            '/home/user/.gemini/tmp/file.md',
+            '/home/user/.plumb/tmp/file.md',
             'content',
           );
           expect(mockConnection.writeTextFile).not.toHaveBeenCalled();
