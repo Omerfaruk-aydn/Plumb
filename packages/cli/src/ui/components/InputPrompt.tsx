@@ -24,6 +24,7 @@ import {
 } from './shared/ScrollableList.js';
 import { ListeningIndicator } from './ListeningIndicator.js';
 import { HalfLinePaddedBox } from './shared/HalfLinePaddedBox.js';
+import { ModeBadge } from './statusLine/ModeBadge.js';
 import {
   type TextBuffer,
   logicalPosToOffset,
@@ -1824,29 +1825,24 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             ) : (
               <Text color={theme.text.accent}>🎤 </Text>
             ))}
-          <Text
-            color={statusColor ?? theme.text.accent}
-            aria-label={statusText || undefined}
-          >
-            {shellModeActive ? (
-              reverseSearchActive ? (
-                <Text
-                  color={theme.text.link}
-                  aria-label={SCREEN_READER_USER_PREFIX}
-                >
-                  (r:){' '}
-                </Text>
-              ) : (
-                '!'
-              )
-            ) : commandSearchActive ? (
-              <Text color={theme.text.accent}>(r:) </Text>
-            ) : showYoloStyling ? (
-              '*'
-            ) : (
-              '>'
-            )}{' '}
-          </Text>
+          <ModeBadge
+            mode={
+              shellModeActive && reverseSearchActive
+                ? 'search'
+                : shellModeActive
+                  ? 'shell'
+                  : commandSearchActive
+                    ? 'search'
+                    : showYoloStyling
+                      ? 'yolo'
+                      : showPlanStyling
+                        ? 'plan'
+                        : showAutoAcceptStyling
+                          ? 'accept'
+                          : 'prompt'
+            }
+            ariaLabel={statusText || SCREEN_READER_USER_PREFIX}
+          />
           <Box flexGrow={1} flexDirection="column" ref={innerBoxRef}>
             {buffer.text.length === 0 ? (
               effectivePlaceholder ? (

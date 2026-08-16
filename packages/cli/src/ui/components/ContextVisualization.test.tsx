@@ -43,20 +43,23 @@ describe('<ContextVisualization />', () => {
     expect(frame).toContain('remaining');
   });
 
-  it('renders a token-rate sparkline when history has 2+ samples (F5)', async () => {
+  it('renders a token-rate sparkline once history is long enough to show a trend', async () => {
     const { lastFrame, waitUntilReady } = await renderContext({
-      tokenHistory: [100, 5000, 3000, 9_000_000],
+      tokenHistory: [100, 5000, 3000, 800, 9_000_000],
     });
     await waitUntilReady();
-    // The lowest sample maps to the lowest block -- a character the
-    // progress bar (which only ever uses █/░) never produces, so this
-    // is unambiguously the sparkline.
+    // The lowest sample maps to the lowest vertical block. The progress
+    // bar only ever emits █/░ and the horizontal partials (▏▎▍▌▋▊▉), so
+    // a vertical block is unambiguously the sparkline.
     expect(lastFrame()).toContain('▁');
   });
 
-  it('does not render a sparkline with fewer than 2 samples', async () => {
+  it('does not render a sparkline from too few samples to be a trend', async () => {
+    // Two points are a line segment, not a trend; with a zero range they
+    // render as a lone mid-height block that reads as a rendering
+    // artifact rather than as data.
     const { lastFrame, waitUntilReady } = await renderContext({
-      tokenHistory: [1000],
+      tokenHistory: [1000, 1200, 1100],
     });
     await waitUntilReady();
     expect(lastFrame()).not.toContain('▁');
@@ -71,7 +74,7 @@ describe('<ContextVisualization />', () => {
   it('renders a sparkline in the unknown-max-tokens fallback state too', async () => {
     const { lastFrame, waitUntilReady } = await renderContext({
       maxTokens: undefined,
-      tokenHistory: [100, 5000, 9_000_000],
+      tokenHistory: [100, 5000, 3000, 800, 9_000_000],
     });
     await waitUntilReady();
     const frame = lastFrame();

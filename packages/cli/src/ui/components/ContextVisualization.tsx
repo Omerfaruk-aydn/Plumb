@@ -45,12 +45,29 @@ function formatTokenCount(count: number): string {
   return count.toString();
 }
 
+/**
+ * Minimum samples before a sparkline carries information. Two points is a
+ * line segment, not a trend -- and with a zero range it renders as a lone
+ * mid-height block that reads as a rendering artifact rather than data.
+ */
+const MIN_SPARKLINE_SAMPLES = 5;
+
+/**
+ * Eighth-block glyphs let the bar resolve sub-cell progress, so early
+ * usage registers as movement instead of sitting at an empty bar until it
+ * crosses a whole cell. The trailing partial cell is what makes a 40-wide
+ * bar behave like a 320-step one.
+ */
+const PARTIAL_BLOCKS = ['', '▏', '▎', '▍', '▌', '▋', '▊', '▉'];
+
 function renderProgressBar(percentage: number, width: number): string {
-  const filled = Math.round(width * percentage);
-  const empty = width - filled;
-  const filledChar = '█';
-  const emptyChar = '░';
-  return filledChar.repeat(filled) + emptyChar.repeat(empty);
+  const clamped = Math.min(Math.max(percentage, 0), 1);
+  const exact = width * clamped;
+  const filled = Math.floor(exact);
+  const partialIndex = Math.floor((exact - filled) * PARTIAL_BLOCKS.length);
+  const partial = filled < width ? PARTIAL_BLOCKS[partialIndex] : '';
+  const empty = Math.max(width - filled - (partial ? 1 : 0), 0);
+  return '█'.repeat(filled) + partial + '░'.repeat(empty);
 }
 
 export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
@@ -79,7 +96,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
             <Text color={theme.text.secondary}>
               {formatTokenCount(usedTokens)} / ? tokens
             </Text>
-            {tokenHistory && tokenHistory.length >= 2 && (
+            {tokenHistory && tokenHistory.length >= MIN_SPARKLINE_SAMPLES && (
               <Text color={theme.text.secondary}>
                 {'  '}
                 {renderSparkline(tokenHistory)}
@@ -130,7 +147,7 @@ export const ContextVisualization: React.FC<ContextVisualizationProps> = ({
           >
             {remainingFormatted} remaining
           </Text>
-          {tokenHistory && tokenHistory.length >= 2 && (
+          {tokenHistory && tokenHistory.length >= MIN_SPARKLINE_SAMPLES && (
             <Text color={theme.text.secondary}>
               {'  '}
               {renderSparkline(tokenHistory)}

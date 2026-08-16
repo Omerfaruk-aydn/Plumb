@@ -21,6 +21,10 @@ import { PowerlineRow } from './statusLine/PowerlineRow.js';
 import type { PowerlineSegment } from './statusLine/PowerlineRow.js';
 import { resolveSeparator, isSeparatorStyle } from './statusLine/separators.js';
 import { metaFor } from './statusLine/segmentMeta.js';
+import {
+  useGitWorktreeStatus,
+  isCleanWorktree,
+} from '../hooks/useGitWorktreeStatus.js';
 import process from 'node:process';
 import os from 'node:os';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -259,8 +263,16 @@ export const Footer: React.FC = () => {
   // Each field is then identifiable by hue alone at a glance, without
   // reading its label. Drawn from the active theme so custom themes still
   // control them; only the *assignment* of hue to field is fixed here.
-  const pathColor = theme.ui.active;
-  const branchColor = theme.status.success;
+  // Only polled when the branch field is actually on screen -- an
+  // ambient `git status` every few seconds is cheap, but not free, and
+  // pointless if nothing renders it.
+  const worktree = useGitWorktreeStatus(
+    targetDir,
+    items.includes('git-branch'),
+  );
+
+  const pathColor = theme.statusLine?.path ?? theme.ui.active;
+  const branchColor = theme.statusLine?.gitClean ?? theme.status.success;
 
   const potentialColumns: FooterColumn[] = [];
 
@@ -323,11 +335,51 @@ export const Footer: React.FC = () => {
       }
       case 'git-branch': {
         if (branchName) {
+          // A bare branch name says which branch; the counts say whether
+          // there is uncommitted work in it -- the part that changes what
+          // the user does next. Each state gets its own hue, as oh-my-pi's
+          // status line does (statusLineStaged/Dirty/Untracked).
+          const dirtyColor = theme.statusLine?.gitDirty ?? theme.status.warning;
+          const marks: React.ReactNode[] = [];
+          let markWidth = 0;
+          if (worktree.staged > 0) {
+            marks.push(
+              <Text key="staged" color={theme.status.success}>
+                {` +${worktree.staged}`}
+              </Text>,
+            );
+            markWidth += String(worktree.staged).length + 2;
+          }
+          if (worktree.dirty > 0) {
+            marks.push(
+              <Text key="dirty" color={dirtyColor}>
+                {` ~${worktree.dirty}`}
+              </Text>,
+            );
+            markWidth += String(worktree.dirty).length + 2;
+          }
+          if (worktree.untracked > 0) {
+            marks.push(
+              <Text key="untracked" color={theme.ui.active}>
+                {` ?${worktree.untracked}`}
+              </Text>,
+            );
+            markWidth += String(worktree.untracked).length + 2;
+          }
           addCol(
             id,
             header,
-            () => <Text color={branchColor}>{branchName}</Text>,
-            branchName.length,
+            () => (
+              <Text>
+                <Text
+                  color={isCleanWorktree(worktree) ? branchColor : dirtyColor}
+                >
+                  {branchName}
+                </Text>
+                {marks}
+              </Text>
+            ),
+            branchName.length + markWidth,
           );
         }
         break;

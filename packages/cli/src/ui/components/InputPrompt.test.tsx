@@ -1893,9 +1893,9 @@ describe('InputPrompt', () => {
 
     await waitFor(() => {
       const frame = stdout.lastFrameRaw();
-      // In plan mode it uses '>' but with success color.
-      // We check that it contains '>' and not '*' or '!'.
-      expect(frame).toContain('>');
+      // Plan mode renders a filled 'P' tag; the yolo '*' and shell '!'
+      // tags must not appear.
+      expect(frame).toContain('P');
       expect(frame).not.toContain('*');
       expect(frame).not.toContain('!');
     });
@@ -2976,7 +2976,7 @@ describe('InputPrompt', () => {
 
       await waitFor(() => {
         const frame = stdout.lastFrameRaw();
-        expect(frame).toContain('(r:)');
+        expect(frame).toContain('⌕');
         expect(frame).toContain('echo hello');
         expect(frame).toContain('echo world');
         expect(frame).toContain('ls');
@@ -3001,7 +3001,7 @@ describe('InputPrompt', () => {
 
         // Wait for reverse search to be active
         await waitFor(() => {
-          expect(stdout.lastFrame()).toContain('(r:)');
+          expect(stdout.lastFrame()).toContain('⌕');
         });
 
         await act(async () => {
@@ -3009,7 +3009,7 @@ describe('InputPrompt', () => {
         });
 
         await waitFor(() => {
-          expect(stdout.lastFrame()).not.toContain('(r:)');
+          expect(stdout.lastFrame()).not.toContain('⌕');
           expect(stdout.lastFrame()).not.toContain('echo hello');
         });
 
@@ -3050,7 +3050,7 @@ describe('InputPrompt', () => {
 
       // Verify reverse search is active
       await waitFor(() => {
-        expect(stdout.lastFrame()).toContain('(r:)');
+        expect(stdout.lastFrame()).toContain('⌕');
       });
 
       // Press Tab to complete the highlighted entry
@@ -3118,7 +3118,7 @@ describe('InputPrompt', () => {
       });
 
       await waitFor(() => {
-        expect(stdout.lastFrame()).toContain('(r:)');
+        expect(stdout.lastFrame()).toContain('⌕');
       });
 
       await act(async () => {
@@ -3126,7 +3126,7 @@ describe('InputPrompt', () => {
       });
 
       await waitFor(() => {
-        expect(stdout.lastFrame()).not.toContain('(r:)');
+        expect(stdout.lastFrame()).not.toContain('⌕');
       });
 
       expect(props.onSubmit).toHaveBeenCalledWith('echo hello');
@@ -3161,7 +3161,7 @@ describe('InputPrompt', () => {
       });
 
       await waitFor(() => {
-        expect(stdout.lastFrame()).toContain('(r:)');
+        expect(stdout.lastFrame()).toContain('⌕');
       });
 
       // Press kitty escape key
@@ -3170,7 +3170,7 @@ describe('InputPrompt', () => {
       });
 
       await waitFor(() => {
-        expect(stdout.lastFrame()).not.toContain('(r:)');
+        expect(stdout.lastFrame()).not.toContain('⌕');
         expect(props.buffer.text).toBe(initialText);
         expect(props.buffer.cursor).toEqual(initialCursor);
       });
@@ -3247,7 +3247,7 @@ describe('InputPrompt', () => {
 
       await waitFor(() => {
         const frame = stdout.lastFrameRaw() ?? '';
-        expect(frame).toContain('(r:)');
+        expect(frame).toContain('⌕');
         expect(frame).toContain('git commit');
         expect(frame).toContain('git push');
       });
@@ -3324,7 +3324,7 @@ describe('InputPrompt', () => {
         stdin.write('\x12');
       });
       await waitFor(() => {
-        expect(stdout.lastFrame()).toContain('(r:)');
+        expect(stdout.lastFrame()).toContain('⌕');
       });
       expect(stdout.lastFrame()).toMatchSnapshot(
         'command-search-render-collapsed-match',
@@ -3336,7 +3336,7 @@ describe('InputPrompt', () => {
       await waitFor(() => {
         // Just wait for any update to ensure it is stable.
         // We could also wait for specific text if we knew it.
-        expect(stdout.lastFrame()).toContain('(r:)');
+        expect(stdout.lastFrame()).toContain('⌕');
       });
       expect(stdout.lastFrame()).toMatchSnapshot(
         'command-search-render-expanded-match',
@@ -3367,7 +3367,7 @@ describe('InputPrompt', () => {
       await waitFor(() => {
         const frame = clean(stdout.lastFrame());
         // Ensure it rendered the search mode
-        expect(frame).toContain('(r:)');
+        expect(frame).toContain('⌕');
         expect(frame).not.toContain('→');
         expect(frame).not.toContain('←');
       });
@@ -4056,7 +4056,9 @@ describe('InputPrompt', () => {
       const { stdout, unmount } = await renderWithProviders(
         <TestInputPrompt {...props} />,
       );
-      await waitFor(() => expect(stdout.lastFrame()).toContain('>'));
+      // Auto-accept is a mode that changes what happens without asking,
+      // so it earns a filled 'A' tag rather than the plain prompt caret.
+      await waitFor(() => expect(stdout.lastFrame()).toContain('A'));
       expect(stdout.lastFrame()).toMatchSnapshot();
       unmount();
     });
@@ -5041,7 +5043,7 @@ describe('InputPrompt', () => {
       );
 
       // Initially not recording
-      expect(lastFrame()).toContain('🎤 >');
+      expect(lastFrame()).toContain('🎤 ❯');
       expect(lastFrame()).toContain(
         'Type your message or space to talk (Esc to exit)',
       );
@@ -5096,7 +5098,7 @@ describe('InputPrompt', () => {
       );
 
       // Should show voice mode prefix even if buffer is not empty
-      expect(lastFrame()).toContain('🎤 >');
+      expect(lastFrame()).toContain('🎤 ❯');
       expect(lastFrame()).toContain('First turn.');
 
       // Press space to start recording again
@@ -5275,7 +5277,7 @@ describe('InputPrompt', () => {
           },
         );
 
-        expect(lastFrame()).toContain('🎤 >');
+        expect(lastFrame()).toContain('🎤 ❯');
         expect(lastFrame()).toContain(
           'Type your message or hold space to talk (Esc to exit)',
         );
@@ -5348,7 +5350,7 @@ describe('InputPrompt', () => {
           stdin.write(' ');
           vi.advanceTimersByTime(100);
         });
-        expect(lastFrame()).toContain('~~~ >');
+        expect(lastFrame()).toContain('~~~ ❯');
 
         // Stop heartbeat (release)
         await act(async () => {
