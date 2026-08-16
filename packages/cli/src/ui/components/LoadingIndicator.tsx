@@ -10,6 +10,7 @@ import { theme } from '../semantic-colors.js';
 import { useStreamingContext } from '../contexts/StreamingContext.js';
 import { StreamingState } from '../types.js';
 import { PlumbRespondingSpinner } from './PlumbRespondingSpinner.js';
+import { ShimmerText } from './ShimmerText.js';
 import { formatDuration } from '../utils/formatters.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { isNarrowWidth } from '../utils/isNarrowWidth.js';
@@ -103,9 +104,11 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         </Box>
         {primaryText && (
           <Box flexShrink={1}>
-            <Text color={theme.text.accent} italic wrap="truncate-end">
-              {primaryText}
-            </Text>
+            <ShimmerText
+              text={primaryText}
+              active={streamingState === StreamingState.Responding}
+              italic
+            />
             {primaryText === INTERACTIVE_SHELL_WAITING_PHRASE && (
               <Text color={theme.ui.active} italic>
                 {' '}
@@ -147,9 +150,11 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
           </Box>
           {primaryText && (
             <Box flexShrink={1}>
-              <Text color={theme.text.accent} italic wrap="truncate-end">
-                {primaryText}
-              </Text>
+              <ShimmerText
+                text={primaryText}
+                active={streamingState === StreamingState.Responding}
+                italic
+              />
               {primaryText === INTERACTIVE_SHELL_WAITING_PHRASE && (
                 <Text color={theme.ui.active} italic>
                   {' '}
