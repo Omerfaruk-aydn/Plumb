@@ -22,6 +22,15 @@ export interface SemanticColors {
       added: string;
       removed: string;
     };
+    /**
+     * Status-tinted row surfaces (see ColorsTheme's UserMessageBackground
+     * &co). Optional: a theme that doesn't define them renders those rows
+     * with no background at all rather than a substituted color.
+     */
+    userMessage?: string;
+    toolPending?: string;
+    toolSuccess?: string;
+    toolError?: string;
   };
   border: {
     default: string;
@@ -58,6 +67,10 @@ export const lightSemanticColors: SemanticColors = {
       added: lightTheme.DiffAdded,
       removed: lightTheme.DiffRemoved,
     },
+    userMessage: lightTheme.UserMessageBackground,
+    toolPending: lightTheme.ToolPendingBackground,
+    toolSuccess: lightTheme.ToolSuccessBackground,
+    toolError: lightTheme.ToolErrorBackground,
   },
   border: {
     default: lightTheme.DarkGray,
@@ -94,6 +107,10 @@ export const darkSemanticColors: SemanticColors = {
       added: darkTheme.DiffAdded,
       removed: darkTheme.DiffRemoved,
     },
+    userMessage: darkTheme.UserMessageBackground,
+    toolPending: darkTheme.ToolPendingBackground,
+    toolSuccess: darkTheme.ToolSuccessBackground,
+    toolError: darkTheme.ToolErrorBackground,
   },
   border: {
     default: darkTheme.DarkGray,

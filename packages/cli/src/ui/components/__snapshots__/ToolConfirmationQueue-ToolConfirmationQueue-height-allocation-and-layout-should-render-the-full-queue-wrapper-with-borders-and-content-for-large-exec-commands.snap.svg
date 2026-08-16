@@ -6,192 +6,192 @@
   <g transform="translate(10, 10)">
     <text x="0" y="2" fill="#333333" textLength="720" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────╮</text>
     <text x="0" y="19" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="19" fill="#fbbf24" textLength="81" lengthAdjust="spacingAndGlyphs" font-weight="bold">? Shell  </text>
+    <text x="18" y="19" fill="#ffb84d" textLength="81" lengthAdjust="spacingAndGlyphs" font-weight="bold">? Shell  </text>
     <text x="99" y="19" fill="#ffffff" textLength="207" lengthAdjust="spacingAndGlyphs">Executes a bash command</text>
     <text x="648" y="19" fill="#afafaf" textLength="54" lengthAdjust="spacingAndGlyphs">2 of 3</text>
     <text x="711" y="19" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="36" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="36" fill="#fbbf24" textLength="684" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────╮</text>
+    <text x="18" y="36" fill="#ffb84d" textLength="684" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────╮</text>
     <text x="711" y="36" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="53" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="53" fill="#afafaf" textLength="234" lengthAdjust="spacingAndGlyphs">... 22 hidden (Ctrl+O) ...</text>
-    <text x="693" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="53" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="70" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="70" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="70" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 23&quot;</text>
-    <text x="693" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="70" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="87" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="87" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="87" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="87" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="87" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 24&quot;</text>
-    <text x="693" y="87" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="87" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="87" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="104" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="104" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="104" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="104" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="104" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 25&quot;</text>
-    <text x="693" y="104" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="104" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="104" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="121" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="121" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="121" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="121" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="121" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 26&quot;</text>
-    <text x="693" y="121" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="121" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="121" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="138" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="138" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="138" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="138" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 27&quot;</text>
-    <text x="693" y="138" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="138" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="155" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="155" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="155" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="155" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 28&quot;</text>
-    <text x="693" y="155" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="155" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="172" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="172" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="172" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="172" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 29&quot;</text>
-    <text x="693" y="172" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="172" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="189" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="189" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="189" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="189" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 30&quot;</text>
-    <text x="693" y="189" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="189" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="206" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="206" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="206" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="206" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 31&quot;</text>
-    <text x="693" y="206" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="206" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="223" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="223" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="223" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 32&quot;</text>
-    <text x="693" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="223" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="240" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="240" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="240" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="240" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 33&quot;</text>
-    <text x="693" y="240" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="240" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="257" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="257" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="257" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="257" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="257" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 34&quot;</text>
-    <text x="693" y="257" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="257" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="257" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="274" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="274" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="274" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="274" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="274" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 35&quot;</text>
-    <text x="693" y="274" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="274" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="274" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="291" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="291" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="291" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="291" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="291" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 36&quot;</text>
-    <text x="693" y="291" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="291" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="291" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="308" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="308" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="308" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="308" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="308" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 37&quot;</text>
-    <text x="693" y="308" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="308" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="308" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="325" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="325" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="325" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="325" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="325" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 38&quot;</text>
-    <text x="693" y="325" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="325" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="325" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="342" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="342" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="342" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="342" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="342" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 39&quot;</text>
-    <text x="693" y="342" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="342" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="342" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="359" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="359" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="359" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="359" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="359" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 40&quot;</text>
-    <text x="693" y="359" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="359" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="359" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="376" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="376" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="376" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="376" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="376" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 41&quot;</text>
-    <text x="693" y="376" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="376" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="376" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="393" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="393" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="393" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="393" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="393" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 42&quot;</text>
-    <text x="693" y="393" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="393" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="393" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="410" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="410" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="410" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="410" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="410" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 43&quot;</text>
-    <text x="693" y="410" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="410" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="410" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="427" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="427" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="427" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="427" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="427" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 44&quot;</text>
-    <text x="693" y="427" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="427" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="427" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="444" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="444" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="444" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="444" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="444" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 45&quot;</text>
-    <text x="693" y="444" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="444" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="444" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="461" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="461" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="461" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="461" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="461" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 46&quot;</text>
-    <text x="693" y="461" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="461" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="461" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="478" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="478" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="478" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="478" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="478" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 47&quot;</text>
-    <text x="693" y="478" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="478" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="478" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="495" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="495" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="495" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="495" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="495" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 48&quot;</text>
-    <text x="693" y="495" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="495" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="495" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="512" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="512" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="512" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="512" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="512" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 49&quot;</text>
-    <text x="693" y="512" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="512" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="512" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="529" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="529" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="529" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="529" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="529" fill="#cdcd00" textLength="81" lengthAdjust="spacingAndGlyphs">&quot;Line 50&quot;</text>
-    <text x="693" y="529" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="693" y="529" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="711" y="529" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="546" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="546" fill="#fbbf24" textLength="684" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────╯</text>
+    <text x="18" y="546" fill="#ffb84d" textLength="684" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────╯</text>
     <text x="711" y="546" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="563" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="9" y="563" fill="#ffffff" textLength="180" lengthAdjust="spacingAndGlyphs"> Allow execution of </text>
-    <text x="189" y="563" fill="#fbbf24" textLength="63" lengthAdjust="spacingAndGlyphs" font-weight="bold">[Shell]</text>
+    <text x="189" y="563" fill="#ffb84d" textLength="63" lengthAdjust="spacingAndGlyphs" font-weight="bold">[Shell]</text>
     <text x="252" y="563" fill="#ffffff" textLength="459" lengthAdjust="spacingAndGlyphs">?                                                  </text>
     <text x="711" y="563" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="580" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>

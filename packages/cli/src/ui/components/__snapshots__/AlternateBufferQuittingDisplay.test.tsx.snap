@@ -11,7 +11,7 @@ exports[`AlternateBufferQuittingDisplay > renders with a tool awaiting confirmat
  PLUMB CLI v0.10.0
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:
@@ -69,7 +69,7 @@ exports[`AlternateBufferQuittingDisplay > renders with empty history and no pend
  PLUMB CLI v0.10.0
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:
@@ -119,7 +119,7 @@ exports[`AlternateBufferQuittingDisplay > renders with pending items but no hist
  PLUMB CLI v0.10.0
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:
@@ -153,13 +153,9 @@ Tips for getting started:
 4. Be specific for the best results
                                                                            12:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Hello Gemini                                                               │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Hello Gemini                                                                
 
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ✦  Hello User!                                                               │
-╰──────────────────────────────────────────────────────────────────────────────╯
+  ✦  Hello User!
 "
 `;

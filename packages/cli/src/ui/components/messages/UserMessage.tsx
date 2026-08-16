@@ -27,8 +27,9 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
   const isSlashCommand = checkIsSlashCommand(text);
   const config = useConfig();
   const useBackgroundColorSetting = config.getUseBackgroundColor();
-  const useBackgroundColor =
-    useBackgroundColorSetting && !!theme.background.message;
+  const surface = useBackgroundColorSetting
+    ? theme.background.userMessage
+    : undefined;
 
   const textColor = isSlashCommand ? theme.text.accent : theme.text.primary;
 
@@ -50,22 +51,25 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
       .join('\n');
   }, [text]);
 
-  // Card treatment (Crush/opencode style): a full rounded box gives the
-  // user's own turn a distinct, self-contained identity in the transcript,
-  // replacing the old approach of a bare left-accent strip (or, with
-  // useBackgroundColor on, a half-line filled background hack via
-  // HalfLinePaddedBox). The border's own padding/margin does the same
-  // "breathing room" job that trick existed for, so it's no longer needed.
+  // Modeled directly on Crush's own chat styling (internal/ui/styles/
+  // quickstyle.go): a user turn is marked by a single accent-colored left
+  // rule -- `lipgloss.Border{Left: "▌"}` there -- never by a box drawn
+  // around the text. The surface tint behind it comes from oh-my-pi's
+  // theme (modes/theme/dark.json's userMsgBg), which is how that CLI
+  // separates rows instead of using borders. Neither tool boxes prose;
+  // full-border cards are reserved for structured payloads (tool output,
+  // diffs), where they carry real grouping meaning.
   return (
     <Box flexDirection="column" marginY={1} alignSelf="flex-start">
       <Box
         flexDirection="row"
-        borderStyle="round"
+        borderStyle="single"
+        borderTop={false}
+        borderBottom={false}
+        borderRight={false}
         borderColor={Colors.AccentBlue}
-        backgroundColor={
-          useBackgroundColor ? theme.background.message : undefined
-        }
-        paddingX={1}
+        backgroundColor={surface}
+        paddingLeft={1}
         width={width}
       >
         <Box width={prefixWidth} flexShrink={0}>

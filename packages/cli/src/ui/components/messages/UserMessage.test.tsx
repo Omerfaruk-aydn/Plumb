@@ -71,7 +71,7 @@ describe('UserMessage', () => {
       vi.stubEnv('NO_COLOR', '1');
     });
 
-    it('renders the card border in plain monochrome (no color-block hack) when NO_COLOR is set', async () => {
+    it('renders the left rule in plain monochrome (no color-block hack) when NO_COLOR is set', async () => {
       const { lastFrame, unmount } = await renderWithProviders(
         <UserMessage text="Hello Gemini" width={80} />,
         { width: 80, config: makeFakeConfig({ useBackgroundColor: true }) },
@@ -79,9 +79,9 @@ describe('UserMessage', () => {
       const output = lastFrame();
 
       // In NO_COLOR mode, the block characters (▄/▀) from the old
-      // half-line-background hack should NOT be present -- but the card's
-      // own round-box border characters are plain structural glyphs, not a
-      // color effect, so they still render.
+      // half-line-background hack should NOT be present -- the left rule
+      // is a plain structural glyph, not a color effect, so it still
+      // renders while the surface tint drops out.
       expect(output).not.toContain('▄');
       expect(output).not.toContain('▀');
 

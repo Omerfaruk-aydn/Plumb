@@ -96,9 +96,7 @@ exports[`MainContent > renders a ToolConfirmationQueue without an extra line whe
 "AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Apply plan                                                                 │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Apply plan                                                                  
 
 
   Too —             ╭──────────────────────────────────────────────────────────────────────────────╮
@@ -128,9 +126,7 @@ exports[`MainContent > renders a spurious line when a tool group has only hidden
 "AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Apply plan                                                                 │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Apply plan                                                                  
 "
 `;
 
@@ -138,9 +134,7 @@ exports[`MainContent > renders a subagent with a complete box including bottom b
 "AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Investigate                                                                │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Investigate                                                                 
 
 
 ╭──────────────────────────────────────────────────────────────────────────╮
@@ -159,24 +153,19 @@ exports[`MainContent > renders mixed history items (user + gemini) with single l
 AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ User message                                                               │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ User message                                                                
 
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ✦ Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│   Gemini response                                                            │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
+  ✦ Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
+    Gemini response
 "
 `;
 
@@ -184,34 +173,29 @@ exports[`MainContent > renders multiple history items with single line padding b
 "ScrollableList
 AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ✦ Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│   Gemini message 1                                                           │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
+  ✦ Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
+    Gemini message 1
 
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ✦ Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│   Gemini message 2                                                           │
-│                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
+
+  ✦ Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
+    Gemini message 2
 "
 `;
 
@@ -220,9 +204,7 @@ exports[`MainContent > renders multiple thinking messages sequentially correctly
 AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Plan a solution                                                            │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Plan a solution                                                             
 
  Thinking... 
  │
@@ -245,9 +227,7 @@ exports[`MainContent > renders multiple thinking messages sequentially correctly
 AppHeader(full)
                                                                            02:00
 
-╭──────────────────────────────────────────────────────────────────────────────╮
-│ ❯ Plan a solution                                                            │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│ ❯ Plan a solution                                                             
 
  Thinking... 
  │

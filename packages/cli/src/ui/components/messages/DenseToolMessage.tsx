@@ -446,9 +446,28 @@ export const DenseToolMessage: React.FC<DenseToolMessageProps> = (props) => {
     <Box minHeight={1}>{item}</Box>
   );
 
+  // Status-tinted row surface, following oh-my-pi's theme (modes/theme/
+  // dark.json's toolPendingBg/toolSuccessBg/toolErrorBg): a tool row's
+  // outcome is legible from the background wash alone, before reading the
+  // status glyph. Undefined on themes that define no such surfaces, which
+  // renders the row with no background rather than a substituted color.
+  const surface =
+    status === CoreToolCallStatus.Error
+      ? theme.background.toolError
+      : status === CoreToolCallStatus.Success
+        ? theme.background.toolSuccess
+        : status === CoreToolCallStatus.Cancelled
+          ? undefined
+          : theme.background.toolPending;
+
   return (
     <Box flexDirection="column">
-      <Box marginLeft={2} flexDirection="row" flexWrap="wrap">
+      <Box
+        marginLeft={2}
+        flexDirection="row"
+        flexWrap="wrap"
+        backgroundColor={surface}
+      >
         <Box flexDirection="row" flexShrink={1}>
           <ToolStatusIndicator status={status} name={name} />
           <Box maxWidth={25} flexShrink={0} flexGrow={0}>

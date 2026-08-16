@@ -243,6 +243,15 @@ export const Footer: React.FC = () => {
   const showLabels = settings.merged.ui.footer.showLabels !== false;
   const itemColor = showLabels ? theme.text.primary : theme.ui.comment;
 
+  // Per-field status colors, following oh-my-pi's status line (its theme
+  // defines a distinct color per segment: statusLinePath, statusLineModel,
+  // statusLineGitClean, ...) rather than painting the whole row one shade.
+  // Each field is then identifiable by hue alone at a glance, without
+  // reading its label. Drawn from the active theme so custom themes still
+  // control them; only the *assignment* of hue to field is fixed here.
+  const pathColor = theme.ui.active;
+  const branchColor = theme.status.success;
+
   const potentialColumns: FooterColumn[] = [];
 
   const addCol = (
@@ -295,7 +304,7 @@ export const Footer: React.FC = () => {
               maxWidth={maxWidth}
               debugMode={debugMode}
               debugMessage={debugMessage}
-              color={itemColor}
+              color={pathColor}
             />
           ),
           fullPath.length + debugSuffix.length,
@@ -307,7 +316,7 @@ export const Footer: React.FC = () => {
           addCol(
             id,
             header,
-            () => <Text color={itemColor}>{branchName}</Text>,
+            () => <Text color={branchColor}>{branchName}</Text>,
             branchName.length,
           );
         }

@@ -4,28 +4,28 @@
   </style>
   <rect width="920" height="207" fill="#000000" />
   <g transform="translate(10, 10)">
-    <text x="0" y="2" fill="#fbbf24" textLength="720" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────╮</text>
-    <text x="0" y="19" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="2" fill="#ffb84d" textLength="720" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────╮</text>
+    <text x="0" y="19" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="18" y="19" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="63" y="19" fill="#cdcd00" textLength="63" lengthAdjust="spacingAndGlyphs">&quot;hello&quot;</text>
-    <text x="711" y="19" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="36" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="19" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="36" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="18" y="36" fill="#0000ee" textLength="27" lengthAdjust="spacingAndGlyphs">for</text>
     <text x="45" y="36" fill="#e5e5e5" textLength="27" lengthAdjust="spacingAndGlyphs"> i </text>
     <text x="72" y="36" fill="#0000ee" textLength="18" lengthAdjust="spacingAndGlyphs">in</text>
     <text x="90" y="36" fill="#e5e5e5" textLength="72" lengthAdjust="spacingAndGlyphs"> 1 2 3; </text>
     <text x="162" y="36" fill="#0000ee" textLength="18" lengthAdjust="spacingAndGlyphs">do</text>
-    <text x="711" y="36" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="36" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="53" fill="#00cdcd" textLength="36" lengthAdjust="spacingAndGlyphs">echo</text>
     <text x="81" y="53" fill="#cd00cd" textLength="18" lengthAdjust="spacingAndGlyphs">$i</text>
-    <text x="711" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="18" y="70" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">done</text>
-    <text x="711" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="87" fill="#fbbf24" textLength="720" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────╯</text>
+    <text x="711" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="87" fill="#ffb84d" textLength="720" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────╯</text>
     <text x="0" y="104" fill="#ffffff" textLength="171" lengthAdjust="spacingAndGlyphs">Allow execution of </text>
-    <text x="171" y="104" fill="#fbbf24" textLength="63" lengthAdjust="spacingAndGlyphs" font-weight="bold">[Shell]</text>
+    <text x="171" y="104" fill="#ffb84d" textLength="63" lengthAdjust="spacingAndGlyphs" font-weight="bold">[Shell]</text>
     <text x="234" y="104" fill="#ffffff" textLength="666" lengthAdjust="spacingAndGlyphs">?                                                                         </text>
     <rect x="0" y="136" width="9" height="17" fill="#001a00" />
     <text x="0" y="138" fill="#00cd00" textLength="9" lengthAdjust="spacingAndGlyphs">●</text>

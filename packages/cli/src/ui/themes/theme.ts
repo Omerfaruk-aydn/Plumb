@@ -180,6 +180,18 @@ export interface ColorsTheme {
   FocusBackground?: string;
   FocusColor?: string;
   GradientColors?: string[];
+  /**
+   * Status-tinted surface fills for chat/tool rows. Modeled on oh-my-pi's
+   * theme (modes/theme/dark.json: userMsgBg/toolPendingBg/toolSuccessBg/
+   * toolErrorBg), which separates message and tool-call rows by a barely-there
+   * background wash rather than by drawing a box around each one. These are
+   * intentionally within a few points of Background so they read as a surface
+   * tint, never as a highlight.
+   */
+  UserMessageBackground?: string;
+  ToolPendingBackground?: string;
+  ToolSuccessBackground?: string;
+  ToolErrorBackground?: string;
 }
 
 export const lightTheme: ColorsTheme = {
@@ -208,20 +220,23 @@ export const darkTheme: ColorsTheme = {
   type: 'dark',
   Background: '#000000',
   Foreground: '#FFFFFF',
-  // Every Accent* below was a washed-out, low-saturation pastel (e.g.
-  // AccentBlue #87AFFF) that read as near-white/gray on a black
-  // background -- the actual cause of the "dead"/monochrome look across
-  // every accent-colored element in the app (message borders, spinners,
-  // status text). Replaced with saturated tones pulled from PLUMB's own
-  // banner gradient (GradientColors below), so the brand identity in the
-  // logo now carries through the whole UI instead of stopping at it.
+  // Every Accent* below was originally a washed-out, low-saturation
+  // pastel (e.g. AccentBlue #87AFFF) that read as near-white/gray on a
+  // black background -- the actual cause of the "dead"/monochrome look
+  // across every accent-colored element in the app (message borders,
+  // spinners, status text). A first pass moved these toward PLUMB's own
+  // banner gradient (GradientColors below); this pass pushes saturation
+  // further, matching the actual hex values from Charm's charmtone
+  // palette (github.com/charmbracelet/x/exp/charmtone) that Crush's own
+  // "glamorous" theme is built on -- Charple (accent), Malibu (info),
+  // Bok (cyan), Julep (success), Mustard-adjacent (warning), Sriracha (error).
   LightBlue: '#8FC7E8',
-  AccentBlue: '#4796E4',
-  AccentPurple: '#9B7FE8',
-  AccentCyan: '#4DD8D8',
-  AccentGreen: '#3DDC84',
-  AccentYellow: '#FBBF24',
-  AccentRed: '#F0555F',
+  AccentBlue: '#00A4FF',
+  AccentPurple: '#6B50FF',
+  AccentCyan: '#68FFD6',
+  AccentGreen: '#00FFB2',
+  AccentYellow: '#FFB84D',
+  AccentRed: '#EB4268',
   DiffAdded: '#0D3B1E',
   DiffRemoved: '#3B0D14',
   Comment: '#AFAFAF',
@@ -231,6 +246,10 @@ export const darkTheme: ColorsTheme = {
   MessageBackground: '#5F5F5F',
   FocusBackground: '#005F00',
   GradientColors: ['#4796E4', '#847ACE', '#C3677F'],
+  UserMessageBackground: '#1A1D24',
+  ToolPendingBackground: '#1D2129',
+  ToolSuccessBackground: '#161A1F',
+  ToolErrorBackground: '#291D1D',
 };
 
 export const ansiTheme: ColorsTheme = {

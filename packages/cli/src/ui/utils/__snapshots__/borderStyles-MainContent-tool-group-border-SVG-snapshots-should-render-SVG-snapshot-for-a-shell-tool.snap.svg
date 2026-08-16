@@ -67,7 +67,7 @@
     <text x="225" y="87" fill="#c3677f" textLength="9" lengthAdjust="spacingAndGlyphs">█</text>
     <text x="9" y="121" fill="#ffffff" textLength="81" lengthAdjust="spacingAndGlyphs" font-weight="bold">PLUMB CLI</text>
     <text x="90" y="121" fill="#afafaf" textLength="63" lengthAdjust="spacingAndGlyphs"> v1.2.3</text>
-    <text x="9" y="155" fill="#afafaf" textLength="324" lengthAdjust="spacingAndGlyphs" font-style="italic">Good morning — what are we building?</text>
+    <text x="9" y="155" fill="#afafaf" textLength="342" lengthAdjust="spacingAndGlyphs" font-style="italic">Good afternoon — what are we building?</text>
     <text x="0" y="206" fill="#ffffff" textLength="225" lengthAdjust="spacingAndGlyphs">Tips for getting started:</text>
     <text x="0" y="223" fill="#ffffff" textLength="90" lengthAdjust="spacingAndGlyphs">1. Create </text>
     <text x="90" y="223" fill="#ffffff" textLength="72" lengthAdjust="spacingAndGlyphs" font-weight="bold">PLUMB.md</text>
@@ -77,16 +77,16 @@
     <text x="72" y="240" fill="#ffffff" textLength="189" lengthAdjust="spacingAndGlyphs"> for more information</text>
     <text x="0" y="257" fill="#ffffff" textLength="450" lengthAdjust="spacingAndGlyphs">3. Ask coding questions, edit code or run commands</text>
     <text x="0" y="274" fill="#ffffff" textLength="315" lengthAdjust="spacingAndGlyphs">4. Be specific for the best results</text>
-    <text x="0" y="308" fill="#4796e4" textLength="864" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────────────────────╮</text>
-    <text x="0" y="325" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="18" y="325" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">⊶</text>
+    <text x="0" y="308" fill="#00a4ff" textLength="864" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────────────────────╮</text>
+    <text x="0" y="325" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="18" y="325" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">⊶</text>
     <text x="45" y="325" fill="#ffffff" textLength="153" lengthAdjust="spacingAndGlyphs" font-weight="bold">run_shell_command</text>
-    <text x="855" y="325" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="342" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="855" y="342" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="359" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="855" y="325" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="342" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="855" y="342" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="359" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="18" y="359" fill="#ffffff" textLength="162" lengthAdjust="spacingAndGlyphs">Running command...</text>
-    <text x="855" y="359" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="376" fill="#4796e4" textLength="864" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</text>
+    <text x="855" y="359" fill="#00a4ff" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="376" fill="#00a4ff" textLength="864" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</text>
   </g>
 </svg>

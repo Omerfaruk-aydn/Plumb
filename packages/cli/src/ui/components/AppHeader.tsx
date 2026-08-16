@@ -15,6 +15,7 @@ import { useTips } from '../hooks/useTips.js';
 import { theme } from '../semantic-colors.js';
 import { CliSpinner } from './CliSpinner.js';
 import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
+import { ThemedGradient } from './ThemedGradient.js';
 import { getTimeBasedGreeting } from '../utils/greeting.js';
 
 interface AppHeaderProps {
@@ -101,6 +102,17 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
 
   const useColumnLayout = loggedOut || isNarrow;
 
+  // Width left over after the wordmark (~24 cols) and the metadata block
+  // (~34 cols, the widest of "PLUMB CLI vX.Y.Z" / identity lines), minus
+  // this fill's own left padding. Capped so it never dominates the header
+  // on an ultrawide terminal, and floored at 0 so `repeat()` is safe.
+  const LOGO_AND_META_WIDTH = 60;
+  const MAX_DIAGONAL_FILL = 24;
+  const diagonalFillWidth = Math.min(
+    Math.max(terminalWidth - LOGO_AND_META_WIDTH, 0),
+    MAX_DIAGONAL_FILL,
+  );
+
   return (
     <Box flexDirection="column">
       {showHeader && (
@@ -114,7 +126,20 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
           {useColumnLayout ? (
             <Box marginTop={1}>{renderMetadata(true)}</Box>
           ) : (
-            renderMetadata(false)
+            <>
+              {renderMetadata(false)}
+              {/* Diagonal fill, as in Crush's own wordmark (internal/ui/
+                  logo/logo.go uses `const diag = "╱"` to flank the title
+                  and absorb the leftover width). It turns the header's
+                  trailing empty space into part of the mark instead of
+                  dead air. Wide layout only -- a narrow terminal has no
+                  slack to spend, and the column layout stacks instead. */}
+              <Box flexGrow={1} justifyContent="flex-end" paddingLeft={2}>
+                <ThemedGradient>
+                  {'╱'.repeat(Math.max(diagonalFillWidth, 0))}
+                </ThemedGradient>
+              </Box>
+            </>
           )}
         </Box>
       )}

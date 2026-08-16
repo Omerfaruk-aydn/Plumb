@@ -47,10 +47,10 @@ exports[`ToolConfirmationQueue > height allocation and layout > should handle se
 │ │ curl https://täst.com                                                    │ │
 │ ╰──────────────────────────────────────────────────────────────────────────╯ │
 │                                                                              │
-│ ⚠  Warning: Deceptive URL(s) detected:                                       │
+│  WARNING  Warning: Deceptive URL(s) detected:                                │
 │                                                                              │
-│       Original: https://täst.com/                                            │
-│       Actual Host (Punycode): https://xn--tst-qla.com/                       │
+│              Original: https://täst.com/                                     │
+│              Actual Host (Punycode): https://xn--tst-qla.com/                │
 │                                                                              │
 │ Allow execution of [Shell]?                                                  │
 │                                                                              │

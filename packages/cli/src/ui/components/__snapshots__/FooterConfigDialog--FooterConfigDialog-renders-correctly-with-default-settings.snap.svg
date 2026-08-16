@@ -22,7 +22,7 @@
     <text x="27" y="104" fill="#00cd00" textLength="9" lengthAdjust="spacingAndGlyphs">&gt;</text>
     <rect x="36" y="102" width="9" height="17" fill="#001a00" />
     <rect x="45" y="102" width="27" height="17" fill="#001a00" />
-    <text x="45" y="104" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="104" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <rect x="72" y="102" width="90" height="17" fill="#001a00" />
     <text x="72" y="104" fill="#00cd00" textLength="90" lengthAdjust="spacingAndGlyphs"> workspace</text>
     <rect x="162" y="102" width="711" height="17" fill="#001a00" />
@@ -34,28 +34,28 @@
     <rect x="279" y="119" width="594" height="17" fill="#001a00" />
     <text x="891" y="121" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="138" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="138" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="138" fill="#ffffff" textLength="99" lengthAdjust="spacingAndGlyphs"> git-branch</text>
     <text x="891" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="155" fill="#afafaf" textLength="477" lengthAdjust="spacingAndGlyphs"> Current git branch name (not shown when unavailable)</text>
     <text x="891" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="172" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="172" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="172" fill="#ffffff" textLength="72" lengthAdjust="spacingAndGlyphs"> sandbox</text>
     <text x="891" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="189" fill="#afafaf" textLength="297" lengthAdjust="spacingAndGlyphs"> Sandbox type and trust indicator</text>
     <text x="891" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="206" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="206" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="206" fill="#ffffff" textLength="99" lengthAdjust="spacingAndGlyphs"> model-name</text>
     <text x="891" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="223" fill="#afafaf" textLength="225" lengthAdjust="spacingAndGlyphs"> Current model identifier</text>
     <text x="891" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="240" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="240" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="240" fill="#ffffff" textLength="54" lengthAdjust="spacingAndGlyphs"> quota</text>
     <text x="891" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="257" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
@@ -111,7 +111,7 @@
     <text x="45" y="495" fill="#afafaf" textLength="495" lengthAdjust="spacingAndGlyphs"> Total tokens used in the session (not shown when zero)</text>
     <text x="891" y="495" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="512" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="512" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="512" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="512" fill="#ffffff" textLength="171" lengthAdjust="spacingAndGlyphs"> Show footer labels</text>
     <text x="891" y="512" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="529" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>

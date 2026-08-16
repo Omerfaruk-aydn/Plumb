@@ -4,17 +4,17 @@
   </style>
   <rect width="920" height="683" fill="#000000" />
   <g transform="translate(10, 10)">
-    <text x="0" y="2" fill="#fbbf24" textLength="720" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────╮</text>
-    <text x="0" y="19" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="2" fill="#ffb84d" textLength="720" lengthAdjust="spacingAndGlyphs">╭──────────────────────────────────────────────────────────────────────────────╮</text>
+    <text x="0" y="19" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="18" y="19" fill="#afafaf" textLength="234" lengthAdjust="spacingAndGlyphs">... 10 hidden (Ctrl+O) ...</text>
-    <text x="711" y="19" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="36" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="19" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="36" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="34" width="9" height="17" fill="#3b0d14" />
     <rect x="27" y="34" width="9" height="17" fill="#3b0d14" />
     <text x="27" y="36" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">6</text>
     <rect x="36" y="34" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="34" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="36" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="36" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="34" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="34" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="36" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -24,14 +24,14 @@
     <text x="216" y="36" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="34" width="9" height="17" fill="#3b0d14" />
     <text x="252" y="36" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="36" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="36" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="51" width="9" height="17" fill="#0d3b1e" />
     <rect x="27" y="51" width="9" height="17" fill="#0d3b1e" />
     <text x="27" y="53" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">6</text>
     <rect x="36" y="51" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="51" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="53" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="53" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="51" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="51" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="53" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -41,14 +41,14 @@
     <text x="216" y="53" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="51" width="9" height="17" fill="#0d3b1e" />
     <text x="252" y="53" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="53" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="53" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="68" width="9" height="17" fill="#3b0d14" />
     <rect x="27" y="68" width="9" height="17" fill="#3b0d14" />
     <text x="27" y="70" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">7</text>
     <rect x="36" y="68" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="68" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="70" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="70" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="68" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="68" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="70" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -58,14 +58,14 @@
     <text x="216" y="70" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="68" width="9" height="17" fill="#3b0d14" />
     <text x="252" y="70" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="70" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="87" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="70" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="87" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="85" width="9" height="17" fill="#0d3b1e" />
     <rect x="27" y="85" width="9" height="17" fill="#0d3b1e" />
     <text x="27" y="87" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">7</text>
     <rect x="36" y="85" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="85" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="87" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="87" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="85" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="85" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="87" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -75,14 +75,14 @@
     <text x="216" y="87" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="85" width="9" height="17" fill="#0d3b1e" />
     <text x="252" y="87" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="87" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="104" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="87" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="104" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="102" width="9" height="17" fill="#3b0d14" />
     <rect x="27" y="102" width="9" height="17" fill="#3b0d14" />
     <text x="27" y="104" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">8</text>
     <rect x="36" y="102" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="102" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="104" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="104" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="102" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="102" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="104" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -92,14 +92,14 @@
     <text x="216" y="104" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="102" width="9" height="17" fill="#3b0d14" />
     <text x="252" y="104" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="104" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="121" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="104" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="121" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="119" width="9" height="17" fill="#0d3b1e" />
     <rect x="27" y="119" width="9" height="17" fill="#0d3b1e" />
     <text x="27" y="121" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">8</text>
     <rect x="36" y="119" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="119" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="121" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="121" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="119" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="119" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="121" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -109,14 +109,14 @@
     <text x="216" y="121" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="119" width="9" height="17" fill="#0d3b1e" />
     <text x="252" y="121" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="121" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="138" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="121" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="138" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="136" width="9" height="17" fill="#3b0d14" />
     <rect x="27" y="136" width="9" height="17" fill="#3b0d14" />
     <text x="27" y="138" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">9</text>
     <rect x="36" y="136" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="136" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="138" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="138" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="136" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="136" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="138" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -126,14 +126,14 @@
     <text x="216" y="138" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="136" width="9" height="17" fill="#3b0d14" />
     <text x="252" y="138" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="138" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="155" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="138" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="155" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="153" width="9" height="17" fill="#0d3b1e" />
     <rect x="27" y="153" width="9" height="17" fill="#0d3b1e" />
     <text x="27" y="155" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">9</text>
     <rect x="36" y="153" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="153" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="155" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="155" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="153" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="153" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="155" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -143,13 +143,13 @@
     <text x="216" y="155" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="252" y="153" width="9" height="17" fill="#0d3b1e" />
     <text x="252" y="155" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="155" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="172" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="155" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="172" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="170" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="172" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">10</text>
     <rect x="36" y="170" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="170" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="172" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="172" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="170" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="170" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="172" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -159,13 +159,13 @@
     <text x="225" y="172" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="170" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="172" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="172" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="189" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="172" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="189" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="187" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="189" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">10</text>
     <rect x="36" y="187" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="187" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="189" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="189" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="187" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="187" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="189" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -175,13 +175,13 @@
     <text x="225" y="189" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="187" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="189" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="189" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="206" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="189" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="206" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="204" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="206" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">11</text>
     <rect x="36" y="204" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="204" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="206" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="206" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="204" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="204" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="206" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -191,13 +191,13 @@
     <text x="225" y="206" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="204" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="206" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="206" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="206" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="223" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="221" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="223" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">11</text>
     <rect x="36" y="221" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="221" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="223" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="223" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="221" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="221" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="223" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -207,13 +207,13 @@
     <text x="225" y="223" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="221" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="223" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="240" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="223" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="240" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="238" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="240" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">12</text>
     <rect x="36" y="238" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="238" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="240" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="240" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="238" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="238" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="240" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -223,13 +223,13 @@
     <text x="225" y="240" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="238" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="240" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="240" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="257" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="240" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="257" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="255" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="257" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">12</text>
     <rect x="36" y="255" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="255" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="257" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="257" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="255" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="255" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="257" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -239,13 +239,13 @@
     <text x="225" y="257" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="255" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="257" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="257" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="274" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="257" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="274" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="272" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="274" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">13</text>
     <rect x="36" y="272" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="272" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="274" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="274" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="272" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="272" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="274" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -255,13 +255,13 @@
     <text x="225" y="274" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="272" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="274" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="274" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="291" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="274" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="291" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="289" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="291" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">13</text>
     <rect x="36" y="289" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="289" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="291" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="291" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="289" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="289" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="291" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -271,13 +271,13 @@
     <text x="225" y="291" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="289" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="291" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="291" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="308" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="291" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="308" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="306" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="308" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">14</text>
     <rect x="36" y="306" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="306" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="308" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="308" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="306" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="306" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="308" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -287,13 +287,13 @@
     <text x="225" y="308" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="306" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="308" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="308" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="325" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="308" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="325" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="323" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="325" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">14</text>
     <rect x="36" y="323" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="323" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="325" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="325" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="323" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="323" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="325" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -303,13 +303,13 @@
     <text x="225" y="325" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="323" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="325" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="325" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="342" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="325" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="342" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="340" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="342" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">15</text>
     <rect x="36" y="340" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="340" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="342" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="342" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="340" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="340" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="342" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -319,13 +319,13 @@
     <text x="225" y="342" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="340" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="342" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="342" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="359" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="342" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="359" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="357" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="359" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">15</text>
     <rect x="36" y="357" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="357" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="359" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="359" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="357" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="357" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="359" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -335,13 +335,13 @@
     <text x="225" y="359" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="357" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="359" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="359" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="376" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="359" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="376" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="374" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="376" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">16</text>
     <rect x="36" y="374" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="374" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="376" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="376" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="374" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="374" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="376" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -351,13 +351,13 @@
     <text x="225" y="376" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="374" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="376" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="376" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="393" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="376" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="393" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="391" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="393" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">16</text>
     <rect x="36" y="391" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="391" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="393" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="393" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="391" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="391" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="393" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -367,13 +367,13 @@
     <text x="225" y="393" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="391" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="393" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="393" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="410" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="393" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="410" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="408" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="410" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">17</text>
     <rect x="36" y="408" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="408" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="410" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="410" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="408" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="408" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="410" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -383,13 +383,13 @@
     <text x="225" y="410" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="408" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="410" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="410" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="427" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="410" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="427" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="425" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="427" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">17</text>
     <rect x="36" y="425" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="425" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="427" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="427" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="425" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="425" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="427" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -399,13 +399,13 @@
     <text x="225" y="427" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="425" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="427" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="427" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="444" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="427" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="444" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="442" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="444" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">18</text>
     <rect x="36" y="442" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="442" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="444" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="444" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="442" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="442" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="444" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -415,13 +415,13 @@
     <text x="225" y="444" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="442" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="444" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="444" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="461" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="444" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="461" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="459" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="461" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">18</text>
     <rect x="36" y="459" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="459" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="461" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="461" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="459" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="459" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="461" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -431,13 +431,13 @@
     <text x="225" y="461" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="459" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="461" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="461" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="478" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="461" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="478" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="476" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="478" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">19</text>
     <rect x="36" y="476" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="476" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="478" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="478" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="476" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="476" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="478" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -447,13 +447,13 @@
     <text x="225" y="478" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="476" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="478" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="478" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="495" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="478" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="495" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="493" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="495" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">19</text>
     <rect x="36" y="493" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="493" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="495" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="495" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="493" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="493" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="495" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -463,13 +463,13 @@
     <text x="225" y="495" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="493" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="495" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="495" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="512" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="495" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="512" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="510" width="18" height="17" fill="#3b0d14" />
     <text x="18" y="512" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">20</text>
     <rect x="36" y="510" width="9" height="17" fill="#3b0d14" />
     <rect x="45" y="510" width="9" height="17" fill="#3b0d14" />
-    <text x="45" y="512" fill="#f0555f" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
+    <text x="45" y="512" fill="#eb4268" textLength="9" lengthAdjust="spacingAndGlyphs">-</text>
     <rect x="54" y="510" width="9" height="17" fill="#3b0d14" />
     <rect x="63" y="510" width="45" height="17" fill="#3b0d14" />
     <text x="63" y="512" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -479,13 +479,13 @@
     <text x="225" y="512" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="510" width="9" height="17" fill="#3b0d14" />
     <text x="261" y="512" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="512" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="529" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="711" y="512" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="529" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <rect x="18" y="527" width="18" height="17" fill="#0d3b1e" />
     <text x="18" y="529" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">20</text>
     <rect x="36" y="527" width="9" height="17" fill="#0d3b1e" />
     <rect x="45" y="527" width="9" height="17" fill="#0d3b1e" />
-    <text x="45" y="529" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
+    <text x="45" y="529" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">+</text>
     <rect x="54" y="527" width="9" height="17" fill="#0d3b1e" />
     <rect x="63" y="527" width="45" height="17" fill="#0d3b1e" />
     <text x="63" y="529" fill="#0000ee" textLength="45" lengthAdjust="spacingAndGlyphs">const</text>
@@ -495,8 +495,8 @@
     <text x="225" y="529" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <rect x="261" y="527" width="9" height="17" fill="#0d3b1e" />
     <text x="261" y="529" fill="#e5e5e5" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
-    <text x="711" y="529" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="0" y="546" fill="#fbbf24" textLength="720" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────╯</text>
+    <text x="711" y="529" fill="#ffb84d" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
+    <text x="0" y="546" fill="#ffb84d" textLength="720" lengthAdjust="spacingAndGlyphs">╰──────────────────────────────────────────────────────────────────────────────╯</text>
     <text x="0" y="563" fill="#ffffff" textLength="162" lengthAdjust="spacingAndGlyphs">Apply this change?</text>
     <rect x="0" y="595" width="9" height="17" fill="#001a00" />
     <text x="0" y="597" fill="#00cd00" textLength="9" lengthAdjust="spacingAndGlyphs">●</text>

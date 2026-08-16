@@ -11,7 +11,7 @@ exports[`App > Snapshots > renders default layout correctly 1`] = `
  PLUMB CLI v1.2.3
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:
@@ -56,7 +56,7 @@ Footer
  PLUMB CLI v1.2.3
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:
@@ -79,7 +79,7 @@ exports[`App > Snapshots > renders with dialogs visible 1`] = `
  PLUMB CLI v1.2.3
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 
@@ -122,7 +122,7 @@ exports[`App > should render ToolConfirmationQueue along with Composer when tool
  PLUMB CLI v1.2.3
 
 
- Good morning — what are we building?
+ Good afternoon — what are we building?
 
 
 Tips for getting started:

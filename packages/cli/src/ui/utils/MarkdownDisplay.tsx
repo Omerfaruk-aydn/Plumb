@@ -197,17 +197,27 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
       const headerText = headerMatch[2];
       let headerNode: React.ReactNode = null;
       switch (level) {
+        // Headings take the accent, not the link color -- oh-my-pi maps
+        // `mdHeading` to its accent rather than to `mdLink`
+        // (modes/theme/dark.json), which keeps link-colored text meaning
+        // "this is a link" instead of doubling as heading styling.
         case 1:
           headerNode = (
-            <Text bold color={theme.text.link}>
-              <RenderInline text={headerText} defaultColor={theme.text.link} />
+            <Text bold color={theme.text.accent}>
+              <RenderInline
+                text={headerText}
+                defaultColor={theme.text.accent}
+              />
             </Text>
           );
           break;
         case 2:
           headerNode = (
-            <Text bold color={theme.text.link}>
-              <RenderInline text={headerText} defaultColor={theme.text.link} />
+            <Text bold color={theme.text.accent}>
+              <RenderInline
+                text={headerText}
+                defaultColor={theme.text.accent}
+              />
             </Text>
           );
           break;
@@ -424,11 +434,17 @@ const RenderListItemInternal: React.FC<RenderListItemProps> = ({
   marker,
   leadingWhitespace = '',
 }) => {
-  const prefix = type === 'ol' ? `${marker}. ` : `${marker} `;
+  // Bullets normalize to a single glyph regardless of which of `-`/`*`/`+`
+  // the source used, and take the accent color -- oh-my-pi maps
+  // `mdListBullet` to its accent (modes/theme/dark.json), so the marker
+  // reads as structure while the item text stays body-colored. Ordered
+  // items keep their real numbers, which carry meaning.
+  const prefix = type === 'ol' ? `${marker}. ` : '• ';
   const prefixWidth = prefix.length;
   // Account for leading whitespace (indentation level) plus the standard prefix padding
   const indentation = leadingWhitespace.length;
   const listResponseColor = theme.text.response ?? theme.text.primary;
+  const markerColor = type === 'ol' ? listResponseColor : theme.text.accent;
 
   return (
     <Box
@@ -436,7 +452,7 @@ const RenderListItemInternal: React.FC<RenderListItemProps> = ({
       flexDirection="row"
     >
       <Box width={prefixWidth} flexShrink={0}>
-        <Text color={listResponseColor}>{prefix}</Text>
+        <Text color={markerColor}>{prefix}</Text>
       </Box>
       <Box flexGrow={LIST_ITEM_TEXT_FLEX_GROW}>
         <Text wrap="wrap" color={listResponseColor}>

@@ -5,12 +5,12 @@
   <rect width="920" height="71" fill="#000000" />
   <g transform="translate(10, 10)">
     <text x="0" y="2" fill="#ffffff" textLength="45" lengthAdjust="spacingAndGlyphs">line </text>
-    <text x="45" y="2" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">1</text>
+    <text x="45" y="2" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">1</text>
     <text x="0" y="19" fill="#ffffff" textLength="45" lengthAdjust="spacingAndGlyphs">line </text>
-    <text x="45" y="19" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">2</text>
-    <text x="63" y="19" fill="#4796e4" textLength="36" lengthAdjust="spacingAndGlyphs">with</text>
+    <text x="45" y="19" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">2</text>
+    <text x="63" y="19" fill="#00a4ff" textLength="36" lengthAdjust="spacingAndGlyphs">with</text>
     <text x="99" y="19" fill="#ffffff" textLength="135" lengthAdjust="spacingAndGlyphs"> red background</text>
     <text x="0" y="36" fill="#ffffff" textLength="45" lengthAdjust="spacingAndGlyphs">line </text>
-    <text x="45" y="36" fill="#3ddc84" textLength="9" lengthAdjust="spacingAndGlyphs">3</text>
+    <text x="45" y="36" fill="#00ffb2" textLength="9" lengthAdjust="spacingAndGlyphs">3</text>
   </g>
 </svg>

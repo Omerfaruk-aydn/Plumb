@@ -12,8 +12,8 @@ exports[`<MarkdownDisplay /> > with 'Unix' line endings > correctly parses a mix
 
 Here is a paragraph.
 
- - List item 1
- - List item 2
+ • List item 1
+ • List item 2
 
  1 some code
 
@@ -78,9 +78,9 @@ Test
 `;
 
 exports[`<MarkdownDisplay /> > with 'Unix' line endings > renders nested unordered lists 1`] = `
-" * Level 1
-   * Level 2
-     * Level 3
+" • Level 1
+   • Level 2
+     • Level 3
 "
 `;
 
@@ -101,9 +101,9 @@ exports[`<MarkdownDisplay /> > with 'Unix' line endings > renders tables correct
 `;
 
 exports[`<MarkdownDisplay /> > with 'Unix' line endings > renders unordered lists with different markers 1`] = `
-" - item A
- * item B
- + item C
+" • item A
+ • item B
+ • item C
 "
 `;
 
@@ -118,8 +118,8 @@ exports[`<MarkdownDisplay /> > with 'Windows' line endings > correctly parses a 
 
 Here is a paragraph.
 
- - List item 1
- - List item 2
+ • List item 1
+ • List item 2
 
  1 some code
 
@@ -184,9 +184,9 @@ Test
 `;
 
 exports[`<MarkdownDisplay /> > with 'Windows' line endings > renders nested unordered lists 1`] = `
-" * Level 1
-   * Level 2
-     * Level 3
+" • Level 1
+   • Level 2
+     • Level 3
 "
 `;
 
@@ -207,9 +207,9 @@ exports[`<MarkdownDisplay /> > with 'Windows' line endings > renders tables corr
 `;
 
 exports[`<MarkdownDisplay /> > with 'Windows' line endings > renders unordered lists with different markers 1`] = `
-" - item A
- * item B
- + item C
+" • item A
+ • item B
+ • item C
 "
 `;
 

@@ -18,35 +18,35 @@
     <text x="0" y="87" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="891" y="87" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="104" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="104" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="104" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="104" fill="#ffffff" textLength="90" lengthAdjust="spacingAndGlyphs"> workspace</text>
     <text x="891" y="104" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="121" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="121" fill="#afafaf" textLength="234" lengthAdjust="spacingAndGlyphs"> Current working directory</text>
     <text x="891" y="121" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="138" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="138" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="138" fill="#ffffff" textLength="99" lengthAdjust="spacingAndGlyphs"> git-branch</text>
     <text x="891" y="138" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="155" fill="#afafaf" textLength="477" lengthAdjust="spacingAndGlyphs"> Current git branch name (not shown when unavailable)</text>
     <text x="891" y="155" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="172" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="172" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="172" fill="#ffffff" textLength="72" lengthAdjust="spacingAndGlyphs"> sandbox</text>
     <text x="891" y="172" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="189" fill="#afafaf" textLength="297" lengthAdjust="spacingAndGlyphs"> Sandbox type and trust indicator</text>
     <text x="891" y="189" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="206" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="206" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="206" fill="#ffffff" textLength="99" lengthAdjust="spacingAndGlyphs"> model-name</text>
     <text x="891" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="45" y="223" fill="#afafaf" textLength="225" lengthAdjust="spacingAndGlyphs"> Current model identifier</text>
     <text x="891" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="45" y="240" fill="#3ddc84" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
+    <text x="45" y="240" fill="#00ffb2" textLength="27" lengthAdjust="spacingAndGlyphs">[✓]</text>
     <text x="72" y="240" fill="#ffffff" textLength="54" lengthAdjust="spacingAndGlyphs"> quota</text>
     <text x="891" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="0" y="257" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
