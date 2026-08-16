@@ -71,22 +71,22 @@ describe('UserMessage', () => {
       vi.stubEnv('NO_COLOR', '1');
     });
 
-    it('uses margins instead of background blocks when NO_COLOR is set', async () => {
+    it('renders the card border in plain monochrome (no color-block hack) when NO_COLOR is set', async () => {
       const { lastFrame, unmount } = await renderWithProviders(
         <UserMessage text="Hello Gemini" width={80} />,
         { width: 80, config: makeFakeConfig({ useBackgroundColor: true }) },
       );
       const output = lastFrame();
 
-      // In NO_COLOR mode, the block characters (▄/▀) should NOT be present.
+      // In NO_COLOR mode, the block characters (▄/▀) from the old
+      // half-line-background hack should NOT be present -- but the card's
+      // own round-box border characters are plain structural glyphs, not a
+      // color effect, so they still render.
       expect(output).not.toContain('▄');
       expect(output).not.toContain('▀');
 
-      // There should be empty lines above and below the message due to marginY={1}.
-      // lastFrame() returns the full buffer, so we can check for leading/trailing newlines or empty lines.
       const lines = output.split('\n').filter((l) => l.trim() !== '');
-      expect(lines).toHaveLength(1);
-      expect(lines[0]).toContain('> Hello Gemini');
+      expect(lines.some((l) => l.includes('❯ Hello Gemini'))).toBe(true);
 
       expect(output).toMatchSnapshot();
 

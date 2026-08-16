@@ -14,7 +14,6 @@ import {
   calculateTransformationsForLine,
   calculateTransformedLine,
 } from '../shared/text-buffer.js';
-import { HalfLinePaddedBox } from '../shared/HalfLinePaddedBox.js';
 import { useConfig } from '../../contexts/ConfigContext.js';
 
 interface UserMessageProps {
@@ -23,7 +22,7 @@ interface UserMessageProps {
 }
 
 export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
-  const prefix = '> ';
+  const prefix = '❯ ';
   const prefixWidth = prefix.length;
   const isSlashCommand = checkIsSlashCommand(text);
   const config = useConfig();
@@ -51,33 +50,28 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
       .join('\n');
   }, [text]);
 
+  // Card treatment (Crush/opencode style): a full rounded box gives the
+  // user's own turn a distinct, self-contained identity in the transcript,
+  // replacing the old approach of a bare left-accent strip (or, with
+  // useBackgroundColor on, a half-line filled background hack via
+  // HalfLinePaddedBox). The border's own padding/margin does the same
+  // "breathing room" job that trick existed for, so it's no longer needed.
   return (
-    <HalfLinePaddedBox
-      backgroundBaseColor={theme.background.message}
-      backgroundOpacity={1}
-      useBackgroundColor={useBackgroundColor}
-    >
+    <Box flexDirection="column" marginY={1} alignSelf="flex-start">
       <Box
         flexDirection="row"
-        paddingY={0}
-        marginY={useBackgroundColor ? 0 : 1}
-        paddingX={useBackgroundColor ? 1 : 0}
-        alignSelf="flex-start"
-        width={width}
-        // A colored left border strip gives the user's own message a
-        // distinct identity from the model's response bubble (which uses
-        // theme.text.accent) -- previously both had no border/an
-        // indistinguishable gray one, so consecutive turns visually blurred
-        // together.
-        borderStyle="single"
-        borderTop={false}
-        borderBottom={false}
-        borderRight={false}
+        borderStyle="round"
         borderColor={Colors.AccentBlue}
+        backgroundColor={
+          useBackgroundColor ? theme.background.message : undefined
+        }
+        paddingX={1}
+        width={width}
       >
         <Box width={prefixWidth} flexShrink={0}>
           <Text
             color={Colors.AccentBlue}
+            bold
             aria-label={SCREEN_READER_USER_PREFIX}
           >
             {prefix}
@@ -89,6 +83,6 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text, width }) => {
           </Text>
         </Box>
       </Box>
-    </HalfLinePaddedBox>
+    </Box>
   );
 };

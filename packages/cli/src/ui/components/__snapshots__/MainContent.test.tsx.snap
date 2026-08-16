@@ -95,9 +95,11 @@ exports[`MainContent > MainContent Tool Output Height Logic > 'Normal mode - Unc
 exports[`MainContent > renders a ToolConfirmationQueue without an extra line when preceded by hidden tools 1`] = `
 "AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > Apply plan                                                                  
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ Apply plan                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
 
   Too —             ╭──────────────────────────────────────────────────────────────────────────────╮
      exit_plan_mode │ Ready to start implementation?                                               │
@@ -125,18 +127,21 @@ exports[`MainContent > renders a split tool group without a gap between static a
 exports[`MainContent > renders a spurious line when a tool group has only hidden tools and borderBottom true 1`] = `
 "AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > Apply plan                                                                  
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ Apply plan                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
 "
 `;
 
 exports[`MainContent > renders a subagent with a complete box including bottom border 1`] = `
 "AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > Investigate                                                                 
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ Investigate                                                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
 
 ╭──────────────────────────────────────────────────────────────────────────╮
 │ ≡ Running Agent... (ctrl+o to collapse)                                  │
@@ -153,48 +158,60 @@ exports[`MainContent > renders mixed history items (user + gemini) with single l
 "ScrollableList
 AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > User message                                                                                    
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-│ ✦ Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│   Gemini response
-│
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ User message                                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ✦ Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│   Gemini response                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
 "
 `;
 
 exports[`MainContent > renders multiple history items with single line padding between them 1`] = `
 "ScrollableList
 AppHeader(full)
-│ ✦ Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│   Gemini message 1
-│
-│ ✦ Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│   Gemini message 2
-│
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ✦ Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│   Gemini message 1                                                           │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ✦ Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│   Gemini message 2                                                           │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
 "
 `;
 
@@ -202,9 +219,11 @@ exports[`MainContent > renders multiple thinking messages sequentially correctly
 "ScrollableList
 AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > Plan a solution                                                                                 
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ Plan a solution                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
  Thinking... 
  │
  │ Initial analysis
@@ -225,9 +244,11 @@ exports[`MainContent > renders multiple thinking messages sequentially correctly
 "ScrollableList
 AppHeader(full)
                                                                            02:00
-▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-│ > Plan a solution                                                                                 
-▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ ❯ Plan a solution                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
  Thinking... 
  │
  │ Initial analysis

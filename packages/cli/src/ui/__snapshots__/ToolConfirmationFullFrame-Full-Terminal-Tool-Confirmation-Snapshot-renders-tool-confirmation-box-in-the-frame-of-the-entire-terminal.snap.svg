@@ -4,7 +4,6 @@
   </style>
   <rect width="920" height="666" fill="#000000" />
   <g transform="translate(10, 10)">
-    <text x="0" y="2" fill="#141414" textLength="900" lengthAdjust="spacingAndGlyphs">▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀</text>
     <text x="9" y="36" fill="#4796e4" textLength="9" lengthAdjust="spacingAndGlyphs">⠋</text>
     <text x="18" y="36" fill="#333333" textLength="882" lengthAdjust="spacingAndGlyphs">╭─────────────────────────────────────────────────────────────────────────────────────────────────</text>
     <text x="9" y="53" fill="#afafaf" textLength="9" lengthAdjust="spacingAndGlyphs">—</text>
@@ -84,7 +83,6 @@
     <text x="234" y="206" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <text x="270" y="206" fill="#00cd00" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
     <text x="882" y="206" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="891" y="206" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">▄</text>
     <text x="18" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="54" y="223" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">50</text>
@@ -94,7 +92,7 @@
     <text x="234" y="223" fill="#0000ee" textLength="36" lengthAdjust="spacingAndGlyphs">true</text>
     <text x="270" y="223" fill="#00cd00" textLength="9" lengthAdjust="spacingAndGlyphs">;</text>
     <text x="882" y="223" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
-    <text x="891" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">█</text>
+    <text x="891" y="223" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">▄</text>
     <text x="18" y="240" fill="#333333" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="36" y="240" fill="#fbbf24" textLength="9" lengthAdjust="spacingAndGlyphs">│</text>
     <text x="54" y="240" fill="#afafaf" textLength="18" lengthAdjust="spacingAndGlyphs">51</text>

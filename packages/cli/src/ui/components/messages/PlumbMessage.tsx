@@ -27,45 +27,49 @@ export const PlumbMessage: React.FC<PlumbMessageProps> = ({
   const { renderMarkdown } = useUIState();
   const prefix = '✦ ';
   const prefixWidth = prefix.length;
-  // F4: a left border strip gives the model's response its own bubble
-  // identity, distinct from UserMessage's filled background card.
-  const borderOverhead = 2; // 1 border column + 1 padding column
+  // Card treatment (Crush/opencode style): a full rounded box, matching
+  // UserMessage, replaces the old left-border-only "bubble" strip.
+  // borderOverhead is 4 (1 border col + 1 padding col, each side); height
+  // loses 2 rows to the top/bottom border on top of the pre-existing -1
+  // for the streaming cursor's own line.
+  const borderOverhead = 4;
   const contentWidth = Math.max(
     terminalWidth - prefixWidth - borderOverhead,
     0,
   );
 
   return (
-    <Box
-      flexDirection="row"
-      borderStyle="single"
-      borderTop={false}
-      borderBottom={false}
-      borderRight={false}
-      // Colored left border gives the model's response its own identity,
-      // distinct from UserMessage's blue-accented one and from the flat
-      // gray this used to share with every other bordered box on screen.
-      borderColor={theme.text.accent}
-      paddingLeft={1}
-    >
-      <Box width={prefixWidth}>
-        <Text color={theme.text.accent} aria-label={SCREEN_READER_MODEL_PREFIX}>
-          {prefix}
-        </Text>
-      </Box>
-      <Box flexGrow={1} flexDirection="column">
-        <MarkdownDisplay
-          text={text}
-          isPending={isPending}
-          availableTerminalHeight={
-            availableTerminalHeight === undefined
-              ? undefined
-              : Math.max(availableTerminalHeight - 1, 1)
-          }
-          terminalWidth={contentWidth}
-          renderMarkdown={renderMarkdown}
-        />
-        {isPending && <GradientStreamCursor />}
+    <Box flexDirection="column" marginY={1} alignSelf="flex-start">
+      <Box
+        flexDirection="row"
+        borderStyle="round"
+        borderColor={theme.text.accent}
+        paddingX={1}
+        width={terminalWidth}
+      >
+        <Box width={prefixWidth}>
+          <Text
+            color={theme.text.accent}
+            bold
+            aria-label={SCREEN_READER_MODEL_PREFIX}
+          >
+            {prefix}
+          </Text>
+        </Box>
+        <Box flexGrow={1} flexDirection="column">
+          <MarkdownDisplay
+            text={text}
+            isPending={isPending}
+            availableTerminalHeight={
+              availableTerminalHeight === undefined
+                ? undefined
+                : Math.max(availableTerminalHeight - 3, 1)
+            }
+            terminalWidth={contentWidth}
+            renderMarkdown={renderMarkdown}
+          />
+          {isPending && <GradientStreamCursor />}
+        </Box>
       </Box>
     </Box>
   );

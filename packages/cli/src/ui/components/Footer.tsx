@@ -16,6 +16,7 @@ import {
   UserAccountManager,
 } from '@plumb/core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
+import { ThemedGradient } from './ThemedGradient.js';
 import process from 'node:process';
 import os from 'node:os';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -549,8 +550,28 @@ export const Footer: React.FC = () => {
   }
 
   return (
-    <Box width={terminalWidth} paddingX={1} overflow="hidden" flexWrap="nowrap">
-      <FooterRow items={rowItems} showLabels={showLabels} />
+    <Box flexDirection="column">
+      {/* A brand-gradient divider gives the status panel a defined top edge
+       * (matching the banner's own gradient) instead of the row floating
+       * directly under the transcript with no separation. Deliberately
+       * border-top-style rather than a real Box border: a real border
+       * would eat into the width every field below already computes
+       * against terminalWidth, risking overflow in narrow terminals. */}
+      {rowItems.length > 0 && (
+        <Box width={terminalWidth}>
+          <ThemedGradient>
+            {'─'.repeat(Math.max(terminalWidth, 0))}
+          </ThemedGradient>
+        </Box>
+      )}
+      <Box
+        width={terminalWidth}
+        paddingX={1}
+        overflow="hidden"
+        flexWrap="nowrap"
+      >
+        <FooterRow items={rowItems} showLabels={showLabels} />
+      </Box>
     </Box>
   );
 };
