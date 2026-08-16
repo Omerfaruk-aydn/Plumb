@@ -96,7 +96,7 @@ function getSeccompBpfPath(): string {
     buf.writeUInt32LE(inst.k, offset + 4);
   }
 
-  const tempDir = fs.mkdtempSync(join(os.tmpdir(), 'gemini-cli-seccomp-'));
+  const tempDir = fs.mkdtempSync(join(os.tmpdir(), 'plumb-cli-seccomp-'));
   const bpfPath = join(tempDir, 'seccomp.bpf');
   fs.writeFileSync(bpfPath, buf);
   cachedBpfPath = bpfPath;
@@ -186,7 +186,7 @@ export class LinuxSandboxManager implements SandboxManager {
     ) {
       return LinuxSandboxManager.maskFilePath;
     }
-    const tempDir = fs.mkdtempSync(join(os.tmpdir(), 'gemini-cli-mask-file-'));
+    const tempDir = fs.mkdtempSync(join(os.tmpdir(), 'plumb-cli-mask-file-'));
     const maskPath = join(tempDir, 'mask');
     fs.writeFileSync(maskPath, '');
     fs.chmodSync(maskPath, 0);
