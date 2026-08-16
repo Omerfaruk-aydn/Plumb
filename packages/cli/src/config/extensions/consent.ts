@@ -188,7 +188,7 @@ async function extensionConsentString(
   }
   if (sanitizedConfig.contextFileName) {
     output.push(
-      `This extension will append info to your gemini.md context using ${sanitizedConfig.contextFileName}`,
+      `This extension will append info to your PLUMB.md context using ${sanitizedConfig.contextFileName}`,
     );
   }
   if (sanitizedConfig.excludeTools) {

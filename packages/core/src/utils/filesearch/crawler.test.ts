@@ -22,7 +22,7 @@ describe('crawler', () => {
     vi.restoreAllMocks();
   });
 
-  it('should use .geminiignore rules', async () => {
+  it('should use .plumbignore rules', async () => {
     tmpDir = await createTmpDir({
       [PLUMB_IGNORE_FILE_NAME]: 'dist/',
       dist: ['ignored.js'],
@@ -53,7 +53,7 @@ describe('crawler', () => {
     );
   });
 
-  it('should combine .gitignore and .geminiignore rules', async () => {
+  it('should combine .gitignore and .plumbignore rules', async () => {
     tmpDir = await createTmpDir({
       '.git': {},
       '.gitignore': 'dist/',

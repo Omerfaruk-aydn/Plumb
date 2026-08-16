@@ -257,8 +257,7 @@ export async function moveInboxSkill(
   // Remove from inbox after successful copy
   await fs.rm(sourcePath, { recursive: true, force: true });
 
-  const label =
-    destination === 'global' ? '~/.gemini/skills' : '.gemini/skills';
+  const label = destination === 'global' ? '~/.plumb/skills' : '.plumb/skills';
   return {
     success: true,
     message: `Moved "${dirName}" to ${label}.`,

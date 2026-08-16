@@ -90,7 +90,7 @@ describe('loadIgnoreRules', () => {
     expect(fileFilter('test.txt')).toBe(false);
   });
 
-  it('should load rules from .geminiignore', async () => {
+  it('should load rules from .plumbignore', async () => {
     tmpDir = await createTmpDir({
       [PLUMB_IGNORE_FILE_NAME]: '*.log',
     });
@@ -104,7 +104,7 @@ describe('loadIgnoreRules', () => {
     expect(fileFilter('test.txt')).toBe(false);
   });
 
-  it('should combine rules from .gitignore and .geminiignore', async () => {
+  it('should combine rules from .gitignore and .plumbignore', async () => {
     tmpDir = await createTmpDir({
       '.git': {},
       '.gitignore': '*.log',

@@ -1736,11 +1736,11 @@ const SETTINGS_SCHEMA = {
           },
           respectPlumbIgnore: {
             type: 'boolean',
-            label: 'Respect .geminiignore',
+            label: 'Respect .plumbignore',
             category: 'Context',
             requiresRestart: true,
             default: true,
-            description: 'Respect .geminiignore files when searching.',
+            description: 'Respect .plumbignore files when searching.',
             showInDialog: true,
           },
           enableFileWatcher: {
@@ -1781,7 +1781,7 @@ const SETTINGS_SCHEMA = {
             requiresRestart: true,
             default: [] as string[],
             description:
-              'Additional ignore file paths to respect. These files take precedence over .geminiignore and .gitignore. Files earlier in the array take precedence over files later in the array, e.g. the first file takes precedence over the second one.',
+              'Additional ignore file paths to respect. These files take precedence over .plumbignore and .gitignore. Files earlier in the array take precedence over files later in the array, e.g. the first file takes precedence over the second one.',
             showInDialog: true,
             items: { type: 'string' },
             mergeStrategy: MergeStrategy.UNION,
@@ -2629,7 +2629,7 @@ const SETTINGS_SCHEMA = {
             requiresRestart: true,
             default: '',
             description:
-              'Custom path to the LiteRT-LM binary. Leave empty to use the default location (~/.gemini/bin/litert/).',
+              'Custom path to the LiteRT-LM binary. Leave empty to use the default location (~/.plumb/bin/litert/).',
             showInDialog: false,
           },
           classifier: {

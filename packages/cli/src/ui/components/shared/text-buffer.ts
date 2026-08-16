@@ -3313,7 +3313,7 @@ export function useTextBuffer({
   }, []);
 
   const openInExternalEditor = useCallback(async (): Promise<void> => {
-    const tmpDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'gemini-edit-'));
+    const tmpDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'plumb-edit-'));
     const filePath = pathMod.join(tmpDir, 'buffer.txt');
     // Expand paste placeholders so user sees full content in editor
     const expandedText = expandPastePlaceholders(text, pastedContent);

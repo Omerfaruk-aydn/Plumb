@@ -250,7 +250,7 @@ ${testRootDir}${path.sep}
     it('should ignore files and folders specified in .gitignore', async () => {
       await fsPromises.writeFile(
         path.join(testRootDir, '.gitignore'),
-        'ignored.txt\nnode_modules/\n.gemini/*\n!/.gemini/config.yaml',
+        `ignored.txt\nnode_modules/\n${PLUMB_DIR}/*\n!/${PLUMB_DIR}/config.yaml`,
       );
       await createTestFile('file1.txt');
       await createTestFile('node_modules', 'some-package', 'index.js');
@@ -293,11 +293,11 @@ ${testRootDir}${path.sep}
     });
   });
 
-  describe('with geminiignore', () => {
-    it('should ignore geminiignore files by default', async () => {
+  describe('with plumbignore', () => {
+    it('should ignore plumbignore files by default', async () => {
       await fsPromises.writeFile(
         path.join(testRootDir, PLUMB_IGNORE_FILE_NAME),
-        'ignored.txt\nnode_modules/\n.gemini/\n!/.gemini/config.yaml',
+        `ignored.txt\nnode_modules/\n${PLUMB_DIR}/\n!/${PLUMB_DIR}/config.yaml`,
       );
       await createTestFile('file1.txt');
       await createTestFile('node_modules', 'some-package', 'index.js');
@@ -317,7 +317,7 @@ ${testRootDir}${path.sep}
     it('should not ignore files if respectPlumbIgnore is false', async () => {
       await fsPromises.writeFile(
         path.join(testRootDir, PLUMB_IGNORE_FILE_NAME),
-        'ignored.txt\nnode_modules/\n.gemini/\n!/.gemini/config.yaml',
+        `ignored.txt\nnode_modules/\n${PLUMB_DIR}/\n!/${PLUMB_DIR}/config.yaml`,
       );
       await createTestFile('file1.txt');
       await createTestFile('node_modules', 'some-package', 'index.js');

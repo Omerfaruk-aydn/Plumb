@@ -198,7 +198,7 @@ describe('LSTool', () => {
       );
     });
 
-    it('should respect geminiignore patterns', async () => {
+    it('should respect plumbignore patterns', async () => {
       await fs.writeFile(path.join(tempRootDir, 'file1.txt'), 'content1');
       await fs.writeFile(path.join(tempRootDir, 'file2.log'), 'content1');
       await fs.writeFile(

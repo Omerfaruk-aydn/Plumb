@@ -27,6 +27,7 @@ import {
   resolveToRealPath,
 } from '../utils/paths.js';
 import { resolveGitWorktreePaths } from '../sandbox/utils/fsUtils.js';
+import { PLUMB_IGNORE_FILE_NAME } from '../config/constants.js';
 
 /**
  * A structured result of fully resolved sandbox paths.
@@ -196,7 +197,7 @@ export interface SandboxManager {
  */
 export const GOVERNANCE_FILES = [
   { path: '.gitignore', isDirectory: false },
-  { path: '.geminiignore', isDirectory: false },
+  { path: PLUMB_IGNORE_FILE_NAME, isDirectory: false },
   { path: '.git', isDirectory: true },
 ] as const;
 

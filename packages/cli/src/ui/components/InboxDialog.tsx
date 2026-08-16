@@ -79,12 +79,12 @@ const SKILL_DESTINATION_CHOICES: DestinationChoice[] = [
   {
     destination: 'global',
     label: 'Global',
-    description: '~/.gemini/skills — available in all projects',
+    description: '~/.plumb/skills — available in all projects',
   },
   {
     destination: 'project',
     label: 'Project',
-    description: '.gemini/skills — available in this workspace',
+    description: '.plumb/skills — available in this workspace',
   },
 ];
 
@@ -121,7 +121,7 @@ const PATCH_ACTION_CHOICES: PatchAction[] = [
 ];
 
 // Dismiss-first: memory patches modify durable on-disk state outside the
-// project (private MEMORY.md and sibling files, plus ~/.gemini/PLUMB.md),
+// project (private MEMORY.md and sibling files, plus ~/.plumb/PLUMB.md),
 // so a stray Enter on a freshly-opened memory-patch preview must NOT apply.
 // The lower-stakes skill-patch list (PATCH_ACTION_CHOICES) keeps Apply as
 // the default.
@@ -181,13 +181,13 @@ function getSkillOriginTag(filePath: string): string {
   if (normalizedPath.includes('/extensions/')) {
     return 'Extension';
   }
-  if (normalizedPath.includes('/.gemini/skills/')) {
+  if (normalizedPath.includes('/.plumb/skills/')) {
     const homeDirs = [process.env['HOME'], process.env['USERPROFILE']]
       .filter((homeDir): homeDir is string => Boolean(homeDir))
       .map(normalizePathForUi);
     if (
       homeDirs.some((homeDir) =>
-        normalizedPath.startsWith(`${homeDir}/.gemini/skills/`),
+        normalizedPath.startsWith(`${homeDir}/.plumb/skills/`),
       )
     ) {
       return 'Global';
@@ -457,7 +457,7 @@ export const InboxDialog: React.FC<InboxDialogProps> = ({
             value: {
               ...choice,
               description:
-                '.gemini/skills — unavailable until this workspace is trusted',
+                '.plumb/skills — unavailable until this workspace is trusted',
             },
             disabled: true,
           };
@@ -492,7 +492,7 @@ export const InboxDialog: React.FC<InboxDialogProps> = ({
             value: {
               ...choice,
               description:
-                '.gemini/skills — unavailable until this workspace is trusted',
+                '.plumb/skills — unavailable until this workspace is trusted',
             },
             disabled: true,
           };

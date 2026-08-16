@@ -256,7 +256,7 @@ describe('WindowsSandboxManager', () => {
     await manager.prepareCommand(req);
 
     expect(fs.existsSync(path.join(testCwd, '.gitignore'))).toBe(true);
-    expect(fs.existsSync(path.join(testCwd, '.geminiignore'))).toBe(true);
+    expect(fs.existsSync(path.join(testCwd, '.plumbignore'))).toBe(true);
     expect(fs.existsSync(path.join(testCwd, '.git'))).toBe(true);
     expect(fs.lstatSync(path.join(testCwd, '.git')).isDirectory()).toBe(true);
   });

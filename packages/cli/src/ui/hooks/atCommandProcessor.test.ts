@@ -717,7 +717,7 @@ describe('handleAtCommand', () => {
   });
 
   describe('gemini-ignore filtering', () => {
-    it('should skip gemini-ignored files in @ commands', async () => {
+    it('should skip plumb-ignored files in @ commands', async () => {
       await createTestFile(
         path.join(testRootDir, PLUMB_IGNORE_FILE_NAME),
         'build/output.js',
@@ -741,14 +741,14 @@ describe('handleAtCommand', () => {
         processedQuery: [{ text: query }],
       });
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        `Path ${geminiIgnoredFile} is gemini-ignored and will be skipped.`,
+        `Path ${geminiIgnoredFile} is plumb-ignored and will be skipped.`,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        `Ignored 1 files:\nGemini-ignored: ${geminiIgnoredFile}`,
+        `Ignored 1 files:\nPlumb-ignored: ${geminiIgnoredFile}`,
       );
     });
   });
-  it('should process non-ignored files when .geminiignore is present', async () => {
+  it('should process non-ignored files when .plumbignore is present', async () => {
     await createTestFile(
       path.join(testRootDir, PLUMB_IGNORE_FILE_NAME),
       'build/output.js',
@@ -779,7 +779,7 @@ describe('handleAtCommand', () => {
     });
   });
 
-  it('should handle mixed gemini-ignored and valid files', async () => {
+  it('should handle mixed plumb-ignored and valid files', async () => {
     await createTestFile(
       path.join(testRootDir, PLUMB_IGNORE_FILE_NAME),
       'dist/bundle.js',
@@ -813,10 +813,10 @@ describe('handleAtCommand', () => {
       ],
     });
     expect(mockOnDebugMessage).toHaveBeenCalledWith(
-      `Path ${geminiIgnoredFile} is gemini-ignored and will be skipped.`,
+      `Path ${geminiIgnoredFile} is plumb-ignored and will be skipped.`,
     );
     expect(mockOnDebugMessage).toHaveBeenCalledWith(
-      `Ignored 1 files:\nGemini-ignored: ${geminiIgnoredFile}`,
+      `Ignored 1 files:\nPlumb-ignored: ${geminiIgnoredFile}`,
     );
   });
 

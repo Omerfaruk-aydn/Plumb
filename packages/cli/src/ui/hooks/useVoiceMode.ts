@@ -165,7 +165,7 @@ export function useVoiceMode({
 
       if (!apiKey && voiceBackend === 'gemini-live') {
         setQueueErrorMessage(
-          'Cloud voice mode requires a GEMINI_API_KEY. Please set it in your environment or ~/.gemini/.env.',
+          'Cloud voice mode requires a GEMINI_API_KEY. Please set it in your environment or ~/.plumb/.env.',
         );
         setIsRecording(false);
         isRecordingRef.current = false;

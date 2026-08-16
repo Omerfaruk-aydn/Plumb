@@ -261,10 +261,10 @@ async function resolveFilePaths(
       ignoredFiles.push({ path: pathName, reason });
       const reasonText =
         reason === 'both'
-          ? 'ignored by both git and gemini'
+          ? 'ignored by both git and plumb'
           : reason === 'git'
             ? 'git-ignored'
-            : 'gemini-ignored';
+            : 'plumb-ignored';
       onDebugMessage(`Path ${pathName} is ${reasonText} and will be skipped.`);
       continue;
     }
@@ -647,7 +647,7 @@ function reportIgnoredFiles(
     messages.push(`Git-ignored: ${ignoredByReason['git'].join(', ')}`);
   }
   if (ignoredByReason['gemini'].length) {
-    messages.push(`Gemini-ignored: ${ignoredByReason['gemini'].join(', ')}`);
+    messages.push(`Plumb-ignored: ${ignoredByReason['gemini'].join(', ')}`);
   }
   if (ignoredByReason['both'].length) {
     messages.push(`Ignored by both: ${ignoredByReason['both'].join(', ')}`);

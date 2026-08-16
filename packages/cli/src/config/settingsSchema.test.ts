@@ -514,7 +514,7 @@ describe('SettingsSchema', () => {
       expect(binaryPath.requiresRestart).toBe(true);
       expect(binaryPath.showInDialog).toBe(false);
       expect(binaryPath.description).toBe(
-        'Custom path to the LiteRT-LM binary. Leave empty to use the default location (~/.gemini/bin/litert/).',
+        'Custom path to the LiteRT-LM binary. Leave empty to use the default location (~/.plumb/bin/litert/).',
       );
 
       const classifier = gemmaModelRouter.properties.classifier;

@@ -22,7 +22,7 @@ describe('FileSearch', () => {
     vi.restoreAllMocks();
   });
 
-  it('should use .geminiignore rules', async () => {
+  it('should use .plumbignore rules', async () => {
     tmpDir = await createTmpDir({
       [PLUMB_IGNORE_FILE_NAME]: 'dist/',
       dist: ['ignored.js'],
@@ -52,7 +52,7 @@ describe('FileSearch', () => {
     ]);
   });
 
-  it('should combine .gitignore and .geminiignore rules', async () => {
+  it('should combine .gitignore and .plumbignore rules', async () => {
     tmpDir = await createTmpDir({
       '.git': {},
       '.gitignore': 'dist/',
@@ -80,8 +80,8 @@ describe('FileSearch', () => {
 
     expect(results).toEqual([
       'src/',
-      PLUMB_IGNORE_FILE_NAME,
       '.gitignore',
+      PLUMB_IGNORE_FILE_NAME,
       'src/not-ignored.js',
     ]);
   });

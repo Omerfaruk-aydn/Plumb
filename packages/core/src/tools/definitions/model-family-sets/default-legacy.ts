@@ -281,7 +281,7 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
         },
         [PARAM_RESPECT_GEMINI_IGNORE]: {
           description:
-            'Optional: Whether to respect .geminiignore patterns when finding files. Defaults to true.',
+            'Optional: Whether to respect .plumbignore patterns when finding files. Defaults to true.',
           type: 'boolean',
         },
       },
@@ -309,7 +309,7 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
         },
         [PARAM_FILE_FILTERING_OPTIONS]: {
           description:
-            'Optional: Whether to respect ignore patterns from .gitignore or .geminiignore',
+            'Optional: Whether to respect ignore patterns from .gitignore or .plumbignore',
           type: 'object',
           properties: {
             [PARAM_RESPECT_GIT_IGNORE]: {
@@ -319,7 +319,7 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
             },
             [PARAM_RESPECT_GEMINI_IGNORE]: {
               description:
-                'Optional: Whether to respect .geminiignore patterns when listing files. Defaults to true.',
+                'Optional: Whether to respect .plumbignore patterns when listing files. Defaults to true.',
               type: 'boolean',
             },
           },
@@ -487,7 +487,7 @@ Use this tool when the user's query implies needing the content of several files
         },
         [PARAM_FILE_FILTERING_OPTIONS]: {
           description:
-            'Whether to respect ignore patterns from .gitignore or .geminiignore',
+            'Whether to respect ignore patterns from .gitignore or .plumbignore',
           type: 'object',
           properties: {
             [PARAM_RESPECT_GIT_IGNORE]: {
@@ -497,7 +497,7 @@ Use this tool when the user's query implies needing the content of several files
             },
             [PARAM_RESPECT_GEMINI_IGNORE]: {
               description:
-                'Optional: Whether to respect .geminiignore patterns when listing files. Defaults to true.',
+                'Optional: Whether to respect .plumbignore patterns when listing files. Defaults to true.',
               type: 'boolean',
             },
           },

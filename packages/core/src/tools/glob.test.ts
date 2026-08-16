@@ -392,7 +392,7 @@ describe('GlobTool', () => {
       expect(result.llmContent).not.toContain('ignored_test.txt');
     }, 30000);
 
-    it('should respect .geminiignore files by default', async () => {
+    it('should respect .plumbignore files by default', async () => {
       await fs.writeFile(
         path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'gemini-ignored_test.txt',
@@ -430,7 +430,7 @@ describe('GlobTool', () => {
       expect(result.llmContent).toContain('ignored_test.txt');
     }, 30000);
 
-    it('should not respect .geminiignore when respect_gemini_ignore is false', async () => {
+    it('should not respect .plumbignore when respect_gemini_ignore is false', async () => {
       await fs.writeFile(
         path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'gemini-ignored_test.txt',

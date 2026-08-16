@@ -556,13 +556,13 @@ describe('RipGrepTool', () => {
     }, 10000);
 
     it('should filter out files based on FileDiscoveryService even if ripgrep returns them', async () => {
-      // Create .geminiignore to ignore 'ignored.txt'
+      // Create .plumbignore to ignore 'ignored.txt'
       await fs.writeFile(
         path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
         'ignored.txt',
       );
 
-      // Re-initialize tool so FileDiscoveryService loads the new .geminiignore
+      // Re-initialize tool so FileDiscoveryService loads the new .plumbignore
       const toolWithIgnore = new RipGrepTool(
         mockConfig,
         createMockMessageBus(),
@@ -1349,7 +1349,7 @@ describe('RipGrepTool', () => {
       );
     });
 
-    it('should add .geminiignore when enabled and patterns exist', async () => {
+    it('should add .plumbignore when enabled and patterns exist', async () => {
       const geminiIgnorePath = resolveToRealPath(
         path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
       );
@@ -1395,7 +1395,7 @@ describe('RipGrepTool', () => {
       );
     });
 
-    it('should skip .geminiignore when disabled', async () => {
+    it('should skip .plumbignore when disabled', async () => {
       const geminiIgnorePath = resolveToRealPath(
         path.join(tempRootDir, PLUMB_IGNORE_FILE_NAME),
       );
