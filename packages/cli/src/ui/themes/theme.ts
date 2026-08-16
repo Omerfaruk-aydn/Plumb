@@ -208,15 +208,22 @@ export const darkTheme: ColorsTheme = {
   type: 'dark',
   Background: '#000000',
   Foreground: '#FFFFFF',
-  LightBlue: '#AFD7D7',
-  AccentBlue: '#87AFFF',
-  AccentPurple: '#D7AFFF',
-  AccentCyan: '#87D7D7',
-  AccentGreen: '#D7FFD7',
-  AccentYellow: '#FFFFAF',
-  AccentRed: '#FF87AF',
-  DiffAdded: '#005F00',
-  DiffRemoved: '#5F0000',
+  // Every Accent* below was a washed-out, low-saturation pastel (e.g.
+  // AccentBlue #87AFFF) that read as near-white/gray on a black
+  // background -- the actual cause of the "dead"/monochrome look across
+  // every accent-colored element in the app (message borders, spinners,
+  // status text). Replaced with saturated tones pulled from PLUMB's own
+  // banner gradient (GradientColors below), so the brand identity in the
+  // logo now carries through the whole UI instead of stopping at it.
+  LightBlue: '#8FC7E8',
+  AccentBlue: '#4796E4',
+  AccentPurple: '#9B7FE8',
+  AccentCyan: '#4DD8D8',
+  AccentGreen: '#3DDC84',
+  AccentYellow: '#FBBF24',
+  AccentRed: '#F0555F',
+  DiffAdded: '#0D3B1E',
+  DiffRemoved: '#3B0D14',
   Comment: '#AFAFAF',
   Gray: '#AFAFAF',
   DarkGray: '#878787',

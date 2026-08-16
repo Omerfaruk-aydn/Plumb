@@ -4,8 +4,8 @@ exports[`Composer > Snapshots > matches snapshot in idle state 1`] = `
 "
                                                                                     ? for shortcuts
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-                                 StatusDisplay    Prompt tokens ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0.0%
- ApprovalModeIndicator: default                   0 / 128.0K tokens | 128.0K remaining
+                                                                    StatusDisplay   Prompt tokens ?
+ ApprovalModeIndicator: default                                                      0 / ? tokens
 InputPrompt:   Type your message or @path/to/file
 Footer
 "
@@ -27,15 +27,10 @@ exports[`Composer > Snapshots > matches snapshot in narrow view 1`] = `
 "
                         ? for shortcuts
 ────────────────────────────────────────
-                            ░░░░░░░░░
-                      Prompt░░░░░░░░0.0
-                     tokens ░░░░░░░░%
- ApprovalModeStatus         ░░░
- Indicator:  Displa    0 /   |128.0K
- default     y         128.0K remaining
-                       tokens
-
-
+                               Prompt?
+ ApprovalModeIndica StatusDis tokens 
+ tor: default       play        0 / ?
+                                tokens
 InputPrompt:   Type your message or
 @path/to/file
 Footer
@@ -46,8 +41,8 @@ exports[`Composer > Snapshots > matches snapshot while streaming 1`] = `
 "
  LoadingIndicator: Thinking ⠋ ▌                                                     ? for shortcuts
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-                                 StatusDisplay    Prompt tokens ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0.0%
- ApprovalModeIndicator: default                   0 / 128.0K tokens | 128.0K remaining
+                                                                    StatusDisplay   Prompt tokens ?
+ ApprovalModeIndicator: default                                                      0 / ? tokens
 InputPrompt:   Type your message or @path/to/file
 Footer
 "

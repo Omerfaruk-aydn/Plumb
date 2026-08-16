@@ -332,11 +332,12 @@ export const Footer: React.FC = () => {
         addCol(
           id,
           header,
+          // The active model is the single most identity-relevant status
+          // field, so it keeps the accent color always -- not only on the
+          // transient post-switch flash -- while workspace/branch/sandbox
+          // stay neutral. Bold is still reserved for the flash itself.
           () => (
-            <Text
-              color={isModelFlashing ? theme.text.accent : itemColor}
-              bold={isModelFlashing}
-            >
+            <Text color={theme.text.accent} bold={isModelFlashing}>
               {str}
             </Text>
           ),

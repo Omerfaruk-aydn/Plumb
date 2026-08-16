@@ -11,7 +11,7 @@ exports[`<AppHeader /> > should not render the banner when no flags are set 1`] 
  PLUMB CLI v1.0.0
 
 
- Working late? Let’s build something.
+ Good morning — what are we building?
 
 
 Tips for getting started:
@@ -33,7 +33,7 @@ exports[`<AppHeader /> > should not render the default banner if shown count is 
  PLUMB CLI v1.0.0
 
 
- Working late? Let’s build something.
+ Good morning — what are we building?
 
 
 Tips for getting started:
@@ -55,7 +55,7 @@ exports[`<AppHeader /> > should render the banner with default text 1`] = `
  PLUMB CLI v1.0.0
 
 
- Working late? Let’s build something.
+ Good morning — what are we building?
 
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ This is the default banner                                                                       │
@@ -80,7 +80,7 @@ exports[`<AppHeader /> > should render the banner with warning text 1`] = `
  PLUMB CLI v1.0.0
 
 
- Working late? Let’s build something.
+ Good morning — what are we building?
 
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ There are capacity issues                                                                        │
@@ -105,6 +105,6 @@ exports[`<AppHeader /> > should render the full logo when logged out 1`] = `
  PLUMB CLI v1.0.0
 
 
- Working late? Let’s build something.
+ Good morning — what are we building?
 "
 `;

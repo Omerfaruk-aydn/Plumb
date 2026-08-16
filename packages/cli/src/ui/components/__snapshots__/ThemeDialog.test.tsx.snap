@@ -154,19 +154,19 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │                                              │           d.input   prompt                      │ │
 │                                              │   #00…   background. Background highlight for   │ │
 │                                              │          focus       selected/focused items     │ │
-│                                              │   #005…  backgrou Background for added lines    │ │
+│                                              │   #0D3…  backgrou Background for added lines    │ │
 │                                              │          nd.diff. in diffs                      │ │
 │                                              │          added                                  │ │
-│                                              │   #5F0…  backgroun Background for removed       │ │
+│                                              │   #3B0…  backgroun Background for removed       │ │
 │                                              │          d.diff.re lines in diffs               │ │
 │                                              │          moved                                  │ │
 │                                              │  #FFFFF text.prim  Primary text color (uses     │ │
 │                                              │  F      ary        terminal default if blank)   │ │
 │                                              │  #AFAFAF  text.secon Secondary/dimmed text      │ │
 │                                              │           dary       color                      │ │
-│                                              │  #87AFFF text.link Hyperlink and highlighting   │ │
+│                                              │  #4796E4 text.link Hyperlink and highlighting   │ │
 │                                              │                    color                        │ │
-│                                              │  #D7AFFF  text.accen Accent color for           │ │
+│                                              │  #9B7FE8  text.accen Accent color for           │ │
 │                                              │           t          emphasis                   │ │
 │                                              │  #FFFFFF text.res  Color for model response     │ │
 │                                              │          ponse     text (uses terminal default  │ │
@@ -177,19 +177,19 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │                                              │         nt        metadata                      │ │
 │                                              │  #AFAFA ui.symbol Color for technical symbols   │ │
 │                                              │  F                and UI icons                  │ │
-│                                              │  #87AFF ui.active Border color for active or    │ │
-│                                              │  F                running elements              │ │
+│                                              │  #4796E ui.active Border color for active or    │ │
+│                                              │  4                running elements              │ │
 │                                              │  #87878 ui.dark    Deeply dimmed color for      │ │
 │                                              │  7                 subtle UI elements           │ │
-│                                              │  #D7FFD ui.focus   Color for focused elements   │ │
-│                                              │  7                 (e.g. selected menu items,   │ │
+│                                              │  #3DDC8 ui.focus   Color for focused elements   │ │
+│                                              │  4                 (e.g. selected menu items,   │ │
 │                                              │                    focused borders)             │ │
-│                                              │  #FF87AFstatus.err Color for error messages     │ │
+│                                              │  #F0555Fstatus.err Color for error messages     │ │
 │                                              │         or         and critical status          │ │
-│                                              │  #D7FFD7status.suc Color for success messages   │ │
+│                                              │  #3DDC84status.suc Color for success messages   │ │
 │                                              │         cess       and positive status          │ │
-│                                              │  #FFFFA status.wa Color for warnings and        │ │
-│                                              │  F      rning     cautionary status             │ │
+│                                              │  #FBBF2 status.wa Color for warnings and        │ │
+│                                              │  4      rning     cautionary status             │ │
 │                                              │  #4796E4   ui.gradien                           │ │
 │                                              │  #847ACE   t                                    │ │
 │                                              │  #C3677F                                        │ │

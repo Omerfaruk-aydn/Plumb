@@ -452,7 +452,7 @@ export const DenseToolMessage: React.FC<DenseToolMessageProps> = (props) => {
         <Box flexDirection="row" flexShrink={1}>
           <ToolStatusIndicator status={status} name={name} />
           <Box maxWidth={25} flexShrink={0} flexGrow={0}>
-            <Text color={theme.text.primary} bold wrap="truncate-end">
+            <Text color={theme.text.accent} bold wrap="truncate-end">
               {name}{' '}
             </Text>
           </Box>
