@@ -96,6 +96,7 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
         isFirst={isFirst}
         borderColor={borderColor}
         borderDimColor={borderDimColor}
+        variant="rule"
       >
         <ToolStatusIndicator
           status={status}
@@ -119,13 +120,13 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
       </StickyHeader>
       <Box
         width={terminalWidth}
-        borderStyle="round"
+        borderStyle="single"
         borderColor={borderColor}
         borderDimColor={borderDimColor}
         borderTop={false}
         borderBottom={false}
         borderLeft={true}
-        borderRight={true}
+        borderRight={false}
         paddingX={1}
         flexDirection="column"
       >

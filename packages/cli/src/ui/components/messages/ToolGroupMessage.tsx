@@ -520,13 +520,13 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
               {!isCompact && tool.outputFile && (
                 <Box
                   borderLeft={true}
-                  borderRight={true}
+                  borderRight={false}
                   borderTop={false}
                   borderBottom={false}
                   borderColor={borderColor}
                   borderDimColor={borderDimColor}
                   flexDirection="column"
-                  borderStyle="round"
+                  borderStyle="single"
                   paddingLeft={1}
                   paddingRight={1}
                 >
@@ -542,12 +542,12 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
               <Box
                 width={contentWidth}
                 borderLeft={true}
-                borderRight={true}
+                borderRight={false}
                 borderTop={false}
                 borderBottom={isLast ? (borderBottomOverride ?? true) : true}
                 borderColor={borderColor}
                 borderDimColor={borderDimColor}
-                borderStyle="round"
+                borderStyle="single"
               />
             )}
           </Fragment>

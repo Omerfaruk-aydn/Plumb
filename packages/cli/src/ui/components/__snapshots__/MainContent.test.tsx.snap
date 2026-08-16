@@ -4,20 +4,20 @@ exports[`MainContent > MainContent Tool Output Height Logic > 'ASB mode - Focuse
 "ScrollableList
 AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ⠋  Shell Command Running a long command...                                                   │
-│                                                                                              │
-│ Line 11                                                                                      │
-│ Line 12                                                                                      │
-│ Line 13                                                                                      │
-│ Line 14                                                                                      │
-│ Line 15                                                                                      │
-│ Line 16                                                                                    █ │
-│ Line 17                                                                                    █ │
-│ Line 18                                                                                    █ │
-│ Line 19                                                                                    █ │
-│ Line 20                                                                                    █ │
-╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+┌───────────────────────────────────────────────────────────────────────────────────────────────
+│ ⠋  Shell Command Running a long command...
+│
+│ Line 11
+│ Line 12
+│ Line 13
+│ Line 14
+│ Line 15
+│ Line 16                                                                                    █
+│ Line 17                                                                                    █
+│ Line 18                                                                                    █
+│ Line 19                                                                                    █
+│ Line 20                                                                                    █
+└───────────────────────────────────────────────────────────────────────────────────────────────
 "
 `;
 
@@ -25,70 +25,70 @@ exports[`MainContent > MainContent Tool Output Height Logic > 'ASB mode - Unfocu
 "ScrollableList
 AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ⠋  Shell Command Running a long command...                                                   │
-│                                                                                              │
-│ Line 11                                                                                      │
-│ Line 12                                                                                      │
-│ Line 13                                                                                      │
-│ Line 14                                                                                      │
-│ Line 15                                                                                      │
-│ Line 16                                                                                    █ │
-│ Line 17                                                                                    █ │
-│ Line 18                                                                                    █ │
-│ Line 19                                                                                    █ │
-│ Line 20                                                                                    █ │
-╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+┌───────────────────────────────────────────────────────────────────────────────────────────────
+│ ⠋  Shell Command Running a long command...
+│
+│ Line 11
+│ Line 12
+│ Line 13
+│ Line 14
+│ Line 15
+│ Line 16                                                                                    █
+│ Line 17                                                                                    █
+│ Line 18                                                                                    █
+│ Line 19                                                                                    █
+│ Line 20                                                                                    █
+└───────────────────────────────────────────────────────────────────────────────────────────────
 "
 `;
 
 exports[`MainContent > MainContent Tool Output Height Logic > 'Normal mode - Constrained height' 1`] = `
 "AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ⠋  Shell Command Running a long command...                                                   │
-│                                                                                              │
-│ ... first 11 lines hidden (Ctrl+O to show) ...                                               │
-│ Line 12                                                                                      │
-│ Line 13                                                                                      │
-│ Line 14                                                                                      │
-│ Line 15                                                                                      │
-│ Line 16                                                                                      │
-│ Line 17                                                                                      │
-│ Line 18                                                                                      │
-│ Line 19                                                                                      │
-│ Line 20                                                                                      │
-╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+┌───────────────────────────────────────────────────────────────────────────────────────────────
+│ ⠋  Shell Command Running a long command...
+│
+│ ... first 11 lines hidden (Ctrl+O to show) ...
+│ Line 12
+│ Line 13
+│ Line 14
+│ Line 15
+│ Line 16
+│ Line 17
+│ Line 18
+│ Line 19
+│ Line 20
+└───────────────────────────────────────────────────────────────────────────────────────────────
 "
 `;
 
 exports[`MainContent > MainContent Tool Output Height Logic > 'Normal mode - Unconstrained height' 1`] = `
 "AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ⠋  Shell Command Running a long command...                                                   │
-│                                                                                              │
-│ Line 1                                                                                       │
-│ Line 2                                                                                       │
-│ Line 3                                                                                       │
-│ Line 4                                                                                       │
-│ Line 5                                                                                       │
-│ Line 6                                                                                       │
-│ Line 7                                                                                       │
-│ Line 8                                                                                       │
-│ Line 9                                                                                       │
-│ Line 10                                                                                      │
-│ Line 11                                                                                      │
-│ Line 12                                                                                      │
-│ Line 13                                                                                      │
-│ Line 14                                                                                      │
-│ Line 15                                                                                      │
-│ Line 16                                                                                      │
-│ Line 17                                                                                      │
-│ Line 18                                                                                      │
-│ Line 19                                                                                      │
-│ Line 20                                                                                      │
-╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+┌───────────────────────────────────────────────────────────────────────────────────────────────
+│ ⠋  Shell Command Running a long command...
+│
+│ Line 1
+│ Line 2
+│ Line 3
+│ Line 4
+│ Line 5
+│ Line 6
+│ Line 7
+│ Line 8
+│ Line 9
+│ Line 10
+│ Line 11
+│ Line 12
+│ Line 13
+│ Line 14
+│ Line 15
+│ Line 16
+│ Line 17
+│ Line 18
+│ Line 19
+│ Line 20
+└───────────────────────────────────────────────────────────────────────────────────────────────
 "
 `;
 
@@ -110,15 +110,15 @@ exports[`MainContent > renders a ToolConfirmationQueue without an extra line whe
 exports[`MainContent > renders a split tool group without a gap between static and pending areas 1`] = `
 "AppHeader(full)
 
-╭──────────────────────────────────────────────────────────────────────────╮
-│ ✓  test-tool A tool for testing                                          │
-│                                                                          │
-│ Part 1                                                                   │
-│                                                                          │
-│ ✓  test-tool A tool for testing                                          │
-│                                                                          │
-│ Part 2                                                                   │
-╰──────────────────────────────────────────────────────────────────────────╯
+┌───────────────────────────────────────────────────────────────────────────
+│ ✓  test-tool A tool for testing
+│
+│ Part 1
+│
+│ ✓  test-tool A tool for testing
+│
+│ Part 2
+└───────────────────────────────────────────────────────────────────────────
 "
 `;
 

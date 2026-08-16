@@ -163,6 +163,7 @@ export const ShellToolMessage: React.FC<ShellToolMessageProps> = ({
         borderColor={borderColor}
         borderDimColor={borderDimColor}
         containerRef={headerRef}
+        variant="rule"
       >
         <ToolStatusIndicator
           status={status}
@@ -190,13 +191,13 @@ export const ShellToolMessage: React.FC<ShellToolMessageProps> = ({
       <Box
         ref={contentRef}
         width={terminalWidth}
-        borderStyle="round"
+        borderStyle="single"
         borderColor={borderColor}
         borderDimColor={borderDimColor}
         borderTop={false}
         borderBottom={false}
         borderLeft={true}
-        borderRight={true}
+        borderRight={false}
         paddingX={1}
         flexDirection="column"
       >
