@@ -101,4 +101,40 @@ if (existsSync(extensionExamplesSrc)) {
   console.log('Copied extension examples to bundle/examples/');
 }
 
+// 7. Copy provider runtime assets (vendor-ai)
+//
+// The provider reads these at *module scope* via
+// `readFileSync(join(import.meta.dirname ?? __dirname, "<name>"))`, and
+// esbuild emits the bundle as flat chunks directly in bundle/ -- so these
+// have to land in bundle/ root, not under their source subdirectories.
+//
+// Missing any single one of them crashed the published CLI during module
+// evaluation, before it could print even `--version`. That is exactly why
+// each pattern below fails the build rather than warning: a silent skip is
+// what let this ship broken in the first place. Globs rather than a fixed
+// list so a newly added dialect is picked up automatically.
+const providerAssetGlobs = [
+  'packages/provider/src/vendor-ai/dialect/*.md',
+  'packages/provider/src/vendor-ai/providers/*.md',
+  'packages/provider/src/vendor-ai/registry/oauth/*.html',
+];
+
+let providerAssetCount = 0;
+for (const pattern of providerAssetGlobs) {
+  const files = glob.sync(pattern, { cwd: root });
+  if (files.length === 0) {
+    console.error(
+      `Error: no provider runtime assets matched "${pattern}".\n` +
+        `The bundled CLI reads these at startup and will crash without them.\n` +
+        `If these assets moved, update scripts/copy_bundle_assets.js to match.`,
+    );
+    process.exit(1);
+  }
+  for (const file of files) {
+    copyFileSync(join(root, file), join(bundleDir, basename(file)));
+    providerAssetCount++;
+  }
+}
+console.log(`Copied ${providerAssetCount} provider runtime assets to bundle/`);
+
 console.log('Assets copied to bundle/');
