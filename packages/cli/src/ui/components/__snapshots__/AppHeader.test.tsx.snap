@@ -1,5 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`<AppHeader /> > should NOT render Tips when ui.hideTips is true 1`] = `
+"
+ ████ █    █  █ █   █ ████
+ █  █ █    █  █ ██ ██ █  █
+ ████ █    █  █ █ █ █ ████
+ █    █    █  █ █   █ █  █
+ █    ████ ████ █   █ ████
+
+ PLUMB CLI v1.0.0
+
+
+ Good evening — what are we building?
+"
+`;
+
 exports[`<AppHeader /> > should not render the banner when no flags are set 1`] = `
 "
  ████ █    █  █ █   █ ████

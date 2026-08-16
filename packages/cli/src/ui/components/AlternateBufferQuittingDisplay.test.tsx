@@ -7,7 +7,7 @@ import {
   renderWithProviders,
   persistentStateMock,
 } from '../../test-utils/render.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AlternateBufferQuittingDisplay } from './AlternateBufferQuittingDisplay.js';
 import type { HistoryItem, HistoryItemWithoutId } from '../types.js';
 import { Text } from 'ink';
@@ -90,6 +90,15 @@ const mockPendingHistoryItems: HistoryItemWithoutId[] = [
 describe('AlternateBufferQuittingDisplay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The header greets the user based on the wall clock, so these
+    // snapshots silently depended on what time of day the suite ran.
+    // Pin the clock so the greeting is a fixed input, not an ambient one.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T14:30:00'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
   const baseUIState = {
     terminalWidth: 80,

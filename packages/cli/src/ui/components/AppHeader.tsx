@@ -14,7 +14,10 @@ import { useBanner } from '../hooks/useBanner.js';
 import { useTips } from '../hooks/useTips.js';
 import { theme } from '../semantic-colors.js';
 import { CliSpinner } from './CliSpinner.js';
-import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
+import {
+  PlumbAnimatedWordmark,
+  DEFAULT_WORDMARK_FPS,
+} from './PlumbAnimatedWordmark.js';
 import { ThemedGradient } from './ThemedGradient.js';
 import { getTimeBasedGreeting } from '../utils/greeting.js';
 
@@ -59,7 +62,7 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
       <Box flexShrink={0}>
         <PlumbAnimatedWordmark
           disabled={settings.merged.ui.animatedLogo === false}
-          fps={settings.merged.ui.logoAnimationFps ?? 8}
+          fps={settings.merged.ui.logoAnimationFps ?? DEFAULT_WORDMARK_FPS}
           terminalWidth={terminalWidth}
           isNarrow={isNarrow}
           noColor={!!process.env['NO_COLOR']}

@@ -21,11 +21,14 @@ import { coreEvents, debugLogger } from '@plumb/core';
 import { themeManager } from './src/ui/themes/theme-manager.js';
 import { mockInkSpinner } from './src/test-utils/mockSpinner.js';
 import { mockShimmerText } from './src/test-utils/mockShimmer.js';
+import { mockAnimatedWordmark } from './src/test-utils/mockWordmark.js';
 
 // Globally mock ink-spinner to prevent non-deterministic snapshot/act flakes.
 mockInkSpinner();
 // Same reason: ShimmerText runs a 30fps sweep on a constantly-mounted component.
 mockShimmerText();
+// Same reason: the wordmark runs a 30fps hue rotation on the app header.
+mockAnimatedWordmark();
 
 // Unset CI environment variable so that ink renders dynamically as it does in a real terminal
 if (process.env.CI !== undefined) {

@@ -4,6 +4,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// test-setup.ts freezes this component suite-wide so its 30fps timer can't
+// destabilize unrelated suites; this suite asserts on that very timer, so
+// it has to exercise the real thing.
+vi.unmock('./PlumbAnimatedWordmark.js');
+
 import { renderWithProviders } from '../../test-utils/render.js';
 import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 import stripAnsi from 'strip-ansi';

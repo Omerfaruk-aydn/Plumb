@@ -9,9 +9,9 @@ import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
 import { getDefaultValue } from '../../utils/settingsUtils.js';
 
 describe('PlumbSettingsPersistence & Layout Stability', () => {
-  it('1. verifies ui.animatedLogo default is true and ui.logoAnimationFps default is 8', () => {
+  it('1. verifies ui.animatedLogo default is true and ui.logoAnimationFps default is 30', () => {
     expect(getDefaultValue('ui.animatedLogo')).toBe(true);
-    expect(getDefaultValue('ui.logoAnimationFps')).toBe(8);
+    expect(getDefaultValue('ui.logoAnimationFps')).toBe(30);
   });
 
   it('2. proves disabling animation renders static block wordmark without animation timer', async () => {

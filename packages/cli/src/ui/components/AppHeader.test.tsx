@@ -9,7 +9,7 @@ import {
 } from '../../test-utils/render.js';
 import type { LoadedSettings } from '../../config/settings.js';
 import { AppHeader } from './AppHeader.js';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { makeFakeConfig } from '@plumb/core';
 import crypto from 'node:crypto';
 import { _clearSessionBannersForTest } from '../hooks/useBanner.js';
@@ -21,6 +21,16 @@ vi.mock('../utils/terminalSetup.js', () => ({
 describe('<AppHeader />', () => {
   beforeEach(() => {
     _clearSessionBannersForTest();
+    // The header greets the user based on the wall clock, so these
+    // snapshots silently depended on what time of day the suite ran and
+    // flipped between "Good afternoon" and "Good evening". Pin the clock
+    // so the greeting is a fixed input rather than an ambient one.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T14:30:00'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should render the banner with default text', async () => {

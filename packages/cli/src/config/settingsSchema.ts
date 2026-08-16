@@ -758,8 +758,9 @@ const SETTINGS_SCHEMA = {
         label: 'Logo Animation FPS',
         category: 'UI',
         requiresRestart: false,
-        default: 8,
-        description: 'Frame rate for the animated RGB logo (1-10 FPS).',
+        default: 30,
+        description:
+          'Frame rate for the animated RGB logo (1-30 FPS). The logo animates on the welcome screen and freezes once the conversation starts, since by then it has scrolled into the transcript.',
         showInDialog: true,
       },
       hideBanner: {

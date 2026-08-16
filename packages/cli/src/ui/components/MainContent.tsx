@@ -314,18 +314,33 @@ export const MainContent = () => {
     return scrollableList;
   }
 
+  // The wordmark can only animate while it lives in the live region. Ink's
+  // <Static> renders `items.slice(index)` once and then advances `index`
+  // past them (see ink/build/components/Static.js), so a header committed
+  // there is unmounted and written to scrollback -- and scrollback can
+  // never be repainted. Keeping it live for the true welcome moment is the
+  // only way the animation runs at all; the instant real history exists it
+  // moves into <Static> and freezes, because by then it has scrolled into
+  // the transcript where it belongs.
+  const isWelcomeMoment = uiState.history.length === 0;
+
   return (
     <>
       <Static
         key={uiState.historyRemountKey}
-        items={[
-          <AppHeader key="app-header" version={version} />,
-          ...staticHistoryItems,
-          ...lastResponseHistoryItems,
-        ]}
+        items={
+          isWelcomeMoment
+            ? []
+            : [
+                <AppHeader key="app-header" version={version} />,
+                ...staticHistoryItems,
+                ...lastResponseHistoryItems,
+              ]
+        }
       >
         {(item) => item}
       </Static>
+      {isWelcomeMoment && <AppHeader key="app-header-live" version={version} />}
       {pendingItems}
     </>
   );

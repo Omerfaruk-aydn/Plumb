@@ -4,8 +4,17 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// test-setup.ts freezes this component suite-wide so its 30fps timer can't
+// destabilize unrelated suites; this is the one file that must exercise the
+// real thing.
+vi.unmock('./PlumbAnimatedWordmark.js');
+
 import { renderWithProviders } from '../../test-utils/render.js';
-import { PlumbAnimatedWordmark } from './PlumbAnimatedWordmark.js';
+import {
+  PlumbAnimatedWordmark,
+  buildFlowingPalette,
+} from './PlumbAnimatedWordmark.js';
 import {
   renderPlumbBlockWordmark,
   getBlockWordmarkWidth,
@@ -96,5 +105,48 @@ describe('PlumbAnimatedWordmark Component Tests', () => {
       <PlumbAnimatedWordmark phase={45} />,
     );
     expect(lastFrame()).toContain('█');
+  });
+
+  describe('flowing RGB palette', () => {
+    it('produces valid hex colors', () => {
+      for (const color of buildFlowingPalette(0)) {
+        expect(color).toMatch(/^#[0-9a-f]{6}$/);
+      }
+    });
+
+    it('spans a range of hues within a single frame', () => {
+      // A frame whose stops were all the same color would render as a flat
+      // block, not a gradient.
+      const palette = buildFlowingPalette(0);
+      expect(new Set(palette).size).toBeGreaterThan(1);
+    });
+
+    it('advances by a small step between adjacent frames', () => {
+      // The bug this replaced rotated a 3-5 entry array by one whole slot
+      // per tick, so consecutive frames jumped a third of the way around
+      // the palette and the mark strobed. Adjacent frames must now differ
+      // only slightly -- proven here by requiring the first stop to move,
+      // but by less than a coarse whole-slot rotation would move it.
+      const first = buildFlowingPalette(0)[0];
+      const second = buildFlowingPalette(1)[0];
+      expect(second).not.toBe(first);
+
+      const channelsOf = (hex: string) => [
+        parseInt(hex.slice(1, 3), 16),
+        parseInt(hex.slice(3, 5), 16),
+        parseInt(hex.slice(5, 7), 16),
+      ];
+      const [r1, g1, b1] = channelsOf(first);
+      const [r2, g2, b2] = channelsOf(second);
+      const distance =
+        Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+      expect(distance).toBeGreaterThan(0);
+      expect(distance).toBeLessThan(60);
+    });
+
+    it('returns to where it started after a full hue rotation', () => {
+      // 360 degrees at 3 degrees per frame.
+      expect(buildFlowingPalette(120)).toEqual(buildFlowingPalette(0));
+    });
   });
 });

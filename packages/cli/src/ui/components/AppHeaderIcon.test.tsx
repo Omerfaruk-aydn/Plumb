@@ -21,10 +21,16 @@ import { isAppleTerminal } from '@plumb/core';
 describe('AppHeader Icon Rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The header greets the user based on the wall clock, so these
+    // snapshots silently depended on what time of day the suite ran.
+    // Pin the clock so the greeting is a fixed input, not an ambient one.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T14:30:00'));
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.useRealTimers();
   });
 
   it('renders the default icon in standard terminals', async () => {
