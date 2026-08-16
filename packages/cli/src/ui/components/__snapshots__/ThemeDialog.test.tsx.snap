@@ -171,6 +171,9 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │                                              │             ss                                  │ │
 │                                              │   #291D1D   background                          │ │
 │                                              │             .toolError                          │ │
+│                                              │   #121212   background                          │ │
+│                                              │             .statusLin                          │ │
+│                                              │             e                                   │ │
 │                                              │  #FFFFF text.prim  Primary text color (uses     │ │
 │                                              │  F      ary        terminal default if blank)   │ │
 │                                              │  #AFAFAF  text.secon Secondary/dimmed text      │ │
@@ -201,6 +204,18 @@ exports[`ThemeDialog Snapshots > should render correctly in theme selection mode
 │                                              │         cess       and positive status          │ │
 │                                              │  #FFB84 status.wa Color for warnings and        │ │
 │                                              │  D      rning     cautionary status             │ │
+│                                              │  #D787AF   statusLine                           │ │
+│                                              │            .model                               │ │
+│                                              │  #00AFAF   statusLine                           │ │
+│                                              │            .path                                │ │
+│                                              │  #5FAF5F   statusLine                           │ │
+│                                              │            .gitClean                            │ │
+│                                              │  #D7AF5F   statusLine                           │ │
+│                                              │            .gitDirty                            │ │
+│                                              │  #8787AF   statusLine                           │ │
+│                                              │            .context                             │ │
+│                                              │  #5FAFAF   statusLine                           │ │
+│                                              │            .cost                                │ │
 │                                              │  #4796E4   ui.gradien                           │ │
 │                                              │  #847ACE   t                                    │ │
 │                                              │  #C3677F                                        │ │

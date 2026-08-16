@@ -6,6 +6,7 @@
 import type React from 'react';
 import { useMemo } from 'react';
 import { Box, Text, useIsScreenReaderEnabled } from 'ink';
+import { diffWordsWithSpace } from 'diff';
 import { colorizeCode, colorizeLine } from '../../utils/CodeColorizer.js';
 import { MaxSizedBox } from '../shared/MaxSizedBox.js';
 import { theme as semanticTheme } from '../../semantic-colors.js';
@@ -311,10 +312,22 @@ export const renderDiffLines = ({
     baseIndentation = 0;
   }
 
+  // Strip the shared indentation once, up front, so word-diff pairing below
+  // sees exactly the text this function is about to render -- diffing the
+  // un-stripped content and re-slicing the result afterward would risk
+  // splitting a diff span in the middle of the stripped prefix.
+  const indentStrippedLines = displayableLines.map((line) => ({
+    ...line,
+    content: line.content.substring(baseIndentation),
+  }));
+  const wordDiffMap = disableColor
+    ? new Map<DiffLine, LineWordDiff>()
+    : pairWordDiffs(indentStrippedLines);
+
   let lastLineNumber: number | null = null;
   const MAX_CONTEXT_LINES_WITHOUT_GAP = 5;
 
-  const content = displayableLines.reduce<React.ReactNode[]>(
+  const content = indentStrippedLines.reduce<React.ReactNode[]>(
     (acc, line, index) => {
       // Determine the relevant line number for gap calculation based on type
       let relevantLineNumberForGapCalc: number | null = null;
@@ -374,7 +387,8 @@ export const renderDiffLines = ({
           return acc;
       }
 
-      const displayContent = line.content.substring(baseIndentation);
+      const displayContent = line.content;
+      const wordDiff = wordDiffMap.get(line);
 
       const backgroundColor = disableColor
         ? undefined
@@ -422,7 +436,21 @@ export const renderDiffLines = ({
           ) : (
             <Text backgroundColor={backgroundColor} wrap="wrap">
               <Text color={symbolColor}>{prefixSymbol}</Text>{' '}
-              {colorizeLine(displayContent, language, undefined, disableColor)}
+              {wordDiff
+                ? renderWordDiffSpans(
+                    line.type === 'del'
+                      ? wordDiff.removedParts
+                      : wordDiff.addedParts,
+                    language,
+                    symbolColor,
+                    disableColor,
+                  )
+                : colorizeLine(
+                    displayContent,
+                    language,
+                    undefined,
+                    disableColor,
+                  )}
             </Text>
           )}
         </Box>,
@@ -434,6 +462,132 @@ export const renderDiffLines = ({
 
   return content;
 };
+
+interface WordDiffPart {
+  value: string;
+  changed: boolean;
+}
+
+export interface LineWordDiff {
+  removedParts: WordDiffPart[];
+  addedParts: WordDiffPart[];
+}
+
+/**
+ * A line longer than this is not word-diffed: `diffWordsWithSpace` is
+ * roughly quadratic in the worst case, and a changed 400-column line (a
+ * minified bundle, a long JSON literal) is unreadable either way -- the
+ * whole-line background wash costs nothing to compute and says the same
+ * thing at a glance.
+ */
+const MAX_WORD_DIFF_LINE_LENGTH = 400;
+
+/**
+ * Diffs one old/new line pair at word granularity, so a one-token edit reads
+ * as "this word changed" instead of "this whole line is a different color,
+ * go find what differs." Returns null when highlighting would not help: the
+ * lines are identical, one is too long to diff cheaply, or the two lines
+ * share no tokens at all (a full rewrite has no partial match to point at,
+ * and drawing an emphasis box around 100% of the line is strictly worse than
+ * the plain background wash the caller already has).
+ */
+export function computeLineWordDiff(
+  oldLine: string,
+  newLine: string,
+): LineWordDiff | null {
+  if (oldLine === newLine) return null;
+  if (
+    oldLine.length > MAX_WORD_DIFF_LINE_LENGTH ||
+    newLine.length > MAX_WORD_DIFF_LINE_LENGTH
+  ) {
+    return null;
+  }
+
+  const parts = diffWordsWithSpace(oldLine, newLine);
+  const removedParts: WordDiffPart[] = [];
+  const addedParts: WordDiffPart[] = [];
+  let sharedTokens = false;
+
+  for (const part of parts) {
+    if (part.added) {
+      addedParts.push({ value: part.value, changed: true });
+    } else if (part.removed) {
+      removedParts.push({ value: part.value, changed: true });
+    } else {
+      // Shared whitespace doesn't count as a shared token: two lines that
+      // agree only on the spaces between words have nothing in common worth
+      // pointing at.
+      if (part.value.trim() !== '') sharedTokens = true;
+      removedParts.push({ value: part.value, changed: false });
+      addedParts.push({ value: part.value, changed: false });
+    }
+  }
+
+  return sharedTokens ? { removedParts, addedParts } : null;
+}
+
+/**
+ * Pairs each deletion in a like-for-like replacement with its corresponding
+ * addition, for word-level highlighting.
+ *
+ * Only equal-length del/add runs are paired: a 2-line deletion replaced by 3
+ * lines of new code has no single correct line-to-line pairing, and
+ * guessing one would highlight the wrong words as changed. Unpaired runs are
+ * simply left out of the map, so their lines fall back to the ordinary
+ * whole-line coloring.
+ */
+function pairWordDiffs(lines: DiffLine[]): Map<DiffLine, LineWordDiff> {
+  const map = new Map<DiffLine, LineWordDiff>();
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].type !== 'del') {
+      i++;
+      continue;
+    }
+    const delStart = i;
+    while (i < lines.length && lines[i].type === 'del') i++;
+    const dels = lines.slice(delStart, i);
+
+    const addStart = i;
+    while (i < lines.length && lines[i].type === 'add') i++;
+    const adds = lines.slice(addStart, i);
+
+    if (dels.length !== adds.length) continue;
+
+    for (let j = 0; j < dels.length; j++) {
+      const wordDiff = computeLineWordDiff(dels[j].content, adds[j].content);
+      if (wordDiff) {
+        map.set(dels[j], wordDiff);
+        map.set(adds[j], wordDiff);
+      }
+    }
+  }
+  return map;
+}
+
+/** Renders one line's content as alternating unchanged/changed spans. */
+function renderWordDiffSpans(
+  parts: WordDiffPart[],
+  language: string | null,
+  symbolColor: string | undefined,
+  disableColor: boolean,
+): React.ReactNode {
+  return parts.map((part, index) =>
+    part.changed ? (
+      // Inverse-video on the line's own status color rather than a second
+      // theme token: it reads as "the emphasized part of this red/green
+      // line" in every theme automatically, with no new palette entries to
+      // keep in sync across ~30 built-in themes.
+      <Text key={index} color={symbolColor} inverse bold>
+        {part.value}
+      </Text>
+    ) : (
+      <Text key={index}>
+        {colorizeLine(part.value, language, undefined, disableColor)}
+      </Text>
+    ),
+  );
+}
 
 interface SplitSide {
   lineNumber?: number;
