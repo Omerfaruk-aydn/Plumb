@@ -3,15 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { HybridTokenStorage } from '../mcp/token-storage/hybrid-token-storage.js';
+import { MigratingTokenStorage } from '../mcp/token-storage/migrating-token-storage.js';
 import type { OAuthCredentials } from '../mcp/token-storage/types.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { createCache } from '../utils/cache.js';
 
-const KEYCHAIN_SERVICE_NAME = 'gemini-cli-api-key';
+const KEYCHAIN_SERVICE_NAME = 'plumb-cli-api-key';
+const LEGACY_KEYCHAIN_SERVICE_NAME = 'gemini-cli-api-key';
 const DEFAULT_API_KEY_ENTRY = 'default-api-key';
 
-const storage = new HybridTokenStorage(KEYCHAIN_SERVICE_NAME);
+const storage = new MigratingTokenStorage(
+  KEYCHAIN_SERVICE_NAME,
+  LEGACY_KEYCHAIN_SERVICE_NAME,
+);
 
 // Cache to store the results of loadApiKey to avoid redundant keychain access.
 const apiKeyCache = createCache<string, Promise<string | null>>({

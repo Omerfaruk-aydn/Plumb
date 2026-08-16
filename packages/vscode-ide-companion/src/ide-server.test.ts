@@ -144,16 +144,16 @@ describe('IDEServer', () => {
     const port = getPortFromMock(replaceMock);
     const expectedPortFile = path.join(
       '/tmp',
-      'gemini',
+      'plumb',
       'ide',
-      `gemini-ide-server-${process.ppid}-${port}.json`,
+      `plumb-ide-server-${process.ppid}-${port}.json`,
     );
     const expectedContent = JSON.stringify({
       port: parseInt(port, 10),
       workspacePath: expectedWorkspacePaths,
       authToken: 'test-auth-token',
     });
-    expect(fs.mkdir).toHaveBeenCalledWith(path.join('/tmp', 'gemini', 'ide'), {
+    expect(fs.mkdir).toHaveBeenCalledWith(path.join('/tmp', 'plumb', 'ide'), {
       recursive: true,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(
@@ -177,9 +177,9 @@ describe('IDEServer', () => {
     const port = getPortFromMock(replaceMock);
     const expectedPortFile = path.join(
       '/tmp',
-      'gemini',
+      'plumb',
       'ide',
-      `gemini-ide-server-${process.ppid}-${port}.json`,
+      `plumb-ide-server-${process.ppid}-${port}.json`,
     );
     const expectedContent = JSON.stringify({
       port: parseInt(port, 10),
@@ -207,9 +207,9 @@ describe('IDEServer', () => {
     const port = getPortFromMock(replaceMock);
     const expectedPortFile = path.join(
       '/tmp',
-      'gemini',
+      'plumb',
       'ide',
-      `gemini-ide-server-${process.ppid}-${port}.json`,
+      `plumb-ide-server-${process.ppid}-${port}.json`,
     );
     const expectedContent = JSON.stringify({
       port: parseInt(port, 10),
@@ -255,9 +255,9 @@ describe('IDEServer', () => {
     const port = getPortFromMock(replaceMock);
     const expectedPortFile = path.join(
       '/tmp',
-      'gemini',
+      'plumb',
       'ide',
-      `gemini-ide-server-${process.ppid}-${port}.json`,
+      `plumb-ide-server-${process.ppid}-${port}.json`,
     );
     const expectedContent = JSON.stringify({
       port: parseInt(port, 10),
@@ -296,9 +296,9 @@ describe('IDEServer', () => {
     const port = getPortFromMock(replaceMock);
     const portFile = path.join(
       '/tmp',
-      'gemini',
+      'plumb',
       'ide',
-      `gemini-ide-server-${process.ppid}-${port}.json`,
+      `plumb-ide-server-${process.ppid}-${port}.json`,
     );
     expect(fs.writeFile).toHaveBeenCalledWith(portFile, expect.any(String));
 
@@ -328,9 +328,9 @@ describe('IDEServer', () => {
       const port = getPortFromMock(replaceMock);
       const expectedPortFile = path.join(
         '/tmp',
-        'gemini',
+        'plumb',
         'ide',
-        `gemini-ide-server-${process.ppid}-${port}.json`,
+        `plumb-ide-server-${process.ppid}-${port}.json`,
       );
       const expectedContent = JSON.stringify({
         port: parseInt(port, 10),

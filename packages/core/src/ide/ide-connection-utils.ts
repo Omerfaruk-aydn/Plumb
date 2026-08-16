@@ -106,7 +106,37 @@ export function getStdioConfigFromEnv(): StdioConfig | undefined {
   return { command, args };
 }
 
-const IDE_SERVER_FILE_REGEX = /^gemini-ide-server-(\d+)-\d+\.json$/;
+/**
+ * Matches a companion-written connection file under either the current or the
+ * pre-rebrand name. The prefix is a non-capturing group so group 1 stays the
+ * pid, which sortConnectionFiles relies on.
+ */
+const IDE_SERVER_FILE_REGEX = /^(?:plumb|gemini)-ide-server-(\d+)-\d+\.json$/;
+
+/**
+ * Temp subdirectories to look in, current name first.
+ *
+ * This file name is a wire contract with the IDE companion extension: the
+ * extension writes it, core reads it. The two ship separately, so a user can
+ * easily be running a newer CLI against an older companion that still writes
+ * the old name -- reading both is what keeps IDE integration working across
+ * that gap, rather than silently breaking it.
+ */
+const IDE_TMP_DIR_NAMES = ['plumb', 'gemini'];
+
+/**
+ * The single-file layout very old companion versions wrote. Exactly one path,
+ * not a matrix over the names above: this format predates the rebrand, so no
+ * companion has ever written it under the current name.
+ */
+function legacyConnectionFilePath(pid: number): string {
+  return path.join(
+    os.tmpdir(),
+    'gemini',
+    'ide',
+    `gemini-ide-server-${pid}.json`,
+  );
+}
 
 export async function getConnectionConfigFromFile(
   pid: number,
@@ -115,12 +145,7 @@ export async function getConnectionConfigFromFile(
 > {
   // For backwards compatibility
   try {
-    const portFile = path.join(
-      os.tmpdir(),
-      'gemini',
-      'ide',
-      `gemini-ide-server-${pid}.json`,
-    );
+    const portFile = legacyConnectionFilePath(pid);
     const portFileContents = await fs.promises.readFile(portFile, 'utf8');
     const parsed: unknown = JSON.parse(portFileContents);
     type ConfigType = ConnectionConfig & {
@@ -135,39 +160,42 @@ export async function getConnectionConfigFromFile(
     throw new Error('Invalid connection config format');
   } catch {
     // For newer extension versions, the file name matches the pattern
-    // /^gemini-ide-server-${pid}-\d+\.json$/. If multiple IDE
+    // /^(plumb|gemini)-ide-server-${pid}-\d+\.json$/. If multiple IDE
     // windows are open, multiple files matching the pattern are expected to
     // exist.
   }
 
-  const portFileDir = path.join(os.tmpdir(), 'gemini', 'ide');
-  let portFiles;
-  try {
-    portFiles = await fs.promises.readdir(portFileDir);
-  } catch (e) {
-    logger.debug('Failed to read IDE connection directory:', e);
+  // Collected as (dir, file) pairs because the same file name can appear
+  // under either temp directory and we still have to read it from the one it
+  // was actually found in.
+  const candidates: Array<{ dir: string; file: string }> = [];
+  for (const dirName of IDE_TMP_DIR_NAMES) {
+    const dir = path.join(os.tmpdir(), dirName, 'ide');
+    let entries: string[];
+    try {
+      entries = await fs.promises.readdir(dir);
+    } catch (e) {
+      logger.debug(`Failed to read IDE connection directory ${dir}:`, e);
+      continue;
+    }
+    for (const file of entries) {
+      if (IDE_SERVER_FILE_REGEX.test(file)) {
+        candidates.push({ dir, file });
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
     return undefined;
   }
 
-  if (!portFiles) {
-    return undefined;
-  }
-
-  const matchingFiles = portFiles.filter((file) =>
-    IDE_SERVER_FILE_REGEX.test(file),
-  );
-
-  if (matchingFiles.length === 0) {
-    return undefined;
-  }
-
-  sortConnectionFiles(matchingFiles, pid);
+  sortConnectionFiles(candidates, pid);
 
   let fileContents: string[];
   try {
     fileContents = await Promise.all(
-      matchingFiles.map((file) =>
-        fs.promises.readFile(path.join(portFileDir, file), 'utf8'),
+      candidates.map(({ dir, file }) =>
+        fs.promises.readFile(path.join(dir, file), 'utf8'),
       ),
     );
   } catch (e) {
@@ -225,7 +253,9 @@ export async function getConnectionConfigFromFile(
     const selected = validWorkspaces[0];
     const fileIndex = parsedContents.indexOf(selected);
     if (fileIndex !== -1) {
-      logger.debug(`Selected IDE connection file: ${matchingFiles[fileIndex]}`);
+      logger.debug(
+        `Selected IDE connection file: ${candidates[fileIndex].file}`,
+      );
     }
     return selected;
   }
@@ -240,7 +270,7 @@ export async function getConnectionConfigFromFile(
       const fileIndex = parsedContents.indexOf(selected);
       if (fileIndex !== -1) {
         logger.debug(
-          `Selected IDE connection file (matched port from env): ${matchingFiles[fileIndex]}`,
+          `Selected IDE connection file (matched port from env): ${candidates[fileIndex].file}`,
         );
       }
       return selected;
@@ -251,7 +281,7 @@ export async function getConnectionConfigFromFile(
   const fileIndex = parsedContents.indexOf(selected);
   if (fileIndex !== -1) {
     logger.debug(
-      `Selected first valid IDE connection file: ${matchingFiles[fileIndex]}`,
+      `Selected first valid IDE connection file: ${candidates[fileIndex].file}`,
     );
   }
   return selected;
@@ -259,8 +289,13 @@ export async function getConnectionConfigFromFile(
 
 // Sort files to prioritize the one matching the target pid,
 // then by whether the process is still alive, then by newest (largest PID).
-function sortConnectionFiles(files: string[], targetPid: number) {
-  files.sort((a, b) => {
+function sortConnectionFiles(
+  files: Array<{ dir: string; file: string }>,
+  targetPid: number,
+) {
+  files.sort((first, second) => {
+    const a = first.file;
+    const b = second.file;
     const aMatch = a.match(IDE_SERVER_FILE_REGEX);
     const bMatch = b.match(IDE_SERVER_FILE_REGEX);
     const aPid = aMatch ? parseInt(aMatch[1], 10) : 0;

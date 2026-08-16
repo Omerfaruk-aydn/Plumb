@@ -52,11 +52,13 @@ describe('ApiKeyCredentialStorage', () => {
     getCredentialsMock.mockResolvedValue(null);
     const apiKey1 = await loadApiKey();
     expect(apiKey1).toBeNull();
-    expect(getCredentialsMock).toHaveBeenCalledTimes(1);
+    // Two reads for one miss: storage falls back to the pre-rebrand service
+    // name before concluding there is nothing stored.
+    expect(getCredentialsMock).toHaveBeenCalledTimes(2);
 
     const apiKey2 = await loadApiKey();
     expect(apiKey2).toBeNull();
-    expect(getCredentialsMock).toHaveBeenCalledTimes(1); // Should be cached
+    expect(getCredentialsMock).toHaveBeenCalledTimes(2); // Should be cached
   });
 
   it('should save an API key and clear cache', async () => {
@@ -114,7 +116,9 @@ describe('ApiKeyCredentialStorage', () => {
 
     getCredentialsMock.mockResolvedValue(null);
     await loadApiKey();
-    expect(getCredentialsMock).toHaveBeenCalledTimes(2); // Should have fetched again
+    // A miss costs two reads (current, then the legacy service name), so the
+    // running total goes 1 -> 3 rather than 1 -> 2.
+    expect(getCredentialsMock).toHaveBeenCalledTimes(3); // Should have fetched again
   });
 
   it('should clear an API key and cache when saving empty key', async () => {

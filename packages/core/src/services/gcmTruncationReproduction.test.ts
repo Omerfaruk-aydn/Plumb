@@ -37,8 +37,8 @@ describe('AES-GCM Tag Length Verification', () => {
     // 2. Read the raw encrypted file from disk
     const credentialsFilePath = path.join(
       tempDir,
-      '.gemini',
-      'gemini-credentials.json',
+      '.plumb',
+      'plumb-credentials.json',
     );
     const rawEncryptedData = await fs.readFile(credentialsFilePath, 'utf-8');
 
@@ -86,8 +86,8 @@ describe('AES-GCM Tag Length Verification', () => {
     // 3. Manually simulate a legacy 16-byte IV credentials file
     const credentialsFilePath = path.join(
       tempDir,
-      '.gemini',
-      'gemini-credentials.json',
+      '.plumb',
+      'plumb-credentials.json',
     );
     const legacyIv = crypto.randomBytes(16);
     const encryptionKey = (keychain as unknown as { encryptionKey: Buffer })
@@ -134,8 +134,8 @@ describe('AES-GCM Tag Length Verification', () => {
     // 2. Read the raw encrypted file from disk
     const credentialsFilePath = path.join(
       tempDir,
-      '.gemini',
-      'gemini-credentials.json',
+      '.plumb',
+      'plumb-credentials.json',
     );
     const rawEncryptedData = await fs.readFile(credentialsFilePath, 'utf-8');
 
@@ -172,8 +172,8 @@ describe('AES-GCM Tag Length Verification', () => {
     // 2. Read the raw encrypted file from disk
     const credentialsFilePath = path.join(
       tempDir,
-      '.gemini',
-      'gemini-credentials.json',
+      '.plumb',
+      'plumb-credentials.json',
     );
     const rawEncryptedData = await fs.readFile(credentialsFilePath, 'utf-8');
 

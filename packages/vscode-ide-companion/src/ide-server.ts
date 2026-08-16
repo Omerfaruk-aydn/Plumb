@@ -343,11 +343,14 @@ export class IDEServer {
           this.log(`IDE server listening on http://127.0.0.1:${this.port}`);
           let portFile: string | undefined;
           try {
-            const portDir = path.join(tmpdir(), 'gemini', 'ide');
+            // Core reads both this and the pre-rebrand
+            // tmpdir()/gemini/ide + gemini-ide-server-* layout, so a newer
+            // companion works against an older CLI and vice versa.
+            const portDir = path.join(tmpdir(), 'plumb', 'ide');
             await fs.mkdir(portDir, { recursive: true });
             portFile = path.join(
               portDir,
-              `gemini-ide-server-${process.ppid}-${this.port}.json`,
+              `plumb-ide-server-${process.ppid}-${this.port}.json`,
             );
             this.portFile = portFile;
           } catch (err) {

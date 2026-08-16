@@ -13,9 +13,10 @@ import type {
   OAuthCredentials,
   TokenStorage,
 } from './token-storage/types.js';
-import { HybridTokenStorage } from './token-storage/hybrid-token-storage.js';
+import { MigratingTokenStorage } from './token-storage/migrating-token-storage.js';
 import {
   DEFAULT_SERVICE_NAME,
+  LEGACY_DEFAULT_SERVICE_NAME,
   FORCE_ENCRYPTED_FILE_ENV_VAR,
 } from './token-storage/index.js';
 
@@ -25,7 +26,7 @@ import {
  * to store tokens in a protocol-specific file.
  */
 export class MCPOAuthTokenStorage implements TokenStorage {
-  private readonly hybridTokenStorage: HybridTokenStorage;
+  private readonly hybridTokenStorage: MigratingTokenStorage;
   private readonly useEncryptedFile =
     process.env[FORCE_ENCRYPTED_FILE_ENV_VAR] === 'true';
   private readonly customTokenFilePath?: string;
@@ -35,7 +36,14 @@ export class MCPOAuthTokenStorage implements TokenStorage {
     serviceName: string = DEFAULT_SERVICE_NAME,
   ) {
     this.customTokenFilePath = tokenFilePath;
-    this.hybridTokenStorage = new HybridTokenStorage(serviceName);
+    // Falls back to the pre-rebrand service name so MCP servers a user
+    // already authorized stay authorized across the rename.
+    this.hybridTokenStorage = new MigratingTokenStorage(
+      serviceName,
+      serviceName === DEFAULT_SERVICE_NAME
+        ? LEGACY_DEFAULT_SERVICE_NAME
+        : serviceName,
+    );
   }
 
   /**
