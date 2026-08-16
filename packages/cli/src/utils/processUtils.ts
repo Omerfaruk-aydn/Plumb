@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { runExitCleanup } from './cleanup.js';
-import { waitForUpdateCompletion } from './handleAutoUpdate.js';
-
 /**
  * Exit code used to signal that the CLI should be relaunched.
  */
@@ -24,6 +21,22 @@ export function _resetRelaunchStateForTesting(): void {
 export async function relaunchApp(): Promise<void> {
   if (isRelaunching) return;
   isRelaunching = true;
+  // Imported here rather than at module scope on purpose. This module is the
+  // *only* thing the relaunch parent in index.ts loads, and it loads it
+  // before spawning the child -- the whole point of that split being to keep
+  // the parent cheap ("We avoid importing heavy dependencies here to save
+  // ~1.5s of startup time"). Statically importing these two pulled
+  // @plumb/core -- 1825 CommonJS modules -- into the parent, which then paid
+  // for it all over again in the child, so the parent cost ~6.4s to do
+  // nothing but compute a heap flag and spawn.
+  //
+  // By the time anything calls relaunchApp we are deep inside the running UI
+  // in the child process, where both modules are already resolved, so this is
+  // a cache hit rather than real work.
+  const [{ waitForUpdateCompletion }, { runExitCleanup }] = await Promise.all([
+    import('./handleAutoUpdate.js'),
+    import('./cleanup.js'),
+  ]);
   await waitForUpdateCompletion();
   await runExitCleanup();
   process.exit(RELAUNCH_EXIT_CODE);

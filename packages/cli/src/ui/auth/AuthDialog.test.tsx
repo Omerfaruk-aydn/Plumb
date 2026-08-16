@@ -38,6 +38,13 @@ vi.mock('../../utils/cleanup.js', () => ({
   runExitCleanup: vi.fn(),
 }));
 
+// relaunchApp lazy-imports this alongside cleanup.js so the relaunch parent
+// process doesn't drag @plumb/core in. Mock it here too, or the dynamic
+// import loads it for real and never settles under fake timers.
+vi.mock('../../utils/handleAutoUpdate.js', () => ({
+  waitForUpdateCompletion: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('./useAuth.js', () => ({
   validateAuthMethodWithSettings: vi.fn(),
 }));
