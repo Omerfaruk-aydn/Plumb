@@ -12,7 +12,12 @@ import { theme as semanticTheme } from '../../semantic-colors.js';
 import type { Theme } from '../../themes/theme.js';
 import { useSettings } from '../../contexts/SettingsContext.js';
 import { getFileExtension } from '../../utils/fileUtils.js';
-import { cpLen, cpSlice, getCachedStringWidth } from '../../utils/textUtils.js';
+import { truncateToWidth } from '../../utils/textUtils.js';
+
+// Re-exported because this module was where it lived before the pill strip
+// needed it too; importing all of DiffRenderer to get one string helper is a
+// dependency the pills have no business carrying.
+export { truncateToWidth };
 
 export interface DiffLine {
   type: 'add' | 'del' | 'context' | 'hunk' | 'other';
@@ -502,21 +507,6 @@ export function buildSplitRows(displayableLines: DiffLine[]): SplitRow[] {
     }
   }
   return rows;
-}
-
-/** Truncates to a terminal-column width (not a codepoint count), appending an ellipsis. */
-export function truncateToWidth(text: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (getCachedStringWidth(text) <= maxWidth) return text;
-  if (maxWidth === 1) return '…';
-
-  let sliced = text;
-  let length = cpLen(sliced);
-  while (length > 0 && getCachedStringWidth(sliced) + 1 > maxWidth) {
-    length--;
-    sliced = cpSlice(text, 0, length);
-  }
-  return sliced + '…';
 }
 
 export interface RenderSplitDiffLinesOptions {

@@ -125,21 +125,6 @@ vi.mock('./ShowMoreLines.js', () => ({
   ShowMoreLines: () => <Text>ShowMoreLines</Text>,
 }));
 
-vi.mock('./QueuedMessageDisplay.js', () => ({
-  QueuedMessageDisplay: ({ messageQueue }: { messageQueue: string[] }) => {
-    if (messageQueue.length === 0) {
-      return null;
-    }
-    return (
-      <>
-        {messageQueue.map((message, index) => (
-          <Text key={index}>{message}</Text>
-        ))}
-      </>
-    );
-  },
-}));
-
 // Mock contexts
 vi.mock('../contexts/OverflowContext.js', () => ({
   OverflowProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -527,7 +512,7 @@ describe('Composer', () => {
   });
 
   describe('Message Queue Display', () => {
-    it('displays queued messages when present', async () => {
+    it('summarises the queue as a single pill', async () => {
       const uiState = createMockUIState({
         messageQueue: [
           'First queued message',
@@ -538,13 +523,16 @@ describe('Composer', () => {
 
       const { lastFrame } = await renderComposer(uiState);
 
+      // The queue used to render one row per message plus a header. The pill
+      // states the same thing in one row: how many are waiting, and which one
+      // goes next -- the only one whose wording the user can still change.
       const output = lastFrame();
+      expect(output).toContain('QUEUE');
       expect(output).toContain('First queued message');
-      expect(output).toContain('Second queued message');
-      expect(output).toContain('Third queued message');
+      expect(output).not.toContain('Second queued message');
     });
 
-    it('renders QueuedMessageDisplay with empty message queue', async () => {
+    it('renders the pill strip with an empty message queue', async () => {
       const uiState = createMockUIState({
         messageQueue: [],
       });

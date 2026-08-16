@@ -22,7 +22,7 @@ import { Footer } from './Footer.js';
 import { CollabStatusBar } from './CollabStatusBar.js';
 import { StatusRow } from './StatusRow.js';
 import { ShowMoreLines } from './ShowMoreLines.js';
-import { QueuedMessageDisplay } from './QueuedMessageDisplay.js';
+import { ComposerPills } from './pills/ComposerPills.js';
 import { OverflowProvider } from '../contexts/OverflowContext.js';
 import { ConfigInitDisplay } from './ConfigInitDisplay.js';
 import { TodoTray } from './messages/Todo.js';
@@ -102,11 +102,9 @@ export const Composer = ({ isFocused = true }: { isFocused?: boolean }) => {
         <ConfigInitDisplay message="Resuming session..." />
       )}
 
-      {showUiDetails && (
-        <QueuedMessageDisplay messageQueue={uiState.messageQueue} />
-      )}
+      {showUiDetails && <ComposerPills />}
 
-      {showUiDetails && <TodoTray />}
+      {showUiDetails && uiState.showFullTodos && <TodoTray />}
 
       {showShortcutsHelp && <ShortcutsHelp />}
 

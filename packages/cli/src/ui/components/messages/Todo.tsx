@@ -5,9 +5,8 @@
 
 import type React from 'react';
 import { useMemo } from 'react';
-import { type TodoList } from '@plumb/core';
 import { useUIState } from '../../contexts/UIStateContext.js';
-import type { HistoryItemToolGroup } from '../../types.js';
+import { useLatestTodos } from '../../hooks/useLatestTodos.js';
 import { Checklist } from '../Checklist.js';
 import type { ChecklistItemData } from '../ChecklistItem.js';
 import { formatCommand } from '../../key/keybindingUtils.js';
@@ -15,27 +14,7 @@ import { Command } from '../../key/keyBindings.js';
 
 export const TodoTray: React.FC = () => {
   const uiState = useUIState();
-
-  const todos: TodoList | null = useMemo(() => {
-    // Find the most recent todo list written by tools that output a TodoList (e.g., WriteTodosTool or Tracker tools)
-    for (let i = uiState.history.length - 1; i >= 0; i--) {
-      const entry = uiState.history[i];
-      if (entry.type !== 'tool_group') {
-        continue;
-      }
-      const toolGroup = entry as HistoryItemToolGroup;
-      for (const tool of toolGroup.tools) {
-        if (
-          typeof tool.resultDisplay !== 'object' ||
-          !('todos' in tool.resultDisplay)
-        ) {
-          continue;
-        }
-        return tool.resultDisplay;
-      }
-    }
-    return null;
-  }, [uiState.history]);
+  const todos = useLatestTodos();
 
   const checklistItems: ChecklistItemData[] = useMemo(() => {
     if (!todos || !todos.todos) {

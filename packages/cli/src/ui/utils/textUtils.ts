@@ -204,6 +204,21 @@ export const getCachedStringWidth = (str: string): number => {
   return width;
 };
 
+/** Truncates to a terminal-column width (not a codepoint count), appending an ellipsis. */
+export function truncateToWidth(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return '';
+  if (getCachedStringWidth(text) <= maxWidth) return text;
+  if (maxWidth === 1) return '…';
+
+  let sliced = text;
+  let length = cpLen(sliced);
+  while (length > 0 && getCachedStringWidth(sliced) + 1 > maxWidth) {
+    length--;
+    sliced = cpSlice(text, 0, length);
+  }
+  return sliced + '…';
+}
+
 const regex = ansiRegex();
 
 /* Recursively traverses a JSON-like structure (objects, arrays, primitives)
