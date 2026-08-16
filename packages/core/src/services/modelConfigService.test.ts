@@ -1043,6 +1043,71 @@ describe('ModelConfigService', () => {
     });
   });
 
+  describe('escalation behavior', () => {
+    it('does not apply a minEscalation override below its threshold', () => {
+      const config: ModelConfigServiceConfig = {
+        aliases: {
+          'test-model': {
+            modelConfig: {
+              model: 'gemini-test',
+              generateContentConfig: { temperature: 0.5 },
+            },
+          },
+        },
+        overrides: [
+          {
+            match: { model: 'test-model', minEscalation: 1 },
+            modelConfig: { generateContentConfig: { temperature: 1.0 } },
+          },
+        ],
+      };
+      const service = new ModelConfigService(config);
+
+      const noEscalation = service.getResolvedConfig({ model: 'test-model' });
+      expect(noEscalation.generateContentConfig.temperature).toBe(0.5);
+
+      const belowThreshold = service.getResolvedConfig({
+        model: 'test-model',
+        escalation: 0,
+      });
+      expect(belowThreshold.generateContentConfig.temperature).toBe(0.5);
+    });
+
+    it('applies a minEscalation override once the threshold is reached', () => {
+      const config: ModelConfigServiceConfig = {
+        aliases: {
+          'test-model': {
+            modelConfig: {
+              model: 'gemini-test',
+              generateContentConfig: { temperature: 0.5 },
+            },
+          },
+        },
+        overrides: [
+          {
+            match: { model: 'test-model', minEscalation: 1 },
+            modelConfig: { generateContentConfig: { temperature: 1.0 } },
+          },
+        ],
+      };
+      const service = new ModelConfigService(config);
+
+      const atThreshold = service.getResolvedConfig({
+        model: 'test-model',
+        escalation: 1,
+      });
+      expect(atThreshold.generateContentConfig.temperature).toBe(1.0);
+
+      // A threshold is a floor, not an exact match -- higher escalation
+      // still applies the same override rather than falling through it.
+      const pastThreshold = service.getResolvedConfig({
+        model: 'test-model',
+        escalation: 2,
+      });
+      expect(pastThreshold.generateContentConfig.temperature).toBe(1.0);
+    });
+  });
+
   // Resolves a model ID to a concrete model ID based on the provided context.
   describe('resolveModelId', () => {
     it('should resolve based on useGemini3_5Flash condition', () => {

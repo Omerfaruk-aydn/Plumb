@@ -20,6 +20,8 @@ import {
   type AgentProtocol,
   type Logger,
   type Part,
+  extractQuotedPathClaims,
+  checkGroundedPaths,
 } from '@plumb/core';
 import type {
   HistoryItemWithoutId,
@@ -117,6 +119,34 @@ export const useAgentStream = ({
   const [loopDetectionConfirmationRequest] =
     useState<LoopDetectionConfirmationRequest | null>(null);
 
+  // Passive, best-effort check: does a path the model just quoted actually
+  // exist? Deliberately fire-and-forget and non-blocking -- it costs no
+  // model tokens/turns and never delays or alters the response the user is
+  // already reading, matching the "surface, don't interrupt" scope this was
+  // built to. A single-root resolution (process.cwd()) is a known
+  // simplification for multi-folder workspaces; see groundingCheck.ts.
+  const checkResponseGrounding = useCallback(
+    async (text: string) => {
+      const claims = extractQuotedPathClaims(text);
+      if (claims.length === 0) return;
+
+      const results = await checkGroundedPaths(claims, [process.cwd()]);
+      const missing = results.filter((r) => !r.exists);
+      if (missing.length === 0) return;
+
+      addItem(
+        {
+          type: 'warning',
+          text: `Referenced path${missing.length > 1 ? 's' : ''} not found: ${missing
+            .map((r) => `\`${r.path}\``)
+            .join(', ')}`,
+        },
+        Date.now(),
+      );
+    },
+    [addItem],
+  );
+
   const flushPendingText = useCallback(() => {
     if (pendingHistoryItemRef.current) {
       addItem(pendingHistoryItemRef.current, userMessageTimestampRef.current);
@@ -151,10 +181,15 @@ export const useAgentStream = ({
         case 'agent_start':
           setStreamingState(StreamingState.Responding);
           break;
-        case 'agent_end':
+        case 'agent_end': {
           setStreamingState(StreamingState.Idle);
+          const finalText = pendingHistoryItemRef.current?.text;
           flushPendingText();
+          if (finalText) {
+            void checkResponseGrounding(finalText);
+          }
           break;
+        }
         case 'message':
           if (event.role === 'agent') {
             for (const part of event.content) {
@@ -316,7 +351,9 @@ export const useAgentStream = ({
     },
     [
       addItem,
+      checkResponseGrounding,
       flushPendingText,
+      pendingHistoryItemRef,
       setPendingHistoryItem,
       setTrackedTools,
       setStreamingState,

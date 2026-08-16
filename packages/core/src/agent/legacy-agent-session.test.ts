@@ -33,6 +33,7 @@ function createMockDeps(
       recordCompletedToolCalls: vi.fn(),
     }),
     getCurrentSequenceModel: vi.fn().mockReturnValue(null),
+    recordToolBatchOutcome: vi.fn(),
   };
 
   const mockScheduler = {

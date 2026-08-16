@@ -58,7 +58,9 @@ import {
 import { PlumbClient } from '../core/client.js';
 import { BaseLlmClient } from '../core/baseLlmClient.js';
 import { LocalLiteRtLmClient } from '../core/localLiteRtLmClient.js';
-import type { HookDefinition, HookEventName } from '../hooks/types.js';
+import { HookEventName, ConfigSource } from '../hooks/types.js';
+import type { HookDefinition } from '../hooks/types.js';
+import { createPostEditVerificationHook } from '../hooks/builtins/postEditVerification.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import {
@@ -130,7 +132,7 @@ import {
 import { DEFAULT_MODEL_CONFIGS } from './defaultModelConfigs.js';
 import { MemoryContextManager } from '../context/memoryContextManager.js';
 import { TrackerService } from '../services/trackerService.js';
-import type { GenerateContentParameters } from '@google/genai';
+import { ThinkingLevel, type GenerateContentParameters } from '@google/genai';
 
 // Re-export OAuth config type
 export type { MCPOAuthConfig, AnyToolInvocation, AnyDeclarativeTool };
@@ -668,6 +670,8 @@ export interface ConfigParameters {
   useTerminalBuffer?: boolean;
   useRenderProcess?: boolean;
   useRipgrep?: boolean;
+  postEditVerification?: boolean;
+  effortEscalation?: boolean;
   enableInteractiveShell?: boolean;
   shellBackgroundCompletionBehavior?: string;
   skipNextSpeakerCheck?: boolean;
@@ -898,6 +902,8 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly trustedFolder: boolean | undefined;
   private readonly directWebFetch: boolean;
   private readonly useRipgrep: boolean;
+  private readonly postEditVerification: boolean;
+  private readonly effortEscalation: boolean;
   private readonly enableInteractiveShell: boolean;
   private readonly shellBackgroundCompletionBehavior:
     | 'inject'
@@ -1199,6 +1205,19 @@ export class Config implements McpContext, AgentLoopContext {
     this.modelConfigService = new ModelConfigService(
       modelConfigServiceConfig ?? DEFAULT_MODEL_CONFIGS,
     );
+    if (params.effortEscalation ?? true) {
+      // Registered as a runtime override rather than folded into the large
+      // static DEFAULT_MODEL_CONFIGS table -- this is a cross-cutting,
+      // independently toggleable behavior, not a per-model tuning choice.
+      this.modelConfigService.registerRuntimeModelOverride({
+        match: { minEscalation: 1 },
+        modelConfig: {
+          generateContentConfig: {
+            thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+          },
+        },
+      });
+    }
 
     this.experimentalAutoMemory = params.experimentalAutoMemory ?? false;
     this.experimentalGemma = params.experimentalGemma ?? true;
@@ -1273,6 +1292,8 @@ export class Config implements McpContext, AgentLoopContext {
     this.trustedFolder = params.trustedFolder;
     this.directWebFetch = params.directWebFetch ?? false;
     this.useRipgrep = params.useRipgrep ?? true;
+    this.postEditVerification = params.postEditVerification ?? true;
+    this.effortEscalation = params.effortEscalation ?? true;
     this.useBackgroundColor = params.useBackgroundColor ?? true;
     this.useAlternateBuffer = params.useAlternateBuffer ?? false;
     this.useTerminalBuffer = params.useTerminalBuffer ?? false;
@@ -1564,6 +1585,14 @@ export class Config implements McpContext, AgentLoopContext {
     if (this.getEnableHooks()) {
       this.hookSystem = new HookSystem(this);
       await this.hookSystem.initialize();
+
+      if (this.getPostEditVerification()) {
+        this.hookSystem.registerHook(
+          createPostEditVerificationHook(this),
+          HookEventName.AfterTool,
+          { source: ConfigSource.System },
+        );
+      }
     }
 
     this.memoryContextManager = new MemoryContextManager(this);
@@ -3775,6 +3804,14 @@ export class Config implements McpContext, AgentLoopContext {
 
   getUseRipgrep(): boolean {
     return this.useRipgrep;
+  }
+
+  getPostEditVerification(): boolean {
+    return this.postEditVerification;
+  }
+
+  getEffortEscalation(): boolean {
+    return this.effortEscalation;
   }
 
   getUseBackgroundColor(): boolean {

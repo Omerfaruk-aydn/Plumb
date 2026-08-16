@@ -1994,6 +1994,26 @@ const SETTINGS_SCHEMA = {
           'Use ripgrep for file content search instead of the fallback implementation. Provides faster search performance.',
         showInDialog: true,
       },
+      effortEscalation: {
+        type: 'boolean',
+        label: 'Escalate Reasoning Effort on Repeated Failure',
+        category: 'Tools',
+        requiresRestart: true,
+        default: true,
+        description:
+          'When a task hits several consecutive tool-call failures in a row, temporarily raise the reasoning effort for the next request instead of continuing to struggle at the same level. Resets as soon as a tool succeeds or you send a new message.',
+        showInDialog: true,
+      },
+      postEditVerification: {
+        type: 'boolean',
+        label: 'Verify Edits with ESLint',
+        category: 'Tools',
+        requiresRestart: true,
+        default: true,
+        description:
+          'After an Edit or Write, lint just the touched file (when an ESLint config is found) and feed any findings back to the model in the same turn, so a mistake gets caught and fixed before you see it. File-scoped and fast -- does not run a full project typecheck.',
+        showInDialog: true,
+      },
       truncateToolOutputThreshold: {
         type: 'number',
         label: 'Tool Output Truncation Threshold',

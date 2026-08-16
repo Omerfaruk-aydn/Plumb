@@ -36,6 +36,12 @@ export interface ModelConfigKey {
   // Indicates whether this request originates from the primary interactive chat model.
   // Enables the default fallback configuration to `chat-base` when unknown.
   isChatModel?: boolean;
+
+  // How many consecutive tool-call failures have occurred within the current
+  // task (0 = none). Lets an override raise reasoning effort once a task is
+  // visibly struggling, without the caller having to know which model
+  // supports what -- see `minEscalation` on ModelConfigOverride.match.
+  escalation?: number;
 }
 
 export interface ModelConfig {
@@ -48,6 +54,10 @@ export interface ModelConfigOverride {
     model?: string; // Can be a model name or an alias
     overrideScope?: string;
     isRetry?: boolean;
+    // Matches when the request's `escalation` is >= this value (a threshold,
+    // not an exact-equality field like the others here -- see
+    // findMatchingOverrides).
+    minEscalation?: number;
   };
   modelConfig: ModelConfig;
 }
@@ -538,6 +548,10 @@ export class ModelConfigService {
           }
           if (key === 'overrideScope' && value === 'core') {
             return context.overrideScope === 'core' || !context.overrideScope;
+          }
+          if (key === 'minEscalation') {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+            return (context.escalation ?? 0) >= (value as number);
           }
           // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
           return context[key as keyof ModelConfigKey] === value;

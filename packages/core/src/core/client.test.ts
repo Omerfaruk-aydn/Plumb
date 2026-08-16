@@ -315,6 +315,7 @@ describe('Gemini Client (client.ts)', () => {
       getModelAvailabilityService: vi
         .fn()
         .mockReturnValue(createAvailabilityServiceMock()),
+      getEffortEscalation: vi.fn().mockReturnValue(true),
     } as unknown as Config;
     mockConfig.getHookSystem = vi.fn().mockReturnValue(mockHookSystem);
 
@@ -381,6 +382,34 @@ describe('Gemini Client (client.ts)', () => {
       await client.resumeChat(history);
 
       expect(uiTelemetryService.setLastPromptTokenCount).toHaveBeenCalled();
+    });
+  });
+
+  describe('recordToolBatchOutcome', () => {
+    it('increments the failure streak when a batch had an error', () => {
+      client.recordToolBatchOutcome(true);
+      client.recordToolBatchOutcome(true);
+      // Not directly observable from outside, so exercise it via the same
+      // modelConfigKey math client.ts applies: two failures -> escalation 1.
+      expect(
+        Math.min(
+          Math.floor(
+            (client as unknown as { consecutiveToolFailureBatches: number })
+              .consecutiveToolFailureBatches / 2,
+          ),
+          2,
+        ),
+      ).toBe(1);
+    });
+
+    it('resets the streak the moment a batch succeeds', () => {
+      client.recordToolBatchOutcome(true);
+      client.recordToolBatchOutcome(true);
+      client.recordToolBatchOutcome(false);
+      expect(
+        (client as unknown as { consecutiveToolFailureBatches: number })
+          .consecutiveToolFailureBatches,
+      ).toBe(0);
     });
   });
 
@@ -1018,7 +1047,7 @@ ${JSON.stringify(
       // Assert
       expect(ideContextStore.get).toHaveBeenCalled();
       expect(mockTurnRunFn).toHaveBeenCalledWith(
-        { model: 'default-routed-model', isChatModel: true },
+        { model: 'default-routed-model', isChatModel: true, escalation: 0 },
         initialRequest,
         expect.any(AbortSignal),
         expect.objectContaining({ displayContent: undefined }),
@@ -1889,7 +1918,7 @@ ${JSON.stringify(
         expect(mockConfig.getModelRouterService).toHaveBeenCalled();
         expect(mockRouterService.route).toHaveBeenCalled();
         expect(mockTurnRunFn).toHaveBeenCalledWith(
-          { model: 'routed-model', isChatModel: true },
+          { model: 'routed-model', isChatModel: true, escalation: 0 },
           [{ text: 'Hi' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -1907,7 +1936,7 @@ ${JSON.stringify(
 
         expect(mockRouterService.route).toHaveBeenCalledTimes(1);
         expect(mockTurnRunFn).toHaveBeenCalledWith(
-          { model: 'routed-model', isChatModel: true },
+          { model: 'routed-model', isChatModel: true, escalation: 0 },
           [{ text: 'Hi' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -1925,7 +1954,7 @@ ${JSON.stringify(
         expect(mockRouterService.route).toHaveBeenCalledTimes(1);
         // Should stick to the first model
         expect(mockTurnRunFn).toHaveBeenCalledWith(
-          { model: 'routed-model', isChatModel: true },
+          { model: 'routed-model', isChatModel: true, escalation: 0 },
           [{ text: 'Continue' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -1943,7 +1972,7 @@ ${JSON.stringify(
 
         expect(mockRouterService.route).toHaveBeenCalledTimes(1);
         expect(mockTurnRunFn).toHaveBeenCalledWith(
-          { model: 'routed-model', isChatModel: true },
+          { model: 'routed-model', isChatModel: true, escalation: 0 },
           [{ text: 'Hi' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -1965,7 +1994,7 @@ ${JSON.stringify(
         expect(mockRouterService.route).toHaveBeenCalledTimes(2);
         // Should use the newly routed model
         expect(mockTurnRunFn).toHaveBeenCalledWith(
-          { model: 'new-routed-model', isChatModel: true },
+          { model: 'new-routed-model', isChatModel: true, escalation: 0 },
           [{ text: 'A new topic' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -1993,7 +2022,7 @@ ${JSON.stringify(
         expect(mockRouterService.route).toHaveBeenCalledTimes(1);
         expect(mockTurnRunFn).toHaveBeenNthCalledWith(
           1,
-          { model: 'original-model', isChatModel: true },
+          { model: 'original-model', isChatModel: true, escalation: 0 },
           [{ text: 'Hi' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),
@@ -2016,7 +2045,7 @@ ${JSON.stringify(
         expect(mockRouterService.route).toHaveBeenCalledTimes(2);
         expect(mockTurnRunFn).toHaveBeenNthCalledWith(
           2,
-          { model: 'fallback-model', isChatModel: true },
+          { model: 'fallback-model', isChatModel: true, escalation: 0 },
           [{ text: 'Continue' }],
           expect.any(AbortSignal),
           expect.objectContaining({ displayContent: undefined }),

@@ -100,6 +100,16 @@ export class PlumbClient {
   private contextManager?: ContextManager;
   private lastPromptId: string;
   private currentSequenceModel: string | null = null;
+
+  /**
+   * How many tool-call batches in a row have contained at least one error,
+   * within the current task. Drives reasoning-effort escalation (see
+   * `recordToolBatchOutcome` and the `escalation` field on `modelConfigKey`
+   * below) -- a task that keeps failing gets more thinking budget on its
+   * next attempt instead of continuing to struggle at the same level.
+   * Reset on any successful batch or whenever a fresh user turn begins.
+   */
+  private consecutiveToolFailureBatches = 0;
   private lastSentIdeContext: IdeContext | undefined;
   private forceFullIdeContext = true;
 
@@ -353,6 +363,18 @@ export class PlumbClient {
 
   getCurrentSequenceModel(): string | null {
     return this.currentSequenceModel;
+  }
+
+  /**
+   * Called once per completed tool-call batch (see legacy-agent-session.ts,
+   * right after `scheduler.schedule()` resolves) with whether any call in
+   * that batch errored. A clean batch resets the streak immediately -- one
+   * good result is enough evidence the task is back on track.
+   */
+  recordToolBatchOutcome(hadFailure: boolean): void {
+    this.consecutiveToolFailureBatches = hadFailure
+      ? this.consecutiveToolFailureBatches + 1
+      : 0;
   }
 
   async addDirectoryContext(): Promise<void> {
@@ -783,6 +805,9 @@ export class PlumbClient {
     const modelConfigKey: ModelConfigKey = {
       model: modelToUse,
       isChatModel: true,
+      escalation: this.config.getEffortEscalation()
+        ? Math.min(Math.floor(this.consecutiveToolFailureBatches / 2), 2)
+        : 0,
     };
     const { model: finalModel } = applyModelSelection(
       this.config,
@@ -924,6 +949,7 @@ export class PlumbClient {
       this.hookStateMap.delete(this.lastPromptId);
       this.lastPromptId = prompt_id;
       this.currentSequenceModel = null;
+      this.consecutiveToolFailureBatches = 0;
     }
 
     if (hooksEnabled && messageBus) {

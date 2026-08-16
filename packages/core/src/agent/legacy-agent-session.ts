@@ -281,6 +281,10 @@ export class LegacyAgentProtocol implements AgentProtocol {
         }
       }
 
+      this._client.recordToolBatchOutcome(
+        completedToolCalls.some((tc) => tc.response.error !== undefined),
+      );
+
       try {
         const currentModel =
           this._client.getCurrentSequenceModel() ?? this._config.getModel();
