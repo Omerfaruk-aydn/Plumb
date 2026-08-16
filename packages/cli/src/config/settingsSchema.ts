@@ -811,6 +811,26 @@ const SETTINGS_SCHEMA = {
               'Display a second line above the footer items with descriptive headers (e.g., /model).',
             showInDialog: false,
           },
+          separator: {
+            type: 'string',
+            label: 'Footer Separator Style',
+            category: 'UI',
+            requiresRestart: false,
+            default: 'labels',
+            description:
+              'How footer fields are divided: "labels" (two-line, with headers), or a single-line style -- powerline, powerline-thin, slash, pipe, block, dot, none, ascii.',
+            showInDialog: true,
+          },
+          nerdFont: {
+            type: 'boolean',
+            label: 'Nerd Font Available',
+            category: 'UI',
+            requiresRestart: false,
+            default: false,
+            description:
+              'Enable to draw powerline separators with Nerd Font glyphs. Leave off unless your terminal font is patched -- unpatched fonts render them as replacement boxes.',
+            showInDialog: true,
+          },
           hideCWD: {
             type: 'boolean',
             label: 'Hide CWD',

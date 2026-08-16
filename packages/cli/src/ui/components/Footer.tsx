@@ -17,6 +17,10 @@ import {
 } from '@plumb/core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
 import { ThemedGradient } from './ThemedGradient.js';
+import { PowerlineRow } from './statusLine/PowerlineRow.js';
+import type { PowerlineSegment } from './statusLine/PowerlineRow.js';
+import { resolveSeparator, isSeparatorStyle } from './statusLine/separators.js';
+import { metaFor } from './statusLine/segmentMeta.js';
 import process from 'node:process';
 import os from 'node:os';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -240,7 +244,13 @@ export const Footer: React.FC = () => {
   const items =
     settings.merged.ui.footer.items ??
     deriveItemsFromLegacySettings(settings.merged);
-  const showLabels = settings.merged.ui.footer.showLabels !== false;
+  // 'labels' keeps the original two-line header/value layout; any other
+  // value selects a single-line separated row (see statusLine/separators).
+  const separatorSetting = settings.merged.ui.footer.separator ?? 'labels';
+  const isPowerlineMode =
+    separatorSetting !== 'labels' && isSeparatorStyle(separatorSetting);
+  const showLabels =
+    !isPowerlineMode && settings.merged.ui.footer.showLabels !== false;
   const itemColor = showLabels ? theme.text.primary : theme.ui.comment;
 
   // Per-field status colors, following oh-my-pi's status line (its theme
@@ -556,6 +566,41 @@ export const Footer: React.FC = () => {
       flexShrink: 0,
       alignItems: 'flex-end',
     });
+  }
+
+  if (isPowerlineMode) {
+    const separator = resolveSeparator(
+      separatorSetting,
+      settings.merged.ui.footer.nerdFont === true,
+    );
+    const leftSegments: PowerlineSegment[] = [];
+    const rightSegments: PowerlineSegment[] = [];
+    for (const col of potentialColumns) {
+      const meta = metaFor(col.id);
+      const segment: PowerlineSegment = {
+        key: col.id,
+        element: col.element(col.width),
+        color: meta.color(),
+        width: col.width,
+        priority: meta.priority,
+      };
+      (meta.side === 'right' ? rightSegments : leftSegments).push(segment);
+    }
+    return (
+      <Box flexDirection="column">
+        <Box width={terminalWidth}>
+          <ThemedGradient>
+            {'─'.repeat(Math.max(terminalWidth, 0))}
+          </ThemedGradient>
+        </Box>
+        <PowerlineRow
+          left={leftSegments}
+          right={rightSegments}
+          separator={separator}
+          terminalWidth={terminalWidth}
+        />
+      </Box>
+    );
   }
 
   return (

@@ -31,6 +31,8 @@ export interface SemanticColors {
     toolPending?: string;
     toolSuccess?: string;
     toolError?: string;
+    /** Status line's own ground, when the theme defines one. */
+    statusLine?: string;
   };
   border: {
     default: string;
@@ -47,6 +49,19 @@ export interface SemanticColors {
     error: string;
     success: string;
     warning: string;
+  };
+  /**
+   * Per-field status line hues (see ColorsTheme's StatusLine* fields).
+   * Each is optional; a caller must fall back to a generic color rather
+   * than inventing one when a theme leaves them unset.
+   */
+  statusLine?: {
+    model?: string;
+    path?: string;
+    gitClean?: string;
+    gitDirty?: string;
+    context?: string;
+    cost?: string;
   };
 }
 
@@ -71,6 +86,7 @@ export const lightSemanticColors: SemanticColors = {
     toolPending: lightTheme.ToolPendingBackground,
     toolSuccess: lightTheme.ToolSuccessBackground,
     toolError: lightTheme.ToolErrorBackground,
+    statusLine: lightTheme.StatusLineBackground,
   },
   border: {
     default: lightTheme.DarkGray,
@@ -87,6 +103,14 @@ export const lightSemanticColors: SemanticColors = {
     error: lightTheme.AccentRed,
     success: lightTheme.AccentGreen,
     warning: lightTheme.AccentYellow,
+  },
+  statusLine: {
+    model: lightTheme.StatusLineModel,
+    path: lightTheme.StatusLinePath,
+    gitClean: lightTheme.StatusLineGitClean,
+    gitDirty: lightTheme.StatusLineGitDirty,
+    context: lightTheme.StatusLineContext,
+    cost: lightTheme.StatusLineCost,
   },
 };
 
@@ -111,6 +135,7 @@ export const darkSemanticColors: SemanticColors = {
     toolPending: darkTheme.ToolPendingBackground,
     toolSuccess: darkTheme.ToolSuccessBackground,
     toolError: darkTheme.ToolErrorBackground,
+    statusLine: darkTheme.StatusLineBackground,
   },
   border: {
     default: darkTheme.DarkGray,
@@ -127,5 +152,13 @@ export const darkSemanticColors: SemanticColors = {
     error: darkTheme.AccentRed,
     success: darkTheme.AccentGreen,
     warning: darkTheme.AccentYellow,
+  },
+  statusLine: {
+    model: darkTheme.StatusLineModel,
+    path: darkTheme.StatusLinePath,
+    gitClean: darkTheme.StatusLineGitClean,
+    gitDirty: darkTheme.StatusLineGitDirty,
+    context: darkTheme.StatusLineContext,
+    cost: darkTheme.StatusLineCost,
   },
 };

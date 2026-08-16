@@ -192,6 +192,21 @@ export interface ColorsTheme {
   ToolPendingBackground?: string;
   ToolSuccessBackground?: string;
   ToolErrorBackground?: string;
+  /**
+   * Per-field status line hues. oh-my-pi's theme assigns each status
+   * segment its own color (modes/theme/dark.json: statusLineModel,
+   * statusLinePath, statusLineGitClean, ...) so a field is identifiable by
+   * hue before its label is read -- the alternative, one shade for the
+   * whole row, makes every field cost a read. Optional: a theme that omits
+   * them falls back to the generic accent/status colors.
+   */
+  StatusLineModel?: string;
+  StatusLinePath?: string;
+  StatusLineGitClean?: string;
+  StatusLineGitDirty?: string;
+  StatusLineContext?: string;
+  StatusLineCost?: string;
+  StatusLineBackground?: string;
 }
 
 export const lightTheme: ColorsTheme = {
@@ -250,6 +265,13 @@ export const darkTheme: ColorsTheme = {
   ToolPendingBackground: '#1D2129',
   ToolSuccessBackground: '#161A1F',
   ToolErrorBackground: '#291D1D',
+  StatusLineModel: '#D787AF',
+  StatusLinePath: '#00AFAF',
+  StatusLineGitClean: '#5FAF5F',
+  StatusLineGitDirty: '#D7AF5F',
+  StatusLineContext: '#8787AF',
+  StatusLineCost: '#5FAFAF',
+  StatusLineBackground: '#121212',
 };
 
 export const ansiTheme: ColorsTheme = {
