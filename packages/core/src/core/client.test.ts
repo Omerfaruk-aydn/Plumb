@@ -316,6 +316,7 @@ describe('Gemini Client (client.ts)', () => {
         .fn()
         .mockReturnValue(createAvailabilityServiceMock()),
       getEffortEscalation: vi.fn().mockReturnValue(true),
+      getStaleResultMarking: vi.fn().mockReturnValue(true),
     } as unknown as Config;
     mockConfig.getHookSystem = vi.fn().mockReturnValue(mockHookSystem);
 
@@ -3190,6 +3191,115 @@ ${JSON.stringify(
           'prompt-id-new',
           'Hi',
         );
+      });
+    });
+
+    describe('Stagnation Recovery', () => {
+      beforeEach(() => {
+        const mockChat: Partial<PlumbChat> = {
+          addHistory: vi.fn(),
+          setTools: vi.fn(),
+          getHistory: vi.fn().mockReturnValue([]),
+          getLastPromptTokenCount: vi.fn(),
+        };
+        client['chat'] = mockChat as PlumbChat;
+        vi.spyOn(client['loopDetector'], 'turnStarted').mockResolvedValue({
+          count: 0,
+        });
+        vi.spyOn(client['loopDetector'], 'addAndCheck').mockReturnValue({
+          count: 0,
+        });
+        mockTurnRunFn.mockImplementation(() =>
+          (async function* () {
+            yield { type: GeminiEventType.Content, value: 'Event' };
+          })(),
+        );
+      });
+
+      it('injects a nudge once the failure streak crosses the threshold', async () => {
+        // A prompt_id change resets the streak counter, so it must already
+        // match `lastPromptId` for the manually-set streak below to survive
+        // into processTurn's threshold check.
+        client['lastPromptId'] = 'prompt-id-stagnation-1';
+        client['consecutiveToolFailureBatches'] = 2;
+        const sendMessageStreamSpy = vi.spyOn(client, 'sendMessageStream');
+
+        const stream = client.sendMessageStream(
+          [{ text: 'Hi' }],
+          new AbortController().signal,
+          'prompt-id-stagnation-1',
+        );
+        for await (const _ of stream) {
+          // Consume stream
+        }
+
+        expect(sendMessageStreamSpy).toHaveBeenCalledTimes(2);
+        const recoveryCall = sendMessageStreamSpy.mock.calls[1];
+        expect((recoveryCall[0] as Part[])[0].text).toContain(
+          'tool-call attempts in a row hit errors',
+        );
+      });
+
+      it('does not nudge again within the same streak', async () => {
+        client['lastPromptId'] = 'prompt-id-stagnation-2';
+        client['consecutiveToolFailureBatches'] = 2;
+        const sendMessageStreamSpy = vi.spyOn(client, 'sendMessageStream');
+
+        // A previous recovery call in this streak already set this; simulate
+        // it directly rather than re-running the first scenario, so this
+        // test only exercises the "already nudged" branch.
+        client['hasNudgedThisStreak'] = true;
+
+        const stream = client.sendMessageStream(
+          [{ text: 'Hi' }],
+          new AbortController().signal,
+          'prompt-id-stagnation-2',
+        );
+        for await (const _ of stream) {
+          // Consume stream
+        }
+
+        // Only the original call -- no recovery recursion this time.
+        expect(sendMessageStreamSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('stays silent below the failure threshold', async () => {
+        client['lastPromptId'] = 'prompt-id-stagnation-3';
+        client['consecutiveToolFailureBatches'] = 1;
+        const sendMessageStreamSpy = vi.spyOn(client, 'sendMessageStream');
+
+        const stream = client.sendMessageStream(
+          [{ text: 'Hi' }],
+          new AbortController().signal,
+          'prompt-id-stagnation-3',
+        );
+        for await (const _ of stream) {
+          // Consume stream
+        }
+
+        expect(sendMessageStreamSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not nudge on a fresh prompt even if a stale flag was left set', async () => {
+        client['consecutiveToolFailureBatches'] = 2;
+        client['hasNudgedThisStreak'] = true;
+        client['lastPromptId'] = 'some-earlier-prompt';
+
+        const sendMessageStreamSpy = vi.spyOn(client, 'sendMessageStream');
+
+        const stream = client.sendMessageStream(
+          [{ text: 'Hi' }],
+          new AbortController().signal,
+          'prompt-id-stagnation-4',
+        );
+        for await (const _ of stream) {
+          // Consume stream
+        }
+
+        // A new prompt_id resets consecutiveToolFailureBatches to 0 before
+        // the threshold check runs, so no nudge fires even though the flag
+        // had been left set from a previous streak.
+        expect(sendMessageStreamSpy).toHaveBeenCalledTimes(1);
       });
     });
   });

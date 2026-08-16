@@ -1994,6 +1994,16 @@ const SETTINGS_SCHEMA = {
           'Use ripgrep for file content search instead of the fallback implementation. Provides faster search performance.',
         showInDialog: true,
       },
+      staleResultMarking: {
+        type: 'boolean',
+        label: 'Mark Stale File Reads',
+        category: 'Tools',
+        requiresRestart: false,
+        default: true,
+        description:
+          "When a file is read and later edited in the same session, replace the earlier read's content in context with a notice that it's outdated -- prevents the model from confidently acting on a version of a file that no longer exists on disk.",
+        showInDialog: true,
+      },
       effortEscalation: {
         type: 'boolean',
         label: 'Escalate Reasoning Effort on Repeated Failure',

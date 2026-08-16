@@ -1266,6 +1266,7 @@ export async function loadCliConfig(
     useRipgrep: settings.tools?.useRipgrep,
     postEditVerification: settings.tools?.postEditVerification,
     effortEscalation: settings.tools?.effortEscalation,
+    staleResultMarking: settings.tools?.staleResultMarking,
     enableInteractiveShell: settings.tools?.shell?.enableInteractiveShell,
     shellBackgroundCompletionBehavior: settings.tools?.shell
       ?.backgroundCompletionBehavior as string | undefined,

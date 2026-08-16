@@ -672,6 +672,7 @@ export interface ConfigParameters {
   useRipgrep?: boolean;
   postEditVerification?: boolean;
   effortEscalation?: boolean;
+  staleResultMarking?: boolean;
   enableInteractiveShell?: boolean;
   shellBackgroundCompletionBehavior?: string;
   skipNextSpeakerCheck?: boolean;
@@ -904,6 +905,7 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly useRipgrep: boolean;
   private readonly postEditVerification: boolean;
   private readonly effortEscalation: boolean;
+  private readonly staleResultMarking: boolean;
   private readonly enableInteractiveShell: boolean;
   private readonly shellBackgroundCompletionBehavior:
     | 'inject'
@@ -1294,6 +1296,7 @@ export class Config implements McpContext, AgentLoopContext {
     this.useRipgrep = params.useRipgrep ?? true;
     this.postEditVerification = params.postEditVerification ?? true;
     this.effortEscalation = params.effortEscalation ?? true;
+    this.staleResultMarking = params.staleResultMarking ?? true;
     this.useBackgroundColor = params.useBackgroundColor ?? true;
     this.useAlternateBuffer = params.useAlternateBuffer ?? false;
     this.useTerminalBuffer = params.useTerminalBuffer ?? false;
@@ -3812,6 +3815,10 @@ export class Config implements McpContext, AgentLoopContext {
 
   getEffortEscalation(): boolean {
     return this.effortEscalation;
+  }
+
+  getStaleResultMarking(): boolean {
+    return this.staleResultMarking;
   }
 
   getUseBackgroundColor(): boolean {

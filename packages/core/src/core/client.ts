@@ -60,6 +60,7 @@ import type { RoutingContext } from '../routing/routingStrategy.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import type { ModelConfigKey } from '../services/modelConfigService.js';
 import { ToolOutputMaskingService } from '../context/toolOutputMaskingService.js';
+import { markStaleReads } from '../context/staleResultMarking.js';
 import { calculateRequestTokenCount } from '../utils/tokenCalculation.js';
 import {
   applyModelSelection,
@@ -76,6 +77,15 @@ import {
 import { initializeContextManager } from '../context/initializer.js';
 
 const MAX_TURNS = 100;
+
+/**
+ * Consecutive failing tool-call batches before the model gets an explicit
+ * "you look stuck" nudge (see `_recoverFromStagnation`). Matches the point
+ * escalation first raises reasoning effort (see the `escalation` field on
+ * `modelConfigKey` below), so the model gets both signals together the
+ * first time a task is visibly struggling.
+ */
+const STAGNATION_NUDGE_THRESHOLD = 2;
 
 type BeforeAgentHookReturn =
   | {
@@ -110,6 +120,15 @@ export class PlumbClient {
    * Reset on any successful batch or whenever a fresh user turn begins.
    */
   private consecutiveToolFailureBatches = 0;
+
+  /**
+   * Whether the model has already been told, in this failure streak, that
+   * it looks stuck (see `_recoverFromStagnation`). Reset alongside
+   * `consecutiveToolFailureBatches` so a fresh streak can nudge again, but
+   * fires at most once per streak -- repeating the same "you look stuck"
+   * text every struggling turn would just burn tokens for no new signal.
+   */
+  private hasNudgedThisStreak = false;
   private lastSentIdeContext: IdeContext | undefined;
   private forceFullIdeContext = true;
 
@@ -375,6 +394,9 @@ export class PlumbClient {
     this.consecutiveToolFailureBatches = hadFailure
       ? this.consecutiveToolFailureBatches + 1
       : 0;
+    if (!hadFailure) {
+      this.hasNudgedThisStreak = false;
+    }
   }
 
   async addDirectoryContext(): Promise<void> {
@@ -718,6 +740,7 @@ export class PlumbClient {
       tokenLimit(modelForLimitCheck) - this.getChat().getLastPromptTokenCount();
 
     await this.tryMaskToolOutputs(this.getHistory());
+    this.tryMarkStaleReads();
 
     // Estimate tokens. For text-only requests, we estimate based on character length.
     // For requests with non-text parts (like images, tools), we use the countTokens API.
@@ -776,6 +799,24 @@ export class PlumbClient {
       }
       return yield* this._recoverFromLoop(
         loopResult,
+        signal,
+        prompt_id,
+        boundedTurns,
+        displayContent,
+      );
+    }
+
+    if (
+      this.config.getEffortEscalation() &&
+      this.consecutiveToolFailureBatches >= STAGNATION_NUDGE_THRESHOLD &&
+      !this.hasNudgedThisStreak
+    ) {
+      if (boundedTurns <= 1) {
+        yield { type: GeminiEventType.MaxSessionTurns };
+        return turn;
+      }
+      this.hasNudgedThisStreak = true;
+      return yield* this._recoverFromStagnation(
         signal,
         prompt_id,
         boundedTurns,
@@ -950,6 +991,7 @@ export class PlumbClient {
       this.lastPromptId = prompt_id;
       this.currentSequenceModel = null;
       this.consecutiveToolFailureBatches = 0;
+      this.hasNudgedThisStreak = false;
     }
 
     if (hooksEnabled && messageBus) {
@@ -1290,6 +1332,20 @@ export class PlumbClient {
   }
 
   /**
+   * Replaces stale `read_file` results with a notice once a later edit has
+   * touched the same path. Unlike tool-output masking this is a correctness
+   * fix, not a cost optimization, so it isn't threshold-gated -- it runs
+   * every turn rather than only once the context window gets large.
+   */
+  private tryMarkStaleReads(): void {
+    if (!this.config.getStaleResultMarking()) return;
+    const result = markStaleReads(this.getHistory());
+    if (result.markedCount > 0) {
+      this.getChat().setHistory(result.newHistory);
+    }
+  }
+
+  /**
    * Handles loop recovery by providing feedback to the model and initiating a new turn.
    */
   private _recoverFromLoop(
@@ -1313,6 +1369,37 @@ export class PlumbClient {
     const feedback = [{ text: feedbackText }];
 
     // Recursive call with feedback
+    return this.sendMessageStream(
+      feedback,
+      signal,
+      prompt_id,
+      boundedTurns - 1,
+      displayContent,
+    );
+  }
+
+  /**
+   * Handles stagnation recovery: several consecutive tool-call batches have
+   * each hit a *different* error (loop detection only catches identical
+   * repeats, so it never fires here) -- an explicit, once-per-streak nudge,
+   * mirroring `_recoverFromLoop`'s exact mechanism for a different trigger.
+   */
+  private _recoverFromStagnation(
+    signal: AbortSignal,
+    prompt_id: string,
+    boundedTurns: number,
+    displayContent?: PartListUnion,
+  ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
+    const feedbackText = `System: The last ${this.consecutiveToolFailureBatches} tool-call attempts in a row hit errors. Before trying again, consider: is there a different approach entirely, rather than a variation of what just failed? Would re-checking the current state (e.g. re-reading a file) help before assuming what's there? Is the task ambiguous enough that it's worth asking the user for clarification?`;
+
+    if (this.config.getDebugMode()) {
+      debugLogger.warn(
+        'Stagnation Recovery: Injecting feedback message to model.',
+      );
+    }
+
+    const feedback = [{ text: feedbackText }];
+
     return this.sendMessageStream(
       feedback,
       signal,
