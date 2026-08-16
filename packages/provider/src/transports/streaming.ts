@@ -11,6 +11,7 @@ import {
   type PlumbKnownApi,
   type PlumbTool,
   type PlumbToolChoice,
+  type PlumbThinkingConfig,
 } from '../types.js';
 import {
   describeToolChoiceValue,
@@ -782,6 +783,31 @@ export function registerPlumbTransport(
 /** Check if a transport is registered for an API type. */
 export function hasPlumbTransport(api: PlumbKnownApi): boolean {
   return transportFactories.has(api);
+}
+
+// ─── Anthropic adaptive-thinking effort resolver ───────────────────────
+//
+// Claude's adaptive-thinking generation (Opus 4.7+, Sonnet 5, Fable 5)
+// takes its reasoning dial through `output_config.effort` rather than
+// `thinking.budget_tokens`. This picks the effort level to send, honoring
+// an explicit request when the model actually supports that level and
+// otherwise leaving the field off so the API applies its own default --
+// never inventing a level a given model doesn't list.
+function resolveAdaptiveEffort(
+  thinking: PlumbThinkingConfig | undefined,
+  options: { reasoningEffort?: string },
+): string | undefined {
+  const supported = thinking?.supportedEfforts;
+  const requested = options.reasoningEffort;
+  if (!requested) return undefined;
+  // `adaptive` is a mode, not a wire effort level -- Anthropic rejects it
+  // in `output_config.effort`.
+  if (requested === 'adaptive') return undefined;
+  const wire = thinking?.effortMap?.[requested] ?? requested;
+  if (supported && supported.length > 0 && !supported.includes(wire)) {
+    return undefined;
+  }
+  return wire;
 }
 
 // ─── Reasoning effort capability resolver ──────────────────────────────
@@ -1602,6 +1628,16 @@ async function* anthropicMessagesStream(
       thinkingConfig?.effortBudgets?.['high'] ?? undefined,
   });
 
+  // Resolved up here (rather than at the point of use below) so the
+  // telemetry record can report truthfully whether this request carries an
+  // `output_config.effort`.
+  const adaptiveEffort =
+    tokenBudget.thinkingEnabledEffective &&
+    (thinkingConfig?.mode === 'anthropic-adaptive' ||
+      thinkingConfig?.mode === 'anthropic-budget-effort')
+      ? resolveAdaptiveEffort(thinkingConfig, options)
+      : undefined;
+
   const body: Record<string, unknown> = {
     model: model.requestModelId ?? model.id,
     messages: chatMessages,
@@ -1653,14 +1689,15 @@ async function* anthropicMessagesStream(
       toolSerializationShape: toolsSerialized ? 'ANTHROPIC_TOOLS' : 'none',
       toolsPresent: toolsSerialized,
       // Structural facts only — booleans/counts, never content. PLUMB's
-      // Anthropic transport does not currently construct `output_config`,
-      // `service_tier`, or an `effort` field at all (unlike OMP's richer
-      // adaptive-thinking dispatcher); those report `false` honestly rather
-      // than being omitted, so a differential audit can see PLUMB simply
-      // never sends them yet, not that they were dropped for this request.
+      // Anthropic transport does not construct `service_tier`, so that
+      // reports `false` honestly rather than being omitted, letting a
+      // differential audit see PLUMB simply never sends it yet rather than
+      // that it was dropped for this request. `output_config`/`effort` ARE
+      // now constructed for adaptive-thinking models; both report whether
+      // this specific request carries them.
       anthropicThinkingPresent: Boolean(hasThinking),
-      anthropicOutputConfigPresent: false,
-      anthropicEffortPresent: false,
+      anthropicOutputConfigPresent: adaptiveEffort !== undefined,
+      anthropicEffortPresent: adaptiveEffort !== undefined,
       anthropicTemperaturePresent: temperature !== undefined,
       anthropicServiceTierPresent: false,
       anthropicSystemPresent: Boolean(
@@ -1695,10 +1732,25 @@ async function* anthropicMessagesStream(
   }
 
   if (tokenBudget.thinkingEnabledEffective) {
-    body.thinking = {
-      type: 'enabled',
-      budget_tokens: tokenBudget.thinkingBudgetEffective,
-    };
+    // Claude Opus 4.7+ / Sonnet 5 / Fable 5 reject `thinking.type: "enabled"`
+    // outright ("Use thinking.type.adaptive and output_config.effort to
+    // control thinking behavior"), so the budget-based shape below is only
+    // valid for the older extended-thinking generation. The catalog already
+    // records which is which via `thinking.mode: 'anthropic-adaptive'`; this
+    // mirrors the dispatch OMP's own Anthropic provider does
+    // (vendor-ai/providers/anthropic.ts), which PLUMB's transport previously
+    // did not implement -- every adaptive-only model 400'd on first turn.
+    if (thinkingConfig?.mode === 'anthropic-adaptive') {
+      body.thinking = { type: 'adaptive' };
+    } else {
+      body.thinking = {
+        type: 'enabled',
+        budget_tokens: tokenBudget.thinkingBudgetEffective,
+      };
+    }
+    if (adaptiveEffort !== undefined) {
+      body.output_config = { effort: adaptiveEffort };
+    }
   }
 
   if (temperature !== undefined) body.temperature = temperature;

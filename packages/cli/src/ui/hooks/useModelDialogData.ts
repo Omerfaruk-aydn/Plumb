@@ -48,8 +48,13 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
         const modelRegistry = providerPackage.getPlumbModelRegistry();
 
         const activeStates = registry.getActiveProviderStates();
+        // Re-read the active set on each call rather than closing over the
+        // snapshot above: the background pass below can add to it (see the
+        // claude-subscription probe), and the second render must reflect
+        // that rather than repainting the first snapshot.
         const buildUsableProviders = () =>
-          activeStates
+          registry
+            .getActiveProviderStates()
             .map((state) => ({
               provider: state.provider,
               authState: state.authState,
@@ -89,20 +94,47 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
           (state) => !state.credentials,
         );
 
-        // Nothing to refresh (no credentialed provider, no claude-subscription
-        // active, no local provider active): skip the extra render entirely.
-        const claudeSubscriptionActive = activeStates
-          .filter((state) => state.provider.id === 'claude-subscription')
-          .map((state) => ({ providerId: state.provider.id }));
-
-        if (
-          refreshable.length === 0 &&
-          claudeSubscriptionActive.length === 0 &&
-          !hasUncredentialedActive
-        )
-          return;
+        // Claude Subscription holds no PLUMB-side credential (the Agent SDK
+        // owns its auth), so registry.initialize() -- which rebuilds the
+        // active set from the credential store -- can never restore it on a
+        // cold start. Without this probe it silently vanished from /model
+        // whenever it wasn't also the selected provider (switch to Copilot,
+        // reopen /model, and a perfectly valid Claude sign-in was gone),
+        // while every other signed-in provider persisted.
+        //
+        // Runs in the background pass rather than before the first render:
+        // it shells out to the official Claude CLI, and blocking the dialog
+        // on a subprocess to list models the user may not even be switching
+        // to is the wrong trade.
+        const claudeAlreadyActive = activeStates.some(
+          (state) => state.provider.id === 'claude-subscription',
+        );
+        const probeClaudeSubscription = async () => {
+          if (claudeAlreadyActive) return true;
+          try {
+            const status = await providerPackage.getClaudeSubscriptionStatus();
+            if (status.status !== 'CONNECTED_SUBSCRIPTION') return false;
+            registry.markProviderActiveWithoutCredential('claude-subscription');
+            return true;
+          } catch {
+            // Best-effort: a failed probe just leaves it out of this listing.
+            return false;
+          }
+        };
 
         await Promise.all([
+          probeClaudeSubscription().then(async (isConnected) => {
+            // Discovery is account/plan-aware (Query.supportedModels()), so
+            // a stale snapshot from an earlier process/account must never be
+            // the only thing model-select shows. The Agent SDK never
+            // receives PLUMB credentials, so this is a bare providerId.
+            if (!isConnected) return;
+            try {
+              await modelRegistry.discoverProviderModels('claude-subscription');
+            } catch {
+              // Non-fatal: keeps its last-known models.
+            }
+          }),
           ...refreshable.map(async ({ providerId, apiKey, oauthToken }) => {
             try {
               await modelRegistry.discoverProviderModels(
@@ -112,24 +144,6 @@ export function useModelDialogData(isOpen: boolean): ModelDialogData {
               );
             } catch {
               // Best-effort refresh; a failed provider keeps its last-known models.
-            }
-          }),
-          // Claude Subscription is a synthetic OAuth-only provider whose auth
-          // state is owned by the official Agent SDK (no PLUMB-side api_key
-          // or oauth token), so it never enters `refreshable` above. Without
-          // an explicit refresh path here the dialog would be stuck on the
-          // static 2-model OFFICIAL_STATIC_METADATA floor even when the live
-          // `Query.supportedModels()` call would return a different
-          // account/plan-aware list. The Agent SDK never receives PLUMB
-          // credentials, so refresh is a bare providerId (matches
-          // ClaudeSubscriptionDiscovery.discover(context) which ignores
-          // apiKey/oauthToken and authenticates via its own subprocess).
-          ...claudeSubscriptionActive.map(async ({ providerId }) => {
-            try {
-              await modelRegistry.discoverProviderModels(providerId);
-            } catch {
-              // Best-effort refresh; a failed claude-subscription keeps its
-              // last-known models.
             }
           }),
           ...(hasUncredentialedActive

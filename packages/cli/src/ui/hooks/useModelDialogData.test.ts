@@ -11,6 +11,8 @@ import type { PlumbProviderState } from '@plumb/provider';
 let activeStates: PlumbProviderState[];
 let getModelsForProviderMock: ReturnType<typeof vi.fn>;
 let discoverProviderModelsMock: ReturnType<typeof vi.fn>;
+let markProviderActiveMock: ReturnType<typeof vi.fn>;
+let claudeSubscriptionStatusMock: ReturnType<typeof vi.fn>;
 
 vi.mock('@plumb/provider', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@plumb/provider')>();
@@ -18,11 +20,16 @@ vi.mock('@plumb/provider', async (importOriginal) => {
     ...actual,
     getPlumbProviderRegistry: () => ({
       getActiveProviderStates: () => activeStates,
+      markProviderActiveWithoutCredential: markProviderActiveMock,
     }),
     getPlumbModelRegistry: () => ({
       getModelsForProvider: getModelsForProviderMock,
       discoverProviderModels: discoverProviderModelsMock,
     }),
+    // Must be mocked: the real implementation spawns the official Claude
+    // CLI as a subprocess, which would make every test in this file both
+    // slow and dependent on the developer's own sign-in state.
+    getClaudeSubscriptionStatus: () => claudeSubscriptionStatusMock(),
   };
 });
 
@@ -41,6 +48,10 @@ describe('useModelDialogData', () => {
   beforeEach(() => {
     getModelsForProviderMock = vi.fn(() => []);
     discoverProviderModelsMock = vi.fn().mockResolvedValue([]);
+    markProviderActiveMock = vi.fn();
+    claudeSubscriptionStatusMock = vi
+      .fn()
+      .mockResolvedValue({ status: 'NOT_LOGGED_IN' });
   });
 
   it('does not call discoverProviderModels when no active provider carries a credential', async () => {
